@@ -7,7 +7,7 @@ import {
   AlertTriangle, GitMerge, X,
 } from "lucide-react";
 import type { Lead, LeadStatus } from "@/lib/leads";
-import { detectDuplicates } from "@/lib/leads";
+import { detectDuplicates } from "@/lib/leads-utils";
 
 const STATUS_CONFIG: Record<LeadStatus, { label: string; color: string; col: string }> = {
   nouveau:      { label: "Nouveau",      color: "bg-sky-500/10 text-sky-400 border-sky-500/30",      col: "border-t-sky-500" },
