@@ -1,14 +1,16 @@
 "use client";
 
-import { Wind, LayoutDashboard, FileText, Users, LogOut, UserCircle } from "lucide-react";
+import { Wind, LayoutDashboard, FileText, Users, LogOut, UserCircle, Contact, ClipboardList } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const tabs = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/leads", label: "Leads", icon: Users },
+  { href: "/admin/clients", label: "Clients", icon: Contact },
+  { href: "/admin/devis", label: "Devis", icon: ClipboardList },
   { href: "/admin/articles", label: "Articles", icon: FileText },
   { href: "/admin/authors", label: "Auteurs", icon: UserCircle },
-  { href: "/admin/leads", label: "Leads CRM", icon: Users },
 ];
 
 export default function AdminHeader() {

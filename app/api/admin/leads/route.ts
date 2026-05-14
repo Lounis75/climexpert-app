@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updateLeadStatus, deleteLead, LeadStatus } from "@/lib/leads";
+import { updateLeadStatus, updateLead, deleteLead, LeadStatus } from "@/lib/leads";
 
 export async function PATCH(req: NextRequest) {
   try {
-    const { id, status } = await req.json();
-    if (!id || !status) {
-      return NextResponse.json({ error: "id et status requis" }, { status: 400 });
+    const body = await req.json();
+    const { id } = body;
+    if (!id) return NextResponse.json({ error: "id requis" }, { status: 400 });
+
+    if (body.notes !== undefined) {
+      const lead = await updateLead(id, { notes: body.notes });
+      if (!lead) return NextResponse.json({ error: "Lead introuvable" }, { status: 404 });
+      return NextResponse.json({ lead });
     }
-    const lead = await updateLeadStatus(id, status as LeadStatus);
+
+    if (!body.status) return NextResponse.json({ error: "status requis" }, { status: 400 });
+    const lead = await updateLeadStatus(id, body.status as LeadStatus);
     if (!lead) return NextResponse.json({ error: "Lead introuvable" }, { status: 404 });
     return NextResponse.json({ lead });
   } catch {

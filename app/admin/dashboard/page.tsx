@@ -28,19 +28,19 @@ const PROJECT_LABELS: Record<string, string> = {
   autre: "Autre",
 };
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("fr-FR", {
+function formatDate(d: Date | string) {
+  return new Date(d).toLocaleDateString("fr-FR", {
     day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
   });
 }
 
-function timeAgo(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime();
+function timeAgo(d: Date | string) {
+  const diff = Date.now() - new Date(d).getTime();
   const h = Math.floor(diff / 3600000);
-  const d = Math.floor(diff / 86400000);
+  const days = Math.floor(diff / 86400000);
   if (h < 1) return "à l'instant";
   if (h < 24) return `il y a ${h}h`;
-  return `il y a ${d}j`;
+  return `il y a ${days}j`;
 }
 
 export default async function DashboardPage() {

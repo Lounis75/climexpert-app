@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import {
-  Phone, Bot, FileText, MapPin, Home, Wrench, Trash2,
-  TrendingUp, MessageSquare, Clock,
+  Phone, Bot, FileText, MapPin, Wrench, Trash2,
+  MessageSquare, Clock,
 } from "lucide-react";
 import type { Lead, LeadStatus } from "@/lib/leads";
 
@@ -23,8 +23,8 @@ const PROJECT_LABELS: Record<string, string> = {
   autre: "Autre",
 };
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("fr-FR", {
+function formatDate(d: Date | string) {
+  return new Date(d).toLocaleDateString("fr-FR", {
     day: "numeric", month: "short", year: "numeric",
     hour: "2-digit", minute: "2-digit",
   });
@@ -36,6 +36,8 @@ export default function LeadsManager({ initialLeads }: { initialLeads: Lead[] })
   const [statusFilter, setStatusFilter] = useState("tous");
   const [updating, setUpdating] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [editingNotes, setEditingNotes] = useState<string | null>(null);
+  const [notesValue, setNotesValue] = useState("");
 
   const filtered = leads
     .filter((l) => sourceFilter === "tous" || l.source === sourceFilter)
@@ -43,7 +45,7 @@ export default function LeadsManager({ initialLeads }: { initialLeads: Lead[] })
 
   const newCount = leads.filter((l) => l.status === "nouveau").length;
   const alexCount = leads.filter((l) => l.source === "alex").length;
-  const contactCount = leads.filter((l) => l.source === "contact").length;
+  const contactCount = leads.filter((l) => l.source === "formulaire").length;
 
   async function updateStatus(id: string, status: string) {
     setUpdating(id);
@@ -57,6 +59,23 @@ export default function LeadsManager({ initialLeads }: { initialLeads: Lead[] })
         setLeads((prev) =>
           prev.map((l) => (l.id === id ? { ...l, status: status as LeadStatus } : l))
         );
+      }
+    } finally {
+      setUpdating(null);
+    }
+  }
+
+  async function saveNotes(id: string) {
+    setUpdating(id);
+    try {
+      const res = await fetch("/api/admin/leads", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, notes: notesValue }),
+      });
+      if (res.ok) {
+        setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, notes: notesValue } : l)));
+        setEditingNotes(null);
       }
     } finally {
       setUpdating(null);
@@ -98,7 +117,7 @@ export default function LeadsManager({ initialLeads }: { initialLeads: Lead[] })
       {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-6">
         <div className="flex gap-2">
-          {["tous", "alex", "contact"].map((s) => (
+          {["tous", "alex", "formulaire"].map((s) => (
             <button
               key={s}
               onClick={() => setSourceFilter(s)}
@@ -222,31 +241,47 @@ export default function LeadsManager({ initialLeads }: { initialLeads: Lead[] })
                     {PROJECT_LABELS[lead.project] ?? lead.project}
                   </span>
                 )}
-                {lead.property && (
-                  <span className="flex items-center gap-1">
-                    <Home className="w-3 h-3" />
-                    {lead.property}
-                  </span>
-                )}
                 {lead.location && (
                   <span className="flex items-center gap-1">
                     <MapPin className="w-3 h-3" />
                     {lead.location}
                   </span>
                 )}
-                {lead.estimate && (
-                  <span className="flex items-center gap-1 text-emerald-400 font-medium">
-                    <TrendingUp className="w-3 h-3" />
-                    {lead.estimate}
-                  </span>
-                )}
               </div>
 
               {/* Notes */}
-              {lead.notes && (
-                <div className="text-slate-400 text-xs bg-slate-700/30 rounded-lg px-3 py-2 flex gap-2 mb-3">
-                  <MessageSquare className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                  <span>{lead.notes}</span>
+              {editingNotes === lead.id ? (
+                <div className="mb-3">
+                  <textarea
+                    value={notesValue}
+                    onChange={(e) => setNotesValue(e.target.value)}
+                    rows={2}
+                    placeholder="Ajouter une note interne..."
+                    className="w-full text-xs bg-slate-700/50 border border-white/10 rounded-lg px-3 py-2 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sky-500/50 resize-none"
+                  />
+                  <div className="flex gap-2 mt-1.5">
+                    <button
+                      onClick={() => saveNotes(lead.id)}
+                      disabled={updating === lead.id}
+                      className="px-3 py-1 bg-sky-500/20 border border-sky-500/40 text-sky-400 rounded-lg text-xs font-medium hover:bg-sky-500/30 transition-colors disabled:opacity-50"
+                    >
+                      Enregistrer
+                    </button>
+                    <button
+                      onClick={() => setEditingNotes(null)}
+                      className="px-3 py-1 text-slate-500 hover:text-slate-400 text-xs transition-colors"
+                    >
+                      Annuler
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  className="text-slate-500 text-xs bg-slate-700/20 hover:bg-slate-700/40 rounded-lg px-3 py-2 flex gap-2 mb-3 cursor-pointer transition-colors group"
+                  onClick={() => { setEditingNotes(lead.id); setNotesValue(lead.notes ?? ""); }}
+                >
+                  <MessageSquare className="w-3 h-3 mt-0.5 flex-shrink-0 group-hover:text-slate-400" />
+                  <span className="group-hover:text-slate-400">{lead.notes || "Ajouter une note..."}</span>
                 </div>
               )}
 

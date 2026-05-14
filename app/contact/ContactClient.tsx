@@ -30,10 +30,11 @@ interface FormState {
   ville: string;
   nom: string;
   telephone: string;
+  email: string;
   message: string;
 }
 
-const initialForm: FormState = { type: "", bien: "", ville: "", nom: "", telephone: "", message: "" };
+const initialForm: FormState = { type: "", bien: "", ville: "", nom: "", telephone: "", email: "", message: "" };
 
 function openChat() {
   window.dispatchEvent(new CustomEvent("open-chat"));
@@ -195,6 +196,14 @@ export default function ContactClient() {
                       </label>
                       <input id="telephone" name="telephone" type="tel" value={form.telephone} onChange={handleChange} required placeholder="06 00 00 00 00" className={inputBase} />
                     </div>
+                  </div>
+
+                  {/* Email */}
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-semibold text-slate-700 mb-2.5">
+                      Email <span className="text-slate-400 font-normal text-xs">(optionnel)</span>
+                    </label>
+                    <input id="email" name="email" type="email" value={form.email} onChange={handleChange} placeholder="jean@exemple.fr" className={inputBase} />
                   </div>
 
                   {/* Ville */}

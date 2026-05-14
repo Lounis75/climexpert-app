@@ -8,6 +8,7 @@ interface ContactFormData {
   ville: string;
   nom: string;
   telephone: string;
+  email: string;
   message: string;
 }
 
@@ -59,6 +60,7 @@ export async function POST(req: NextRequest) {
               <tr><td style="padding: 8px 0; color: #64748B; font-size: 14px;">Téléphone</td><td style="padding: 8px 0; font-weight: bold; color: #0EA5E9; font-size: 16px;"><a href="tel:${body.telephone}" style="color: #0EA5E9; text-decoration: none;">${body.telephone}</a></td></tr>
               <tr><td style="padding: 8px 0; color: #64748B; font-size: 14px;">Type de demande</td><td style="padding: 8px 0; font-weight: bold; color: #0F172A; font-size: 14px;">${typeLabels[body.type] ?? body.type}</td></tr>
               <tr><td style="padding: 8px 0; color: #64748B; font-size: 14px;">Type de bien</td><td style="padding: 8px 0; font-weight: bold; color: #0F172A; font-size: 14px;">${bienLabels[body.bien] ?? body.bien}</td></tr>
+              ${body.email ? `<tr><td style="padding: 8px 0; color: #64748B; font-size: 14px;">Email</td><td style="padding: 8px 0; font-weight: bold; color: #0F172A; font-size: 14px;"><a href="mailto:${body.email}" style="color: #0EA5E9; text-decoration: none;">${body.email}</a></td></tr>` : ""}
               ${body.ville ? `<tr><td style="padding: 8px 0; color: #64748B; font-size: 14px;">Localisation</td><td style="padding: 8px 0; font-weight: bold; color: #0F172A; font-size: 14px;">${body.ville}</td></tr>` : ""}
               ${body.message ? `<tr><td style="padding: 8px 0; color: #64748B; font-size: 14px; vertical-align: top;">Message</td><td style="padding: 8px 0; color: #0F172A; font-size: 14px;">${body.message}</td></tr>` : ""}
             </table>
@@ -75,13 +77,13 @@ export async function POST(req: NextRequest) {
     });
 
     await createLead({
-      source: "contact",
+      source: "formulaire",
       name: body.nom,
       phone: body.telephone,
-      project: body.type,
-      property: bienLabels[body.bien] ?? body.bien,
-      location: body.ville || "",
-      notes: body.message || undefined,
+      email: body.email || undefined,
+      project: body.type as "installation" | "entretien" | "depannage" | "contrat-pro" | "autre",
+      location: body.ville || undefined,
+      message: body.message || undefined,
     });
 
     return NextResponse.json({ success: true });

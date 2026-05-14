@@ -1,106 +1,52 @@
-import { put, list, del } from "@vercel/blob";
+import { db } from "@/lib/db";
+import { leads, type Lead, type NewLead } from "@/lib/db/schema";
+import { eq, desc } from "drizzle-orm";
 
 export type LeadStatus = "nouveau" | "contacté" | "devis_envoyé" | "gagné" | "perdu";
-export type LeadSource = "alex" | "contact";
+export type LeadSource = "alex" | "formulaire" | "téléphone" | "autre";
 
-export interface Lead {
-  id: string;
-  source: LeadSource;
-  createdAt: string;
-  status: LeadStatus;
-  name: string;
-  phone: string;
-  project: string;
-  property: string;
-  location: string;
-  estimate?: string;
-  notes?: string;
-}
-
-const PREFIX = "leads/";
+export type { Lead };
 
 export async function createLead(
-  data: Omit<Lead, "id" | "createdAt" | "status">
+  data: Omit<NewLead, "id" | "createdAt" | "updatedAt" | "status">
 ): Promise<Lead> {
-  const token = process.env.BLOB_READ_WRITE_TOKEN;
-  if (!token) throw new Error("BLOB_READ_WRITE_TOKEN non configuré");
-
-  const lead: Lead = {
-    ...data,
-    id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    createdAt: new Date().toISOString(),
-    status: "nouveau",
-  };
-
-  await put(`${PREFIX}${lead.id}.json`, JSON.stringify(lead), {
-    access: "private",
-    contentType: "application/json",
-    token,
-    addRandomSuffix: false,
-  });
-
+  const [lead] = await db.insert(leads).values(data).returning();
   return lead;
 }
 
 export async function getLeads(): Promise<Lead[]> {
-  try {
-    const token = process.env.BLOB_READ_WRITE_TOKEN;
-    if (!token) return [];
+  return db.select().from(leads).orderBy(desc(leads.createdAt));
+}
 
-    const { blobs } = await list({ prefix: PREFIX, token });
-    if (blobs.length === 0) return [];
-
-    const results = await Promise.all(
-      blobs.map(async (blob) => {
-        try {
-          const res = await fetch(blob.url, { cache: "no-store" });
-          if (!res.ok) return null;
-          return (await res.json()) as Lead;
-        } catch {
-          return null;
-        }
-      })
-    );
-
-    return (results.filter(Boolean) as Lead[]).sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-  } catch {
-    return [];
-  }
+export async function getLeadById(id: string): Promise<Lead | null> {
+  const [lead] = await db.select().from(leads).where(eq(leads.id, id));
+  return lead ?? null;
 }
 
 export async function updateLeadStatus(
   id: string,
   status: LeadStatus
 ): Promise<Lead | null> {
-  const token = process.env.BLOB_READ_WRITE_TOKEN;
-  if (!token) return null;
+  const [lead] = await db
+    .update(leads)
+    .set({ status, updatedAt: new Date() })
+    .where(eq(leads.id, id))
+    .returning();
+  return lead ?? null;
+}
 
-  const { blobs } = await list({ prefix: `${PREFIX}${id}.json`, token });
-  if (blobs.length === 0) return null;
-
-  const res = await fetch(blobs[0].url, { cache: "no-store" });
-  if (!res.ok) return null;
-  const lead: Lead = await res.json();
-
-  const updated: Lead = { ...lead, status };
-  await put(`${PREFIX}${id}.json`, JSON.stringify(updated), {
-    access: "private",
-    contentType: "application/json",
-    token,
-    addRandomSuffix: false,
-  });
-
-  return updated;
+export async function updateLead(
+  id: string,
+  data: Partial<Pick<NewLead, "status" | "notes" | "email" | "location">>
+): Promise<Lead | null> {
+  const [lead] = await db
+    .update(leads)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(leads.id, id))
+    .returning();
+  return lead ?? null;
 }
 
 export async function deleteLead(id: string): Promise<void> {
-  const token = process.env.BLOB_READ_WRITE_TOKEN;
-  if (!token) return;
-
-  const { blobs } = await list({ prefix: `${PREFIX}${id}.json`, token });
-  if (blobs.length > 0) {
-    await del(blobs[0].url, { token });
-  }
+  await db.delete(leads).where(eq(leads.id, id));
 }
