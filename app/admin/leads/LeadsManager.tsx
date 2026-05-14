@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import {
   Phone, Bot, FileText, MapPin, Wrench, Trash2,
   MessageSquare, Clock, LayoutList, Columns3, UserPlus, CheckCircle2,
+  AlertTriangle, GitMerge, X,
 } from "lucide-react";
 import type { Lead, LeadStatus } from "@/lib/leads";
+import { detectDuplicates } from "@/lib/leads";
 
 const STATUS_CONFIG: Record<LeadStatus, { label: string; color: string; col: string }> = {
   nouveau:      { label: "Nouveau",      color: "bg-sky-500/10 text-sky-400 border-sky-500/30",      col: "border-t-sky-500" },
@@ -43,9 +45,12 @@ export default function LeadsManager({ initialLeads }: { initialLeads: Lead[] })
   const [convertingId, setConvertingId] = useState<string | null>(null);
   const [convertDone, setConvertDone] = useState<Set<string>>(new Set());
   const [dragOver, setDragOver] = useState<LeadStatus | null>(null);
+  const [mergingPanel, setMergingPanel] = useState<{ leadId: string; dupes: Lead[] } | null>(null);
+  const [merging, setMerging] = useState(false);
   const dragId = useRef<string | null>(null);
 
   const filtered = leads.filter((l) => sourceFilter === "tous" || l.source === sourceFilter);
+  const duplicatesMap = useMemo(() => detectDuplicates(leads), [leads]);
 
   // ─── API helpers ────────────────────────────────────────────────────────────
 
@@ -129,6 +134,27 @@ export default function LeadsManager({ initialLeads }: { initialLeads: Lead[] })
     }
   }
 
+  async function handleMerge(masterId: string, duplicateId: string) {
+    setMerging(true);
+    try {
+      const res = await fetch("/api/admin/leads/merge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ masterId, duplicateId }),
+      });
+      if (res.ok) {
+        const { lead } = await res.json();
+        setLeads((prev) => prev
+          .filter((l) => l.id !== duplicateId)
+          .map((l) => (l.id === masterId ? lead : l))
+        );
+        setMergingPanel(null);
+      }
+    } finally {
+      setMerging(false);
+    }
+  }
+
   // ─── Drag & drop ────────────────────────────────────────────────────────────
 
   function onDragStart(id: string) {
@@ -156,6 +182,7 @@ export default function LeadsManager({ initialLeads }: { initialLeads: Lead[] })
   function LeadCard({ lead, compact = false }: { lead: Lead; compact?: boolean }) {
     const statusCfg = STATUS_CONFIG[lead.status];
     const isConverted = !!lead.clientId || convertDone.has(lead.id);
+    const dupes = duplicatesMap.get(lead.id) ?? [];
     return (
       <div
         draggable
@@ -176,6 +203,15 @@ export default function LeadsManager({ initialLeads }: { initialLeads: Lead[] })
             {lead.source === "alex" ? <Bot className="w-2.5 h-2.5" /> : <FileText className="w-2.5 h-2.5" />}
             {lead.source === "alex" ? "Alex" : "Form"}
           </span>
+          {dupes.length > 0 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setMergingPanel({ leadId: lead.id, dupes }); }}
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border border-orange-500/40 bg-orange-500/10 text-orange-400 text-[10px] font-semibold hover:bg-orange-500/20 transition-colors"
+            >
+              <AlertTriangle className="w-2.5 h-2.5" />
+              Doublon
+            </button>
+          )}
           <div className="flex items-center gap-1.5">
             <span className="text-slate-600 text-[10px] flex items-center gap-0.5">
               <Clock className="w-2.5 h-2.5" />
@@ -405,6 +441,7 @@ export default function LeadsManager({ initialLeads }: { initialLeads: Lead[] })
         <div className="space-y-3">
           {filtered.map((lead) => {
             const statusCfg = STATUS_CONFIG[lead.status];
+            const listDupes = duplicatesMap.get(lead.id) ?? [];
             return (
               <div
                 key={lead.id}
@@ -425,6 +462,16 @@ export default function LeadsManager({ initialLeads }: { initialLeads: Lead[] })
                       {lead.source === "alex" ? <Bot className="w-2.5 h-2.5" /> : <FileText className="w-2.5 h-2.5" />}
                       {lead.source === "alex" ? "Alex" : "Formulaire"}
                     </span>
+
+                    {listDupes.length > 0 && (
+                      <button
+                        onClick={() => setMergingPanel({ leadId: lead.id, dupes: listDupes })}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-orange-500/40 bg-orange-500/10 text-orange-400 text-[10px] font-semibold hover:bg-orange-500/20 transition-colors"
+                      >
+                        <AlertTriangle className="w-2.5 h-2.5" />
+                        Doublon possible
+                      </button>
+                    )}
 
                     <select
                       value={lead.status}
@@ -568,6 +615,77 @@ export default function LeadsManager({ initialLeads }: { initialLeads: Lead[] })
           {leads.length} lead{leads.length > 1 ? "s" : ""} · {newCount} nouveau{newCount > 1 ? "x" : ""}
         </p>
       )}
+
+      {/* ── MODAL FUSION DOUBLONS ────────────────────────────────────────────── */}
+      {mergingPanel && (() => {
+        const master = leads.find((l) => l.id === mergingPanel.leadId);
+        if (!master) return null;
+        return (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl">
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-orange-400" />
+                  <h3 className="text-white font-semibold text-sm">Doublons détectés</h3>
+                </div>
+                <button onClick={() => setMergingPanel(null)} className="text-slate-500 hover:text-white transition-colors">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <p className="text-slate-400 text-xs">
+                  Ces leads partagent le même numéro ou email. Tu peux fusionner un doublon dans le lead principal — les données manquantes seront copiées, les notes combinées, et le doublon supprimé.
+                </p>
+
+                {/* Master */}
+                <div>
+                  <p className="text-xs text-slate-500 font-medium mb-2 uppercase tracking-wide">Lead principal (conservé)</p>
+                  <div className="bg-slate-800/60 border border-sky-500/20 rounded-xl p-3">
+                    <p className="text-white font-semibold text-sm">{master.name}</p>
+                    <p className="text-sky-400 text-xs">{master.phone}</p>
+                    {master.email && <p className="text-slate-400 text-xs">{master.email}</p>}
+                    <p className="text-slate-500 text-[10px] mt-1">
+                      {new Date(master.createdAt).toLocaleDateString("fr-FR")} · {STATUS_CONFIG[master.status].label}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Duplicates */}
+                <div>
+                  <p className="text-xs text-slate-500 font-medium mb-2 uppercase tracking-wide">Doublons (seront supprimés après fusion)</p>
+                  <div className="space-y-2">
+                    {mergingPanel.dupes.map((dupe) => (
+                      <div key={dupe.id} className="bg-slate-800/40 border border-orange-500/20 rounded-xl p-3 flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-white text-sm font-medium truncate">{dupe.name}</p>
+                          <p className="text-slate-400 text-xs">{dupe.phone}</p>
+                          <p className="text-slate-500 text-[10px] mt-0.5">
+                            {new Date(dupe.createdAt).toLocaleDateString("fr-FR")} · {STATUS_CONFIG[dupe.status].label}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleMerge(master.id, dupe.id)}
+                          disabled={merging}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500/10 border border-orange-500/30 text-orange-400 hover:bg-orange-500/20 rounded-lg text-xs font-medium transition-colors flex-shrink-0 disabled:opacity-50"
+                        >
+                          {merging ? (
+                            <span className="w-3 h-3 border border-orange-400/50 border-t-orange-400 rounded-full animate-spin" />
+                          ) : (
+                            <GitMerge className="w-3 h-3" />
+                          )}
+                          Fusionner
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
