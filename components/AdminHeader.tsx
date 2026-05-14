@@ -2,7 +2,7 @@
 
 import { Wind, LayoutDashboard, FileText, Users, LogOut, UserCircle, Contact, ClipboardList } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 const tabs = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -15,6 +15,12 @@ const tabs = [
 
 export default function AdminHeader() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  async function handleLogout() {
+    await fetch("/api/admin/login", { method: "DELETE" });
+    router.push("/admin");
+  }
 
   return (
     <header className="border-b border-white/10 bg-slate-900/80 backdrop-blur-sm sticky top-0 z-10">
@@ -46,13 +52,13 @@ export default function AdminHeader() {
           ))}
         </nav>
 
-        <Link
-          href="/admin"
+        <button
+          onClick={handleLogout}
           className="flex items-center gap-1.5 text-slate-400 hover:text-white text-xs transition-colors flex-shrink-0"
         >
           <LogOut className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">Déconnexion</span>
-        </Link>
+        </button>
       </div>
     </header>
   );

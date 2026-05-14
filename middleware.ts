@@ -1,29 +1,42 @@
 import { NextRequest, NextResponse } from "next/server";
+import { jwtVerify } from "jose";
 
-const PUBLIC_ADMIN_PATHS = ["/admin", "/api/admin/login"];
+const PUBLIC_PATHS = [
+  "/admin",              // page login
+  "/api/admin/login",   // POST login, DELETE logout
+  "/api/admin/setup",   // création premier admin
+];
 
-export function middleware(req: NextRequest) {
+function getSecret(): Uint8Array {
+  const secret = process.env.NEXTAUTH_SECRET ?? "";
+  return new TextEncoder().encode(secret);
+}
+
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (!pathname.startsWith("/admin") && !pathname.startsWith("/api/admin")) {
     return NextResponse.next();
   }
 
-  // Login page and login API are always accessible
-  if (PUBLIC_ADMIN_PATHS.includes(pathname)) {
+  if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
     return NextResponse.next();
   }
 
   const token = req.cookies.get("admin_token")?.value;
-  const expected = process.env.ADMIN_PASSWORD
-    ? Buffer.from(process.env.ADMIN_PASSWORD).toString("base64")
-    : null;
 
-  if (!expected || token !== expected) {
+  if (!token) {
     return NextResponse.redirect(new URL("/admin", req.url));
   }
 
-  return NextResponse.next();
+  try {
+    await jwtVerify(token, getSecret());
+    return NextResponse.next();
+  } catch {
+    const res = NextResponse.redirect(new URL("/admin", req.url));
+    res.cookies.set("admin_token", "", { maxAge: 0, path: "/" });
+    return res;
+  }
 }
 
 export const config = {
