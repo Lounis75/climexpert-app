@@ -1,20 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updateLeadStatus, updateLead, deleteLead, LeadStatus } from "@/lib/leads";
+import { updateLead, deleteLead } from "@/lib/leads";
+import type { LeadStatus } from "@/lib/leads";
 
 export async function PATCH(req: NextRequest) {
   try {
     const body = await req.json();
-    const { id } = body;
+    const { id, ...fields } = body;
     if (!id) return NextResponse.json({ error: "id requis" }, { status: 400 });
 
-    if (body.notes !== undefined) {
-      const lead = await updateLead(id, { notes: body.notes });
-      if (!lead) return NextResponse.json({ error: "Lead introuvable" }, { status: 404 });
-      return NextResponse.json({ lead });
+    // Accepte n'importe quelle combinaison de champs : notes, status, clientId...
+    const allowed: Record<string, unknown> = {};
+    if (fields.notes !== undefined) allowed.notes = fields.notes;
+    if (fields.status)              allowed.status = fields.status as LeadStatus;
+    if (fields.clientId)            allowed.clientId = fields.clientId;
+
+    if (Object.keys(allowed).length === 0) {
+      return NextResponse.json({ error: "Aucun champ à mettre à jour" }, { status: 400 });
     }
 
-    if (!body.status) return NextResponse.json({ error: "status requis" }, { status: 400 });
-    const lead = await updateLeadStatus(id, body.status as LeadStatus);
+    const lead = await updateLead(id, allowed);
     if (!lead) return NextResponse.json({ error: "Lead introuvable" }, { status: 404 });
     return NextResponse.json({ lead });
   } catch {

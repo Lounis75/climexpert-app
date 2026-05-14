@@ -37,7 +37,7 @@ export async function updateLeadStatus(
 
 export async function updateLead(
   id: string,
-  data: Partial<Pick<NewLead, "status" | "notes" | "email" | "location">>
+  data: Partial<Pick<NewLead, "status" | "notes" | "email" | "location" | "clientId">>
 ): Promise<Lead | null> {
   const [lead] = await db
     .update(leads)
