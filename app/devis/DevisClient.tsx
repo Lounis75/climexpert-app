@@ -29,27 +29,40 @@ export default function DevisClient() {
     const form = e.currentTarget;
     const data = new FormData(form);
 
+    const serviceMap: Record<string, string> = {
+      "Installation climatisation": "installation",
+      "Entretien / maintenance": "entretien",
+      "Dépannage": "depannage",
+      "Autre": "autre",
+    };
+    const bienMap: Record<string, string> = {
+      "Appartement": "appartement",
+      "Maison individuelle": "maison",
+      "Local professionnel": "local-professionnel",
+      "Copropriété": "copropriete",
+    };
+
     try {
-      const res = await fetch("https://formspree.io/f/YOUR_FORM_ID", {
+      const res = await fetch("/api/contact", {
         method: "POST",
-        body: data,
-        headers: { Accept: "application/json" },
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nom: data.get("name") ?? "",
+          telephone: data.get("phone") ?? "",
+          email: data.get("email") ?? "",
+          type: serviceMap[String(data.get("service") ?? "")] ?? "autre",
+          bien: bienMap[String(data.get("property") ?? "")] ?? "appartement",
+          ville: data.get("location") ?? "",
+          message: data.get("message") ?? "",
+        }),
       });
       if (res.ok) {
         setSubmitted(true);
         return;
       }
     } catch {
-      // ignore, fallback below
+      // ignore
     }
-
-    // Fallback mailto
-    const name = data.get("name");
-    const email = data.get("email");
-    const phone = data.get("phone");
-    const service = data.get("service");
-    const message = data.get("message");
-    window.location.href = `mailto:contact@climexpert.fr?subject=Demande de devis — ${service}&body=Nom: ${name}%0ATéléphone: ${phone}%0AEmail: ${email}%0AMessage: ${message}`;
     setLoading(false);
   }
 
