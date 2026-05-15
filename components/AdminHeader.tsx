@@ -1,17 +1,18 @@
 "use client";
 
-import { Wind, LayoutDashboard, FileText, Users, LogOut, UserCircle, Contact, ClipboardList, Receipt } from "lucide-react";
+import { Wind, LayoutDashboard, FileText, Users, LogOut, UserCircle, Contact, ClipboardList, Receipt, Wrench } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
 const tabs = [
-  { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/leads", label: "Leads", icon: Users },
-  { href: "/admin/clients", label: "Clients", icon: Contact },
-  { href: "/admin/devis", label: "Devis", icon: ClipboardList },
-  { href: "/admin/factures", label: "Factures", icon: Receipt },
-  { href: "/admin/articles", label: "Articles", icon: FileText },
-  { href: "/admin/authors", label: "Auteurs", icon: UserCircle },
+  { href: "/admin/dashboard",     label: "Dashboard",      icon: LayoutDashboard },
+  { href: "/admin/leads",         label: "Leads",          icon: Users },
+  { href: "/admin/clients",       label: "Clients",        icon: Contact },
+  { href: "/admin/devis",         label: "Devis",          icon: ClipboardList },
+  { href: "/admin/factures",      label: "Factures",       icon: Receipt },
+  { href: "/admin/interventions", label: "Interventions",  icon: Wrench },
+  { href: "/admin/articles",      label: "Articles",       icon: FileText },
+  { href: "/admin/authors",       label: "Auteurs",        icon: UserCircle },
 ];
 
 export default function AdminHeader() {
