@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 import { NextRequest, NextResponse } from "next/server";
 import { createLead } from "@/lib/leads";
+import { createNotification } from "@/lib/notifications";
 
 interface ContactFormData {
   type: string;
@@ -76,7 +77,7 @@ export async function POST(req: NextRequest) {
       `,
     });
 
-    await createLead({
+    const lead = await createLead({
       source: "formulaire",
       name: body.nom,
       phone: body.telephone,
@@ -84,6 +85,14 @@ export async function POST(req: NextRequest) {
       project: body.type as "installation" | "entretien" | "depannage" | "contrat-pro" | "autre",
       location: body.ville || undefined,
       message: body.message || undefined,
+    });
+
+    await createNotification({
+      type: "nouveau_lead",
+      titre: `Nouveau lead — ${body.nom}`,
+      contenu: `${body.telephone}${body.ville ? ` · ${body.ville}` : ""}`,
+      refType: "lead",
+      refId: lead.id,
     });
 
     return NextResponse.json({ success: true });
