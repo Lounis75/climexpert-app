@@ -1,6 +1,6 @@
 "use client";
 
-import { Wind, LayoutDashboard, FileText, Users, LogOut, UserCircle, Contact, ClipboardList } from "lucide-react";
+import { Wind, LayoutDashboard, FileText, Users, LogOut, UserCircle, Contact, ClipboardList, Receipt } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -9,6 +9,7 @@ const tabs = [
   { href: "/admin/leads", label: "Leads", icon: Users },
   { href: "/admin/clients", label: "Clients", icon: Contact },
   { href: "/admin/devis", label: "Devis", icon: ClipboardList },
+  { href: "/admin/factures", label: "Factures", icon: Receipt },
   { href: "/admin/articles", label: "Articles", icon: FileText },
   { href: "/admin/authors", label: "Auteurs", icon: UserCircle },
 ];
