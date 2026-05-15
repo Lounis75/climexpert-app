@@ -9,7 +9,7 @@ export type LigneDevis = InferSelectModel<typeof lignesDevis>;
 export type NewDevis = InferInsertModel<typeof devis>;
 export type NewLigneDevis = InferInsertModel<typeof lignesDevis>;
 
-export type DevisWithLignes = Devis & { lignes: LigneDevis[]; clientName?: string };
+export type DevisWithLignes = Devis & { lignes: LigneDevis[]; clientName?: string; clientEmail?: string | null };
 
 export type LigneInput = {
   designation: string;
@@ -40,7 +40,7 @@ export async function getDevis(): Promise<(Devis & { clientName: string })[]> {
 
 export async function getDevisById(id: string): Promise<DevisWithLignes | null> {
   const [row] = await db
-    .select({ devis: devis, clientName: clients.name })
+    .select({ devis: devis, clientName: clients.name, clientEmail: clients.email })
     .from(devis)
     .leftJoin(clients, eq(devis.clientId, clients.id))
     .where(eq(devis.id, id));
@@ -53,7 +53,7 @@ export async function getDevisById(id: string): Promise<DevisWithLignes | null> 
     .where(eq(lignesDevis.devisId, id))
     .orderBy(lignesDevis.ordre);
 
-  return { ...row.devis, clientName: row.clientName ?? "—", lignes };
+  return { ...row.devis, clientName: row.clientName ?? "—", clientEmail: row.clientEmail ?? null, lignes };
 }
 
 export async function createDevis(

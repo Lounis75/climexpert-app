@@ -1,9 +1,10 @@
 import { db } from "@/lib/db";
 import { factures, devis, clients } from "@/lib/db/schema";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
-import { eq, desc, count } from "drizzle-orm";
+import { eq, desc, count, and, lt } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 import { centimesToEuros } from "@/lib/devis";
+import { createNotification } from "@/lib/notifications";
 
 export type Facture = InferSelectModel<typeof factures>;
 export type { };
@@ -22,7 +23,35 @@ async function generateFactureNumber(): Promise<string> {
   return `FACT-${year}-${String(n).padStart(3, "0")}`;
 }
 
+export async function markOverdueFactures(): Promise<void> {
+  const today = new Date().toISOString().split("T")[0];
+
+  // Récupérer les factures qui vont passer en retard pour créer les notifications
+  const toMark = await db
+    .select({ id: factures.id, number: factures.number })
+    .from(factures)
+    .where(and(eq(factures.status, "en_attente"), lt(factures.dueDate, today)));
+
+  if (toMark.length === 0) return;
+
+  await db
+    .update(factures)
+    .set({ status: "en_retard", updatedAt: new Date() })
+    .where(and(eq(factures.status, "en_attente"), lt(factures.dueDate, today)));
+
+  // Notifications (fire-and-forget)
+  for (const f of toMark) {
+    createNotification({
+      type: "facture_en_retard",
+      titre: `Facture en retard — ${f.number}`,
+      refType: "facture",
+      refId: f.id,
+    }).catch(() => {});
+  }
+}
+
 export async function getFactures(): Promise<FactureWithRefs[]> {
+  await markOverdueFactures();
   const rows = await db
     .select({
       facture: factures,
@@ -42,6 +71,7 @@ export async function getFactures(): Promise<FactureWithRefs[]> {
 }
 
 export async function getFactureById(id: string): Promise<FactureWithRefs | null> {
+  await markOverdueFactures();
   const [row] = await db
     .select({
       facture: factures,
