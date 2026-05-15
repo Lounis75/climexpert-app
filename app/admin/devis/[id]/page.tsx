@@ -2,7 +2,7 @@ import AdminHeader from "@/components/AdminHeader";
 import { getDevisById, centimesToEuros, STATUS_DEVIS } from "@/lib/devis";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Calendar, User, FileText, Trash2 } from "lucide-react";
+import { ArrowLeft, Calendar, User, FileText, Trash2, Download } from "lucide-react";
 import DevisActions from "./DevisActions";
 
 export const dynamic = "force-dynamic";
@@ -48,7 +48,16 @@ export default async function DevisDetailPage({
               </p>
             </div>
           </div>
-          <DevisActions id={d.id} currentStatus={d.status} />
+          <div className="flex items-center gap-2 flex-wrap">
+            <a
+              href={`/api/admin/devis/${d.id}/pdf`}
+              download={`${d.number}.pdf`}
+              className="flex items-center gap-1.5 px-3 py-2 bg-slate-700/60 border border-white/10 text-slate-300 hover:text-white hover:border-white/20 text-xs font-medium rounded-xl transition-all"
+            >
+              <Download className="w-3.5 h-3.5" /> Télécharger PDF
+            </a>
+            <DevisActions id={d.id} currentStatus={d.status} />
+          </div>
         </div>
 
         {/* Infos */}

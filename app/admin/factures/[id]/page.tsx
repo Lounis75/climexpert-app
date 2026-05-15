@@ -2,7 +2,7 @@ import AdminHeader from "@/components/AdminHeader";
 import { getFactureById, centimesToEuros, STATUS_FACTURE } from "@/lib/factures";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Calendar, User, FileText, Trash2, CheckCircle } from "lucide-react";
+import { ArrowLeft, Calendar, User, FileText, Trash2, CheckCircle, Download } from "lucide-react";
 import FactureActions from "./FactureActions";
 
 export const dynamic = "force-dynamic";
@@ -48,7 +48,16 @@ export default async function FactureDetailPage({
               </p>
             </div>
           </div>
-          <FactureActions id={f.id} currentStatus={f.status} />
+          <div className="flex items-center gap-2 flex-wrap">
+            <a
+              href={`/api/admin/factures/${f.id}/pdf`}
+              download={`${f.number}.pdf`}
+              className="flex items-center gap-1.5 px-3 py-2 bg-slate-700/60 border border-white/10 text-slate-300 hover:text-white hover:border-white/20 text-xs font-medium rounded-xl transition-all"
+            >
+              <Download className="w-3.5 h-3.5" /> Télécharger PDF
+            </a>
+            <FactureActions id={f.id} currentStatus={f.status} />
+          </div>
         </div>
 
         {/* Infos */}

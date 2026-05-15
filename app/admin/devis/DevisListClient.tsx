@@ -10,7 +10,7 @@ type DevisRow = {
   number: string;
   clientName: string | null;
   status: string;
-  totalTtcCt: number;
+  totalTtcCt: number | null;
   createdAt: Date | string;
 };
 
