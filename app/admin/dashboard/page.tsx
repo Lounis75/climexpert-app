@@ -2,6 +2,7 @@ import { getDashboardStats } from "@/lib/dashboard";
 import { getDynamicArticles } from "@/lib/dynamicArticles";
 import { getFeaturedSlugs } from "@/lib/kv";
 import AdminHeader from "@/components/AdminHeader";
+import DashboardLeadRow from "@/components/DashboardLeadRow";
 import Link from "next/link";
 import dynamicImport from "next/dynamic";
 
@@ -9,7 +10,6 @@ const CalendrierDashboard = dynamicImport(
   () => import("@/app/admin/interventions/CalendrierDashboard"),
   { ssr: false, loading: () => <div className="h-48 flex items-center justify-center"><div className="w-5 h-5 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" /></div> },
 );
-import DashboardLeadRow from "@/components/DashboardLeadRow";
 import {
   Users, FileText, TrendingUp,
   MessageSquare, ArrowRight,
