@@ -17,6 +17,20 @@ export const metadata: Metadata = {
   },
 };
 
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, name: "Accueil", item: "https://climexpert.fr" },
+    { "@type": "ListItem", position: 2, name: "Contact", item: "https://climexpert.fr/contact" },
+  ],
+};
+
 export default function ContactPage() {
-  return <ContactClient />;
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
+      <ContactClient />
+    </>
+  );
 }

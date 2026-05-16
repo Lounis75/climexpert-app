@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createElement } from "react";
 import { Resend } from "resend";
-import { getDevisById, centimesToEuros } from "@/lib/devis";
+import { getDevisById, centimesToEuros, updateDevisStatus } from "@/lib/devis";
 import DevisPDF from "@/components/pdf/DevisPDF";
 
 export async function POST(
@@ -41,9 +41,11 @@ export async function POST(
     }) as any);
 
     const resend = new Resend(process.env.RESEND_API_KEY);
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://climexpert.fr";
+    const publicUrl = d.publicToken ? `${baseUrl}/devis/${d.publicToken}` : null;
 
     await resend.emails.send({
-      from: "ClimExpert <onboarding@resend.dev>",
+      from: "ClimExpert <noreply@climexpert.fr>",
       to: [d.clientEmail],
       subject: `Votre devis ${d.number} — ClimExpert`,
       attachments: [
@@ -66,10 +68,20 @@ export async function POST(
               d'un montant de <strong>${centimesToEuros(totalTtcCt)} TTC</strong>.
             </p>
             ${d.validUntil ? `<p style="color: #475569; font-size: 14px; margin: 0 0 16px;">Ce devis est valable jusqu'au <strong>${new Date(d.validUntil).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}</strong>.</p>` : ""}
-            <p style="color: #475569; font-size: 14px; margin: 0;">
+            ${publicUrl ? `<p style="color: #475569; font-size: 14px; margin: 0 0 16px;">
+              Vous pouvez également consulter et <strong>accepter votre devis en ligne</strong> en cliquant sur le bouton ci-dessous.
+            </p>` : `<p style="color: #475569; font-size: 14px; margin: 0;">
               Pour l'accepter, il vous suffit de nous retourner le document signé avec la mention <em>«&nbsp;Bon pour accord&nbsp;»</em>.
-            </p>
+            </p>`}
           </div>
+
+          ${publicUrl ? `
+          <div style="text-align: center; margin-bottom: 16px;">
+            <a href="${publicUrl}" style="display: inline-block; background: #0EA5E9; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 15px;">
+              Voir et accepter mon devis →
+            </a>
+            <p style="color: #94A3B8; font-size: 12px; margin-top: 8px;">Lien sécurisé, valable pour ce devis uniquement.</p>
+          </div>` : ""}
 
           <div style="background: #0EA5E9; border-radius: 8px; padding: 16px; text-align: center;">
             <p style="margin: 0; color: white; font-size: 14px; font-weight: bold;">Une question ? Appelez-nous</p>
@@ -84,6 +96,11 @@ export async function POST(
         </div>
       `,
     });
+
+    // Passer le devis en "envoyé" si encore brouillon
+    if (d.status === "brouillon") {
+      await updateDevisStatus(d.id, "envoyé");
+    }
 
     return NextResponse.json({ success: true });
   } catch (err) {

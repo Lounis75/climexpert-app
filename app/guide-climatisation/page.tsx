@@ -155,7 +155,7 @@ const faqItems = [
   {
     question: "Combien de temps dure une climatisation ?",
     answer:
-      "Une climatisation bien entretenue dure entre 12 et 20 ans. L'entretien annuel est le facteur clé de longévité. Sans entretien, la durée de vie peut être réduite de moitié. Nos contrats de maintenance à 200 €/unité/an protègent votre investissement.",
+      "Une climatisation bien entretenue dure entre 12 et 20 ans. L'entretien annuel est le facteur clé de longévité. Sans entretien, la durée de vie peut être réduite de moitié. Nos contrats de maintenance à partir de 150 €/unité/an protègent votre investissement.",
   },
   {
     question: "Quand est-il préférable d'installer une climatisation ?",
@@ -169,6 +169,25 @@ const tocItems = [
   { id: "prix", label: "Combien ça coûte ?" },
   { id: "aides", label: "Les aides financières" },
 ];
+
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, name: "Accueil", item: "https://climexpert.fr" },
+    { "@type": "ListItem", position: 2, name: "Guide climatisation", item: "https://climexpert.fr/guide-climatisation" },
+  ],
+};
+
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faqItems.map((item) => ({
+    "@type": "Question",
+    name: item.question,
+    acceptedAnswer: { "@type": "Answer", text: item.answer },
+  })),
+};
 
 export default async function GuidePage() {
   const [featuredSlugs, dynamicArticles] = await Promise.all([
@@ -186,8 +205,25 @@ export default async function GuidePage() {
     .map((slug) => allArticles.find((a) => a.slug === slug))
     .filter(Boolean) as typeof allArticles;
 
+  const itemListSchema = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "Articles guide climatisation ClimExpert",
+    url: "https://climexpert.fr/guide-climatisation",
+    numberOfItems: allArticles.length,
+    itemListElement: allArticles.map((article, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: article.title,
+      url: `https://climexpert.fr/guide-climatisation/${article.slug}`,
+    })),
+  };
+
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListSchema) }} />
       <Header />
       <main>
 
@@ -486,7 +522,7 @@ export default async function GuidePage() {
                   <div className="bg-[#0B1120] rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
                       <p className="text-[10px] uppercase tracking-widest font-bold text-slate-500 mb-1">Nos contrats d'entretien</p>
-                      <p className="text-white font-bold text-xl">200 € <span className="text-slate-400 font-normal text-base">/ unité / an</span></p>
+                      <p className="text-white font-bold text-xl">À partir de 150 € <span className="text-slate-400 font-normal text-base">/ unité / an</span></p>
                       <p className="text-slate-400 text-sm">Tout inclus : déplacement, nettoyage, rapport</p>
                     </div>
                     <Link

@@ -1,19 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
+import { jwtVerify } from "jose";
 import { getAuthors, createAuthor, updateAuthor, deleteAuthor } from "@/lib/authors";
 
-function isAuthed(req: NextRequest): boolean {
+async function isAuthed(req: NextRequest): Promise<boolean> {
   const token = req.cookies.get("admin_token")?.value;
-  return token === process.env.ADMIN_SECRET;
+  if (!token) return false;
+  try {
+    const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET ?? "");
+    await jwtVerify(token, secret);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function GET(req: NextRequest) {
-  if (!isAuthed(req)) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+  if (!await isAuthed(req)) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
   const authors = await getAuthors();
   return NextResponse.json(authors);
 }
 
 export async function POST(req: NextRequest) {
-  if (!isAuthed(req)) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+  if (!await isAuthed(req)) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
   const body = await req.json();
   const { name, role, photo, bio } = body;
   if (!name?.trim() || !role?.trim()) {
@@ -24,7 +32,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-  if (!isAuthed(req)) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+  if (!await isAuthed(req)) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
   const body = await req.json();
   const { id, ...data } = body;
   if (!id) return NextResponse.json({ error: "ID requis" }, { status: 400 });
@@ -34,7 +42,7 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  if (!isAuthed(req)) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+  if (!await isAuthed(req)) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
   if (!id) return NextResponse.json({ error: "ID requis" }, { status: 400 });

@@ -3,8 +3,9 @@
 import { useState } from "react";
 import {
   Phone, Mail, MapPin, Trash2, Plus, X, Check,
-  UserCircle, MessageSquare, Building2,
+  UserCircle, MessageSquare, Building2, ChevronRight,
 } from "lucide-react";
+import Link from "next/link";
 import type { Client } from "@/lib/clients";
 
 function formatDate(d: Date | string) {
@@ -220,6 +221,13 @@ export default function ClientsManager({ initialClients }: { initialClients: Cli
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <span className="text-slate-600 text-xs">{formatDate(client.createdAt)}</span>
+                <Link
+                  href={`/admin/clients/${client.id}`}
+                  className="text-slate-500 hover:text-sky-400 transition-colors"
+                  title="Voir la fiche"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Link>
                 <button
                   onClick={() => handleDelete(client.id)}
                   disabled={deleting === client.id}

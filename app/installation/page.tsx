@@ -147,11 +147,21 @@ const serviceSchema = {
   url: "https://climexpert.fr/installation",
 };
 
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    { "@type": "ListItem", "position": 1, "name": "Accueil", "item": "https://climexpert.fr" },
+    { "@type": "ListItem", "position": 2, "name": "Installation climatisation", "item": "https://climexpert.fr/installation" },
+  ],
+};
+
 export default function InstallationPage() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
       <Header />
       <main>
         <PageHero

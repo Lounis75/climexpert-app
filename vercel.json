@@ -1,0 +1,7 @@
+{
+  "crons": [
+    { "path": "/api/cron/garanties", "schedule": "0 8 * * *" },
+    { "path": "/api/cron/suivis",    "schedule": "0 9 * * *" },
+    { "path": "/api/cron/sms-j365",  "schedule": "0 9 * * *" }
+  ]
+}

@@ -35,7 +35,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title: article.metaTitle,
       description: article.metaDescription,
       url: `https://climexpert.fr/guide-climatisation/${article.slug}`,
-      images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
+      images: [
+        {
+          url: article.heroImage.startsWith("http")
+            ? article.heroImage
+            : `https://climexpert.fr${article.heroImage}`,
+          width: 1200,
+          height: 630,
+          alt: article.heroAlt,
+        },
+      ],
       type: "article",
       ...(article.author ? { authors: [article.author] } : {}),
     },
@@ -323,7 +332,7 @@ export default async function ArticlePage({ params }: Props) {
             <div className="grid sm:grid-cols-3 gap-3">
               {[
                 { href: "/installation", label: "Installation", desc: "Monosplit, multisplit, gainable — à partir de 1 500 €" },
-                { href: "/entretien", label: "Entretien annuel", desc: "Contrat de maintenance à 200 €/unité/an" },
+                { href: "/entretien", label: "Entretien annuel", desc: "Contrat de maintenance à partir de 150 €/unité/an" },
                 { href: "/depannage", label: "Dépannage", desc: "Intervention sous 48h, toutes marques, 7j/7" },
               ].map((s) => (
                 <Link

@@ -2,6 +2,7 @@ import AdminHeader from "@/components/AdminHeader";
 import { getInterventions, TYPE_LABELS, TYPE_COLORS, STATUS_INTERVENTION } from "@/lib/interventions";
 import Link from "next/link";
 import { Plus, Wrench, Calendar, User, MapPin, ArrowRight } from "lucide-react";
+import ViewToggle from "./ViewToggle";
 
 export const dynamic = "force-dynamic";
 
@@ -34,8 +35,8 @@ function isThisWeek(d: Date | string | null) {
 export default async function AdminInterventionsPage() {
   const list = await getInterventions();
 
-  const today = list.filter((i) => isToday(i.scheduledAt) && i.status !== "annulée");
-  const week = list.filter((i) => !isToday(i.scheduledAt) && isThisWeek(i.scheduledAt) && i.status !== "annulée");
+  const today   = list.filter((i) => isToday(i.scheduledAt) && i.status !== "annulée");
+  const week    = list.filter((i) => !isToday(i.scheduledAt) && isThisWeek(i.scheduledAt) && i.status !== "annulée");
   const upcoming = list.filter((i) => {
     if (!i.scheduledAt) return false;
     const d = new Date(i.scheduledAt);
@@ -105,9 +106,9 @@ export default async function AdminInterventionsPage() {
   return (
     <div className="min-h-screen bg-[#080d18]">
       <AdminHeader />
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
 
-        <div className="mb-8 flex items-start justify-between">
+        <div className="mb-8 flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-2xl font-bold text-white mb-1">Interventions</h1>
             <p className="text-slate-400 text-sm">
@@ -115,33 +116,39 @@ export default async function AdminInterventionsPage() {
               {list.filter(i => i.status === "planifiée").length} planifiées au total
             </p>
           </div>
-          <Link
-            href="/admin/interventions/new"
-            className="flex items-center gap-1.5 px-4 py-2 bg-sky-500 hover:bg-sky-400 text-white text-xs font-semibold rounded-xl transition-all"
-          >
-            <Plus className="w-3.5 h-3.5" /> Nouvelle intervention
-          </Link>
-        </div>
-
-        {list.length === 0 ? (
-          <div className="bg-slate-800/40 border border-white/8 rounded-2xl p-12 text-center">
-            <div className="w-12 h-12 rounded-2xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center mx-auto mb-4">
-              <Wrench className="w-5 h-5 text-sky-400" />
-            </div>
-            <h2 className="text-white font-semibold mb-2">Aucune intervention planifiée</h2>
-            <p className="text-slate-400 text-sm mb-6">Planifiez des visites chez vos clients.</p>
-            <Link href="/admin/interventions/new" className="inline-flex items-center gap-1.5 px-4 py-2 bg-sky-500 hover:bg-sky-400 text-white text-xs font-semibold rounded-xl transition-all">
+          <div className="flex items-center gap-2">
+            <Link
+              href="/admin/interventions/new"
+              className="flex items-center gap-1.5 px-4 py-2 bg-sky-500 hover:bg-sky-400 text-white text-xs font-semibold rounded-xl transition-all"
+            >
               <Plus className="w-3.5 h-3.5" /> Nouvelle intervention
             </Link>
           </div>
-        ) : (
-          <div className="space-y-8">
-            <Section title="AUJOURD'HUI" items={today} accent="text-amber-400" />
-            <Section title="CETTE SEMAINE" items={week} accent="text-sky-400" />
-            <Section title="À VENIR" items={upcoming} />
-            <Section title="PASSÉES" items={past} />
-          </div>
-        )}
+        </div>
+
+        <ViewToggle
+          listContent={
+            list.length === 0 ? (
+              <div className="bg-slate-800/40 border border-white/8 rounded-2xl p-12 text-center">
+                <div className="w-12 h-12 rounded-2xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center mx-auto mb-4">
+                  <Wrench className="w-5 h-5 text-sky-400" />
+                </div>
+                <h2 className="text-white font-semibold mb-2">Aucune intervention planifiée</h2>
+                <p className="text-slate-400 text-sm mb-6">Planifiez des visites chez vos clients.</p>
+                <Link href="/admin/interventions/new" className="inline-flex items-center gap-1.5 px-4 py-2 bg-sky-500 hover:bg-sky-400 text-white text-xs font-semibold rounded-xl transition-all">
+                  <Plus className="w-3.5 h-3.5" /> Nouvelle intervention
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-8">
+                <Section title="AUJOURD'HUI" items={today} accent="text-amber-400" />
+                <Section title="CETTE SEMAINE" items={week} accent="text-sky-400" />
+                <Section title="À VENIR" items={upcoming} />
+                <Section title="PASSÉES" items={past} />
+              </div>
+            )
+          }
+        />
       </main>
     </div>
   );

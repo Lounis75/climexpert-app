@@ -3,6 +3,11 @@ import { devis, lignesDevis, clients } from "@/lib/db/schema";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import { eq, desc, count } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
+import { randomBytes } from "crypto";
+
+function generatePublicToken(): string {
+  return randomBytes(24).toString("base64url");
+}
 
 export type Devis = InferSelectModel<typeof devis>;
 export type LigneDevis = InferSelectModel<typeof lignesDevis>;
@@ -93,6 +98,7 @@ export async function createDevis(
       totalHtCt,
       totalTtcCt,
       status: "brouillon",
+      publicToken: generatePublicToken(),
     })
     .returning();
 
@@ -102,6 +108,24 @@ export async function createDevis(
       : [];
 
   return { ...d, lignes };
+}
+
+export async function getDevisByToken(token: string): Promise<DevisWithLignes | null> {
+  const [row] = await db
+    .select({ devis: devis, clientName: clients.name, clientEmail: clients.email })
+    .from(devis)
+    .leftJoin(clients, eq(devis.clientId, clients.id))
+    .where(eq(devis.publicToken, token));
+
+  if (!row) return null;
+
+  const lignes = await db
+    .select()
+    .from(lignesDevis)
+    .where(eq(lignesDevis.devisId, row.devis.id))
+    .orderBy(lignesDevis.ordre);
+
+  return { ...row.devis, clientName: row.clientName ?? "—", clientEmail: row.clientEmail ?? null, lignes };
 }
 
 export async function updateDevisStatus(

@@ -2,6 +2,10 @@ import Anthropic from "@anthropic-ai/sdk";
 import { Resend } from "resend";
 import { NextRequest, NextResponse } from "next/server";
 import { createLead } from "@/lib/leads";
+import { db } from "@/lib/db";
+import { savTickets, clients, notifications, admins } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
+import { createId } from "@paralleldrive/cuid2";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -49,7 +53,7 @@ BASE DE CONNAISSANCES — À utiliser pour répondre aux questions des prospects
 - PAC air-eau : 8 000 – 15 000 €
 - Maison 100m² : entre 3 500 € et 6 000 € selon le nombre de pièces et le système choisi
 - Appartement 60m² / 3 pièces : multisplit 3 têtes idéal, entre 3 500 € et 5 000 € pose incluse
-- Entretien annuel : 200 € / unité
+- Entretien annuel : à partir de 150 € pour 1 unité à Paris intramuros. +50 € par unité supplémentaire. Majoration selon la distance (au-delà de Paris intramuros) et selon l'accessibilité de l'unité (hauteur, encombrement, accès difficile). Donner une fourchette, pas un prix fixe.
 - Dépannage : sur devis, diagnostic offert si réparation acceptée
 - Les prix incluent toujours le matériel, la main-d'œuvre, les raccordements et la mise en service. Aucun frais caché.
 - Frais supplémentaires : seulement en cas de rajout ou modification de la configuration par le client.
@@ -113,7 +117,7 @@ BASE DE CONNAISSANCES — À utiliser pour répondre aux questions des prospects
 - Durée de vie : 15 à 20 ans avec entretien annuel. Sans entretien, durée réduite de moitié.
 - Fréquence entretien : annuel, idéalement au printemps avant la saison chaude.
 - Nettoyer les filtres soi-même : possible, mais pour un entretien optimal faire appel à des professionnels.
-- Contrat entretien 200€/unité comprend : nettoyage des filtres, de l'évaporateur, du condenseur, vérification pompe de relevage, vérification absence de fuites, vérification électrique, test modes chaud et froid, rapport d'intervention signé.
+- Contrat entretien : à partir de 150€ (1 unité, Paris intramuros), +50€/unité supplémentaire, majoration selon distance et accessibilité. Comprend : nettoyage des filtres, de l'évaporateur, du condenseur, vérification pompe de relevage, vérification absence de fuites, vérification électrique, test modes chaud et froid, rapport d'intervention signé.
 
 ◆ CERTIFICATIONS & CONFIANCE
 - Certifications : techniciens certifiés fluides frigorigènes catégorie I (attestation de capacité) et RGE Qualibat — obligatoire pour manipuler les frigorigènes et indispensable pour les aides de l'État.
@@ -128,6 +132,31 @@ BASE DE CONNAISSANCES — À utiliser pour répondre aux questions des prospects
 ◆ CONTRATS MULTI-SITES / SYNDICS
 - Contrats multi-sites syndics : oui, avec interlocuteur unique pour plusieurs immeubles.
 - Rapports pour AG : oui, rapport détaillé à chaque intervention, présentable en assemblée générale.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CAS PROPOSITION DE CRÉNEAUX (après acceptation de devis)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Si un devis vient d'être accepté et qu'il faut proposer des créneaux d'intervention :
+Collecte : intervention_id (fourni par le système), email_client, nom_client, type_intervention, code_postal
+Utilise le format CRENEAUX_READY ci-dessous :
+
+CRENEAUX_READY
+{"interventionId":"[id]","emailClient":"[email]","nomClient":"[prénom]","typeIntervention":"[type]","codePostal":"[cp]"}
+MESSAGE
+[Message court : "Je vous envoie maintenant les créneaux disponibles par email !"]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CAS SAV — CLIENT EXISTANT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Si le prospect mentionne qu'il est DÉJÀ client ClimExpert et a un problème (panne, fuite, bruit, entretien urgent) :
+1. Collecte : prénom, numéro de téléphone, description du problème
+2. Quand ces 3 infos sont collectées, utilise le format SAV_READY ci-dessous
+
+FORMAT SAV_READY (uniquement pour les clients existants) :
+SAV_READY
+{"name":"[prénom]","phone":"[téléphone]","subject":"[objet court du problème]","description":"[description détaillée]"}
+MESSAGE
+[Message de confirmation : "Votre ticket SAV est créé, notre équipe vous rappelle en priorité."]
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 SITUATIONS DE BLOCAGE
@@ -168,7 +197,7 @@ async function sendLeadEmails(lead: LeadData) {
 
   // Email interne à ClimExpert
   await resend.emails.send({
-    from: "Alex ClimExpert <onboarding@resend.dev>",
+    from: "Alex ClimExpert <noreply@climexpert.fr>",
     to: ["contact@climexpert.fr"],
     subject: `🔔 Nouveau lead qualifié — ${lead.name} — ${lead.project}`,
     html: `
@@ -218,6 +247,66 @@ export async function POST(req: NextRequest) {
     });
 
     const raw = response.content[0].type === "text" ? response.content[0].text : "";
+
+    // Détecter proposition de créneaux
+    if (raw.startsWith("CRENEAUX_READY")) {
+      try {
+        const jsonMatch = raw.match(/\{[\s\S]*?\}/);
+        const messageMatch = raw.match(/MESSAGE\n([\s\S]+)/);
+        const data = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+        const message = messageMatch ? messageMatch[1].trim() : "Je vous envoie les créneaux disponibles par email !";
+        if (data?.interventionId) {
+          const baseUrl = process.env.NEXT_PUBLIC_URL ?? "https://climexpert.fr";
+          await fetch(`${baseUrl}/api/proposer-creneaux`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+          });
+        }
+        return NextResponse.json({ message, creneauxSent: true });
+      } catch {
+        return NextResponse.json({ message: "Les créneaux disponibles vous seront envoyés par email." });
+      }
+    }
+
+    // Détecter si c'est un ticket SAV
+    if (raw.startsWith("SAV_READY")) {
+      try {
+        const jsonMatch = raw.match(/\{[\s\S]*?\}/);
+        const messageMatch = raw.match(/MESSAGE\n([\s\S]+)/);
+        const data = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+        const message = messageMatch ? messageMatch[1].trim() : "Votre ticket SAV est bien enregistré, notre équipe vous rappelle en priorité.";
+
+        if (data?.subject) {
+          // Try to find existing client by phone
+          let clientId: string | null = null;
+          if (data.phone) {
+            const [found] = await db.select({ id: clients.id }).from(clients).where(eq(clients.phone, data.phone)).limit(1);
+            clientId = found?.id ?? null;
+          }
+          if (!clientId) {
+            // Create minimal client record
+            const newId = createId();
+            await db.insert(clients).values({ id: newId, name: data.name ?? "Inconnu", phone: data.phone ?? "—" });
+            clientId = newId;
+          }
+          const ticketId = createId();
+          await db.insert(savTickets).values({ id: ticketId, clientId, subject: data.subject, description: data.description ?? null });
+          const [admin] = await db.select({ id: admins.id }).from(admins).limit(1);
+          if (admin) {
+            await db.insert(notifications).values({
+              id: createId(), adminId: admin.id, type: "ticket_sav",
+              titre: `SAV via Alex : ${data.subject}`,
+              contenu: `${data.name} — ${data.phone}`,
+              refType: "sav", refId: ticketId,
+            });
+          }
+        }
+        return NextResponse.json({ message, savComplete: true });
+      } catch {
+        return NextResponse.json({ message: "Votre demande SAV est bien enregistrée. Notre équipe vous rappelle en priorité." });
+      }
+    }
 
     // Détecter si le lead est complet
     if (raw.startsWith("LEAD_READY")) {

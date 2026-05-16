@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, Calendar, User, FileText, Trash2, Download } from "lucide-react";
 import DevisActions from "./DevisActions";
 import SendEmailButton from "./SendEmailButton";
+import CopyLinkButton from "./CopyLinkButton";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +51,7 @@ export default async function DevisDetailPage({
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
+            {d.publicToken && <CopyLinkButton token={d.publicToken} />}
             <a
               href={`/api/admin/devis/${d.id}/pdf`}
               download={`${d.number}.pdf`}

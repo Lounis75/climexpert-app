@@ -1,6 +1,6 @@
 "use client";
 
-import { Wind, LayoutDashboard, FileText, Users, LogOut, UserCircle, Contact, ClipboardList, Receipt, Wrench, Bell, CheckCheck } from "lucide-react";
+import { Wind, LayoutDashboard, FileText, Users, LogOut, Contact, ClipboardList, Receipt, Wrench, Bell, CheckCheck, HardHat, ScrollText, HeadphonesIcon, Thermometer } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -12,8 +12,12 @@ const tabs = [
   { href: "/admin/devis",         label: "Devis",          icon: ClipboardList },
   { href: "/admin/factures",      label: "Factures",       icon: Receipt },
   { href: "/admin/interventions", label: "Interventions",  icon: Wrench },
+  { href: "/admin/techniciens",   label: "Techniciens",    icon: HardHat },
+  { href: "/admin/contrats",      label: "Contrats",       icon: ScrollText },
+  { href: "/admin/sav",           label: "SAV",            icon: HeadphonesIcon },
+  { href: "/admin/saisonnalite",   label: "Saisonnalité",   icon: Thermometer },
   { href: "/admin/articles",      label: "Articles",       icon: FileText },
-  { href: "/admin/authors",       label: "Auteurs",        icon: UserCircle },
+  { href: "/admin/notifications", label: "Notifications",  icon: Bell },
 ];
 
 type Notif = {

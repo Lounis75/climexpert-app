@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { factures, devis, clients } from "@/lib/db/schema";
+import { factures, devis, clients, lignesDevis } from "@/lib/db/schema";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import { eq, desc, count, and, lt } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
@@ -7,6 +7,7 @@ import { centimesToEuros } from "@/lib/devis";
 import { createNotification } from "@/lib/notifications";
 
 export type Facture = InferSelectModel<typeof factures>;
+export type LigneDevis = InferSelectModel<typeof lignesDevis>;
 export type { };
 
 export { centimesToEuros };
@@ -14,6 +15,7 @@ export { centimesToEuros };
 export type FactureWithRefs = Facture & {
   clientName: string;
   devisNumber?: string;
+  lignes?: LigneDevis[];
 };
 
 async function generateFactureNumber(): Promise<string> {
@@ -84,7 +86,12 @@ export async function getFactureById(id: string): Promise<FactureWithRefs | null
     .where(eq(factures.id, id));
 
   if (!row) return null;
-  return { ...row.facture, clientName: row.clientName ?? "—", devisNumber: row.devisNumber ?? undefined };
+
+  const lignes = row.facture.devisId
+    ? await db.select().from(lignesDevis).where(eq(lignesDevis.devisId, row.facture.devisId)).orderBy(lignesDevis.ordre)
+    : [];
+
+  return { ...row.facture, clientName: row.clientName ?? "—", devisNumber: row.devisNumber ?? undefined, lignes };
 }
 
 export async function createFactureFromDevis(devisId: string): Promise<Facture> {

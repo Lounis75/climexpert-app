@@ -3,12 +3,18 @@ import { getDynamicArticles } from "@/lib/dynamicArticles";
 import { getFeaturedSlugs } from "@/lib/kv";
 import AdminHeader from "@/components/AdminHeader";
 import Link from "next/link";
+import dynamicImport from "next/dynamic";
+
+const CalendrierDashboard = dynamicImport(
+  () => import("@/app/admin/interventions/CalendrierDashboard"),
+  { ssr: false, loading: () => <div className="h-48 flex items-center justify-center"><div className="w-5 h-5 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" /></div> },
+);
 import {
   Users, FileText, TrendingUp, Phone,
   Bot, MessageSquare, ArrowRight, Clock,
   Wrench, MapPin, Euro, AlertTriangle,
   ClipboardList, CalendarCheck, CheckCircle2,
-  Plus, Star, UserCircle, Home,
+  Plus, Star, UserCircle, Home, HeadphonesIcon, TrendingDown,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -129,6 +135,59 @@ export default async function DashboardPage() {
               </p>
             )}
           </Link>
+
+        </div>
+
+        {/* ─── KPIs secondaires ──────────────────────────────────────────────────── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+
+          <div className="bg-slate-800/40 border border-white/8 rounded-2xl p-5">
+            <div className="w-9 h-9 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center mb-3">
+              <CalendarCheck className="w-4 h-4" />
+            </div>
+            <p className="text-2xl font-bold text-white mb-0.5">{stats.interventionsCetteSemaine}</p>
+            <p className="text-slate-300 text-xs font-medium">Interventions cette semaine</p>
+            <p className="text-slate-500 text-xs mt-1">{stats.interventionsTerminees} terminées au total</p>
+          </div>
+
+          <div className="bg-slate-800/40 border border-white/8 rounded-2xl p-5">
+            <div className="w-9 h-9 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-400 flex items-center justify-center mb-3">
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
+            <p className="text-2xl font-bold text-white mb-0.5">{stats.tauxConversionDevis}%</p>
+            <p className="text-slate-300 text-xs font-medium">Taux conv. devis</p>
+            <p className="text-slate-500 text-xs mt-1">{stats.devisAccepte} accepté{stats.devisAccepte > 1 ? "s" : ""} / {stats.devisTotal}</p>
+          </div>
+
+          <Link href="/admin/sav" className="bg-slate-800/40 border border-white/8 rounded-2xl p-5 hover:border-white/15 transition-all">
+            <div className="w-9 h-9 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center mb-3">
+              <HeadphonesIcon className="w-4 h-4" />
+            </div>
+            <p className="text-2xl font-bold text-white mb-0.5">{stats.savOuverts}</p>
+            <p className="text-slate-300 text-xs font-medium">SAV ouverts</p>
+            <p className="text-slate-500 text-xs mt-1">tickets en cours</p>
+          </Link>
+
+          <div className="bg-slate-800/40 border border-white/8 rounded-2xl p-5">
+            <div className={`w-9 h-9 rounded-xl border flex items-center justify-center mb-3 ${
+              stats.caTrendPct === null ? "bg-slate-500/10 border-slate-500/20 text-slate-400" :
+              stats.caTrendPct >= 0 ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" :
+              "bg-red-500/10 border-red-500/20 text-red-400"
+            }`}>
+              {stats.caTrendPct === null || stats.caTrendPct >= 0
+                ? <TrendingUp className="w-4 h-4" />
+                : <TrendingDown className="w-4 h-4" />
+              }
+            </div>
+            <p className={`text-2xl font-bold mb-0.5 ${
+              stats.caTrendPct === null ? "text-slate-400" :
+              stats.caTrendPct >= 0 ? "text-emerald-400" : "text-red-400"
+            }`}>
+              {stats.caTrendPct === null ? "—" : `${stats.caTrendPct > 0 ? "+" : ""}${stats.caTrendPct}%`}
+            </p>
+            <p className="text-slate-300 text-xs font-medium">Tendance CA</p>
+            <p className="text-slate-500 text-xs mt-1">vs mois précédent</p>
+          </div>
 
         </div>
 
@@ -307,6 +366,21 @@ export default async function DashboardPage() {
             )}
           </div>
 
+        </div>
+
+        {/* ─── Calendrier semaine ────────────────────────────────────────────────── */}
+        <div className="bg-slate-800/40 border border-white/8 rounded-2xl overflow-hidden mb-6">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
+            <h2 className="text-white font-semibold text-sm flex items-center gap-2">
+              <CalendarCheck className="w-4 h-4 text-sky-400" /> Calendrier — semaine en cours
+            </h2>
+            <Link href="/admin/interventions" className="text-sky-400 hover:text-sky-300 text-xs flex items-center gap-1 transition-colors">
+              Gérer <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+          <div className="p-4">
+            <CalendrierDashboard />
+          </div>
         </div>
 
         {/* ─── Actions rapides ───────────────────────────────────────────────────── */}

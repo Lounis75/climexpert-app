@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { leads, devis, factures, interventions, clients } from "@/lib/db/schema";
+import { leads, devis, factures, interventions, clients, savTickets } from "@/lib/db/schema";
 import { eq, gte, desc, and } from "drizzle-orm";
 
 export type DashboardStats = {
@@ -30,6 +30,13 @@ export type DashboardStats = {
 
   // Derniers leads
   derniersLeads: DernierLead[];
+
+  // Nouvelles métriques P8-54
+  interventionsCetteSemaine: number;
+  interventionsTerminees: number;
+  savOuverts: number;
+  caTrendPct: number | null; // % growth vs last month
+  tauxConversionDevis: number; // devisAccepte / devisTotal
 };
 
 export type ProchInterv = {
@@ -59,6 +66,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     allDevis,
     allLeads,
     allInterventions,
+    allSav,
   ] = await Promise.all([
     db.select().from(factures).orderBy(desc(factures.createdAt)),
     db.select().from(devis).orderBy(desc(devis.createdAt)),
@@ -73,6 +81,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       })
       .from(interventions)
       .orderBy(interventions.scheduledAt),
+    db.select({ id: savTickets.id, status: savTickets.status }).from(savTickets),
   ]);
 
   // ─── Factures ────────────────────────────────────────────────────────────────
@@ -144,6 +153,46 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     caMensuel.push({ mois: label, ct });
   }
 
+  // ─── Nouvelles métriques ─────────────────────────────────────────────────────
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - ((now.getDay() + 6) % 7)); // Monday
+  weekStart.setHours(0, 0, 0, 0);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+  weekEnd.setHours(23, 59, 59, 999);
+
+  const interventionsCetteSemaine = allInterventions.filter((i) => {
+    if (!i.scheduledAt || i.status === "annulée") return false;
+    const d = new Date(i.scheduledAt);
+    return d >= weekStart && d <= weekEnd;
+  }).length;
+
+  const interventionsTerminees = allInterventions.filter((i) => i.status === "terminée").length;
+  const savOuverts = allSav.filter((s) => s.status === "ouvert" || s.status === "en_cours").length;
+
+  // CA trend: current month vs previous month
+  const curMonth = now.getMonth();
+  const curYear  = now.getFullYear();
+  const prevDate = new Date(curYear, curMonth - 1, 1);
+  const prevMonth = prevDate.getMonth();
+  const prevYear  = prevDate.getFullYear();
+  const caCurrent = allFactures
+    .filter((f) => {
+      if (f.status !== "payée") return false;
+      const d = new Date(f.paidAt ?? f.createdAt);
+      return d.getFullYear() === curYear && d.getMonth() === curMonth;
+    })
+    .reduce((s, f) => s + (f.totalTtcCt ?? 0), 0);
+  const caPrev = allFactures
+    .filter((f) => {
+      if (f.status !== "payée") return false;
+      const d = new Date(f.paidAt ?? f.createdAt);
+      return d.getFullYear() === prevYear && d.getMonth() === prevMonth;
+    })
+    .reduce((s, f) => s + (f.totalTtcCt ?? 0), 0);
+  const caTrendPct = caPrev > 0 ? Math.round(((caCurrent - caPrev) / caPrev) * 100) : null;
+  const tauxConversionDevis = devisTotal > 0 ? Math.round((devisAccepte / devisTotal) * 100) : 0;
+
   // ─── Derniers leads ──────────────────────────────────────────────────────────
   const derniersLeads: DernierLead[] = allLeads.slice(0, 6).map((l) => ({
     id: l.id,
@@ -173,5 +222,10 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     prochaines,
     caMensuel,
     derniersLeads,
+    interventionsCetteSemaine,
+    interventionsTerminees,
+    savOuverts,
+    caTrendPct,
+    tauxConversionDevis,
   };
 }

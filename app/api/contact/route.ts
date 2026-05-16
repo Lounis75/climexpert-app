@@ -11,6 +11,7 @@ interface ContactFormData {
   telephone: string;
   email: string;
   message: string;
+  photosUrls?: string[];
 }
 
 const typeLabels: Record<string, string> = {
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
     });
 
     await resend.emails.send({
-      from: "Contact ClimExpert <onboarding@resend.dev>",
+      from: "Contact ClimExpert <noreply@climexpert.fr>",
       to: ["contact@climexpert.fr"],
       subject: `📩 Nouveau contact — ${body.nom} — ${typeLabels[body.type] ?? body.type}`,
       html: `
@@ -67,6 +68,15 @@ export async function POST(req: NextRequest) {
             </table>
           </div>
 
+          ${body.photosUrls && body.photosUrls.length > 0 ? `
+          <div style="background: white; border-radius: 8px; padding: 24px; margin-bottom: 16px; border: 1px solid #E2E8F0;">
+            <h2 style="color: #0F172A; margin: 0 0 16px; font-size: 16px; border-bottom: 2px solid #0EA5E9; padding-bottom: 8px;">📸 Photos de l'installation (${body.photosUrls.length})</h2>
+            <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+              ${body.photosUrls.map((url, i) => `<a href="${url}" target="_blank" style="display: block;"><img src="${url}" alt="Photo ${i + 1}" style="width: 140px; height: 140px; object-fit: cover; border-radius: 8px; border: 1px solid #E2E8F0;" /></a>`).join("")}
+            </div>
+          </div>
+          ` : ""}
+
           <div style="background: #FFF7ED; border: 1px solid #FED7AA; border-radius: 8px; padding: 16px; text-align: center;">
             <p style="margin: 0; color: #C2410C; font-weight: bold; font-size: 14px;">⏱️ À rappeler rapidement</p>
             <a href="tel:${body.telephone}" style="display: inline-block; margin-top: 8px; background: #EA580C; color: white; padding: 10px 24px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px;">Appeler ${body.nom}</a>
@@ -77,6 +87,13 @@ export async function POST(req: NextRequest) {
       `,
     });
 
+    const notesWithPhotos = [
+      body.message || "",
+      body.photosUrls && body.photosUrls.length > 0
+        ? `Photos: ${body.photosUrls.join(", ")}`
+        : "",
+    ].filter(Boolean).join("\n\n");
+
     const lead = await createLead({
       source: "formulaire",
       name: body.nom,
@@ -84,7 +101,7 @@ export async function POST(req: NextRequest) {
       email: body.email || undefined,
       project: body.type as "installation" | "entretien" | "depannage" | "contrat-pro" | "autre",
       location: body.ville || undefined,
-      message: body.message || undefined,
+      message: notesWithPhotos || undefined,
     });
 
     await createNotification({

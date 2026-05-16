@@ -35,3 +35,35 @@ export async function verifyAdminToken(token: string): Promise<AdminSession | nu
 }
 
 export const COOKIE_NAME = "admin_token";
+
+// ─── Technicien auth ──────────────────────────────────────────────────────────
+
+export interface TechnicienSession {
+  sub: string;   // technicien id
+  email: string;
+  name: string;
+}
+
+export async function signTechnicienToken(payload: TechnicienSession): Promise<string> {
+  return new SignJWT({ ...payload, role: "technicien" })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("30d")
+    .sign(getSecret());
+}
+
+export async function verifyTechnicienToken(token: string): Promise<TechnicienSession | null> {
+  try {
+    const { payload } = await jwtVerify(token, getSecret());
+    if (payload.role !== "technicien") return null;
+    return {
+      sub:   payload.sub as string,
+      email: payload.email as string,
+      name:  payload.name as string,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export const TECH_COOKIE_NAME = "tech_token";

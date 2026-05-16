@@ -25,6 +25,13 @@ export async function GET(
       totalTtcCt: f.totalTtcCt,
       tvaRate: String(f.tvaRate ?? "10"),
       status: f.status,
+      lignes: (f.lignes ?? []).map((l) => ({
+        id: l.id,
+        designation: l.designation,
+        quantite: l.quantite,
+        prixUnitaireCt: l.prixUnitaireCt,
+        tvaRate: String(l.tvaRate ?? "10"),
+      })),
     });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

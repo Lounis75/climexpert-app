@@ -12,6 +12,12 @@ import {
 import { relations } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 
+export const technicienRoleEnum = pgEnum("technicien_role", [
+  "technicien",
+  "technico_commercial",
+  "responsable",
+]);
+
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
 export const leadStatusEnum = pgEnum("lead_status", [
@@ -79,10 +85,14 @@ export const savStatusEnum = pgEnum("sav_status", [
 export const techniciens = pgTable("techniciens", {
   id:         text("id").primaryKey().$defaultFn(() => createId()),
   name:       varchar("name", { length: 255 }).notNull(),
+  prenom:     varchar("prenom", { length: 255 }),
   phone:      varchar("phone", { length: 30 }),
   email:      varchar("email", { length: 255 }).notNull().unique(),
   color:      varchar("color", { length: 7 }).default("#3b82f6"),
+  role:       technicienRoleEnum("role").default("technicien"),
+  zonesGeo:   text("zones_geo").array(),
   active:     boolean("active").default(true).notNull(),
+  actif:      boolean("actif").default(false).notNull(),  // true une fois onboarding terminé
   createdAt:  timestamp("created_at").defaultNow().notNull(),
   supprimeLe: timestamp("supprime_le"),
 });
@@ -118,6 +128,7 @@ export const clients = pgTable("clients", {
   technicienId:       text("technicien_id").references(() => techniciens.id),
   garantieExpireLe:   date("garantie_expire_le"),
   contratEntretienId: text("contrat_entretien_id"),                                // ref logique → contratsEntretien
+  clientToken:        varchar("client_token", { length: 64 }).unique(),
   createdAt:          timestamp("created_at").defaultNow().notNull(),
   updatedAt:          timestamp("updated_at").defaultNow().notNull(),
   supprimeLe:         timestamp("supprime_le"),
@@ -159,11 +170,12 @@ export const devis = pgTable("devis", {
   totalTtcCt:  integer("total_ttc_ct"),       // centimes
   tvaRate:     numeric("tva_rate", { precision: 5, scale: 2 }).default("5.5"),
   description: text("description"),
-  validUntil:  date("valid_until"),
-  pennylaneId: varchar("pennylane_id", { length: 100 }),
-  createdAt:   timestamp("created_at").defaultNow().notNull(),
-  updatedAt:   timestamp("updated_at").defaultNow().notNull(),
-  supprimeLe:  timestamp("supprime_le"),
+  validUntil:   date("valid_until"),
+  pennylaneId:  varchar("pennylane_id", { length: 100 }),
+  publicToken:  varchar("public_token", { length: 100 }).unique(),
+  createdAt:    timestamp("created_at").defaultNow().notNull(),
+  updatedAt:    timestamp("updated_at").defaultNow().notNull(),
+  supprimeLe:   timestamp("supprime_le"),
 });
 
 // ─── Lignes devis ─────────────────────────────────────────────────────────────
@@ -200,19 +212,28 @@ export const factures = pgTable("factures", {
 // ─── Interventions ────────────────────────────────────────────────────────────
 
 export const interventions = pgTable("interventions", {
-  id:           text("id").primaryKey().$defaultFn(() => createId()),
-  clientId:     text("client_id").notNull().references(() => clients.id),
-  technicienId: text("technicien_id").references(() => techniciens.id),
-  devisId:      text("devis_id").references(() => devis.id),
-  type:         projectTypeEnum("type").notNull(),
-  status:       interventionStatusEnum("status").default("planifiée").notNull(),
-  scheduledAt:  timestamp("scheduled_at"),
-  completedAt:  timestamp("completed_at"),
-  address:      text("address"),
-  notes:        text("notes"),
-  createdAt:    timestamp("created_at").defaultNow().notNull(),
-  updatedAt:    timestamp("updated_at").defaultNow().notNull(),
-  supprimeLe:   timestamp("supprime_le"),
+  id:                   text("id").primaryKey().$defaultFn(() => createId()),
+  clientId:             text("client_id").notNull().references(() => clients.id),
+  technicienId:         text("technicien_id").references(() => techniciens.id),
+  devisId:              text("devis_id").references(() => devis.id),
+  type:                 projectTypeEnum("type").notNull(),
+  status:               interventionStatusEnum("status").default("planifiée").notNull(),
+  scheduledAt:          timestamp("scheduled_at"),
+  completedAt:          timestamp("completed_at"),
+  address:              text("address"),
+  codePostal:           varchar("code_postal", { length: 10 }),
+  notes:                text("notes"),
+  dureeEstimeeMinutes:  integer("duree_estimee_minutes"),
+  dureeReelleMinutes:   integer("duree_reelle_minutes"),
+  rdvToken:               varchar("rdv_token", { length: 100 }).unique(),
+  rdvTokenChoix:          integer("rdv_token_choix"),              // 1|2|3 — choix sélectionné
+  rdvTokenCreneaux:       text("rdv_token_creneaux"),              // JSON: 3 créneaux proposés
+  annulePar:              varchar("annule_par", { length: 20 }),   // "client"|"admin"|"technicien"
+  motifAnnulation:        text("motif_annulation"),
+  interventionOrigineId:  text("intervention_origine_id"),         // si report
+  createdAt:            timestamp("created_at").defaultNow().notNull(),
+  updatedAt:            timestamp("updated_at").defaultNow().notNull(),
+  supprimeLe:           timestamp("supprime_le"),
 });
 
 // ─── Contrats entretien ───────────────────────────────────────────────────────
@@ -293,6 +314,88 @@ export const logsAlex = pgTable("logs_alex", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// ─── Magic link tokens (auth technicien) ─────────────────────────────────────
+
+export const magicLinkTokens = pgTable("magic_link_tokens", {
+  id:            text("id").primaryKey().$defaultFn(() => createId()),
+  technicienId:  text("technicien_id").notNull().references(() => techniciens.id),
+  token:         varchar("token", { length: 128 }).notNull().unique(),
+  expiresAt:     timestamp("expires_at").notNull(),
+  usedAt:        timestamp("used_at"),
+  createdAt:     timestamp("created_at").defaultNow().notNull(),
+});
+
+// ─── Rapports d'intervention ──────────────────────────────────────────────────
+
+export const rapportsIntervention = pgTable("rapports_intervention", {
+  id:                   text("id").primaryKey().$defaultFn(() => createId()),
+  interventionId:       text("intervention_id").notNull().references(() => interventions.id).unique(),
+  technicienId:         text("technicien_id").notNull().references(() => techniciens.id),
+  installationConforme: boolean("installation_conforme").default(true).notNull(),
+  notes:                text("notes"),
+  photosUrls:           text("photos_urls").array(),
+  // Champs spécifiques visite technique
+  dimensionsPiece:      varchar("dimensions_piece", { length: 100 }),
+  typeMur:              varchar("type_mur", { length: 100 }),
+  distanceGroupes:      varchar("distance_groupes", { length: 100 }),
+  contraintesElec:      text("contraintes_elec"),
+  equipementRecommande: text("equipement_recommande"),
+  difficulte:           varchar("difficulte", { length: 30 }),  // "standard"|"complexe"|"tres_complexe"
+  dateSoumission:       timestamp("date_soumission").defaultNow().notNull(),
+});
+
+// ─── Périodes de capacité saisonnière ────────────────────────────────────────
+
+export const periodesCapacite = pgTable("periodes_capacite", {
+  id:                      text("id").primaryKey().$defaultFn(() => createId()),
+  nom:                     varchar("nom", { length: 255 }).notNull(),
+  dateDebut:               date("date_debut").notNull(),
+  dateFin:                 date("date_fin").notNull(),
+  maxInterventionsSemaine: integer("max_interventions_semaine").notNull(),
+  note:                    text("note"),
+  createdAt:               timestamp("created_at").defaultNow().notNull(),
+});
+
+// ─── Suivis planifiés post-intervention (J+7, J+30, J+365) ───────────────────
+
+export const suivisPlanifies = pgTable("suivis_planifies", {
+  id:             text("id").primaryKey().$defaultFn(() => createId()),
+  clientId:       text("client_id").notNull().references(() => clients.id),
+  interventionId: text("intervention_id").references(() => interventions.id),
+  typeSuivi:      varchar("type_suivi", { length: 20 }).notNull(), // "j7"|"j30"|"j365"
+  canal:          varchar("canal", { length: 20 }).notNull(),      // "email"|"sms"
+  statut:         varchar("statut", { length: 30 }).default("planifie").notNull(),
+  datePrevue:     date("date_prevue").notNull(),
+  dateEnvoi:      timestamp("date_envoi"),
+  reponseClient:  text("reponse_client"),
+  createdAt:      timestamp("created_at").defaultNow().notNull(),
+});
+
+// ─── Audit log ────────────────────────────────────────────────────────────────
+
+export const auditLog = pgTable("audit_log", {
+  id:          text("id").primaryKey().$defaultFn(() => createId()),
+  adminId:     text("admin_id").references(() => admins.id),
+  action:      varchar("action", { length: 100 }).notNull(),
+  tableCible:  varchar("table_cible", { length: 50 }),
+  idCible:     text("id_cible"),
+  avantJson:   text("avant_json"),
+  apresJson:   text("apres_json"),
+  ip:          varchar("ip", { length: 45 }),
+  createdAt:   timestamp("created_at").defaultNow().notNull(),
+});
+
+// ─── Disponibilités bloquées (technicien) ────────────────────────────────────
+
+export const disponibilitesBloquees = pgTable("disponibilites_bloquees", {
+  id:           text("id").primaryKey().$defaultFn(() => createId()),
+  technicienId: text("technicien_id").notNull().references(() => techniciens.id),
+  dateDebut:    timestamp("date_debut").notNull(),
+  dateFin:      timestamp("date_fin").notNull(),
+  motif:        varchar("motif", { length: 255 }),
+  createdAt:    timestamp("created_at").defaultNow().notNull(),
+});
+
 // ─── Relations ────────────────────────────────────────────────────────────────
 
 export const clientsRelations = relations(clients, ({ one, many }) => ({
@@ -317,8 +420,33 @@ export const adminsRelations = relations(admins, ({ many }) => ({
 }));
 
 export const techniciensRelations = relations(techniciens, ({ many }) => ({
-  clients:       many(clients),
-  interventions: many(interventions),
+  clients:               many(clients),
+  interventions:         many(interventions),
+  magicLinkTokens:       many(magicLinkTokens),
+  rapportsIntervention:  many(rapportsIntervention),
+  disponibilitesBloquees:many(disponibilitesBloquees),
+}));
+
+export const magicLinkTokensRelations = relations(magicLinkTokens, ({ one }) => ({
+  technicien: one(techniciens, { fields: [magicLinkTokens.technicienId], references: [techniciens.id] }),
+}));
+
+export const rapportsInterventionRelations = relations(rapportsIntervention, ({ one }) => ({
+  intervention: one(interventions, { fields: [rapportsIntervention.interventionId], references: [interventions.id] }),
+  technicien:   one(techniciens, { fields: [rapportsIntervention.technicienId], references: [techniciens.id] }),
+}));
+
+export const disponibilitesBloqueesRelations = relations(disponibilitesBloquees, ({ one }) => ({
+  technicien: one(techniciens, { fields: [disponibilitesBloquees.technicienId], references: [techniciens.id] }),
+}));
+
+export const suivisPlanifiesRelations = relations(suivisPlanifies, ({ one }) => ({
+  client:       one(clients, { fields: [suivisPlanifies.clientId], references: [clients.id] }),
+  intervention: one(interventions, { fields: [suivisPlanifies.interventionId], references: [interventions.id] }),
+}));
+
+export const auditLogRelations = relations(auditLog, ({ one }) => ({
+  admin: one(admins, { fields: [auditLog.adminId], references: [admins.id] }),
 }));
 
 export const devisRelations = relations(devis, ({ one, many }) => ({
@@ -377,4 +505,10 @@ export type Suivi            = typeof suivis.$inferSelect;
 export type SavTicket        = typeof savTickets.$inferSelect;
 export type Notification     = typeof notifications.$inferSelect;
 export type LogConnexion     = typeof logsConnexion.$inferSelect;
-export type LogAlex          = typeof logsAlex.$inferSelect;
+export type LogAlex                = typeof logsAlex.$inferSelect;
+export type MagicLinkToken         = typeof magicLinkTokens.$inferSelect;
+export type RapportIntervention    = typeof rapportsIntervention.$inferSelect;
+export type DisponibiliteBloquee   = typeof disponibilitesBloquees.$inferSelect;
+export type PeriodeCapacite        = typeof periodesCapacite.$inferSelect;
+export type SuiviPlanifie          = typeof suivisPlanifies.$inferSelect;
+export type AuditLog               = typeof auditLog.$inferSelect;

@@ -22,6 +22,13 @@ export async function getRecentNotifications(limit = 15): Promise<Notification[]
     .limit(limit);
 }
 
+export async function getAllNotifications(): Promise<Notification[]> {
+  return db
+    .select()
+    .from(notifications)
+    .orderBy(desc(notifications.createdAt));
+}
+
 export async function markAllAsRead(): Promise<void> {
   await db
     .update(notifications)

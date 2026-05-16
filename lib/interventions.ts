@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { interventions, clients, techniciens } from "@/lib/db/schema";
+import { interventions, clients, techniciens, suivisPlanifies } from "@/lib/db/schema";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import { eq, desc, gte, asc } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
@@ -116,7 +116,30 @@ export async function updateInterventionStatus(
   if (status === "terminée") patch.completedAt = new Date();
 
   const [i] = await db.update(interventions).set(patch).where(eq(interventions.id, id)).returning();
+
+  if (i && status === "terminée") {
+    await planifierSuivis(i);
+  }
+
   return i ?? null;
+}
+
+function addDaysToDate(d: Date, n: number): string {
+  const r = new Date(d);
+  r.setDate(r.getDate() + n);
+  return r.toISOString().slice(0, 10);
+}
+
+async function planifierSuivis(interv: Intervention): Promise<void> {
+  const base = interv.completedAt ?? new Date();
+  const rows = [
+    { typeSuivi: "j7",   canal: "email", datePrevue: addDaysToDate(base, 7)   },
+    { typeSuivi: "j30",  canal: "email", datePrevue: addDaysToDate(base, 30)  },
+    { typeSuivi: "j365", canal: "sms",   datePrevue: addDaysToDate(base, 365) },
+  ];
+  await db.insert(suivisPlanifies).values(
+    rows.map((r) => ({ id: createId(), clientId: interv.clientId, interventionId: interv.id, statut: "planifie", ...r })),
+  );
 }
 
 export async function updateInterventionNotes(id: string, notes: string): Promise<void> {

@@ -16,4 +16,22 @@ export const metadata: Metadata = {
   },
 };
 
-export { default } from "./DevisClient";
+import DevisClient from "./DevisClient";
+
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, name: "Accueil", item: "https://climexpert.fr" },
+    { "@type": "ListItem", position: 2, name: "Devis gratuit", item: "https://climexpert.fr/devis" },
+  ],
+};
+
+export default function DevisPage() {
+  return (
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
+      <DevisClient />
+    </>
+  );
+}

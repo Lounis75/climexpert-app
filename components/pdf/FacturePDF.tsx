@@ -32,6 +32,27 @@ const styles = StyleSheet.create({
   metaValue: { fontSize: 9, color: "#1e293b" },
   metaValueAlert: { fontSize: 9, color: "#ef4444", fontFamily: "Helvetica-Bold" },
 
+  tableHeader: { flexDirection: "row", backgroundColor: "#0f172a", padding: "6 8", borderRadius: "4 4 0 0" },
+  tableHeaderCell: { fontSize: 7, fontFamily: "Helvetica-Bold", color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5 },
+  tableRow: { flexDirection: "row", padding: "7 8", borderBottom: "1 solid #f1f5f9" },
+  tableRowAlt: { flexDirection: "row", padding: "7 8", borderBottom: "1 solid #f1f5f9", backgroundColor: "#f8fafc" },
+  tableCell: { fontSize: 8.5, color: "#1e293b" },
+  tableCellMuted: { fontSize: 8.5, color: "#64748b" },
+  col1: { flex: 1 },
+  col2: { width: 30, textAlign: "right" },
+  col3: { width: 65, textAlign: "right" },
+  col4: { width: 35, textAlign: "right" },
+  col5: { width: 70, textAlign: "right" },
+
+  totalsBlock: { flexDirection: "row", justifyContent: "flex-end", marginBottom: 20 },
+  totalsInner: { width: 200 },
+  totalsRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 3 },
+  totalsLabel: { fontSize: 8.5, color: "#64748b" },
+  totalsValue: { fontSize: 8.5, color: "#1e293b" },
+  totalsTtcRow: { flexDirection: "row", justifyContent: "space-between", borderTop: "1 solid #e2e8f0", paddingTop: 6, marginTop: 4 },
+  totalsTtcLabel: { fontSize: 11, fontFamily: "Helvetica-Bold", color: "#059669" },
+  totalsTtcValue: { fontSize: 11, fontFamily: "Helvetica-Bold", color: "#059669" },
+
   amountBlock: { backgroundColor: "#f0fdf4", borderRadius: 8, padding: 20, marginBottom: 24, border: "1 solid #bbf7d0" },
   amountLabel: { fontSize: 8, color: "#16a34a", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 8 },
   amountRows: { flexDirection: "column", gap: 6 },
@@ -63,6 +84,14 @@ function euros(ct: number | null | undefined) {
   return (ct / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
 }
 
+type LigneItem = {
+  id: string;
+  designation: string;
+  quantite: number;
+  prixUnitaireCt: number;
+  tvaRate?: string | number | null;
+};
+
 type FacturePDFProps = {
   number: string;
   createdAt: string;
@@ -74,16 +103,18 @@ type FacturePDFProps = {
   totalTtcCt: number | null;
   tvaRate?: string | number | null;
   status: string;
+  lignes?: LigneItem[];
 };
 
 export default function FacturePDF({
   number, createdAt, dueDate, paidAt, clientName, devisNumber,
-  totalHtCt, totalTtcCt, tvaRate, status,
+  totalHtCt, totalTtcCt, tvaRate, status, lignes = [],
 }: FacturePDFProps) {
   const ht = totalHtCt ?? 0;
   const ttc = totalTtcCt ?? 0;
   const tva = ttc - ht;
   const isOverdue = status === "en_attente" && dueDate && new Date(dueDate) < new Date();
+  const hasLignes = lignes.length > 0;
 
   return (
     <Document>
@@ -140,24 +171,70 @@ export default function FacturePDF({
           )}
         </View>
 
-        {/* Montants */}
-        <View style={styles.amountBlock}>
-          <Text style={styles.amountLabel}>Détail des montants</Text>
-          <View style={styles.amountRows}>
-            <View style={styles.amountRow}>
-              <Text style={styles.amountRowLabel}>Total HT</Text>
-              <Text style={styles.amountRowValue}>{euros(ht)}</Text>
+        {/* Lignes (si vient d'un devis) */}
+        {hasLignes ? (
+          <View style={{ marginBottom: 20 }}>
+            {/* En-tête */}
+            <View style={styles.tableHeader}>
+              <Text style={[styles.tableHeaderCell, styles.col1]}>Désignation</Text>
+              <Text style={[styles.tableHeaderCell, styles.col2]}>Qté</Text>
+              <Text style={[styles.tableHeaderCell, styles.col3]}>P.U. HT</Text>
+              <Text style={[styles.tableHeaderCell, styles.col4]}>TVA</Text>
+              <Text style={[styles.tableHeaderCell, styles.col5]}>Total TTC</Text>
             </View>
-            <View style={styles.amountRow}>
-              <Text style={styles.amountRowLabel}>TVA ({String(tvaRate ?? 10)}%)</Text>
-              <Text style={styles.amountRowValue}>{euros(tva)}</Text>
-            </View>
-            <View style={styles.amountTtcRow}>
-              <Text style={styles.amountTtcLabel}>Total TTC</Text>
-              <Text style={styles.amountTtcValue}>{euros(ttc)}</Text>
+            {/* Lignes */}
+            {lignes.map((l, i) => {
+              const ligneHt = l.quantite * l.prixUnitaireCt;
+              const ligneTva = Math.round(ligneHt * (Number(l.tvaRate ?? 10) / 100));
+              const ligneTtc = ligneHt + ligneTva;
+              return (
+                <View key={l.id} style={i % 2 === 0 ? styles.tableRow : styles.tableRowAlt}>
+                  <Text style={[styles.tableCell, styles.col1]}>{l.designation}</Text>
+                  <Text style={[styles.tableCellMuted, styles.col2]}>{l.quantite}</Text>
+                  <Text style={[styles.tableCellMuted, styles.col3]}>{euros(l.prixUnitaireCt)}</Text>
+                  <Text style={[styles.tableCellMuted, styles.col4]}>{String(l.tvaRate ?? 10)}%</Text>
+                  <Text style={[styles.tableCell, styles.col5]}>{euros(ligneTtc)}</Text>
+                </View>
+              );
+            })}
+            {/* Totaux */}
+            <View style={[styles.totalsBlock, { marginTop: 12 }]}>
+              <View style={styles.totalsInner}>
+                <View style={styles.totalsRow}>
+                  <Text style={styles.totalsLabel}>Total HT</Text>
+                  <Text style={styles.totalsValue}>{euros(ht)}</Text>
+                </View>
+                <View style={styles.totalsRow}>
+                  <Text style={styles.totalsLabel}>TVA</Text>
+                  <Text style={styles.totalsValue}>{euros(tva)}</Text>
+                </View>
+                <View style={styles.totalsTtcRow}>
+                  <Text style={styles.totalsTtcLabel}>Total TTC</Text>
+                  <Text style={styles.totalsTtcValue}>{euros(ttc)}</Text>
+                </View>
+              </View>
             </View>
           </View>
-        </View>
+        ) : (
+          /* Montants simples (facture manuelle sans devis) */
+          <View style={styles.amountBlock}>
+            <Text style={styles.amountLabel}>Détail des montants</Text>
+            <View style={styles.amountRows}>
+              <View style={styles.amountRow}>
+                <Text style={styles.amountRowLabel}>Total HT</Text>
+                <Text style={styles.amountRowValue}>{euros(ht)}</Text>
+              </View>
+              <View style={styles.amountRow}>
+                <Text style={styles.amountRowLabel}>TVA ({String(tvaRate ?? 10)}%)</Text>
+                <Text style={styles.amountRowValue}>{euros(tva)}</Text>
+              </View>
+              <View style={styles.amountTtcRow}>
+                <Text style={styles.amountTtcLabel}>Total TTC</Text>
+                <Text style={styles.amountTtcValue}>{euros(ttc)}</Text>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* RIB / Modalités de paiement */}
         {status !== "payée" && (

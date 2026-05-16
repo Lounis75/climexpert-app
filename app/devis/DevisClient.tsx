@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { Phone, Mail, CheckCircle2, ArrowRight, MapPin } from "lucide-react";
+import { Phone, Mail, CheckCircle2, ArrowRight, MapPin, Camera, X, Loader2 } from "lucide-react";
 
 const serviceOptions = [
   "Installation climatisation",
@@ -19,9 +19,48 @@ const propertyOptions = [
   "Copropriété",
 ];
 
+type PhotoFile = { file: File; preview: string; url?: string; uploading?: boolean; error?: string };
+
 export default function DevisClient() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [photos, setPhotos] = useState<PhotoFile[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function addPhotos(files: FileList | null) {
+    if (!files) return;
+    const newPhotos: PhotoFile[] = Array.from(files).slice(0, 5 - photos.length).map((file) => ({
+      file,
+      preview: URL.createObjectURL(file),
+      uploading: false,
+    }));
+    setPhotos((prev) => [...prev, ...newPhotos].slice(0, 5));
+  }
+
+  function removePhoto(index: number) {
+    setPhotos((prev) => {
+      URL.revokeObjectURL(prev[index].preview);
+      return prev.filter((_, i) => i !== index);
+    });
+  }
+
+  async function uploadPhoto(index: number): Promise<string | null> {
+    const photo = photos[index];
+    if (photo.url) return photo.url;
+    setPhotos((prev) => prev.map((p, i) => i === index ? { ...p, uploading: true } : p));
+    try {
+      const fd = new FormData();
+      fd.append("file", photo.file);
+      const res = await fetch("/api/upload/devis", { method: "POST", body: fd });
+      if (!res.ok) throw new Error();
+      const { url } = await res.json();
+      setPhotos((prev) => prev.map((p, i) => i === index ? { ...p, url, uploading: false } : p));
+      return url as string;
+    } catch {
+      setPhotos((prev) => prev.map((p, i) => i === index ? { ...p, uploading: false, error: "Erreur upload" } : p));
+      return null;
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -42,6 +81,13 @@ export default function DevisClient() {
       "Copropriété": "copropriete",
     };
 
+    // Upload photos first
+    const photoUrls: string[] = [];
+    for (let i = 0; i < photos.length; i++) {
+      const url = await uploadPhoto(i);
+      if (url) photoUrls.push(url);
+    }
+
     try {
       const res = await fetch("/api/contact", {
         method: "POST",
@@ -54,6 +100,7 @@ export default function DevisClient() {
           bien: bienMap[String(data.get("property") ?? "")] ?? "appartement",
           ville: data.get("location") ?? "",
           message: data.get("message") ?? "",
+          photosUrls: photoUrls,
         }),
       });
       if (res.ok) {
@@ -206,6 +253,60 @@ export default function DevisClient() {
                         placeholder="Ex : Installation d'un monosplit dans un salon de 30m², appartement au 3e étage, Paris 15e. Façade disponible côté cour."
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition resize-none"
                       />
+                    </div>
+
+                    {/* Photo upload */}
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Photos de votre installation <span className="text-slate-400 font-normal">(optionnel · max 5)</span>
+                      </label>
+                      <p className="text-xs text-slate-400 mb-3">
+                        Joignez des photos de votre climatisation existante, de votre façade ou de votre emplacement prévu. Cela nous permet de vous faire un devis plus précis.
+                      </p>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+                        multiple
+                        className="hidden"
+                        onChange={(e) => addPhotos(e.target.files)}
+                      />
+                      {photos.length > 0 && (
+                        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-3">
+                          {photos.map((p, i) => (
+                            <div key={i} className="relative aspect-square rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
+                              <img src={p.preview} alt="" className="w-full h-full object-cover" />
+                              {p.uploading && (
+                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                  <Loader2 className="w-4 h-4 text-white animate-spin" />
+                                </div>
+                              )}
+                              {p.error && (
+                                <div className="absolute inset-0 bg-red-500/60 flex items-center justify-center">
+                                  <span className="text-white text-[10px] font-semibold text-center px-1">{p.error}</span>
+                                </div>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => removePhoto(i)}
+                                className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center transition-colors"
+                              >
+                                <X className="w-3 h-3 text-white" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {photos.length < 5 && (
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="flex items-center gap-2 px-4 py-2.5 border-2 border-dashed border-slate-200 hover:border-sky-400 hover:text-sky-600 text-slate-500 text-sm rounded-xl transition-colors w-full justify-center"
+                        >
+                          <Camera className="w-4 h-4" />
+                          {photos.length === 0 ? "Ajouter des photos" : `Ajouter (${photos.length}/5)`}
+                        </button>
+                      )}
                     </div>
 
                     <button
