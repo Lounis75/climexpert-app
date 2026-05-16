@@ -143,7 +143,7 @@ export default function EntretienPage() {
           photoAlt="Entretien climatisation Île-de-France"
           topic="Entretien"
           stats={[
-            { value: "180 € TTC", label: "À partir de / an" },
+            { value: "180 €", label: "À partir de / an (TTC)" },
             { value: "2×/an", label: "Option pro" },
             { value: "Toutes", label: "Marques" },
             { value: "48h", label: "Prise en charge" },
@@ -218,7 +218,7 @@ export default function EntretienPage() {
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Contrat annuel</p>
                 <div className="flex items-baseline gap-3">
-                  <span className="text-5xl font-extrabold text-emerald-400">180 € TTC</span>
+                  <span className="text-5xl font-extrabold text-emerald-400">180 €<span className="text-xl font-semibold ml-1.5 opacity-60">TTC</span></span>
                   <span className="text-slate-400 text-lg">/ 1ère unité</span>
                 </div>
                 <p className="text-slate-400 text-sm mt-1">+60 € TTC/unité supplémentaire · Paris intramuros · Majoration selon distance et accessibilité</p>

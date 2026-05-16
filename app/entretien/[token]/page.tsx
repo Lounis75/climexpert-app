@@ -17,7 +17,7 @@ export default function EntretienPage({ params }: { params: Promise<{ token: str
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
 
-  const price = 150 + (units - 1) * 50;
+  const price = 180 + (units - 1) * 60;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -121,7 +121,7 @@ export default function EntretienPage({ params }: { params: Promise<{ token: str
 
             <div className="bg-slate-50 rounded-2xl p-4 flex items-center justify-between">
               <span className="text-sm text-slate-600">Total annuel</span>
-              <span className="text-2xl font-bold text-slate-900">{price} €</span>
+              <span className="text-2xl font-bold text-slate-900">{price} €<span className="text-sm font-semibold ml-1 opacity-50">TTC</span></span>
             </div>
 
             {error && <p className="text-red-500 text-xs bg-red-50 p-3 rounded-xl">{error}</p>}

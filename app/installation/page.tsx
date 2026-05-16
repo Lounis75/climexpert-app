@@ -177,7 +177,7 @@ export default function InstallationPage() {
             { value: "80+", label: "Installations" },
             { value: "10 ans", label: "Exp. cumulée" },
             { value: "Certifiés", label: "Fluides F-Gaz" },
-            { value: "1 500 €", label: "À partir de" },
+            { value: "1 500 €", label: "À partir de (TTC)" },
           ]}
         />
 
@@ -205,7 +205,10 @@ export default function InstallationPage() {
                   <p className="text-slate-500 text-sm leading-relaxed mb-4">{s.desc}</p>
                   <div className="pt-4 border-t border-slate-100">
                     <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-1">À partir de</p>
-                    <p className="text-xl font-extrabold text-sky-600">{s.price.replace("À partir de ", "")}</p>
+                    <p className="text-xl font-extrabold text-sky-600">
+                      {s.price.replace("À partir de ", "")}
+                      <span className="text-xs font-semibold ml-1 opacity-50">TTC</span>
+                    </p>
                     <p className="text-xs text-slate-400 mt-1">Idéal : {s.best}</p>
                   </div>
                 </div>

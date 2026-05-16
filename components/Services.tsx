@@ -19,6 +19,7 @@ const services = [
     ],
     priceLabel: "À partir de",
     priceAmount: "1 500 €",
+    priceTTC: true,
     priceUnit: "",
     priceNote: "selon configuration",
     cta: "Demander un devis",
@@ -40,7 +41,8 @@ const services = [
       "Rapport d'intervention détaillé",
     ],
     priceLabel: "À partir de",
-    priceAmount: "180 € TTC",
+    priceAmount: "180 €",
+    priceTTC: true,
     priceUnit: "/ unité",
     priceNote: "par an, tout inclus",
     cta: "Souscrire un contrat",
@@ -63,6 +65,7 @@ const services = [
     ],
     priceLabel: "Tarif",
     priceAmount: "Sur devis",
+    priceTTC: false,
     priceUnit: "",
     priceNote: "diagnostic offert",
     cta: "Décrire ma panne",
@@ -180,6 +183,9 @@ export default function Services() {
                     <div className="flex items-baseline gap-2">
                       <span className={`text-4xl font-extrabold tracking-tight ${colors.amount}`}>
                         {service.priceAmount}
+                        {service.priceTTC && (
+                          <span className="text-base font-semibold ml-1 opacity-60">TTC</span>
+                        )}
                       </span>
                       {service.priceUnit && (
                         <span className="text-slate-500 text-base font-medium">
