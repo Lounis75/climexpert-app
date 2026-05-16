@@ -45,7 +45,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       adminId: admin.id,
       type: "nouveau_contrat",
       titre: `Nouveau contrat entretien — ${client.name}`,
-      contenu: `${units} unité(s) — ${units * 200} €/an`,
+      contenu: `${units} unité(s) — ${150 + (units - 1) * 50} €/an`,
       refType: "contrat",
       refId: contratId,
     });
