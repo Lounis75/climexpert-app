@@ -1,34 +1,53 @@
 "use client";
 
-import { Wind, LayoutDashboard, FileText, Users, LogOut, Contact, ClipboardList, Receipt, Wrench, Bell, CheckCheck, HardHat, ScrollText, HeadphonesIcon, Thermometer } from "lucide-react";
+import {
+  Wind, LayoutDashboard, FileText, Users, LogOut, Contact,
+  ClipboardList, Receipt, Wrench, Bell, CheckCheck, HardHat,
+  ScrollText, HeadphonesIcon, Thermometer, ChevronDown,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-const tabs = [
-  { href: "/admin/dashboard",     label: "Dashboard",      icon: LayoutDashboard },
-  { href: "/admin/leads",         label: "Leads",          icon: Users },
-  { href: "/admin/clients",       label: "Clients",        icon: Contact },
-  { href: "/admin/devis",         label: "Devis",          icon: ClipboardList },
-  { href: "/admin/factures",      label: "Factures",       icon: Receipt },
-  { href: "/admin/interventions", label: "Interventions",  icon: Wrench },
-  { href: "/admin/techniciens",   label: "Techniciens",    icon: HardHat },
-  { href: "/admin/contrats",      label: "Contrats",       icon: ScrollText },
-  { href: "/admin/sav",           label: "SAV",            icon: HeadphonesIcon },
-  { href: "/admin/saisonnalite",   label: "Saisonnalité",   icon: Thermometer },
-  { href: "/admin/articles",      label: "Articles",       icon: FileText },
-  { href: "/admin/notifications", label: "Notifications",  icon: Bell },
+const standalone = { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard };
+
+const groups = [
+  {
+    label: "CRM",
+    items: [
+      { href: "/admin/leads",   label: "Leads",   icon: Users },
+      { href: "/admin/clients", label: "Clients", icon: Contact },
+    ],
+  },
+  {
+    label: "Finance",
+    items: [
+      { href: "/admin/devis",     label: "Devis",     icon: ClipboardList },
+      { href: "/admin/factures",  label: "Factures",  icon: Receipt },
+      { href: "/admin/contrats",  label: "Contrats",  icon: ScrollText },
+    ],
+  },
+  {
+    label: "Terrain",
+    items: [
+      { href: "/admin/interventions", label: "Interventions", icon: Wrench },
+      { href: "/admin/techniciens",   label: "Techniciens",   icon: HardHat },
+      { href: "/admin/sav",           label: "SAV",           icon: HeadphonesIcon },
+      { href: "/admin/saisonnalite",  label: "Saisonnalité",  icon: Thermometer },
+    ],
+  },
+  {
+    label: "Contenu",
+    items: [
+      { href: "/admin/articles", label: "Articles", icon: FileText },
+    ],
+  },
 ];
 
 type Notif = {
-  id: string;
-  type: string;
-  titre: string;
-  contenu: string | null;
-  lu: boolean;
-  refType: string | null;
-  refId: string | null;
-  createdAt: string;
+  id: string; type: string; titre: string;
+  contenu: string | null; lu: boolean;
+  refType: string | null; refId: string | null; createdAt: string;
 };
 
 function timeAgo(d: string) {
@@ -48,6 +67,59 @@ const TYPE_ICONS: Record<string, string> = {
   intervention_planifiee: "🔧",
 };
 
+function NavDropdown({ group, pathname }: { group: typeof groups[0]; pathname: string }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const isActive = group.items.some((i) => pathname.startsWith(i.href));
+
+  useEffect(() => {
+    function h(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
+
+  // Close on navigation
+  useEffect(() => { setOpen(false); }, [pathname]);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors border whitespace-nowrap ${
+          isActive
+            ? "bg-sky-500/15 text-sky-400 border-sky-500/30"
+            : "text-slate-400 hover:text-white border-transparent hover:border-white/10"
+        }`}
+      >
+        {group.label}
+        <ChevronDown className={`w-3 h-3 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full mt-1.5 w-44 bg-slate-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 py-1">
+          {group.items.map(({ href, label, icon: Icon }) => (
+            <Link
+              key={href}
+              href={href}
+              onClick={() => setOpen(false)}
+              className={`flex items-center gap-2.5 px-3 py-2 text-xs transition-colors ${
+                pathname.startsWith(href)
+                  ? "bg-sky-500/15 text-sky-400"
+                  : "text-slate-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+              {label}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminHeader() {
   const pathname = usePathname();
   const router = useRouter();
@@ -56,24 +128,20 @@ export default function AdminHeader() {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Fermer le dropdown au clic extérieur
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) setOpen(false);
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  // Charger le compteur non lus
   useEffect(() => {
     fetch("/api/admin/notifications?count=1")
       .then((r) => r.json())
       .then((d) => setUnread(d.count ?? 0))
       .catch(() => {});
-  }, [pathname]); // recharge à chaque navigation
+  }, [pathname]);
 
   async function openDropdown() {
     if (!open) {
@@ -95,9 +163,13 @@ export default function AdminHeader() {
     router.push("/admin");
   }
 
+  const isDashboard = pathname.startsWith("/admin/dashboard");
+
   return (
     <header className="border-b border-white/10 bg-slate-900/80 backdrop-blur-sm sticky top-0 z-10">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
+
+        {/* Logo */}
         <div className="flex items-center gap-2.5 flex-shrink-0">
           <div className="w-7 h-7 rounded-lg bg-sky-500 flex items-center justify-center">
             <Wind className="w-4 h-4 text-white" />
@@ -108,25 +180,29 @@ export default function AdminHeader() {
           </span>
         </div>
 
-        <nav className="flex items-center gap-0.5 overflow-x-auto scrollbar-none">
-          {tabs.map(({ href, label, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors border whitespace-nowrap ${
-                pathname.startsWith(href)
-                  ? "bg-sky-500/15 text-sky-400 border-sky-500/30"
-                  : "text-slate-400 hover:text-white border-transparent hover:border-white/10"
-              }`}
-            >
-              <Icon className="w-3.5 h-3.5" />
-              <span className="hidden lg:inline">{label}</span>
-            </Link>
+        {/* Nav */}
+        <nav className="flex items-center gap-0.5">
+          {/* Dashboard */}
+          <Link
+            href={standalone.href}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors border whitespace-nowrap ${
+              isDashboard
+                ? "bg-sky-500/15 text-sky-400 border-sky-500/30"
+                : "text-slate-400 hover:text-white border-transparent hover:border-white/10"
+            }`}
+          >
+            <LayoutDashboard className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Dashboard</span>
+          </Link>
+
+          {/* Grouped dropdowns */}
+          {groups.map((g) => (
+            <NavDropdown key={g.label} group={g} pathname={pathname} />
           ))}
         </nav>
 
+        {/* Right: bell + logout */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Bell */}
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={openDropdown}
@@ -158,23 +234,14 @@ export default function AdminHeader() {
                     <p className="text-slate-500 text-xs text-center py-8">Aucune notification</p>
                   ) : (
                     notifs.map((n) => (
-                      <div
-                        key={n.id}
-                        className={`px-4 py-3 flex gap-3 ${!n.lu ? "bg-sky-500/5" : ""}`}
-                      >
+                      <div key={n.id} className={`px-4 py-3 flex gap-3 ${!n.lu ? "bg-sky-500/5" : ""}`}>
                         <span className="text-sm flex-shrink-0 mt-0.5">{TYPE_ICONS[n.type] ?? "🔔"}</span>
                         <div className="flex-1 min-w-0">
-                          <p className={`text-xs font-medium ${!n.lu ? "text-white" : "text-slate-300"}`}>
-                            {n.titre}
-                          </p>
-                          {n.contenu && (
-                            <p className="text-slate-500 text-xs mt-0.5 truncate">{n.contenu}</p>
-                          )}
+                          <p className={`text-xs font-medium ${!n.lu ? "text-white" : "text-slate-300"}`}>{n.titre}</p>
+                          {n.contenu && <p className="text-slate-500 text-xs mt-0.5 truncate">{n.contenu}</p>}
                           <p className="text-slate-600 text-[10px] mt-1">{timeAgo(n.createdAt)}</p>
                         </div>
-                        {!n.lu && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-sky-400 flex-shrink-0 mt-1.5" />
-                        )}
+                        {!n.lu && <span className="w-1.5 h-1.5 rounded-full bg-sky-400 flex-shrink-0 mt-1.5" />}
                       </div>
                     ))
                   )}
