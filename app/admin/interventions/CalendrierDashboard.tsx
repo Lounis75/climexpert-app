@@ -232,21 +232,19 @@ function QuickAddModal({
           </div>
 
           {/* Technicien */}
-          {techniciens.length > 0 && (
-            <div>
-              <label className="text-xs text-slate-400 block mb-1.5">Technicien</label>
-              <select
-                value={techId}
-                onChange={(e) => setTechId(e.target.value)}
-                className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
-              >
-                <option value="">Non assigné</option>
-                {techniciens.map((t) => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
-            </div>
-          )}
+          <div>
+            <label className="text-xs text-slate-400 block mb-1.5">Technicien</label>
+            <select
+              value={techId}
+              onChange={(e) => setTechId(e.target.value)}
+              className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
+            >
+              <option value="">Non assigné</option>
+              {techniciens.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+          </div>
 
           {/* Adresse */}
           <div>
