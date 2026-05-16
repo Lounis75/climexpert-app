@@ -203,44 +203,76 @@ interface LeadData {
   notes: string;
 }
 
-async function sendLeadEmails(lead: LeadData) {
+type ChatMessage = { role: "user" | "assistant"; content: string };
+
+function buildTranscript(messages: ChatMessage[]): string {
+  return messages
+    .filter((m) => m.role === "user" || m.role === "assistant")
+    .map((m) => `${m.role === "user" ? "👤 Client" : "🤖 Alex"} : ${typeof m.content === "string" ? m.content : ""}`)
+    .join("\n\n");
+}
+
+function buildTranscriptHtml(messages: ChatMessage[]): string {
+  return messages
+    .filter((m) => m.role === "user" || m.role === "assistant")
+    .map((m) => {
+      const isUser = m.role === "user";
+      const content = typeof m.content === "string" ? m.content.replace(/\n/g, "<br>") : "";
+      return `<div style="margin-bottom:12px;">
+        <span style="font-size:11px;font-weight:bold;color:${isUser ? "#0EA5E9" : "#10B981"};text-transform:uppercase;letter-spacing:0.05em;">${isUser ? "👤 Client" : "🤖 Alex"}</span>
+        <p style="margin:4px 0 0;padding:10px 14px;background:${isUser ? "#F0F9FF" : "#F0FDF4"};border-radius:8px;font-size:13px;color:#1e293b;line-height:1.5;">${content}</p>
+      </div>`;
+    })
+    .join("");
+}
+
+async function sendLeadEmails(lead: LeadData, messages: ChatMessage[]) {
   const resend = new Resend(process.env.RESEND_API_KEY);
   const date = new Date().toLocaleDateString("fr-FR", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
     hour: "2-digit", minute: "2-digit",
   });
 
-  // Email interne à ClimExpert
+  const transcriptHtml = buildTranscriptHtml(messages);
+
   await resend.emails.send({
     from: "Alex ClimExpert <noreply@climexpert.fr>",
     to: ["contact@climexpert.fr"],
-    subject: `🔔 Nouveau lead qualifié — ${lead.name} — ${lead.project}`,
+    subject: `⚡ Nouveau lead — ${lead.name} — ${lead.project} — ${lead.location}`,
     html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 24px; border-radius: 12px;">
+      <div style="font-family: Arial, sans-serif; max-width: 620px; margin: 0 auto; background: #f8fafc; padding: 24px; border-radius: 12px;">
         <div style="background: #0B1120; padding: 24px; border-radius: 8px; margin-bottom: 24px;">
           <h1 style="color: #38BDF8; margin: 0; font-size: 20px;">⚡ Nouveau lead qualifié par Alex</h1>
           <p style="color: #94A3B8; margin: 8px 0 0; font-size: 14px;">${date}</p>
         </div>
 
         <div style="background: white; border-radius: 8px; padding: 24px; margin-bottom: 16px; border: 1px solid #E2E8F0;">
-          <h2 style="color: #0F172A; margin: 0 0 16px; font-size: 16px; border-bottom: 2px solid #0EA5E9; padding-bottom: 8px;">📋 Fiche du prospect</h2>
+          <h2 style="color: #0F172A; margin: 0 0 16px; font-size: 16px; border-bottom: 2px solid #0EA5E9; padding-bottom: 8px;">📋 Récapitulatif du prospect</h2>
           <table style="width: 100%; border-collapse: collapse;">
-            <tr><td style="padding: 8px 0; color: #64748B; width: 40%; font-size: 14px;">Prénom</td><td style="padding: 8px 0; font-weight: bold; color: #0F172A; font-size: 14px;">${lead.name}</td></tr>
-            <tr><td style="padding: 8px 0; color: #64748B; font-size: 14px;">Téléphone</td><td style="padding: 8px 0; font-weight: bold; color: #0EA5E9; font-size: 16px;"><a href="tel:${lead.phone}" style="color: #0EA5E9; text-decoration: none;">${lead.phone}</a></td></tr>
-            <tr><td style="padding: 8px 0; color: #64748B; font-size: 14px;">Type de projet</td><td style="padding: 8px 0; font-weight: bold; color: #0F172A; font-size: 14px; text-transform: capitalize;">${lead.project}</td></tr>
-            <tr><td style="padding: 8px 0; color: #64748B; font-size: 14px;">Type de bien</td><td style="padding: 8px 0; font-weight: bold; color: #0F172A; font-size: 14px; text-transform: capitalize;">${lead.property}</td></tr>
+            <tr><td style="padding: 8px 0; color: #64748B; width: 38%; font-size: 14px;">Nom</td><td style="padding: 8px 0; font-weight: bold; color: #0F172A; font-size: 14px;">${lead.name}</td></tr>
+            <tr><td style="padding: 8px 0; color: #64748B; font-size: 14px;">Téléphone</td><td style="padding: 8px 0; font-size: 16px;"><a href="tel:${lead.phone}" style="color: #0EA5E9; font-weight: bold; text-decoration: none;">${lead.phone}</a></td></tr>
+            ${lead.email ? `<tr><td style="padding: 8px 0; color: #64748B; font-size: 14px;">Email</td><td style="padding: 8px 0; font-size: 14px;"><a href="mailto:${lead.email}" style="color: #0EA5E9; text-decoration: none;">${lead.email}</a></td></tr>` : ""}
+            <tr><td style="padding: 8px 0; color: #64748B; font-size: 14px;">Projet</td><td style="padding: 8px 0; font-weight: bold; color: #0F172A; font-size: 14px; text-transform: capitalize;">${lead.project}</td></tr>
+            <tr><td style="padding: 8px 0; color: #64748B; font-size: 14px;">Bien</td><td style="padding: 8px 0; font-weight: bold; color: #0F172A; font-size: 14px; text-transform: capitalize;">${lead.property}</td></tr>
             <tr><td style="padding: 8px 0; color: #64748B; font-size: 14px;">Localisation</td><td style="padding: 8px 0; font-weight: bold; color: #0F172A; font-size: 14px;">${lead.location}</td></tr>
-            <tr><td style="padding: 8px 0; color: #64748B; font-size: 14px;">Estimation</td><td style="padding: 8px 0; font-weight: bold; color: #16A34A; font-size: 14px;">${lead.estimate}</td></tr>
+            <tr><td style="padding: 8px 0; color: #64748B; font-size: 14px;">Estimation</td><td style="padding: 8px 0; font-weight: bold; color: #16A34A; font-size: 15px;">${lead.estimate}</td></tr>
             ${lead.notes ? `<tr><td style="padding: 8px 0; color: #64748B; font-size: 14px; vertical-align: top;">Notes</td><td style="padding: 8px 0; color: #0F172A; font-size: 14px;">${lead.notes}</td></tr>` : ""}
           </table>
         </div>
 
-        <div style="background: #FFF7ED; border: 1px solid #FED7AA; border-radius: 8px; padding: 16px; text-align: center;">
+        <div style="background: #FFF7ED; border: 1px solid #FED7AA; border-radius: 8px; padding: 16px; text-align: center; margin-bottom: 16px;">
           <p style="margin: 0; color: #C2410C; font-weight: bold; font-size: 14px;">⏱️ À rappeler sous 24h</p>
-          <a href="tel:${lead.phone}" style="display: inline-block; margin-top: 8px; background: #EA580C; color: white; padding: 10px 24px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px;">Appeler ${lead.name}</a>
+          <a href="tel:${lead.phone}" style="display: inline-block; margin-top: 8px; background: #EA580C; color: white; padding: 10px 24px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px;">📞 Appeler ${lead.name}</a>
         </div>
 
-        <p style="text-align: center; color: #94A3B8; font-size: 12px; margin-top: 16px;">Lead généré par Alex · Assistant ClimExpert · climexpert.fr</p>
+        ${transcriptHtml ? `
+        <div style="background: white; border-radius: 8px; padding: 24px; border: 1px solid #E2E8F0;">
+          <h2 style="color: #0F172A; margin: 0 0 16px; font-size: 16px; border-bottom: 2px solid #10B981; padding-bottom: 8px;">💬 Conversation avec Alex</h2>
+          ${transcriptHtml}
+        </div>
+        ` : ""}
+
+        <p style="text-align: center; color: #94A3B8; font-size: 12px; margin-top: 16px;">Lead qualifié par Alex · climexpert.fr</p>
       </div>
     `,
   });
@@ -248,7 +280,7 @@ async function sendLeadEmails(lead: LeadData) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages } = await req.json();
+    const { messages }: { messages: ChatMessage[] } = await req.json();
 
     if (!Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json({ error: "Messages invalides" }, { status: 400 });
@@ -333,8 +365,15 @@ export async function POST(req: NextRequest) {
         const message = messageMatch ? messageMatch[1].trim() : "Votre demande est bien enregistrée. Notre équipe vous contacte très prochainement !";
 
         if (lead?.phone) {
+          const transcript = buildTranscript(messages);
+          const fullNotes = [
+            lead.notes,
+            lead.estimate ? `Estimation : ${lead.estimate}` : "",
+            transcript ? `\n--- Conversation Alex ---\n${transcript}` : "",
+          ].filter(Boolean).join("\n");
+
           await Promise.all([
-            sendLeadEmails(lead),
+            sendLeadEmails(lead, messages),
             createLead({
               source: "alex",
               name: lead.name,
@@ -343,7 +382,7 @@ export async function POST(req: NextRequest) {
               project: lead.project as "installation" | "entretien" | "depannage" | "contrat-pro" | "autre" | undefined,
               location: lead.location || undefined,
               message: lead.estimate ? `Estimation : ${lead.estimate}` : undefined,
-              notes: lead.notes || undefined,
+              notes: fullNotes || undefined,
             }),
           ]);
         }
