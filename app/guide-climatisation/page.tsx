@@ -155,7 +155,7 @@ const faqItems = [
   {
     question: "Combien de temps dure une climatisation ?",
     answer:
-      "Une climatisation bien entretenue dure entre 12 et 20 ans. L'entretien annuel est le facteur clé de longévité. Sans entretien, la durée de vie peut être réduite de moitié. Nos contrats de maintenance à partir de 150 €/unité/an protègent votre investissement.",
+      "Une climatisation bien entretenue dure entre 12 et 20 ans. L'entretien annuel est le facteur clé de longévité. Sans entretien, la durée de vie peut être réduite de moitié. Nos contrats de maintenance à partir de 180 € TTC/unité/an protègent votre investissement.",
   },
   {
     question: "Quand est-il préférable d'installer une climatisation ?",
@@ -522,7 +522,7 @@ export default async function GuidePage() {
                   <div className="bg-[#0B1120] rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
                       <p className="text-[10px] uppercase tracking-widest font-bold text-slate-500 mb-1">Nos contrats d'entretien</p>
-                      <p className="text-white font-bold text-xl">À partir de 150 € <span className="text-slate-400 font-normal text-base">/ unité / an</span></p>
+                      <p className="text-white font-bold text-xl">À partir de 180 € TTC <span className="text-slate-400 font-normal text-base">/ unité / an</span></p>
                       <p className="text-slate-400 text-sm">Tout inclus : déplacement, nettoyage, rapport</p>
                     </div>
                     <Link

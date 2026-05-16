@@ -14,7 +14,7 @@ export default async function ContratsPage() {
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-white mb-1">Contrats d&apos;entretien</h1>
-          <p className="text-slate-400 text-sm">Suivi des contrats annuels — à partir de 150 € / unité.</p>
+          <p className="text-slate-400 text-sm">Suivi des contrats annuels — à partir de 180 € TTC / unité.</p>
         </div>
         <ContratsManager initialContrats={contrats} clients={clients} />
       </main>

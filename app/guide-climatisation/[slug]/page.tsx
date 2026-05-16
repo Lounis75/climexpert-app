@@ -332,7 +332,7 @@ export default async function ArticlePage({ params }: Props) {
             <div className="grid sm:grid-cols-3 gap-3">
               {[
                 { href: "/installation", label: "Installation", desc: "Monosplit, multisplit, gainable — à partir de 1 500 €" },
-                { href: "/entretien", label: "Entretien annuel", desc: "Contrat de maintenance à partir de 150 €/unité/an" },
+                { href: "/entretien", label: "Entretien annuel", desc: "Contrat de maintenance à partir de 180 € TTC/unité/an" },
                 { href: "/depannage", label: "Dépannage", desc: "Intervention sous 48h, toutes marques, 7j/7" },
               ].map((s) => (
                 <Link

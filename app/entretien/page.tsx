@@ -8,9 +8,9 @@ import FAQAccordion from "@/components/FAQAccordion";
 import PageCTA from "@/components/PageCTA";
 
 export const metadata: Metadata = {
-  title: "Entretien Climatisation Île-de-France | ClimExpert — à partir de 150 €",
+  title: "Entretien Climatisation Île-de-France | ClimExpert — à partir de 180 € TTC",
   description:
-    "Contrat d'entretien climatisation en Île-de-France. Nettoyage, contrôle frigorigène, rapport d'intervention. à partir de 150 € / unité / an. Techniciens RGE certifiés.",
+    "Contrat d'entretien climatisation en Île-de-France. Nettoyage, contrôle frigorigène, rapport d'intervention. à partir de 180 € TTC / unité / an. Techniciens RGE certifiés.",
   keywords:
     "entretien climatisation ile-de-france, maintenance climatisation paris, contrat entretien clim, nettoyage climatisation, révision climatisation obligatoire",
   alternates: {
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Entretien & Maintenance Climatisation — ClimExpert",
     description:
-      "Contrat d'entretien annuel à partir de 150 € (Paris intramuros) + 50 €/unité supplémentaire. Nettoyage, contrôle frigorigène, rapport complet.",
+      "Contrat d'entretien annuel à partir de 180 € TTC (Paris intramuros) +60 € TTC/unité supplémentaire. Nettoyage, contrôle frigorigène, rapport complet.",
     url: "https://climexpert.fr/entretien",
     images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
   },
@@ -69,7 +69,7 @@ const faqItems = [
   {
     question: "Quel est le tarif d'un entretien de climatisation ?",
     answer:
-      "Nos contrats d'entretien débutent à 150 € pour 1 unité à Paris intramuros. Chaque unité supplémentaire est facturée 50 €. Une majoration s'applique selon la distance et l'accessibilité de l'installation (hauteur, encombrement). Tout est inclus : déplacement, main-d'œuvre, nettoyage et rapport d'intervention.",
+      "Nos contrats d'entretien débutent à 180 € TTC pour 1 unité à Paris intramuros. Chaque unité supplémentaire est facturée 50 €. Une majoration s'applique selon la distance et l'accessibilité de l'installation (hauteur, encombrement). Tout est inclus : déplacement, main-d'œuvre, nettoyage et rapport d'intervention.",
   },
   {
     question: "Que se passe-t-il si le niveau de frigorigène est bas ?",
@@ -103,7 +103,7 @@ const serviceSchema = {
   "@type": "Service",
   name: "Entretien et maintenance de climatisation en Île-de-France",
   serviceType: "Maintenance climatisation",
-  description: "Contrat d'entretien annuel de climatisation à partir de 150 € en Île-de-France (Paris intramuros), +50 €/unité supplémentaire. Nettoyage complet, contrôle frigorigène obligatoire F-Gaz, rapport d'intervention par des techniciens RGE certifiés.",
+  description: "Contrat d'entretien annuel de climatisation à partir de 180 € TTC en Île-de-France (Paris intramuros), +60 € TTC/unité supplémentaire. Nettoyage complet, contrôle frigorigène obligatoire F-Gaz, rapport d'intervention par des techniciens RGE certifiés.",
   provider: { "@type": "LocalBusiness", "@id": "https://climexpert.fr", name: "ClimExpert" },
   areaServed: { "@type": "AdministrativeArea", name: "Île-de-France" },
   offers: {
@@ -137,13 +137,13 @@ export default function EntretienPage() {
           badge="Maintenance certifiée RGE — Île-de-France"
           title="Entretien & maintenance"
           titleAccent="de climatisation"
-          subtitle="À partir de 150 € pour 1 unité à Paris intramuros, +50 € par unité supplémentaire, tout inclus. Nettoyage complet, contrôle frigorigène et rapport d'intervention détaillé par des techniciens certifiés."
+          subtitle="À partir de 180 € TTC pour 1 unité à Paris intramuros, +60 € TTC par unité supplémentaire, tout inclus. Nettoyage complet, contrôle frigorigène et rapport d'intervention détaillé par des techniciens certifiés."
           ctaLabel="Souscrire un contrat"
           photo="/images/services-maintenance.jpg"
           photoAlt="Entretien climatisation Île-de-France"
           topic="Entretien"
           stats={[
-            { value: "150 €", label: "À partir de / an" },
+            { value: "180 € TTC", label: "À partir de / an" },
             { value: "2×/an", label: "Option pro" },
             { value: "Toutes", label: "Marques" },
             { value: "48h", label: "Prise en charge" },
@@ -218,10 +218,10 @@ export default function EntretienPage() {
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Contrat annuel</p>
                 <div className="flex items-baseline gap-3">
-                  <span className="text-5xl font-extrabold text-emerald-400">150 €</span>
+                  <span className="text-5xl font-extrabold text-emerald-400">180 € TTC</span>
                   <span className="text-slate-400 text-lg">/ 1ère unité</span>
                 </div>
-                <p className="text-slate-400 text-sm mt-1">+50 € / unité supplémentaire · Paris intramuros · Majoration selon distance et accessibilité</p>
+                <p className="text-slate-400 text-sm mt-1">+60 € TTC/unité supplémentaire · Paris intramuros · Majoration selon distance et accessibilité</p>
               </div>
               <a
                 href="#devis"
@@ -240,7 +240,7 @@ export default function EntretienPage() {
 
         <PageCTA
           title="Protégez votre climatisation"
-          subtitle="À partir de 150 € / unité (Paris intramuros). Techniciens disponibles sous 48h."
+          subtitle="À partir de 180 € TTC / unité (Paris intramuros). Techniciens disponibles sous 48h."
           ctaLabel="Souscrire un contrat"
           topic="Entretien"
         />

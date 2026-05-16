@@ -539,7 +539,7 @@ export const articles: Article[] = [
           {
             heading: "Éviter les pannes coûteuses",
             content: [
-              "La majorité des pannes évitables de climatisation sont dues à un manque d'entretien : bac de condensats débordant (fuite au plafond), compresseur surchargé par manque de gaz, carte électronique grillée par surtension. Une intervention préventive à partir de 150 € évite souvent une panne à 800-1 500 €.",
+              "La majorité des pannes évitables de climatisation sont dues à un manque d'entretien : bac de condensats débordant (fuite au plafond), compresseur surchargé par manque de gaz, carte électronique grillée par surtension. Une intervention préventive à partir de 180 € TTC évite souvent une panne à 800-1 500 €.",
             ],
           },
           {
@@ -565,7 +565,7 @@ export const articles: Article[] = [
         },
       },
       {
-        heading: "Ce que comprend notre entretien à partir de 150 €",
+        heading: "Ce que comprend notre entretien à partir de 180 € TTC",
         list: [
           "Nettoyage et désinfection des filtres intérieurs",
           "Nettoyage de l'évaporateur (unité intérieure)",
@@ -578,7 +578,7 @@ export const articles: Article[] = [
           "Rapport d'intervention signé avec état de l'équipement",
         ],
         highlight:
-          "Le tarif démarre à 150 € TTC pour la 1ère unité (Paris intramuros), puis 50 € par unité supplémentaire. Pour un multisplit 3 têtes, l'entretien complet démarre à 250 € TTC.",
+          "Le tarif démarre à 180 € TTC pour la 1ère unité (Paris intramuros), puis 60 € TTC par unité supplémentaire. Pour un multisplit 3 têtes, l'entretien complet démarre à 300 € TTC.",
       },
       {
         heading: "Ce que vous pouvez faire vous-même entre deux entretiens",
@@ -1148,7 +1148,7 @@ export const articles: Article[] = [
       {
         question: "La marque influence-t-elle le prix de l'entretien annuel ?",
         answer:
-          "Non. Notre contrat d'entretien à partir de 150 €/an (1 unité, Paris intramuros) s'applique à toutes les marques. L'entretien est identique quel que soit le fabricant. En revanche, le coût des réparations peut varier : les pièces Daikin et Mitsubishi sont moins chères et plus facilement disponibles.",
+          "Non. Notre contrat d'entretien à partir de 180 € TTC/an (1 unité, Paris intramuros) s'applique à toutes les marques. L'entretien est identique quel que soit le fabricant. En revanche, le coût des réparations peut varier : les pièces Daikin et Mitsubishi sont moins chères et plus facilement disponibles.",
       },
     ],
     relatedSlugs: [

@@ -95,7 +95,7 @@ export default function EntretienPage({ params }: { params: Promise<{ token: str
         {/* Tarif */}
         <div className="bg-white border border-slate-100 rounded-3xl p-5">
           <p className="text-sm font-bold text-slate-900 mb-1">Tarif</p>
-          <p className="text-slate-500 text-xs mb-4">150 € (1re unité) + 50 € par unité supplémentaire · Paris intramuros</p>
+          <p className="text-slate-500 text-xs mb-4">180 € TTC (1re unité) + 60 € TTC par unité supplémentaire · Paris intramuros</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
