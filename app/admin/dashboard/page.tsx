@@ -9,10 +9,11 @@ const CalendrierDashboard = dynamicImport(
   () => import("@/app/admin/interventions/CalendrierDashboard"),
   { ssr: false, loading: () => <div className="h-48 flex items-center justify-center"><div className="w-5 h-5 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" /></div> },
 );
+import DashboardLeadRow from "@/components/DashboardLeadRow";
 import {
-  Users, FileText, TrendingUp, Phone,
-  Bot, MessageSquare, ArrowRight, Clock,
-  Wrench, MapPin, Euro, AlertTriangle,
+  Users, FileText, TrendingUp,
+  MessageSquare, ArrowRight,
+  Wrench, Euro, AlertTriangle,
   ClipboardList, CalendarCheck, CheckCircle2,
   Plus, Star, UserCircle, Home, HeadphonesIcon, TrendingDown,
 } from "lucide-react";
@@ -287,45 +288,7 @@ export default async function DashboardPage() {
             ) : (
               <div className="divide-y divide-white/5">
                 {stats.derniersLeads.map((lead) => (
-                  <div key={lead.id} className="px-5 py-3.5 flex items-center gap-3 hover:bg-white/3 transition-colors">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                      lead.source === "alex" ? "bg-sky-500/10 text-sky-400" : "bg-violet-500/10 text-violet-400"
-                    }`}>
-                      {lead.source === "alex" ? <Bot className="w-4 h-4" /> : <MessageSquare className="w-4 h-4" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-white text-sm font-medium">{lead.name}</span>
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${STATUS_COLORS[lead.status]}`}>
-                          {STATUS_LABELS[lead.status]}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                        {lead.project && (
-                          <span className="text-slate-500 text-xs flex items-center gap-1">
-                            <Wrench className="w-2.5 h-2.5" />
-                            {PROJECT_LABELS[lead.project] ?? lead.project}
-                          </span>
-                        )}
-                        {lead.location && (
-                          <span className="text-slate-500 text-xs flex items-center gap-1">
-                            <MapPin className="w-2.5 h-2.5" />
-                            {lead.location}
-                          </span>
-                        )}
-                        <span className="text-slate-600 text-xs flex items-center gap-1">
-                          <Clock className="w-2.5 h-2.5" />
-                          {timeAgo(lead.createdAt)}
-                        </span>
-                      </div>
-                    </div>
-                    <a
-                      href={`tel:${lead.phone}`}
-                      className="flex-shrink-0 w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400 hover:bg-sky-500/20 flex items-center justify-center transition-colors"
-                    >
-                      <Phone className="w-3.5 h-3.5" />
-                    </a>
-                  </div>
+                  <DashboardLeadRow key={lead.id} lead={lead} />
                 ))}
               </div>
             )}
