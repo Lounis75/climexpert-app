@@ -4,7 +4,7 @@ import { useState, useRef, useMemo } from "react";
 import {
   Phone, Bot, FileText, MapPin, Wrench, Trash2,
   MessageSquare, Clock, LayoutList, Columns3, UserPlus, CheckCircle2,
-  AlertTriangle, GitMerge, X, Search,
+  AlertTriangle, GitMerge, X, Search, Mail, ChevronRight,
 } from "lucide-react";
 import type { Lead, LeadStatus } from "@/lib/leads";
 import { detectDuplicates } from "@/lib/leads-utils";
@@ -48,6 +48,7 @@ export default function LeadsManager({ initialLeads }: { initialLeads: Lead[] })
   const [dragOver, setDragOver] = useState<LeadStatus | null>(null);
   const [mergingPanel, setMergingPanel] = useState<{ leadId: string; dupes: Lead[] } | null>(null);
   const [merging, setMerging] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const dragId = useRef<string | null>(null);
 
   const filtered = leads.filter((l) => {
@@ -192,15 +193,14 @@ export default function LeadsManager({ initialLeads }: { initialLeads: Lead[] })
 
   // ─── Card component ──────────────────────────────────────────────────────────
 
-  function LeadCard({ lead, compact = false }: { lead: Lead; compact?: boolean }) {
-    const statusCfg = STATUS_CONFIG[lead.status];
-    const isConverted = !!lead.clientId || convertDone.has(lead.id);
+  function LeadCard({ lead }: { lead: Lead }) {
     const dupes = duplicatesMap.get(lead.id) ?? [];
     return (
       <div
         draggable
         onDragStart={() => onDragStart(lead.id)}
-        className={`bg-slate-800/60 border rounded-xl p-3 transition-all cursor-grab active:cursor-grabbing select-none ${
+        onClick={() => setSelectedLead(lead)}
+        className={`bg-slate-800/60 border rounded-xl p-3 transition-all cursor-pointer hover:border-sky-500/40 hover:bg-slate-800/80 select-none ${
           lead.status === "nouveau" ? "border-sky-500/20" : "border-white/8"
         }`}
       >
@@ -216,44 +216,33 @@ export default function LeadsManager({ initialLeads }: { initialLeads: Lead[] })
             {lead.source === "alex" ? <Bot className="w-2.5 h-2.5" /> : <FileText className="w-2.5 h-2.5" />}
             {lead.source === "alex" ? "Alex" : "Form"}
           </span>
-          {dupes.length > 0 && (
-            <button
-              onClick={(e) => { e.stopPropagation(); setMergingPanel({ leadId: lead.id, dupes }); }}
-              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border border-orange-500/40 bg-orange-500/10 text-orange-400 text-[10px] font-semibold hover:bg-orange-500/20 transition-colors"
-            >
-              <AlertTriangle className="w-2.5 h-2.5" />
-              Doublon
-            </button>
-          )}
           <div className="flex items-center gap-1.5">
+            {dupes.length > 0 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setMergingPanel({ leadId: lead.id, dupes }); }}
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border border-orange-500/40 bg-orange-500/10 text-orange-400 text-[10px] font-semibold hover:bg-orange-500/20 transition-colors"
+              >
+                <AlertTriangle className="w-2.5 h-2.5" />
+                Doublon
+              </button>
+            )}
             <span className="text-slate-600 text-[10px] flex items-center gap-0.5">
               <Clock className="w-2.5 h-2.5" />
               {formatDate(lead.createdAt)}
             </span>
-            <button
-              onClick={() => handleDelete(lead.id)}
-              disabled={deleting === lead.id}
-              className="text-slate-700 hover:text-red-400 transition-colors disabled:opacity-40"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
           </div>
         </div>
 
-        {/* Name + phone */}
-        <p className="text-white font-semibold text-sm mb-1">{lead.name}</p>
-        <a
-          href={`tel:${lead.phone}`}
-          onClick={(e) => e.stopPropagation()}
-          className="flex items-center gap-1 text-sky-400 hover:text-sky-300 text-xs font-medium transition-colors mb-2"
-        >
-          <Phone className="w-3 h-3" />
+        {/* Name */}
+        <p className="text-white font-semibold text-sm mb-1 truncate">{lead.name}</p>
+        <p className="text-slate-400 text-xs mb-2 flex items-center gap-1">
+          <Phone className="w-2.5 h-2.5 flex-shrink-0" />
           {lead.phone}
-        </a>
+        </p>
 
         {/* Meta */}
         {(lead.project || lead.location) && (
-          <div className="flex flex-wrap gap-2 text-[10px] text-slate-500 mb-2">
+          <div className="flex flex-wrap gap-2 text-[10px] text-slate-500">
             {lead.project && (
               <span className="flex items-center gap-0.5">
                 <Wrench className="w-2.5 h-2.5" />
@@ -261,72 +250,12 @@ export default function LeadsManager({ initialLeads }: { initialLeads: Lead[] })
               </span>
             )}
             {lead.location && (
-              <span className="flex items-center gap-0.5">
-                <MapPin className="w-2.5 h-2.5" />
+              <span className="flex items-center gap-0.5 truncate">
+                <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
                 {lead.location}
               </span>
             )}
           </div>
-        )}
-
-        {/* Notes */}
-        {!compact && (
-          editingNotes === lead.id ? (
-            <div className="mb-2">
-              <textarea
-                value={notesValue}
-                onChange={(e) => setNotesValue(e.target.value)}
-                rows={2}
-                placeholder="Note interne..."
-                onMouseDown={(e) => e.stopPropagation()}
-                className="w-full text-xs bg-slate-700/50 border border-white/10 rounded-lg px-2 py-1.5 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sky-500/50 resize-none cursor-text"
-              />
-              <div className="flex gap-2 mt-1">
-                <button
-                  onClick={(e) => { e.stopPropagation(); saveNotes(lead.id); }}
-                  disabled={updating === lead.id}
-                  className="px-2 py-0.5 bg-sky-500/20 border border-sky-500/40 text-sky-400 rounded text-[10px] font-medium hover:bg-sky-500/30 transition-colors"
-                >
-                  Enregistrer
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); setEditingNotes(null); }}
-                  className="px-2 py-0.5 text-slate-500 hover:text-slate-400 text-[10px] transition-colors"
-                >
-                  Annuler
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div
-              className="text-slate-600 text-[10px] bg-slate-700/20 hover:bg-slate-700/40 rounded px-2 py-1 flex gap-1.5 mb-2 cursor-pointer transition-colors group"
-              onClick={(e) => { e.stopPropagation(); setEditingNotes(lead.id); setNotesValue(lead.notes ?? ""); }}
-            >
-              <MessageSquare className="w-2.5 h-2.5 mt-0.5 flex-shrink-0 group-hover:text-slate-400" />
-              <span className="group-hover:text-slate-400 line-clamp-1">{lead.notes || "Note..."}</span>
-            </div>
-          )
-        )}
-
-        {/* Convert to client */}
-        {lead.status === "gagné" && (
-          <button
-            onClick={(e) => { e.stopPropagation(); if (!isConverted) convertToClient(lead); }}
-            disabled={convertingId === lead.id || isConverted}
-            className={`w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-[10px] font-semibold transition-all ${
-              isConverted
-                ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 cursor-default"
-                : "bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20"
-            }`}
-          >
-            {isConverted ? (
-              <><CheckCircle2 className="w-3 h-3" /> Client créé</>
-            ) : convertingId === lead.id ? (
-              <><span className="w-3 h-3 border border-emerald-400/50 border-t-emerald-400 rounded-full animate-spin" /> Conversion…</>
-            ) : (
-              <><UserPlus className="w-3 h-3" /> Convertir en client</>
-            )}
-          </button>
         )}
       </div>
     );
@@ -424,45 +353,43 @@ export default function LeadsManager({ initialLeads }: { initialLeads: Lead[] })
 
       {/* ── KANBAN VIEW ─────────────────────────────────────────────────────── */}
       {view === "kanban" && leads.length > 0 && (
-        <div className="overflow-x-auto pb-4">
-          <div className="flex gap-4 min-w-max">
-            {STATUSES.map((status) => {
-              const cfg = STATUS_CONFIG[status];
-              const col = filtered.filter((l) => l.status === status);
-              const isOver = dragOver === status;
-              return (
-                <div
-                  key={status}
-                  onDragOver={(e) => onDragOverColumn(e, status)}
-                  onDragLeave={() => setDragOver(null)}
-                  onDrop={() => onDropColumn(status)}
-                  className={`w-64 flex-shrink-0 bg-slate-800/30 border-t-2 rounded-xl transition-all ${cfg.col} ${
-                    isOver ? "ring-2 ring-sky-500/40 bg-slate-800/60" : "border-white/5"
-                  }`}
-                >
-                  {/* Column header */}
-                  <div className="px-3 py-2.5 flex items-center justify-between border-b border-white/5">
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${cfg.color}`}>
-                      {cfg.label}
-                    </span>
-                    <span className="text-slate-500 text-xs font-medium">{col.length}</span>
-                  </div>
-
-                  {/* Cards */}
-                  <div className="p-2 space-y-2 min-h-24">
-                    {col.length === 0 && (
-                      <div className={`h-16 rounded-lg border-2 border-dashed transition-all ${
-                        isOver ? "border-sky-500/40" : "border-white/5"
-                      }`} />
-                    )}
-                    {col.map((lead) => (
-                      <LeadCard key={lead.id} lead={lead} compact />
-                    ))}
-                  </div>
+        <div className="grid grid-cols-5 gap-3">
+          {STATUSES.map((status) => {
+            const cfg = STATUS_CONFIG[status];
+            const col = filtered.filter((l) => l.status === status);
+            const isOver = dragOver === status;
+            return (
+              <div
+                key={status}
+                onDragOver={(e) => onDragOverColumn(e, status)}
+                onDragLeave={() => setDragOver(null)}
+                onDrop={() => onDropColumn(status)}
+                className={`bg-slate-800/30 border-t-2 rounded-xl transition-all min-w-0 ${cfg.col} ${
+                  isOver ? "ring-2 ring-sky-500/40 bg-slate-800/60" : "border-white/5"
+                }`}
+              >
+                {/* Column header */}
+                <div className="px-3 py-2.5 flex items-center justify-between border-b border-white/5">
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border truncate ${cfg.color}`}>
+                    {cfg.label}
+                  </span>
+                  <span className="text-slate-500 text-xs font-medium ml-1 flex-shrink-0">{col.length}</span>
                 </div>
-              );
-            })}
-          </div>
+
+                {/* Cards */}
+                <div className="p-2 space-y-2 min-h-24">
+                  {col.length === 0 && (
+                    <div className={`h-16 rounded-lg border-2 border-dashed transition-all ${
+                      isOver ? "border-sky-500/40" : "border-white/5"
+                    }`} />
+                  )}
+                  {col.map((lead) => (
+                    <LeadCard key={lead.id} lead={lead} />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -645,6 +572,212 @@ export default function LeadsManager({ initialLeads }: { initialLeads: Lead[] })
           {leads.length} lead{leads.length > 1 ? "s" : ""} · {newCount} nouveau{newCount > 1 ? "x" : ""}
         </p>
       )}
+
+      {/* ── PANNEAU DÉTAIL LEAD ─────────────────────────────────────────────── */}
+      {selectedLead && (() => {
+        const lead = leads.find((l) => l.id === selectedLead.id) ?? selectedLead;
+        const statusCfg = STATUS_CONFIG[lead.status];
+        const isConverted = !!lead.clientId || convertDone.has(lead.id);
+        const dupes = duplicatesMap.get(lead.id) ?? [];
+        return (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-end" onClick={() => setSelectedLead(null)}>
+            <div
+              className="bg-slate-900 border-l border-white/10 w-full max-w-md h-full overflow-y-auto shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-white/8 sticky top-0 bg-slate-900 z-10">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-semibold flex-shrink-0 ${
+                    lead.source === "alex" ? "bg-sky-500/10 text-sky-400 border-sky-500/20" : "bg-violet-500/10 text-violet-400 border-violet-500/20"
+                  }`}>
+                    {lead.source === "alex" ? <Bot className="w-2.5 h-2.5" /> : <FileText className="w-2.5 h-2.5" />}
+                    {lead.source === "alex" ? "Alex" : "Formulaire"}
+                  </span>
+                  <h3 className="text-white font-semibold text-sm truncate">{lead.name}</h3>
+                </div>
+                <button onClick={() => setSelectedLead(null)} className="text-slate-500 hover:text-white transition-colors flex-shrink-0 ml-3">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-5">
+                {/* Contact info */}
+                <div className="bg-slate-800/40 border border-white/8 rounded-2xl p-4 space-y-3">
+                  <a
+                    href={`tel:${lead.phone}`}
+                    className="flex items-center gap-3 group"
+                  >
+                    <div className="w-8 h-8 bg-sky-500/10 border border-sky-500/20 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-sky-500/20 transition-colors">
+                      <Phone className="w-3.5 h-3.5 text-sky-400" />
+                    </div>
+                    <div>
+                      <p className="text-white font-semibold text-sm group-hover:text-sky-300 transition-colors">{lead.phone}</p>
+                      <p className="text-slate-500 text-xs">Appuyer pour appeler</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-600 ml-auto group-hover:text-sky-400 transition-colors" />
+                  </a>
+                  {lead.email && (
+                    <a href={`mailto:${lead.email}`} className="flex items-center gap-3 group">
+                      <div className="w-8 h-8 bg-violet-500/10 border border-violet-500/20 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-violet-500/20 transition-colors">
+                        <Mail className="w-3.5 h-3.5 text-violet-400" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-white font-medium text-sm truncate group-hover:text-violet-300 transition-colors">{lead.email}</p>
+                        <p className="text-slate-500 text-xs">Email</p>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-600 ml-auto group-hover:text-violet-400 transition-colors" />
+                    </a>
+                  )}
+                </div>
+
+                {/* Project info */}
+                <div className="grid grid-cols-2 gap-3">
+                  {lead.project && (
+                    <div className="bg-slate-800/40 border border-white/8 rounded-xl p-3">
+                      <p className="text-slate-500 text-[10px] uppercase tracking-wide mb-1">Projet</p>
+                      <p className="text-white text-sm font-medium flex items-center gap-1.5">
+                        <Wrench className="w-3 h-3 text-slate-400" />
+                        {PROJECT_LABELS[lead.project] ?? lead.project}
+                      </p>
+                    </div>
+                  )}
+                  {lead.location && (
+                    <div className="bg-slate-800/40 border border-white/8 rounded-xl p-3">
+                      <p className="text-slate-500 text-[10px] uppercase tracking-wide mb-1">Localisation</p>
+                      <p className="text-white text-sm font-medium flex items-center gap-1.5">
+                        <MapPin className="w-3 h-3 text-slate-400" />
+                        {lead.location}
+                      </p>
+                    </div>
+                  )}
+                  <div className="bg-slate-800/40 border border-white/8 rounded-xl p-3">
+                    <p className="text-slate-500 text-[10px] uppercase tracking-wide mb-1">Reçu le</p>
+                    <p className="text-white text-sm font-medium flex items-center gap-1.5">
+                      <Clock className="w-3 h-3 text-slate-400" />
+                      {formatDate(lead.createdAt)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Statut */}
+                <div>
+                  <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide">Statut</p>
+                  <select
+                    value={lead.status}
+                    onChange={(e) => {
+                      updateStatus(lead.id, e.target.value);
+                      setSelectedLead({ ...lead, status: e.target.value as LeadStatus });
+                    }}
+                    disabled={updating === lead.id}
+                    className={`text-xs font-semibold px-3 py-2 rounded-xl border bg-slate-800/60 cursor-pointer transition-opacity appearance-none w-full ${statusCfg.color} ${
+                      updating === lead.id ? "opacity-50 cursor-wait" : ""
+                    }`}
+                  >
+                    {Object.entries(STATUS_CONFIG).map(([val, cfg]) => (
+                      <option key={val} value={val} className="bg-slate-800 text-white text-xs">
+                        {cfg.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Notes */}
+                <div>
+                  <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide">Note interne</p>
+                  {editingNotes === lead.id ? (
+                    <>
+                      <textarea
+                        value={notesValue}
+                        onChange={(e) => setNotesValue(e.target.value)}
+                        rows={4}
+                        placeholder="Note interne..."
+                        className="w-full text-sm bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2.5 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sky-500/50 resize-none"
+                        autoFocus
+                      />
+                      <div className="flex gap-2 mt-2">
+                        <button
+                          onClick={() => saveNotes(lead.id)}
+                          disabled={updating === lead.id}
+                          className="px-4 py-1.5 bg-sky-500/20 border border-sky-500/40 text-sky-400 rounded-lg text-xs font-medium hover:bg-sky-500/30 transition-colors disabled:opacity-50"
+                        >
+                          Enregistrer
+                        </button>
+                        <button
+                          onClick={() => setEditingNotes(null)}
+                          className="px-4 py-1.5 text-slate-500 hover:text-slate-400 text-xs transition-colors"
+                        >
+                          Annuler
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <div
+                      className="text-slate-400 text-sm bg-slate-800/40 hover:bg-slate-800/60 border border-white/8 rounded-xl px-4 py-3 flex gap-2.5 cursor-pointer transition-colors group min-h-[60px]"
+                      onClick={() => { setEditingNotes(lead.id); setNotesValue(lead.notes ?? ""); }}
+                    >
+                      <MessageSquare className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 group-hover:text-slate-300 text-slate-600" />
+                      <span className="group-hover:text-slate-300 text-slate-500 whitespace-pre-wrap">{lead.notes || "Ajouter une note..."}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Doublon */}
+                {dupes.length > 0 && (
+                  <button
+                    onClick={() => { setSelectedLead(null); setMergingPanel({ leadId: lead.id, dupes }); }}
+                    className="w-full flex items-center gap-2 px-4 py-3 bg-orange-500/10 border border-orange-500/30 text-orange-400 hover:bg-orange-500/20 rounded-xl text-sm font-medium transition-colors"
+                  >
+                    <AlertTriangle className="w-4 h-4" />
+                    {dupes.length} doublon{dupes.length > 1 ? "s" : ""} détecté{dupes.length > 1 ? "s" : ""}
+                  </button>
+                )}
+
+                {/* Actions */}
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  <a
+                    href={`tel:${lead.phone}`}
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 bg-sky-500/10 border border-sky-500/30 text-sky-400 hover:bg-sky-500/20 rounded-xl text-sm font-medium transition-colors"
+                  >
+                    <Phone className="w-4 h-4" />
+                    Appeler
+                  </a>
+                  {lead.status === "gagné" ? (
+                    <button
+                      onClick={() => { if (!isConverted) convertToClient(lead); }}
+                      disabled={convertingId === lead.id || isConverted}
+                      className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors border ${
+                        isConverted
+                          ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 cursor-default"
+                          : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20"
+                      }`}
+                    >
+                      {isConverted ? <><CheckCircle2 className="w-4 h-4" /> Client créé</> : convertingId === lead.id ? <><span className="w-4 h-4 border border-emerald-400/50 border-t-emerald-400 rounded-full animate-spin" /> Conversion…</> : <><UserPlus className="w-4 h-4" /> Convertir</>}
+                    </button>
+                  ) : lead.status === "nouveau" ? (
+                    <button
+                      onClick={() => { updateStatus(lead.id, "contacté"); setSelectedLead({ ...lead, status: "contacté" }); }}
+                      disabled={updating === lead.id}
+                      className="flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+                    >
+                      Marquer contacté
+                    </button>
+                  ) : null}
+                </div>
+
+                <button
+                  onClick={() => { handleDelete(lead.id); setSelectedLead(null); }}
+                  disabled={deleting === lead.id}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500/5 border border-red-500/20 text-red-400 hover:bg-red-500/10 rounded-xl text-sm font-medium transition-colors disabled:opacity-40"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Supprimer ce lead
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── MODAL FUSION DOUBLONS ────────────────────────────────────────────── */}
       {mergingPanel && (() => {
