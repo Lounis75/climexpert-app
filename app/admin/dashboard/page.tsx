@@ -1,4 +1,4 @@
-import { getDashboardStats } from "@/lib/dashboard";
+import { getDashboardStats, getAlexStats } from "@/lib/dashboard";
 import { getDynamicArticles } from "@/lib/dynamicArticles";
 import { getFeaturedSlugs } from "@/lib/kv";
 import AdminHeader from "@/components/AdminHeader";
@@ -11,6 +11,7 @@ import {
   Wrench, Euro, AlertTriangle,
   ClipboardList, CalendarCheck, CheckCircle2,
   Plus, Star, UserCircle, Home, HeadphonesIcon, TrendingDown,
+  Bot, BarChart2, Repeat2,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -64,8 +65,9 @@ function formatDate(d: Date | string | null) {
 }
 
 export default async function DashboardPage() {
-  const [stats, dynamicArticles, featuredSlugs] = await Promise.all([
+  const [stats, alexStats, dynamicArticles, featuredSlugs] = await Promise.all([
     getDashboardStats(),
+    getAlexStats(),
     getDynamicArticles(),
     getFeaturedSlugs(),
   ]);
@@ -380,6 +382,97 @@ export default async function DashboardPage() {
                 </Link>
               );
             })}
+          </div>
+        </div>
+
+        {/* ─── Stats Alex ───────────────────────────────────────────────────────── */}
+        <div className="bg-slate-800/40 border border-white/8 rounded-2xl overflow-hidden">
+          <div className="px-5 py-4 border-b border-white/8 flex items-center justify-between">
+            <h2 className="text-white font-semibold text-sm flex items-center gap-2">
+              <Bot className="w-4 h-4 text-violet-400" /> Alex — Chatbot IA
+            </h2>
+            <span className="text-[10px] text-slate-500 uppercase tracking-widest font-medium">Tout le temps</span>
+          </div>
+          <div className="p-5">
+            {alexStats.conversationsTotal === 0 ? (
+              <div className="text-center py-8 text-slate-600">
+                <Bot className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">Aucune conversation enregistrée pour l&apos;instant.</p>
+                <p className="text-xs mt-1 opacity-60">Les stats apparaîtront dès qu&apos;un visiteur utilise Alex.</p>
+              </div>
+            ) : (
+              <>
+                {/* KPIs */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+                  {[
+                    {
+                      label: "Conversations",
+                      value: alexStats.conversationsTotal,
+                      icon: MessageSquare,
+                      color: "text-violet-400",
+                      bg: "bg-violet-500/10 border-violet-500/20",
+                    },
+                    {
+                      label: "Leads générés",
+                      value: alexStats.conversationsComplete,
+                      icon: Users,
+                      color: "text-emerald-400",
+                      bg: "bg-emerald-500/10 border-emerald-500/20",
+                    },
+                    {
+                      label: "Taux de conv.",
+                      value: `${alexStats.tauxConversion}%`,
+                      icon: BarChart2,
+                      color: "text-sky-400",
+                      bg: "bg-sky-500/10 border-sky-500/20",
+                    },
+                    {
+                      label: "Messages total",
+                      value: alexStats.messagesTotal,
+                      icon: Repeat2,
+                      color: "text-amber-400",
+                      bg: "bg-amber-500/10 border-amber-500/20",
+                    },
+                  ].map(({ label, value, icon: Icon, color, bg }) => (
+                    <div key={label} className={`rounded-xl border p-4 ${bg}`}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Icon className={`w-3.5 h-3.5 ${color}`} />
+                        <span className="text-slate-400 text-xs">{label}</span>
+                      </div>
+                      <p className={`text-2xl font-bold ${color}`}>{value}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Tendance semaine */}
+                <div className="bg-slate-900/50 rounded-xl p-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-slate-400 text-xs mb-0.5">Leads cette semaine</p>
+                    <p className="text-white font-bold text-xl">{alexStats.conversionCetteSemaine}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-slate-400 text-xs mb-0.5">Semaine précédente</p>
+                    <p className="text-slate-300 font-semibold text-xl">{alexStats.conversionSemainePrecedente}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-slate-400 text-xs mb-1">Tendance</p>
+                    {alexStats.conversionSemainePrecedente === 0 ? (
+                      <span className="text-slate-500 text-xs">—</span>
+                    ) : alexStats.conversionCetteSemaine >= alexStats.conversionSemainePrecedente ? (
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                        <TrendingUp className="w-3 h-3" />
+                        +{alexStats.conversionCetteSemaine - alexStats.conversionSemainePrecedente}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded-full">
+                        <TrendingDown className="w-3 h-3" />
+                        {alexStats.conversionCetteSemaine - alexStats.conversionSemainePrecedente}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
 

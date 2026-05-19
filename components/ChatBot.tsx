@@ -11,6 +11,10 @@ interface Message {
 
 const WELCOME = "Bonjour 👋 Je suis Alex, l'assistant ClimExpert. Quel est votre projet de climatisation ?";
 
+function genSessionId() {
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
+
 export default function ChatBot() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
@@ -20,6 +24,7 @@ export default function ChatBot() {
   const [loading, setLoading] = useState(false);
   const [leadComplete, setLeadComplete] = useState(false);
   const [leadName, setLeadName] = useState("");
+  const sessionId = useRef(genSessionId());
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -59,7 +64,7 @@ export default function ChatBot() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: newMessages }),
+        body: JSON.stringify({ messages: newMessages, sessionId: sessionId.current }),
       });
       const data = await res.json();
       setMessages([...newMessages, { role: "assistant", content: data.message || data.error }]);

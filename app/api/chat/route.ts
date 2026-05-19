@@ -3,7 +3,7 @@ import { Resend } from "resend";
 import { NextRequest, NextResponse } from "next/server";
 import { createLead } from "@/lib/leads";
 import { db } from "@/lib/db";
-import { savTickets, clients, notifications, admins } from "@/lib/db/schema";
+import { savTickets, clients, notifications, admins, logsAlex } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 
@@ -280,7 +280,8 @@ async function sendLeadEmails(lead: LeadData, messages: ChatMessage[]) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages }: { messages: ChatMessage[] } = await req.json();
+    const { messages, sessionId }: { messages: ChatMessage[]; sessionId?: string } = await req.json();
+    const sid = sessionId ?? "unknown";
 
     if (!Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json({ error: "Messages invalides" }, { status: 400 });
@@ -294,6 +295,16 @@ export async function POST(req: NextRequest) {
     });
 
     const raw = response.content[0].type === "text" ? response.content[0].text : "";
+
+    // Log chaque échange (fire-and-forget)
+    const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
+    db.insert(logsAlex).values({
+      id: createId(),
+      sessionId: sid,
+      action: "message",
+      input: lastUserMsg?.content ?? "",
+      output: raw.slice(0, 500),
+    }).catch(() => {});
 
     // Détecter proposition de créneaux
     if (raw.startsWith("CRENEAUX_READY")) {
@@ -365,6 +376,15 @@ export async function POST(req: NextRequest) {
         const message = messageMatch ? messageMatch[1].trim() : "Votre demande est bien enregistrée. Notre équipe vous contacte très prochainement !";
 
         if (lead?.phone) {
+          // Log lead_complete
+          db.insert(logsAlex).values({
+            id: createId(),
+            sessionId: sid,
+            action: "lead_complete",
+            input: lead.phone,
+            output: `${lead.project} · ${lead.location} · ${lead.estimate}`,
+          }).catch(() => {});
+
           const transcript = buildTranscript(messages);
           const fullNotes = [
             lead.notes,

@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
-import { leads, devis, factures, interventions, clients, savTickets } from "@/lib/db/schema";
-import { eq, gte, desc, and } from "drizzle-orm";
+import { leads, devis, factures, interventions, clients, savTickets, logsAlex } from "@/lib/db/schema";
+import { eq, gte, desc, and, sql } from "drizzle-orm";
 
 export type DashboardStats = {
   // Factures
@@ -57,6 +57,51 @@ export type DernierLead = {
   location: string | null;
   createdAt: Date | string;
 };
+
+export type AlexStats = {
+  conversationsTotal: number;      // sessions uniques
+  conversationsComplete: number;   // sessions avec lead_complete
+  tauxConversion: number;          // % complete / total
+  messagesTotal: number;           // total échanges
+  conversionCetteSemaine: number;  // leads_complete cette semaine
+  conversionSemainePrecedente: number;
+};
+
+export async function getAlexStats(): Promise<AlexStats> {
+  const now = new Date();
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  weekStart.setHours(0, 0, 0, 0);
+  const prevWeekStart = new Date(weekStart);
+  prevWeekStart.setDate(prevWeekStart.getDate() - 7);
+
+  const allLogs = await db.select().from(logsAlex);
+
+  const sessions = new Set(allLogs.map((l) => l.sessionId));
+  const completeSessions = new Set(
+    allLogs.filter((l) => l.action === "lead_complete").map((l) => l.sessionId)
+  );
+
+  const conversionCetteSemaine = allLogs.filter(
+    (l) => l.action === "lead_complete" && l.createdAt >= weekStart
+  ).length;
+
+  const conversionSemainePrecedente = allLogs.filter(
+    (l) => l.action === "lead_complete" && l.createdAt >= prevWeekStart && l.createdAt < weekStart
+  ).length;
+
+  const total = sessions.size;
+  const complete = completeSessions.size;
+
+  return {
+    conversationsTotal: total,
+    conversationsComplete: complete,
+    tauxConversion: total > 0 ? Math.round((complete / total) * 100) : 0,
+    messagesTotal: allLogs.filter((l) => l.action === "message").length,
+    conversionCetteSemaine,
+    conversionSemainePrecedente,
+  };
+}
 
 export async function getDashboardStats(): Promise<DashboardStats> {
   const now = new Date();
