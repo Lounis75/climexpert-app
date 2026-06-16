@@ -1,6 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updateLead, deleteLead } from "@/lib/leads";
+import { createLead, updateLead, deleteLead } from "@/lib/leads";
 import type { LeadStatus } from "@/lib/leads";
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { name, phone, source, project, location, address, email, notes } = body;
+    if (!name?.trim() || !phone?.trim()) {
+      return NextResponse.json({ error: "Nom et téléphone requis" }, { status: 400 });
+    }
+    const lead = await createLead({
+      name: name.trim(),
+      phone: phone.trim(),
+      source: source ?? "téléphone",
+      project: project || undefined,
+      location: location?.trim() || undefined,
+      address: address?.trim() || undefined,
+      email: email?.trim() || undefined,
+      notes: notes?.trim() || undefined,
+    });
+    return NextResponse.json({ lead });
+  } catch {
+    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+  }
+}
 
 export async function PATCH(req: NextRequest) {
   try {

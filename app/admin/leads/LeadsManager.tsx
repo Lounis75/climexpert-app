@@ -4,7 +4,7 @@ import { useState, useRef, useMemo, useEffect } from "react";
 import {
   Phone, Bot, FileText, MapPin, Wrench,
   MessageSquare, Clock, LayoutList, Columns3, UserPlus, CheckCircle2,
-  AlertTriangle, GitMerge, X, Search, Mail, ChevronRight, Briefcase,
+  AlertTriangle, GitMerge, X, Search, Mail, ChevronRight, Briefcase, Plus,
 } from "lucide-react";
 import type { Lead, LeadStatus } from "@/lib/leads";
 import { detectDuplicates } from "@/lib/leads-utils";
@@ -49,6 +49,10 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
   const [mergingPanel, setMergingPanel] = useState<{ leadId: string; dupes: Lead[] } | null>(null);
   const [merging, setMerging] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addForm, setAddForm] = useState({ name: "", phone: "", source: "téléphone", project: "", location: "", address: "", email: "", notes: "" });
+  const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState("");
   const dragId = useRef<string | null>(null);
   const [commerciaux, setCommerciaux] = useState<{ id: string; name: string; prenom: string | null; color: string | null }[]>([]);
 
@@ -57,7 +61,8 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
   }, []);
 
   const filtered = leads.filter((l) => {
-    if (sourceFilter !== "tous" && l.source !== sourceFilter) return false;
+    if (sourceFilter === "téléphone" && l.source !== "téléphone" && l.source !== "whatsapp") return false;
+    if (sourceFilter !== "tous" && sourceFilter !== "téléphone" && l.source !== sourceFilter) return false;
     if (search) {
       const q = search.toLowerCase();
       return (
@@ -171,6 +176,34 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
     }
   }
 
+  async function handleAddLead(e: React.FormEvent) {
+    e.preventDefault();
+    if (!addForm.name.trim() || !addForm.phone.trim()) {
+      setAddError("Nom et téléphone sont requis.");
+      return;
+    }
+    setAdding(true);
+    setAddError("");
+    try {
+      const res = await fetch("/api/admin/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(addForm),
+      });
+      if (res.ok) {
+        const { lead } = await res.json();
+        setLeads((prev) => [lead, ...prev]);
+        setShowAddModal(false);
+        setAddForm({ name: "", phone: "", source: "téléphone", project: "", location: "", address: "", email: "", notes: "" });
+      } else {
+        const data = await res.json();
+        setAddError(data.error ?? "Erreur lors de la création.");
+      }
+    } finally {
+      setAdding(false);
+    }
+  }
+
   // ─── Drag & drop ────────────────────────────────────────────────────────────
 
   function onDragStart(e: React.DragEvent, id: string) {
@@ -223,11 +256,13 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
             className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-[10px] font-semibold ${
               lead.source === "alex"
                 ? "bg-sky-500/10 text-sky-400 border-sky-500/20"
+                : lead.source === "téléphone" || lead.source === "whatsapp"
+                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
                 : "bg-violet-500/10 text-violet-400 border-violet-500/20"
             }`}
           >
-            {lead.source === "alex" ? <Bot className="w-2.5 h-2.5" /> : <FileText className="w-2.5 h-2.5" />}
-            {lead.source === "alex" ? "Alex" : "Form"}
+            {lead.source === "alex" ? <Bot className="w-2.5 h-2.5" /> : lead.source === "whatsapp" ? <MessageSquare className="w-2.5 h-2.5" /> : lead.source === "téléphone" ? <Phone className="w-2.5 h-2.5" /> : <FileText className="w-2.5 h-2.5" />}
+            {lead.source === "alex" ? "Alex" : lead.source === "whatsapp" ? "WhatsApp" : lead.source === "téléphone" ? "Tél." : "Form"}
           </span>
           <div className="flex items-center gap-1.5">
             {dupes.length > 0 && (
@@ -306,18 +341,23 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-3 mb-6">
         {/* Source filter */}
-        <div className="flex gap-2">
-          {["tous", "alex", "formulaire"].map((s) => (
+        <div className="flex gap-2 flex-wrap">
+          {[
+            { key: "tous", label: "Toutes sources" },
+            { key: "alex", label: "Via Alex" },
+            { key: "formulaire", label: "Formulaire" },
+            { key: "téléphone", label: "Tél. / WhatsApp" },
+          ].map(({ key, label }) => (
             <button
-              key={s}
-              onClick={() => setSourceFilter(s)}
+              key={key}
+              onClick={() => setSourceFilter(key)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                sourceFilter === s
+                sourceFilter === key
                   ? "bg-sky-500 border-sky-500 text-white"
                   : "border-white/10 text-slate-400 hover:text-white hover:border-white/20"
               }`}
             >
-              {s === "tous" ? "Toutes sources" : s === "alex" ? "Via Alex" : "Via Formulaire"}
+              {label}
             </button>
           ))}
         </div>
@@ -339,8 +379,17 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
           )}
         </div>
 
+        {/* Add lead button */}
+        <button
+          onClick={() => { setShowAddModal(true); setAddError(""); }}
+          className="ml-auto flex items-center gap-1.5 px-3 py-1.5 bg-sky-500 hover:bg-sky-400 text-white text-xs font-semibold rounded-xl transition-colors"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          Ajouter un lead
+        </button>
+
         {/* View toggle */}
-        <div className="ml-auto flex items-center gap-1 bg-slate-800/60 border border-white/10 rounded-xl p-1">
+        <div className="flex items-center gap-1 bg-slate-800/60 border border-white/10 rounded-xl p-1">
           <button
             onClick={() => setView("kanban")}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
@@ -929,6 +978,175 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
           </div>
         );
       })()}
+
+      {/* ─── Modal ajout lead manuel ─────────────────────────────────────────── */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowAddModal(false)} />
+          <div className="relative w-full max-w-md bg-slate-900 border border-white/12 rounded-2xl shadow-2xl overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
+              <div>
+                <h2 className="text-white font-semibold text-sm">Ajouter un lead</h2>
+                <p className="text-slate-500 text-xs mt-0.5">Contact téléphone ou WhatsApp</p>
+              </div>
+              <button onClick={() => setShowAddModal(false)} className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-500 hover:text-white hover:bg-white/8 transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleAddLead} className="px-6 py-5 space-y-4">
+              {addError && (
+                <div className="bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl px-4 py-2.5 text-xs">{addError}</div>
+              )}
+
+              {/* Source */}
+              <div>
+                <p className="text-slate-400 text-xs font-medium mb-2">Source *</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { value: "téléphone", label: "Téléphone", icon: Phone },
+                    { value: "whatsapp", label: "WhatsApp", icon: MessageSquare },
+                  ].map(({ value, label, icon: Icon }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setAddForm(f => ({ ...f, source: value }))}
+                      className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all ${
+                        addForm.source === value
+                          ? "border-sky-500/60 bg-sky-500/10 text-sky-300"
+                          : "border-white/10 bg-slate-800/60 text-slate-400 hover:border-white/20"
+                      }`}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Nom + Téléphone */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-slate-400 text-xs font-medium block mb-1">Nom *</label>
+                  <input
+                    type="text"
+                    value={addForm.name}
+                    onChange={e => setAddForm(f => ({ ...f, name: e.target.value }))}
+                    placeholder="Prénom Nom"
+                    required
+                    className="w-full bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-sky-500/50"
+                  />
+                </div>
+                <div>
+                  <label className="text-slate-400 text-xs font-medium block mb-1">Téléphone *</label>
+                  <input
+                    type="tel"
+                    value={addForm.phone}
+                    onChange={e => setAddForm(f => ({ ...f, phone: e.target.value }))}
+                    placeholder="06 00 00 00 00"
+                    required
+                    className="w-full bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-sky-500/50"
+                  />
+                </div>
+              </div>
+
+              {/* Type de projet */}
+              <div>
+                <label className="text-slate-400 text-xs font-medium block mb-1.5">Type de projet</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {[["installation", "Installation"], ["entretien", "Entretien"], ["depannage", "Dépannage"], ["contrat-pro", "Contrat pro"], ["autre", "Autre"]].map(([val, lbl]) => (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => setAddForm(f => ({ ...f, project: f.project === val ? "" : val }))}
+                      className={`px-2.5 py-1 rounded-lg border text-xs font-medium transition-all ${
+                        addForm.project === val
+                          ? "border-sky-500/60 bg-sky-500/10 text-sky-300"
+                          : "border-white/10 bg-slate-800/40 text-slate-400 hover:border-white/20"
+                      }`}
+                    >
+                      {lbl}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Ville + Email */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-slate-400 text-xs font-medium block mb-1">Ville / CP</label>
+                  <input
+                    type="text"
+                    value={addForm.location}
+                    onChange={e => setAddForm(f => ({ ...f, location: e.target.value }))}
+                    placeholder="Paris 15 / 75015"
+                    className="w-full bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-sky-500/50"
+                  />
+                </div>
+                <div>
+                  <label className="text-slate-400 text-xs font-medium block mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={addForm.email}
+                    onChange={e => setAddForm(f => ({ ...f, email: e.target.value }))}
+                    placeholder="email@exemple.fr"
+                    className="w-full bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-sky-500/50"
+                  />
+                </div>
+              </div>
+
+              {/* Adresse */}
+              <div>
+                <label className="text-slate-400 text-xs font-medium block mb-1">Adresse du chantier</label>
+                <input
+                  type="text"
+                  value={addForm.address}
+                  onChange={e => setAddForm(f => ({ ...f, address: e.target.value }))}
+                  placeholder="12 rue de la Paix, 75002 Paris"
+                  className="w-full bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-sky-500/50"
+                />
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="text-slate-400 text-xs font-medium block mb-1">Notes internes</label>
+                <textarea
+                  value={addForm.notes}
+                  onChange={e => setAddForm(f => ({ ...f, notes: e.target.value }))}
+                  placeholder="Détails sur la demande, contexte du contact…"
+                  rows={3}
+                  className="w-full bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-sky-500/50 resize-none"
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="flex-1 px-4 py-2.5 border border-white/10 text-slate-400 hover:text-white rounded-xl text-sm font-medium transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={adding}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-white font-semibold rounded-xl text-sm transition-colors"
+                >
+                  {adding ? (
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Plus className="w-4 h-4" />
+                  )}
+                  {adding ? "Création…" : "Créer le lead"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
