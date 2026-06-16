@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, ChevronUp, ChevronDown, Save, ArrowLeft, Eye, Upload, X, User, UserCircle } from "lucide-react";
+import { Plus, Trash2, ChevronDown, Save, ArrowLeft, Eye, Upload, X, User, UserCircle } from "lucide-react";
 import Link from "next/link";
 import type { Article } from "@/lib/articles";
+import { sectionsToMarkdown } from "@/lib/articles";
 import type { Author } from "@/lib/authors";
 
 const CATEGORIES = [
@@ -17,12 +18,6 @@ const CATEGORIES = [
   "Dépannage",
   "Actualités",
 ];
-
-interface SectionDraft {
-  heading: string;
-  content: string;
-  highlight: string;
-}
 
 interface FaqDraft {
   question: string;
@@ -40,7 +35,7 @@ interface Draft {
   metaTitle: string;
   metaDescription: string;
   keywords: string;
-  sections: SectionDraft[];
+  body: string;
   faq: FaqDraft[];
   relatedSlugs: string;
 }
@@ -59,7 +54,7 @@ function slugify(text: string): string {
 function estimateReadTime(draft: Draft): number {
   const text = [
     draft.intro,
-    ...draft.sections.flatMap((s) => [s.heading, s.content, s.highlight]),
+    draft.body,
     ...draft.faq.flatMap((f) => [f.question, f.answer]),
   ]
     .join(" ")
@@ -80,11 +75,9 @@ function articleToDraft(article: Article): Draft {
     metaTitle: article.metaTitle,
     metaDescription: article.metaDescription,
     keywords: article.keywords,
-    sections: article.sections.map((s) => ({
-      heading: s.heading,
-      content: s.content?.join("\n\n") ?? "",
-      highlight: s.highlight ?? "",
-    })),
+    // Nouveau format : un seul corps Markdown. Pour les anciens articles
+    // (sans body mais avec sections), on convertit les sections en Markdown.
+    body: article.body || sectionsToMarkdown(article.sections),
     faq: article.faq.length > 0 ? article.faq : [{ question: "", answer: "" }],
     relatedSlugs: article.relatedSlugs.join(", "),
   };
@@ -101,7 +94,7 @@ const emptyDraft: Draft = {
   metaTitle: "",
   metaDescription: "",
   keywords: "",
-  sections: [{ heading: "", content: "", highlight: "" }],
+  body: "",
   faq: [{ question: "", answer: "" }],
   relatedSlugs: "",
 };
@@ -139,35 +132,6 @@ export default function ArticleEditor({ initialArticle, isEditing }: Props) {
 
   function setField<K extends keyof Draft>(key: K, value: Draft[K]) {
     setDraft((d) => ({ ...d, [key]: value }));
-  }
-
-  function setSection(i: number, key: keyof SectionDraft, value: string) {
-    setDraft((d) => {
-      const sections = [...d.sections];
-      sections[i] = { ...sections[i], [key]: value };
-      return { ...d, sections };
-    });
-  }
-
-  function addSection() {
-    setDraft((d) => ({
-      ...d,
-      sections: [...d.sections, { heading: "", content: "", highlight: "" }],
-    }));
-  }
-
-  function removeSection(i: number) {
-    setDraft((d) => ({ ...d, sections: d.sections.filter((_, idx) => idx !== i) }));
-  }
-
-  function moveSection(i: number, dir: -1 | 1) {
-    setDraft((d) => {
-      const sections = [...d.sections];
-      const j = i + dir;
-      if (j < 0 || j >= sections.length) return d;
-      [sections[i], sections[j]] = [sections[j], sections[i]];
-      return { ...d, sections };
-    });
   }
 
   function setFaq(i: number, key: keyof FaqDraft, value: string) {
@@ -241,16 +205,8 @@ export default function ArticleEditor({ initialArticle, isEditing }: Props) {
       heroAlt: draft.heroAlt || draft.title,
       intro: draft.intro,
       author: draft.author.trim() || undefined,
-      sections: draft.sections
-        .filter((s) => s.heading.trim())
-        .map((s) => ({
-          heading: s.heading,
-          content: s.content
-            .split("\n\n")
-            .map((p) => p.trim())
-            .filter(Boolean),
-          highlight: s.highlight || undefined,
-        })),
+      body: draft.body.trim() || undefined,
+      sections: [], // nouveau format : tout le contenu est dans `body` (Markdown)
       faq: draft.faq.filter((f) => f.question.trim() && f.answer.trim()),
       relatedSlugs: draft.relatedSlugs
         .split(",")
@@ -573,37 +529,30 @@ export default function ArticleEditor({ initialArticle, isEditing }: Props) {
       </Card>
 
       {/* Sections */}
-      <Card title={`Sections de l'article (${draft.sections.length})`}>
-        <p className="text-slate-500 text-xs mb-4">
-          Chaque section a un titre et des paragraphes. Séparez les paragraphes par une ligne vide.
+      <Card title="Corps de l'article">
+        <p className="text-slate-500 text-xs mb-3">
+          Collez ou rédigez tout votre article ici, en <span className="text-slate-300 font-medium">Markdown</span>.
+          Idéal pour coller un texte généré avec Claude d&apos;un seul bloc.
         </p>
-        <div className="space-y-4">
-          {draft.sections.map((section, i) => (
-            <div key={i} className="bg-slate-900/60 border border-white/8 rounded-xl p-4 space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-slate-400 text-xs font-medium">Section {i + 1}</span>
-                <div className="flex items-center gap-1">
-                  <button onClick={() => moveSection(i, -1)} disabled={i === 0} className="p-1 text-slate-500 hover:text-white disabled:opacity-20 transition-colors">
-                    <ChevronUp className="w-4 h-4" />
-                  </button>
-                  <button onClick={() => moveSection(i, 1)} disabled={i === draft.sections.length - 1} className="p-1 text-slate-500 hover:text-white disabled:opacity-20 transition-colors">
-                    <ChevronDown className="w-4 h-4" />
-                  </button>
-                  <button onClick={() => removeSection(i)} disabled={draft.sections.length === 1} className="p-1 text-slate-500 hover:text-red-400 disabled:opacity-20 transition-colors">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-              <input type="text" value={section.heading} onChange={(e) => setSection(i, "heading", e.target.value)} placeholder="Titre de la section" className={inputClass} />
-              <textarea value={section.content} onChange={(e) => setSection(i, "content", e.target.value)} placeholder={"Premier paragraphe…\n\nDeuxième paragraphe (séparez par une ligne vide)…"} rows={5} className={inputClass} />
-              <input type="text" value={section.highlight} onChange={(e) => setSection(i, "highlight", e.target.value)} placeholder="Encart de mise en valeur (optionnel) — ex : À retenir : …" className={inputClass} />
-            </div>
-          ))}
+        <div className="bg-slate-900/40 border border-white/8 rounded-lg px-3 py-2 mb-3 text-[11px] text-slate-500 leading-relaxed">
+          <span className="text-slate-400 font-medium">Aide Markdown :</span>{" "}
+          <code className="text-sky-400">## Titre</code> = sous-titre ·{" "}
+          <code className="text-sky-400">### Titre</code> = sous-sous-titre ·{" "}
+          <code className="text-sky-400">**gras**</code> ·{" "}
+          <code className="text-sky-400">- item</code> = liste ·{" "}
+          <code className="text-sky-400">&gt; texte</code> = encart ·{" "}
+          ligne vide = nouveau paragraphe · tableaux supportés
         </div>
-        <button onClick={addSection} className="mt-4 flex items-center gap-1.5 text-sky-400 hover:text-sky-300 text-sm font-medium transition-colors">
-          <Plus className="w-4 h-4" />
-          Ajouter une section
-        </button>
+        <textarea
+          value={draft.body}
+          onChange={(e) => setField("body", e.target.value)}
+          placeholder={"## Premier sous-titre\n\nVotre premier paragraphe…\n\nVotre deuxième paragraphe…\n\n## Deuxième sous-titre\n\n- Un point\n- Un autre point\n\n> À retenir : une information clé."}
+          rows={24}
+          className={`${inputClass} font-mono text-xs leading-relaxed`}
+        />
+        <p className="text-slate-600 text-xs mt-2">
+          {draft.body.trim() ? draft.body.trim().split(/\s+/).length : 0} mots
+        </p>
       </Card>
 
       {/* FAQ */}

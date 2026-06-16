@@ -19,6 +19,9 @@ export interface Article {
   heroImage: string;
   heroAlt: string;
   intro: string;
+  /** Corps de l'article en Markdown (nouveau format). Si présent, il est rendu
+   *  à la place de `sections` (conservé pour rétrocompatibilité des anciens articles). */
+  body?: string;
   sections: ArticleSection[];
   faq: { question: string; answer: string }[];
   relatedSlugs: string[];
@@ -1239,6 +1242,32 @@ export const articles: Article[] = [
 
 export function getArticleBySlug(slug: string): Article | undefined {
   return articles.find((a) => a.slug === slug);
+}
+
+/** Convertit les sections structurées d'un ancien article en Markdown,
+ *  pour pré-remplir le corps unique lors de l'édition. */
+export function sectionsToMarkdown(sections: ArticleSection[]): string {
+  return sections
+    .map((s) => {
+      const parts: string[] = [];
+      if (s.heading) parts.push(`## ${s.heading}`);
+      if (s.content?.length) parts.push(s.content.join("\n\n"));
+      if (s.list?.length) parts.push(s.list.map((i) => `- ${i}`).join("\n"));
+      if (s.table?.headers?.length) {
+        const head = `| ${s.table.headers.join(" | ")} |`;
+        const sep = `| ${s.table.headers.map(() => "---").join(" | ")} |`;
+        const rows = s.table.rows.map((r) => `| ${r.join(" | ")} |`).join("\n");
+        parts.push([head, sep, rows].join("\n"));
+      }
+      s.subsections?.forEach((sub) => {
+        parts.push(`### ${sub.heading}`);
+        if (sub.content?.length) parts.push(sub.content.join("\n\n"));
+      });
+      if (s.highlight) parts.push(`> ${s.highlight}`);
+      return parts.join("\n\n");
+    })
+    .filter(Boolean)
+    .join("\n\n");
 }
 
 export function getRelatedArticles(slugs: string[]): Article[] {

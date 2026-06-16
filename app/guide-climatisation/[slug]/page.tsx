@@ -7,6 +7,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import FAQAccordion from "@/components/FAQAccordion";
 import OpenChatButton from "@/components/OpenChatButton";
+import ArticleBody from "@/components/ArticleBody";
 import { articles, getArticleBySlug, getRelatedArticles } from "@/lib/articles";
 import { getDynamicArticleBySlug, getDynamicArticles } from "@/lib/dynamicArticles";
 import { getAuthors } from "@/lib/authors";
@@ -183,7 +184,10 @@ export default async function ArticlePage({ params }: Props) {
         <section className="py-14 bg-white">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="prose-article">
-              {article.sections.map((section, si) => (
+              {article.body ? (
+                <ArticleBody markdown={article.body} />
+              ) : (
+              article.sections.map((section, si) => (
                 <div key={si} className="mb-12">
                   <h2 className="text-2xl font-bold text-slate-900 mb-5 tracking-tight border-b border-slate-100 pb-3">
                     {section.heading}
@@ -269,7 +273,8 @@ export default async function ArticlePage({ params }: Props) {
                     </div>
                   ))}
                 </div>
-              ))}
+              ))
+              )}
             </div>
 
             {/* Inline CTA */}
