@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import { motion } from "framer-motion";
 import { ArrowRight, ShieldCheck, Zap, MessageCircle } from "lucide-react";
 
 const stats = [
@@ -10,19 +9,6 @@ const stats = [
   { value: "Certifications", label: "Fluides frigorigènes & RGE" },
   { value: "48h", label: "Délai d'intervention" },
 ];
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 32 },
-  show: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: {
-      delay: i * 0.12,
-      duration: 0.6,
-      ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
-    },
-  }),
-};
 
 interface HeroProps {
   ratingBadge?: React.ReactNode;
@@ -34,57 +20,33 @@ export default function Hero({ ratingBadge }: HeroProps) {
       {/* Background grid */}
       <div className="absolute inset-0 bg-grid opacity-60" />
 
-      {/* Glow orb */}
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-sky-500/8 blur-3xl pointer-events-none" />
+      {/* Glow orb — réduit pour éviter le coût GPU du blur */}
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[480px] h-[480px] rounded-full bg-sky-500/6 blur-2xl pointer-events-none" />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-20">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           {/* Left — Copy */}
           <div className="flex flex-col gap-8">
-            <motion.div
-              custom={0}
-              variants={fadeUp}
-              initial="hidden"
-              animate="show"
-              className="inline-flex items-center gap-2 self-start px-4 py-2 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400 text-sm font-medium"
-            >
+            <div className="anim-fade-up anim-d1 inline-flex items-center gap-2 self-start px-4 py-2 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400 text-sm font-medium">
               <ShieldCheck className="w-4 h-4" />
               Techniciens certifiés · Île-de-France
-            </motion.div>
+            </div>
 
-            <motion.h1
-              custom={1}
-              variants={fadeUp}
-              initial="hidden"
-              animate="show"
-              className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-[1.1] tracking-tight"
-            >
+            <h1 className="anim-fade-up anim-d2 text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-[1.1] tracking-tight">
               La climatisation
               <br />
               <span className="text-gradient">haut de gamme</span>
               <br />
               en Île-de-France
-            </motion.h1>
+            </h1>
 
-            <motion.p
-              custom={2}
-              variants={fadeUp}
-              initial="hidden"
-              animate="show"
-              className="text-slate-400 text-lg leading-relaxed max-w-lg"
-            >
+            <p className="anim-fade-up anim-d3 text-slate-400 text-lg leading-relaxed max-w-lg">
               Installation, entretien et dépannage par des techniciens confirmés.
               Obtenez une estimation précise en 2 minutes grâce à notre
               assistant intelligent.
-            </motion.p>
+            </p>
 
-            <motion.div
-              custom={3}
-              variants={fadeUp}
-              initial="hidden"
-              animate="show"
-              className="flex flex-col sm:flex-row gap-4"
-            >
+            <div className="anim-fade-up anim-d4 flex flex-col sm:flex-row gap-4">
               <button
                 onClick={() => window.dispatchEvent(new CustomEvent("open-chat"))}
                 className="inline-flex items-center justify-center gap-2 px-7 py-4 bg-sky-500 hover:bg-sky-400 text-white font-semibold rounded-2xl transition-all duration-200 shadow-xl shadow-sky-500/25 hover:shadow-sky-500/40 hover:-translate-y-0.5"
@@ -101,27 +63,16 @@ export default function Hero({ ratingBadge }: HeroProps) {
                 <MessageCircle className="w-4 h-4 text-emerald-400" />
                 WhatsApp
               </a>
-            </motion.div>
+            </div>
 
-            {/* Google rating badge (server-rendered, passed as prop) */}
-            <motion.div
-              custom={4}
-              variants={fadeUp}
-              initial="hidden"
-              animate="show"
-            >
+            <div className="anim-fade-up anim-d5">
               {ratingBadge}
-            </motion.div>
+            </div>
           </div>
 
           {/* Right — Photo + Chat card */}
-          <motion.div
-            initial={{ opacity: 0, x: 40 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.4, duration: 0.8, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] }}
-            className="hidden lg:block relative"
-          >
-            {/* Photo principale — cliquable pour ouvrir Alex */}
+          <div className="anim-fade-right anim-d3 hidden lg:block relative">
+            {/* Photo principale */}
             <div
               className="relative rounded-3xl overflow-hidden aspect-[4/3] shadow-2xl shadow-black/40 cursor-pointer group/img"
               onClick={() => window.dispatchEvent(new CustomEvent("open-chat"))}
@@ -135,9 +86,7 @@ export default function Hero({ ratingBadge }: HeroProps) {
                 className="object-cover transition-transform duration-500 group-hover/img:scale-105"
                 priority
               />
-              {/* Overlay dégradé bas */}
               <div className="absolute inset-0 bg-gradient-to-t from-[#0B1120]/70 via-transparent to-transparent" />
-              {/* Hover overlay */}
               <div className="absolute inset-0 bg-sky-500/10 opacity-0 group-hover/img:opacity-100 transition-opacity duration-300 flex items-start justify-center pt-8">
                 <div className="bg-white/90 backdrop-blur-sm text-slate-900 text-sm font-semibold px-5 py-2.5 rounded-full flex items-center gap-2 shadow-lg -translate-y-2 group-hover/img:translate-y-0 transition-transform duration-300">
                   <Zap className="w-4 h-4 text-sky-500" />
@@ -180,23 +129,18 @@ export default function Hero({ ratingBadge }: HeroProps) {
             <div className="absolute -top-4 -right-4 bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg shadow-emerald-500/30">
               Estimation en 2 min
             </div>
-          </motion.div>
+          </div>
         </div>
 
         {/* Stats bar */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7, duration: 0.6 }}
-          className="mt-24 grid grid-cols-2 lg:grid-cols-4 gap-px bg-white/8 rounded-2xl overflow-hidden border border-white/8"
-        >
+        <div className="anim-fade-up anim-d6 mt-24 grid grid-cols-2 lg:grid-cols-4 gap-px bg-white/8 rounded-2xl overflow-hidden border border-white/8">
           {stats.map((stat) => (
             <div key={stat.label} className="bg-[#0B1120] px-6 py-5 flex flex-col gap-1">
               <span className="text-2xl font-bold text-white">{stat.value}</span>
               <span className="text-slate-500 text-sm">{stat.label}</span>
             </div>
           ))}
-        </motion.div>
+        </div>
       </div>
     </section>
   );

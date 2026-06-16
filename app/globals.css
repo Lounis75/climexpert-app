@@ -57,4 +57,34 @@
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+
+  /* ── Animations CSS natives (pas de flash d'hydratation) ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(28px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeRight {
+    from { opacity: 0; transform: translateX(36px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  .anim-fade-up {
+    animation: fadeUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .anim-fade-right {
+    animation: fadeRight 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .anim-fade-in {
+    animation: fadeIn 0.5s ease both;
+  }
+  .anim-d1  { animation-delay: 0.05s; }
+  .anim-d2  { animation-delay: 0.15s; }
+  .anim-d3  { animation-delay: 0.25s; }
+  .anim-d4  { animation-delay: 0.38s; }
+  .anim-d5  { animation-delay: 0.50s; }
+  .anim-d6  { animation-delay: 0.65s; }
 }
