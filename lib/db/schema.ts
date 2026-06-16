@@ -23,11 +23,11 @@ export const technicienRoleEnum = pgEnum("technicien_role", [
 
 export const leadStatusEnum = pgEnum("lead_status", [
   "nouveau",
-  "pas_de_reponse",
   "contacté",
   "devis_envoyé",
   "gagné",
   "perdu",
+  "pas_de_reponse",
 ]);
 
 export const leadSourceEnum = pgEnum("lead_source", [
@@ -35,6 +35,7 @@ export const leadSourceEnum = pgEnum("lead_source", [
   "formulaire",
   "téléphone",
   "autre",
+  "whatsapp",
 ]);
 
 export const projectTypeEnum = pgEnum("project_type", [

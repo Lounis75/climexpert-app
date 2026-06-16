@@ -1166,7 +1166,6 @@ export const articles: Article[] = [
     date: "2026-06-16",
     readTime: 6,
     category: "Entretien",
-    featured: false,
     heroImage: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=1200&q=85",
     heroAlt: "Technicien en train de nettoyer une unité intérieure de climatisation à Paris",
     intro: "Le nettoyage de votre climatisation à Paris est indispensable pour maintenir ses performances, éviter les problèmes sanitaires et respecter vos obligations légales. Voici tout ce qu'il faut savoir sur la prestation, les prix pratiqués et la fréquence recommandée.",

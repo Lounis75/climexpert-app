@@ -3,7 +3,7 @@ import { leads, type Lead, type NewLead } from "@/lib/db/schema";
 import { eq, desc, isNull } from "drizzle-orm";
 
 export type LeadStatus = "nouveau" | "pas_de_reponse" | "contacté" | "devis_envoyé" | "gagné" | "perdu";
-export type LeadSource = "alex" | "formulaire" | "téléphone" | "autre";
+export type LeadSource = "alex" | "formulaire" | "téléphone" | "whatsapp" | "autre";
 
 export type { Lead };
 
