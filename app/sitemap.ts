@@ -2,6 +2,7 @@ import { MetadataRoute } from "next";
 import { articles } from "@/lib/articles";
 import { getDynamicArticles } from "@/lib/dynamicArticles";
 import { VILLES } from "@/lib/villes";
+import { DEPARTEMENTS } from "@/lib/departements";
 
 const BASE = "https://climexpert.fr";
 
@@ -74,6 +75,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.85,
     },
+    {
+      url: `${BASE}/departements`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${BASE}/villes`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    ...DEPARTEMENTS.map((d) => ({
+      url: `${BASE}/departements/${d.slug}`,
+      lastModified: new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.8,
+    })),
     ...VILLES.map((v) => ({
       url: `${BASE}/villes/${v.slug}`,
       lastModified: new Date(),

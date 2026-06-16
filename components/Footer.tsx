@@ -1,9 +1,10 @@
 import Link from "next/link";
+import { DEPARTEMENTS } from "@/lib/departements";
 
 export default function Footer() {
   return (
     <footer className="border-t border-white/10 bg-[#080d18]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 grid md:grid-cols-4 gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 grid md:grid-cols-2 lg:grid-cols-5 gap-8">
         <div>
           <p className="font-bold mb-3 text-white">ClimExpert</p>
           <p className="text-sm text-slate-400 mb-4">
@@ -24,7 +25,23 @@ export default function Footer() {
             <li><Link href="/installation" className="text-slate-400 hover:text-white transition-colors">Installation</Link></li>
             <li><Link href="/entretien" className="text-slate-400 hover:text-white transition-colors">Entretien et maintenance</Link></li>
             <li><Link href="/depannage" className="text-slate-400 hover:text-white transition-colors">Dépannage</Link></li>
+            <li><Link href="/tarifs" className="text-slate-400 hover:text-white transition-colors">Tarifs</Link></li>
+            <li><Link href="/devis" className="text-slate-400 hover:text-white transition-colors">Devis gratuit</Link></li>
             <li><Link href="/guide-climatisation" className="text-slate-400 hover:text-white transition-colors">Guide climatisation</Link></li>
+          </ul>
+        </div>
+
+        <div>
+          <p className="font-semibold mb-3 text-xs uppercase tracking-wider text-slate-500">Zones d&apos;intervention</p>
+          <ul className="space-y-2 text-sm">
+            {DEPARTEMENTS.map((d) => (
+              <li key={d.slug}>
+                <Link href={`/departements/${d.slug}`} className="text-slate-400 hover:text-white transition-colors">
+                  {d.name} ({d.code})
+                </Link>
+              </li>
+            ))}
+            <li><Link href="/villes" className="text-sky-400/80 hover:text-sky-300 transition-colors">Toutes les villes →</Link></li>
           </ul>
         </div>
 

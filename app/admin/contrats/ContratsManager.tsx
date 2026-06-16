@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import type { ContratWithClient } from "@/lib/contrats";
 import type { Client } from "@/lib/clients";
+import { contratTotalEuros } from "@/lib/contrat-pricing";
 
 const inputCls = "w-full px-3 py-2 rounded-lg border border-white/10 bg-slate-700/50 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500/50";
 
@@ -17,7 +18,7 @@ interface Form {
   startDate: string;
   nextVisit: string;
 }
-const emptyForm: Form = { clientId: "", units: "1", prixUnitaireEuros: "200", startDate: "", nextVisit: "" };
+const emptyForm: Form = { clientId: "", units: "1", prixUnitaireEuros: "180", startDate: "", nextVisit: "" };
 
 function fmt(d: string | Date | null | undefined) {
   if (!d) return "—";
@@ -47,11 +48,18 @@ export default function ContratsManager({
 
   const actifs = contrats.filter((c) => c.active);
   const inactifs = contrats.filter((c) => !c.active);
-  const caAnnuel = actifs.reduce((s, c) => s + c.units * c.prixUnitaireCt, 0);
+  const caAnnuel = actifs.reduce((s, c) => s + c.prixUnitaireCt, 0); // prixUnitaireCt = total annuel
   const overdue = actifs.filter((c) => isOverdue(c.nextVisit)).length;
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
-    setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    // Quand le nb d'unités change, auto-suggère le prix total officiel (180 + 60/supp),
+    // l'admin reste libre de l'ajuster ensuite.
+    if (name === "units") {
+      setForm((p) => ({ ...p, units: value, prixUnitaireEuros: String(contratTotalEuros(Number(value) || 1)) }));
+      return;
+    }
+    setForm((p) => ({ ...p, [name]: value }));
   }
 
   async function handleCreate(e: React.FormEvent) {
@@ -182,8 +190,9 @@ export default function ContratsManager({
               <input name="units" type="number" min="1" value={form.units} onChange={handleChange} className={inputCls} />
             </div>
             <div>
-              <label className="block text-xs text-slate-400 mb-1.5">Prix unitaire (€/an)</label>
+              <label className="block text-xs text-slate-400 mb-1.5">Prix total annuel (€)</label>
               <input name="prixUnitaireEuros" type="number" min="0" step="10" value={form.prixUnitaireEuros} onChange={handleChange} className={inputCls} />
+              <p className="text-slate-600 text-[10px] mt-1">Standard : 180 € + 60 €/unité supp.</p>
             </div>
             <div>
               <label className="block text-xs text-slate-400 mb-1.5">Date de début *</label>
@@ -204,7 +213,7 @@ export default function ContratsManager({
               {saving ? "Enregistrement..." : "Créer le contrat"}
             </button>
             <p className="text-slate-500 text-xs">
-              Total : {(Number(form.units) * Number(form.prixUnitaireEuros)).toLocaleString("fr-FR")} €/an
+              Total : {Number(form.prixUnitaireEuros).toLocaleString("fr-FR")} €/an
             </p>
           </div>
         </form>
@@ -280,7 +289,7 @@ function ContratCard({
   onUpdateVisit: (id: string) => void;
 }) {
   const overdue = isOverdue(c.nextVisit);
-  const montant = (c.units * c.prixUnitaireCt / 100).toLocaleString("fr-FR", { minimumFractionDigits: 0 });
+  const montant = (c.prixUnitaireCt / 100).toLocaleString("fr-FR", { minimumFractionDigits: 0 });
 
   return (
     <div className={`bg-slate-800/40 border rounded-2xl p-4 ${!c.active ? "opacity-50 border-white/5" : overdue ? "border-red-500/30" : "border-white/8"}`}>

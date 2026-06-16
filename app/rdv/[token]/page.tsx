@@ -162,7 +162,7 @@ function Contact() {
   return (
     <div className="space-y-2">
       <p className="text-slate-400 text-xs">Contactez-nous :</p>
-      <a href="tel:+33XXXXXXXXX" className="flex items-center justify-center gap-2 text-sky-500 font-semibold text-sm">
+      <a href="tel:+33667432767" className="flex items-center justify-center gap-2 text-sky-500 font-semibold text-sm">
         <Phone className="w-4 h-4" /> Nous appeler
       </a>
     </div>

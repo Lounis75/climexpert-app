@@ -227,7 +227,7 @@ export default async function SuiviPage({ params }: { params: Promise<{ token: s
           <p className="text-white font-semibold mb-1">Un problème ou une question ?</p>
           <p className="text-slate-400 text-sm mb-4">Notre équipe est disponible 7j/7.</p>
           <a
-            href="tel:+33XXXXXXXXX"
+            href="tel:+33667432767"
             className="inline-block bg-sky-500 hover:bg-sky-400 text-white font-semibold text-sm px-6 py-3 rounded-2xl transition-colors"
           >
             Nous contacter

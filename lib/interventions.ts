@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { interventions, clients, techniciens, suivisPlanifies } from "@/lib/db/schema";
+import { interventions, clients, techniciens, suivisPlanifies, rapportsIntervention, savTickets, suivis } from "@/lib/db/schema";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import { eq, desc, gte, asc } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
@@ -147,5 +147,14 @@ export async function updateInterventionNotes(id: string, notes: string): Promis
 }
 
 export async function deleteIntervention(id: string): Promise<void> {
+  // Les tables filles ont des FK ON DELETE no action : il faut supprimer/détacher
+  // leurs lignes avant l'intervention (sinon violation FK -> 500).
+  // neon-http ne supporte pas les transactions interactives -> suppressions séquentielles.
+  // Tightly coupled à l'intervention -> suppression :
+  await db.delete(rapportsIntervention).where(eq(rapportsIntervention.interventionId, id));
+  await db.delete(suivisPlanifies).where(eq(suivisPlanifies.interventionId, id));
+  // Indépendants (appartiennent au client) -> on conserve en détachant la référence :
+  await db.update(savTickets).set({ interventionId: null }).where(eq(savTickets.interventionId, id));
+  await db.update(suivis).set({ interventionId: null }).where(eq(suivis.interventionId, id));
   await db.delete(interventions).where(eq(interventions.id, id));
 }

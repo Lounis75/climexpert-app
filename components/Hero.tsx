@@ -83,6 +83,7 @@ export default function Hero({ ratingBadge }: HeroProps) {
                 src="/images/hero.jpg"
                 alt="Intérieur moderne climatisé"
                 fill
+                sizes="(min-width: 1024px) 600px, 0px"
                 className="object-cover transition-transform duration-500 group-hover/img:scale-105"
                 priority
               />

@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { savTickets, clients, notifications, admins, logsAlex } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
+import { rateLimit, clientIp } from "@/lib/rate-limit";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -198,7 +199,7 @@ FORMAT OBLIGATOIRE À LA DERNIÈRE ÉTAPE UNIQUEMENT :
 Quand tu as collecté le nom ET le téléphone ET l'adresse (l'email est optionnel), réponds avec ce format exact (sans rien d'autre avant ou après) :
 
 LEAD_READY
-{"name":"[prénom nom]","phone":"[téléphone]","email":"[email ou vide]","project":"[installation/entretien/dépannage]","property":"[type de bien]","location":"[ville/CP]","address":"[adresse complète : numéro, rue, code postal, ville]","estimate":"[fourchette €]","notes":"[tout détail utile : nombre d'unités, accessibilité, photos envoyées, HORS IDF si applicable]"}
+{"name":"[prénom nom]","phone":"[téléphone]","email":"[email ou vide]","project":"[installation/entretien/depannage/contrat-pro/autre — en minuscules SANS accent]","property":"[type de bien]","location":"[ville/CP]","address":"[adresse complète : numéro, rue, code postal, ville]","estimate":"[fourchette €]","notes":"[tout détail utile : nombre d'unités, accessibilité, photos envoyées, HORS IDF si applicable]"}
 MESSAGE
 [Ton message de confirmation chaleureux de 2 phrases max. En IDF : "Parfait Thomas ! Votre demande est bien enregistrée, un technicien ClimExpert vous rappelle sous 24h." Hors IDF : "Parfait Thomas ! Votre demande est bien enregistrée — un technicien commercial va reprendre contact avec vous rapidement pour établir un devis précis."]`;
 
@@ -292,12 +293,20 @@ async function sendLeadEmails(lead: LeadData, messages: ChatMessage[]) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages, sessionId }: { messages: ChatMessage[]; sessionId?: string } = await req.json();
-    const sid = sessionId ?? "unknown";
+    // Rate-limit : 20 requêtes / minute / IP (borne le coût Anthropic et le spam)
+    if (!rateLimit(`chat:${clientIp(req)}`, 20, 60_000)) {
+      return NextResponse.json({ error: "Trop de messages, patientez quelques instants." }, { status: 429 });
+    }
 
-    if (!Array.isArray(messages) || messages.length === 0) {
+    const body: { messages: ChatMessage[]; sessionId?: string } = await req.json();
+    const sid = body.sessionId ?? "unknown";
+
+    if (!Array.isArray(body.messages) || body.messages.length === 0) {
       return NextResponse.json({ error: "Messages invalides" }, { status: 400 });
     }
+
+    // Borne la taille de l'historique envoyé au modèle (coût d'entrée + DB)
+    const messages = body.messages.slice(-40);
 
     const response = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
@@ -334,7 +343,8 @@ export async function POST(req: NextRequest) {
           });
         }
         return NextResponse.json({ message, creneauxSent: true });
-      } catch {
+      } catch (e) {
+        console.error("[chat] erreur traitement CRENEAUX_READY:", e);
         return NextResponse.json({ message: "Les créneaux disponibles vous seront envoyés par email." });
       }
     }
@@ -373,7 +383,8 @@ export async function POST(req: NextRequest) {
           }
         }
         return NextResponse.json({ message, savComplete: true });
-      } catch {
+      } catch (e) {
+        console.error("[chat] erreur traitement SAV_READY:", e);
         return NextResponse.json({ message: "Votre demande SAV est bien enregistrée. Notre équipe vous rappelle en priorité." });
       }
     }
@@ -404,24 +415,42 @@ export async function POST(req: NextRequest) {
             transcript ? `\n--- Conversation Alex ---\n${transcript}` : "",
           ].filter(Boolean).join("\n");
 
-          await Promise.all([
-            sendLeadEmails(lead, messages),
-            createLead({
+          // Normaliser le type de projet sur l'enum (évite l'échec d'insert si
+          // l'IA renvoie "dépannage" accentué au lieu de "depannage")
+          const VALID_PROJECTS = ["installation", "entretien", "depannage", "contrat-pro", "autre"] as const;
+          const normalized = lead.project
+            ? lead.project.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim()
+            : "";
+          const project = (VALID_PROJECTS as readonly string[]).includes(normalized)
+            ? (normalized as typeof VALID_PROJECTS[number])
+            : undefined;
+
+          // Persister le lead EN PRIORITÉ : ne jamais le perdre à cause d'un
+          // échec d'envoi d'email. En cas d'échec, log bruyant avec les données
+          // brutes pour récupération manuelle.
+          try {
+            await createLead({
               source: "alex",
               name: lead.name,
               phone: lead.phone,
               email: lead.email || undefined,
-              project: lead.project as "installation" | "entretien" | "depannage" | "contrat-pro" | "autre" | undefined,
+              project,
               location: lead.location || undefined,
               address: lead.address || undefined,
               message: lead.estimate ? `Estimation : ${lead.estimate}` : undefined,
               notes: fullNotes || undefined,
-            }),
-          ]);
+            });
+          } catch (e) {
+            console.error("[chat] ÉCHEC createLead — lead potentiellement perdu:", e, JSON.stringify(lead));
+          }
+
+          // Emails non bloquants (l'échec d'envoi ne doit pas masquer le succès du lead)
+          sendLeadEmails(lead, messages).catch((e) => console.error("[chat] échec envoi email lead:", e));
         }
 
         return NextResponse.json({ message, leadComplete: true, lead });
-      } catch {
+      } catch (e) {
+        console.error("[chat] erreur traitement LEAD_READY:", e);
         return NextResponse.json({ message: "Votre demande est bien enregistrée. Notre équipe vous contacte très prochainement !" });
       }
     }

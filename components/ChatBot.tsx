@@ -146,6 +146,7 @@ export default function ChatBot() {
                 whileTap={{ scale: 0.9 }}
                 transition={{ type: "spring", stiffness: 400, damping: 15 }}
                 onClick={() => setOpen(false)}
+                aria-label="Fermer le chat"
                 className="p-1.5 text-slate-500 hover:text-white transition-colors rounded-lg hover:bg-white/10"
               >
                 <X className="w-4 h-4" />

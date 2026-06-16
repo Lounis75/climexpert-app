@@ -297,7 +297,9 @@ export const savTickets = pgTable("sav_tickets", {
 
 export const notifications = pgTable("notifications", {
   id:        text("id").primaryKey().$defaultFn(() => createId()),
-  adminId:   text("admin_id").references(() => admins.id),
+  // Destinataire : ID admin OU technicien (table polymorphe). Pas de FK car
+  // l'ID peut référencer admins.id ou techniciens.id selon le type de notif.
+  adminId:   text("admin_id"),
   type:      varchar("type", { length: 50 }).notNull(),
   titre:     varchar("titre", { length: 255 }).notNull(),
   contenu:   text("contenu"),

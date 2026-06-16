@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     const c = await createContrat({
       clientId: body.clientId,
       units: Number(body.units ?? 1),
-      prixUnitaireCt: Math.round(Number(body.prixUnitaireEuros ?? 200) * 100),
+      prixUnitaireCt: Math.round(Number(body.prixUnitaireEuros ?? 180) * 100), // total annuel
       startDate: body.startDate,
       nextVisit: body.nextVisit ?? undefined,
     });

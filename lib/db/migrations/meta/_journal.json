@@ -8,6 +8,13 @@
       "when": 1781618933186,
       "tag": "0000_baseline_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1781621533343,
+      "tag": "0001_drop_notifications_admin_fk",
+      "breakpoints": true
     }
   ]
 }

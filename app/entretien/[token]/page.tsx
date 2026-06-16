@@ -143,7 +143,7 @@ export default function EntretienPage({ params }: { params: Promise<{ token: str
         {/* Contact */}
         <div className="text-center">
           <p className="text-slate-500 text-xs mb-2">Des questions ? Appelez-nous</p>
-          <a href="tel:+33XXXXXXXXX" className="flex items-center justify-center gap-2 text-sky-500 font-semibold text-sm">
+          <a href="tel:+33667432767" className="flex items-center justify-center gap-2 text-sky-500 font-semibold text-sm">
             <Phone className="w-4 h-4" /> Nous appeler
           </a>
         </div>

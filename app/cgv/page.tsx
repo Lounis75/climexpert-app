@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 export const metadata: Metadata = {
   title: "Conditions Générales de Vente — ClimExpert",
   description: "Conditions générales de vente de ClimExpert, expert en climatisation en Île-de-France.",
-  robots: { index: false, follow: false },
+  robots: { index: false, follow: true },
 };
 
 export default function CGVPage() {

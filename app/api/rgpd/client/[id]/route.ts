@@ -3,9 +3,11 @@ import { db } from "@/lib/db";
 import { clients, interventions, devis, factures, savTickets, suivisPlanifies, suivis } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { auditAction } from "@/lib/audit";
+import { isAdminRequest } from "@/lib/admin-guard";
 
 // Hard-delete all client personal data (RGPD right to erasure)
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  if (!(await isAdminRequest())) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
   const { id } = await params;
 
   const [row] = await db.select({ id: clients.id }).from(clients).where(eq(clients.id, id)).limit(1);

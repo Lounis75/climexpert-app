@@ -56,7 +56,7 @@ export default function AnnulerPage({ params }: { params: Promise<{ token: strin
             <p className="text-slate-500 text-sm">
               Votre rendez-vous a été annulé. Notre équipe va vous proposer un nouveau créneau prochainement.
             </p>
-            <a href="tel:+33XXXXXXXXX" className="flex items-center justify-center gap-2 text-sky-500 font-semibold text-sm">
+            <a href="tel:+33667432767" className="flex items-center justify-center gap-2 text-sky-500 font-semibold text-sm">
               <Phone className="w-4 h-4" /> Nous appeler directement
             </a>
           </div>

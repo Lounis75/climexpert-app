@@ -2,6 +2,7 @@ import { Resend } from "resend";
 import { NextRequest, NextResponse } from "next/server";
 import { createLead } from "@/lib/leads";
 import { createNotification } from "@/lib/notifications";
+import { rateLimit, clientIp } from "@/lib/rate-limit";
 
 interface ContactFormData {
   type: string;
@@ -34,6 +35,11 @@ const bienLabels: Record<string, string> = {
 
 export async function POST(req: NextRequest) {
   try {
+    // Rate-limit : 5 envois / minute / IP (anti-spam formulaire + quota email)
+    if (!rateLimit(`contact:${clientIp(req)}`, 5, 60_000)) {
+      return NextResponse.json({ error: "Trop de demandes, réessayez dans un instant." }, { status: 429 });
+    }
+
     const body: ContactFormData = await req.json();
 
     if (!body.nom || !body.telephone || !body.type || !body.bien) {

@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 export const metadata: Metadata = {
   title: "Politique de confidentialité — ClimExpert",
   description: "Politique de confidentialité et protection des données personnelles de ClimExpert.",
-  robots: { index: false, follow: false },
+  robots: { index: false, follow: true },
 };
 
 export default function PolitiqueConfidentialitePage() {

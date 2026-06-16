@@ -85,7 +85,7 @@ export default function PageHero({
           >
             <div className="relative rounded-3xl overflow-hidden aspect-[4/3] shadow-2xl shadow-black/40">
               {/* TODO: remplacer par photo chantier réelle */}
-              <Image src={photo} alt={photoAlt} fill className="object-cover" priority />
+              <Image src={photo} alt={photoAlt} fill sizes="(min-width: 1024px) 50vw, 100vw" className="object-cover" priority />
               <div className="absolute inset-0 bg-gradient-to-t from-[#0B1120]/60 via-transparent to-transparent" />
             </div>
           </motion.div>

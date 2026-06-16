@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { clients, contratsEntretien, notifications, admins } from "@/lib/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
+import { contratTotalCt } from "@/lib/contrat-pricing";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       id: contratId,
       clientId: client.id,
       units,
-      prixUnitaireCt: 20000,
+      prixUnitaireCt: contratTotalCt(units), // total annuel : 180 + (units-1)*60
       startDate: today,
       nextVisit,
     })

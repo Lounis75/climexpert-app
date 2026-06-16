@@ -11,7 +11,7 @@ const COMPANY = {
   city: "75015 Paris",
   phone: "06 67 43 27 67",
   email: "contact@climexpert.fr",
-  siret: "XXX XXX XXX 00000",
+  siret: "992 975 862 00010",
 };
 
 export default async function DevisPublicPage({

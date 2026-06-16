@@ -27,25 +27,28 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
 
   const [client] = await db.select().from(clients).where(eq(clients.id, interv.clientId)).limit(1);
 
-  // Notif admin
-  const [admin] = await db.select({ id: admins.id }).from(admins).limit(1);
-  if (admin) {
-    await db.insert(notifications).values({
-      id: createId(), adminId: admin.id, type: "annulation",
-      titre: `Annulation client — ${client?.name ?? "inconnu"}`,
-      contenu: motif || "Aucun motif fourni",
-      refType: "intervention", refId: interv.id,
-    });
-  }
-
-  // Notif technicien
-  if (interv.technicienId) {
-    await db.insert(notifications).values({
-      id: createId(), adminId: interv.technicienId, type: "annulation",
-      titre: "Intervention annulée par le client",
-      contenu: motif || "Aucun motif fourni",
-      refType: "intervention", refId: interv.id,
-    });
+  // Notifications (admin + technicien) — non bloquantes : l'annulation est
+  // déjà enregistrée en base à ce stade.
+  try {
+    const [admin] = await db.select({ id: admins.id }).from(admins).limit(1);
+    if (admin) {
+      await db.insert(notifications).values({
+        id: createId(), adminId: admin.id, type: "annulation",
+        titre: `Annulation client — ${client?.name ?? "inconnu"}`,
+        contenu: motif || "Aucun motif fourni",
+        refType: "intervention", refId: interv.id,
+      });
+    }
+    if (interv.technicienId) {
+      await db.insert(notifications).values({
+        id: createId(), adminId: interv.technicienId, type: "annulation",
+        titre: "Intervention annulée par le client",
+        contenu: motif || "Aucun motif fourni",
+        refType: "intervention", refId: interv.id,
+      });
+    }
+  } catch (e) {
+    console.error("[rdv/annuler] échec création notification (non bloquant):", e);
   }
 
   return NextResponse.json({ ok: true });
