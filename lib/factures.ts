@@ -53,7 +53,7 @@ export async function markOverdueFactures(): Promise<void> {
 }
 
 export async function getFactures(): Promise<FactureWithRefs[]> {
-  await markOverdueFactures();
+  markOverdueFactures().catch(() => {});
   const rows = await db
     .select({
       facture: factures,
@@ -73,7 +73,7 @@ export async function getFactures(): Promise<FactureWithRefs[]> {
 }
 
 export async function getFactureById(id: string): Promise<FactureWithRefs | null> {
-  await markOverdueFactures();
+  markOverdueFactures().catch(() => {});
   const [row] = await db
     .select({
       facture: factures,

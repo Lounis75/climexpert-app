@@ -8,6 +8,7 @@ import {
   boolean,
   numeric,
   date,
+  index,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
@@ -22,6 +23,7 @@ export const technicienRoleEnum = pgEnum("technicien_role", [
 
 export const leadStatusEnum = pgEnum("lead_status", [
   "nouveau",
+  "pas_de_reponse",
   "contacté",
   "devis_envoyé",
   "gagné",
@@ -142,6 +144,7 @@ export const leads = pgTable("leads", {
   phone:               varchar("phone", { length: 30 }).notNull(),
   email:               varchar("email", { length: 255 }),
   location:            varchar("location", { length: 255 }),
+  address:             text("address"),
   project:             projectTypeEnum("project"),
   typeBatiment:        batimentTypeEnum("type_batiment"),
   surfaceM2:           integer("surface_m2"),
@@ -153,10 +156,16 @@ export const leads = pgTable("leads", {
   source:              leadSourceEnum("source").default("formulaire").notNull(),
   notes:               text("notes"),
   clientId:            text("client_id").references(() => clients.id),
+  commercialId:        text("commercial_id").references(() => techniciens.id),
   createdAt:           timestamp("created_at").defaultNow().notNull(),
   updatedAt:           timestamp("updated_at").defaultNow().notNull(),
   supprimeLe:          timestamp("supprime_le"),
-});
+}, (t) => ({
+  statusIdx:     index("leads_status_idx").on(t.status),
+  sourceIdx:     index("leads_source_idx").on(t.source),
+  createdAtIdx:  index("leads_created_at_idx").on(t.createdAt),
+  suprimeLeIdx:  index("leads_supprime_le_idx").on(t.supprimeLe),
+}));
 
 // ─── Devis ────────────────────────────────────────────────────────────────────
 
@@ -207,7 +216,11 @@ export const factures = pgTable("factures", {
   createdAt:   timestamp("created_at").defaultNow().notNull(),
   updatedAt:   timestamp("updated_at").defaultNow().notNull(),
   supprimeLe:  timestamp("supprime_le"),
-});
+}, (t) => ({
+  statusIdx:  index("factures_status_idx").on(t.status),
+  dueDateIdx: index("factures_due_date_idx").on(t.dueDate),
+  paidAtIdx:  index("factures_paid_at_idx").on(t.paidAt),
+}));
 
 // ─── Interventions ────────────────────────────────────────────────────────────
 
@@ -234,7 +247,10 @@ export const interventions = pgTable("interventions", {
   createdAt:            timestamp("created_at").defaultNow().notNull(),
   updatedAt:            timestamp("updated_at").defaultNow().notNull(),
   supprimeLe:           timestamp("supprime_le"),
-});
+}, (t) => ({
+  scheduledAtIdx: index("interventions_scheduled_at_idx").on(t.scheduledAt),
+  statusIdx:      index("interventions_status_idx").on(t.status),
+}));
 
 // ─── Contrats entretien ───────────────────────────────────────────────────────
 
@@ -302,6 +318,16 @@ export const logsConnexion = pgTable("logs_connexion", {
   createdAt:   timestamp("created_at").defaultNow().notNull(),
 });
 
+// ─── Articles dynamiques (blog) ───────────────────────────────────────────────
+
+export const dynamicArticles = pgTable("dynamic_articles", {
+  id:        text("id").primaryKey().$defaultFn(() => createId()),
+  slug:      varchar("slug", { length: 255 }).notNull().unique(),
+  data:      text("data").notNull(), // JSON sérialisé (type Article)
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // ─── Logs Alex ────────────────────────────────────────────────────────────────
 
 export const logsAlex = pgTable("logs_alex", {
@@ -312,7 +338,11 @@ export const logsAlex = pgTable("logs_alex", {
   input:     text("input"),
   output:    text("output"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (t) => ({
+  actionIdx:    index("logs_alex_action_idx").on(t.action),
+  createdAtIdx: index("logs_alex_created_at_idx").on(t.createdAt),
+  sessionIdx:   index("logs_alex_session_id_idx").on(t.sessionId),
+}));
 
 // ─── Magic link tokens (auth technicien) ─────────────────────────────────────
 
@@ -512,3 +542,4 @@ export type DisponibiliteBloquee   = typeof disponibilitesBloquees.$inferSelect;
 export type PeriodeCapacite        = typeof periodesCapacite.$inferSelect;
 export type SuiviPlanifie          = typeof suivisPlanifies.$inferSelect;
 export type AuditLog               = typeof auditLog.$inferSelect;
+export type DynamicArticleRow      = typeof dynamicArticles.$inferSelect;

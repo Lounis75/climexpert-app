@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 60" fill="none">
+  <!-- Icon: blue rounded square -->
+  <rect width="60" height="60" rx="13" fill="#3AABF0"/>
+  <!-- Wind lines (white) -->
+  <path d="M13 20 L37 20 Q46 20 46 13 Q46 7 39 7" stroke="white" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M13 30 L42 30 Q51 30 51 23 Q51 17 44 17" stroke="white" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M13 40 L34 40 Q43 40 43 47 Q43 53 36 53" stroke="white" stroke-width="3.2" stroke-linecap="round"/>
+  <!-- Text: Clim (white) + Expert (sky blue) -->
+  <text x="74" y="40" font-family="Inter, -apple-system, sans-serif" font-weight="700" font-size="28" fill="white">Clim</text>
+  <text x="136" y="40" font-family="Inter, -apple-system, sans-serif" font-weight="700" font-size="28" fill="#3AABF0">Expert</text>
+</svg>

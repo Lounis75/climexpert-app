@@ -3,8 +3,9 @@
 import {
   Wind, LayoutDashboard, FileText, Users, LogOut, Contact,
   ClipboardList, Receipt, Wrench, Bell, CheckCheck, HardHat,
-  ScrollText, HeadphonesIcon, Thermometer, ChevronDown,
+  ScrollText, HeadphonesIcon, Thermometer, ChevronDown, Briefcase,
 } from "lucide-react";
+import AdminChatBot from "./AdminChatBot";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -15,8 +16,9 @@ const groups = [
   {
     label: "CRM",
     items: [
-      { href: "/admin/leads",   label: "Leads",   icon: Users },
-      { href: "/admin/clients", label: "Clients", icon: Contact },
+      { href: "/admin/leads",        label: "Leads",        icon: Users },
+      { href: "/admin/clients",      label: "Clients",      icon: Contact },
+      { href: "/admin/commerciaux",  label: "Commerciaux",  icon: Briefcase },
     ],
   },
   {
@@ -166,6 +168,7 @@ export default function AdminHeader() {
   const isDashboard = pathname.startsWith("/admin/dashboard");
 
   return (
+    <>
     <header className="border-b border-white/10 bg-slate-900/80 backdrop-blur-sm sticky top-0 z-10">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
 
@@ -260,5 +263,7 @@ export default function AdminHeader() {
         </div>
       </div>
     </header>
+    <AdminChatBot />
+    </>
   );
 }

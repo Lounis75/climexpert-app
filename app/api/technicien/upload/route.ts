@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { put } from "@vercel/blob";
+import { r2PutFile } from "@/lib/r2";
 import { verifyTechnicienToken, TECH_COOKIE_NAME } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
@@ -11,7 +11,6 @@ export async function POST(req: NextRequest) {
   const file = form.get("file") as File | null;
   if (!file) return NextResponse.json({ error: "Fichier manquant" }, { status: 400 });
 
-  // Limite 5 MB
   if (file.size > 5 * 1024 * 1024) {
     return NextResponse.json({ error: "Fichier trop volumineux (max 5 MB)" }, { status: 400 });
   }
@@ -21,8 +20,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Format non supporté (JPEG/PNG/WebP)" }, { status: 400 });
   }
 
-  const filename = `rapports/${session.sub}/${Date.now()}.${ext}`;
-  const blob = await put(filename, file, { access: "public" });
+  const key = `rapports/${session.sub}/${Date.now()}.${ext}`;
+  const buffer = Buffer.from(await file.arrayBuffer());
 
-  return NextResponse.json({ url: blob.url });
+  const url = await r2PutFile(key, buffer, file.type);
+  return NextResponse.json({ url });
 }

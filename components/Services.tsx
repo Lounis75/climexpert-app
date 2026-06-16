@@ -37,7 +37,7 @@ const services = [
       "Nettoyage, vérification des fluides frigorigènes, contrôle des performances. Conformité réglementaire garantie.",
     features: [
       "Nettoyage complet des filtres et évaporateurs",
-      "Contrôle du niveau de frigorigène",
+      "Contrôle des performances",
       "Rapport d'intervention détaillé",
     ],
     priceLabel: "À partir de",
@@ -59,7 +59,7 @@ const services = [
     description:
       "Diagnostic toutes marques, 7j/7. Prise en charge rapide pour remettre votre système en état dans les meilleurs délais.",
     features: [
-      "Diagnostic gratuit sur devis",
+      "Diagnostic sur devis",
       "Intervention sous 24 à 48h",
       "Techniciens disponibles 7j/7",
     ],
@@ -67,7 +67,7 @@ const services = [
     priceAmount: "Sur devis",
     priceTTC: false,
     priceUnit: "",
-    priceNote: "diagnostic offert",
+    priceNote: "diagnostic sur devis",
     cta: "Décrire ma panne",
     topic: "Dépannage",
     accent: "amber",

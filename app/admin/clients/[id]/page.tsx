@@ -5,11 +5,12 @@ import { STATUS_FACTURE } from "@/lib/factures";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import {
-  ArrowLeft, Phone, Mail, MapPin, Building2, Calendar,
-  ClipboardList, Receipt, Wrench, MessageSquare, FileText,
+  ArrowLeft, MapPin, Calendar,
+  ClipboardList, Receipt, Wrench, FileText,
   HeadphonesIcon, Bell, CheckCircle2, Clock, XCircle, Shield,
 } from "lucide-react";
 import RgpdButtons from "./RgpdButtons";
+import ClientContactCard from "./ClientContactCard";
 
 export const dynamic = "force-dynamic";
 
@@ -100,46 +101,28 @@ export default async function ClientDetailPage({
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-10 space-y-6">
 
         {/* Header */}
-        <div className="flex items-start gap-3">
-          <Link href="/admin/clients" className="text-slate-400 hover:text-white transition-colors mt-1">
+        <div className="flex items-center gap-3">
+          <Link href="/admin/clients" className="text-slate-400 hover:text-white transition-colors">
             <ArrowLeft className="w-4 h-4" />
           </Link>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <h1 className="text-2xl font-bold text-white">{c.name}</h1>
-            <div className="flex flex-wrap gap-3 mt-2 text-sm text-slate-400">
-              <a href={`tel:${c.phone}`} className="flex items-center gap-1.5 text-sky-400 hover:text-sky-300 transition-colors">
-                <Phone className="w-3.5 h-3.5" /> {c.phone}
-              </a>
-              {c.email && (
-                <a href={`mailto:${c.email}`} className="flex items-center gap-1.5 hover:text-white transition-colors">
-                  <Mail className="w-3.5 h-3.5" /> {c.email}
-                </a>
-              )}
-              {c.city && (
-                <span className="flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5" /> {c.city}
-                </span>
-              )}
-              {c.address && (
-                <span className="flex items-center gap-1.5">
-                  <Building2 className="w-3.5 h-3.5" /> {c.address}
-                </span>
-              )}
-            </div>
-            {c.notes && (
-              <p className="flex items-start gap-1.5 mt-2 text-slate-500 text-xs">
-                <MessageSquare className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" /> {c.notes}
-              </p>
-            )}
             {c.clientToken && (
-              <div className="mt-2">
-                <Link href={`/suivi/${c.clientToken}`} target="_blank" className="text-xs text-sky-500 hover:text-sky-400 underline underline-offset-2">
-                  Portail client →
-                </Link>
-              </div>
+              <Link href={`/suivi/${c.clientToken}`} target="_blank" className="text-xs text-sky-500 hover:text-sky-400 underline underline-offset-2 mt-0.5 inline-block">
+                Portail client →
+              </Link>
             )}
           </div>
         </div>
+
+        {/* Coordonnées */}
+        <ClientContactCard
+          name={c.name}
+          phone={c.phone}
+          email={c.email}
+          address={c.address}
+          city={c.city}
+        />
 
         {/* KPIs */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

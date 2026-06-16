@@ -1,20 +1,21 @@
 "use client";
 
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import {
-  Phone, Bot, FileText, MapPin, Wrench, Trash2,
+  Phone, Bot, FileText, MapPin, Wrench,
   MessageSquare, Clock, LayoutList, Columns3, UserPlus, CheckCircle2,
-  AlertTriangle, GitMerge, X, Search, Mail, ChevronRight,
+  AlertTriangle, GitMerge, X, Search, Mail, ChevronRight, Briefcase,
 } from "lucide-react";
 import type { Lead, LeadStatus } from "@/lib/leads";
 import { detectDuplicates } from "@/lib/leads-utils";
 
 const STATUS_CONFIG: Record<LeadStatus, { label: string; color: string; col: string }> = {
-  nouveau:      { label: "Nouveau",      color: "bg-sky-500/10 text-sky-400 border-sky-500/30",      col: "border-t-sky-500" },
-  contacté:     { label: "Contacté",     color: "bg-amber-500/10 text-amber-400 border-amber-500/30", col: "border-t-amber-500" },
-  devis_envoyé: { label: "Devis envoyé", color: "bg-violet-500/10 text-violet-400 border-violet-500/30", col: "border-t-violet-500" },
-  gagné:        { label: "Gagné",        color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30", col: "border-t-emerald-500" },
-  perdu:        { label: "Perdu",        color: "bg-slate-500/10 text-slate-400 border-slate-500/30", col: "border-t-slate-500" },
+  nouveau:          { label: "Nouveau",          color: "bg-sky-500/10 text-sky-400 border-sky-500/30",       col: "border-t-sky-500" },
+  pas_de_reponse:   { label: "Pas de réponse",   color: "bg-rose-500/10 text-rose-400 border-rose-500/30",    col: "border-t-rose-500" },
+  contacté:         { label: "Contact établi",   color: "bg-amber-500/10 text-amber-400 border-amber-500/30", col: "border-t-amber-500" },
+  devis_envoyé:     { label: "Devis envoyé",     color: "bg-violet-500/10 text-violet-400 border-violet-500/30", col: "border-t-violet-500" },
+  gagné:            { label: "Gagné",            color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30", col: "border-t-emerald-500" },
+  perdu:            { label: "Perdu",            color: "bg-slate-500/10 text-slate-400 border-slate-500/30", col: "border-t-slate-500" },
 };
 
 const STATUSES = Object.keys(STATUS_CONFIG) as LeadStatus[];
@@ -34,13 +35,12 @@ function formatDate(d: Date | string) {
   });
 }
 
-export default function LeadsManager({ initialLeads }: { initialLeads: Lead[] }) {
+export default function LeadsManager({ initialLeads, initialSource }: { initialLeads: Lead[]; initialSource?: string }) {
   const [leads, setLeads] = useState<Lead[]>(initialLeads);
-  const [sourceFilter, setSourceFilter] = useState("tous");
+  const [sourceFilter, setSourceFilter] = useState(initialSource ?? "tous");
   const [search, setSearch] = useState("");
   const [view, setView] = useState<"kanban" | "liste">("kanban");
   const [updating, setUpdating] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState<string | null>(null);
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
   const [notesValue, setNotesValue] = useState("");
   const [convertingId, setConvertingId] = useState<string | null>(null);
@@ -50,6 +50,11 @@ export default function LeadsManager({ initialLeads }: { initialLeads: Lead[] })
   const [merging, setMerging] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const dragId = useRef<string | null>(null);
+  const [commerciaux, setCommerciaux] = useState<{ id: string; name: string; prenom: string | null; color: string | null }[]>([]);
+
+  useEffect(() => {
+    fetch("/api/admin/commerciaux").then(r => r.json()).then(d => setCommerciaux(d.commerciaux ?? [])).catch(() => {});
+  }, []);
 
   const filtered = leads.filter((l) => {
     if (sourceFilter !== "tous" && l.source !== sourceFilter) return false;
@@ -69,6 +74,7 @@ export default function LeadsManager({ initialLeads }: { initialLeads: Lead[] })
   // ─── API helpers ────────────────────────────────────────────────────────────
 
   async function updateStatus(id: string, status: string) {
+    const previous = leads.find((l) => l.id === id)?.status;
     setUpdating(id);
     try {
       const res = await fetch("/api/admin/leads", {
@@ -76,8 +82,15 @@ export default function LeadsManager({ initialLeads }: { initialLeads: Lead[] })
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, status }),
       });
+      if (res.status === 401) {
+        if (previous) setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status: previous } : l)));
+        window.location.href = "/admin";
+        return;
+      }
       if (res.ok) {
         setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status: status as LeadStatus } : l)));
+      } else {
+        if (previous) setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status: previous } : l)));
       }
     } finally {
       setUpdating(null);
@@ -98,17 +111,6 @@ export default function LeadsManager({ initialLeads }: { initialLeads: Lead[] })
       }
     } finally {
       setUpdating(null);
-    }
-  }
-
-  async function handleDelete(id: string) {
-    if (!window.confirm("Supprimer ce lead définitivement ?")) return;
-    setDeleting(id);
-    try {
-      const res = await fetch(`/api/admin/leads?id=${encodeURIComponent(id)}`, { method: "DELETE" });
-      if (res.ok) setLeads((prev) => prev.filter((l) => l.id !== id));
-    } finally {
-      setDeleting(null);
     }
   }
 
@@ -171,23 +173,34 @@ export default function LeadsManager({ initialLeads }: { initialLeads: Lead[] })
 
   // ─── Drag & drop ────────────────────────────────────────────────────────────
 
-  function onDragStart(id: string) {
+  function onDragStart(e: React.DragEvent, id: string) {
     dragId.current = id;
+    // "Text" (capital T) is required for Safari — text/plain is not supported
+    e.dataTransfer.setData("Text", id);
+    e.dataTransfer.effectAllowed = "move";
   }
 
   function onDragOverColumn(e: React.DragEvent, status: LeadStatus) {
     e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
     setDragOver(status);
   }
 
-  async function onDropColumn(status: LeadStatus) {
+  function onDragLeaveColumn(e: React.DragEvent) {
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setDragOver(null);
+    }
+  }
+
+  async function onDropColumn(e: React.DragEvent, status: LeadStatus) {
+    e.preventDefault();
+    e.stopPropagation();
     setDragOver(null);
-    const id = dragId.current;
+    // Try both Safari legacy format and ref fallback
+    const id = e.dataTransfer.getData("Text") || e.dataTransfer.getData("text/plain") || dragId.current;
     if (!id) return;
     const lead = leads.find((l) => l.id === id);
     if (!lead || lead.status === status) return;
-    // Optimistic update
-    setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status } : l)));
     await updateStatus(id, status);
   }
 
@@ -198,9 +211,9 @@ export default function LeadsManager({ initialLeads }: { initialLeads: Lead[] })
     return (
       <div
         draggable
-        onDragStart={() => onDragStart(lead.id)}
+        onDragStart={(e) => onDragStart(e, lead.id)}
         onClick={() => setSelectedLead(lead)}
-        className={`bg-slate-800/60 border rounded-xl p-3 transition-all cursor-pointer hover:border-sky-500/40 hover:bg-slate-800/80 select-none ${
+        className={`bg-slate-800/60 border rounded-xl p-2.5 transition-all cursor-pointer hover:border-sky-500/40 hover:bg-slate-800/80 select-none ${
           lead.status === "nouveau" ? "border-sky-500/20" : "border-white/8"
         }`}
       >
@@ -264,24 +277,30 @@ export default function LeadsManager({ initialLeads }: { initialLeads: Lead[] })
   // ─── Render ─────────────────────────────────────────────────────────────────
 
   const newCount = leads.filter((l) => l.status === "nouveau").length;
-  const alexCount = leads.filter((l) => l.source === "alex").length;
-  const contactCount = leads.filter((l) => l.source === "formulaire").length;
 
   return (
     <div>
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-        {[
-          { label: "Total leads", value: leads.length },
-          { label: "Nouveaux", value: newCount },
-          { label: "Via Alex", value: alexCount },
-          { label: "Via Formulaire", value: contactCount },
-        ].map(({ label, value }) => (
-          <div key={label} className="bg-slate-800/40 border border-white/8 rounded-2xl p-4">
-            <p className="text-2xl font-bold text-white">{value}</p>
-            <p className="text-slate-400 text-xs mt-0.5">{label}</p>
-          </div>
-        ))}
+      <div className="bg-slate-800/40 border border-white/8 rounded-2xl overflow-hidden mb-6">
+        <div className="flex overflow-x-auto divide-x divide-white/8">
+          {[
+            { label: "Total",         value: leads.length,                                              dot: null },
+            { label: "Nouveau",       value: leads.filter(l => l.status === "nouveau").length,          dot: "bg-sky-400" },
+            { label: "Pas de rép.",   value: leads.filter(l => l.status === "pas_de_reponse").length,   dot: "bg-rose-400" },
+            { label: "Contact",       value: leads.filter(l => l.status === "contacté").length,         dot: "bg-amber-400" },
+            { label: "Devis",         value: leads.filter(l => l.status === "devis_envoyé").length,     dot: "bg-violet-400" },
+            { label: "Gagné",         value: leads.filter(l => l.status === "gagné").length,            dot: "bg-emerald-400" },
+            { label: "Perdu",         value: leads.filter(l => l.status === "perdu").length,            dot: "bg-slate-400" },
+          ].map(({ label, value, dot }) => (
+            <div key={label} className="flex-1 min-w-[80px] text-center py-3 px-2">
+              <p className="text-xl font-bold text-white tabular-nums leading-none">{value}</p>
+              <div className="flex items-center justify-center gap-1 mt-1.5">
+                {dot && <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dot}`} />}
+                <p className="text-slate-500 text-[10px] whitespace-nowrap">{label}</p>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Toolbar */}
@@ -353,7 +372,7 @@ export default function LeadsManager({ initialLeads }: { initialLeads: Lead[] })
 
       {/* ── KANBAN VIEW ─────────────────────────────────────────────────────── */}
       {view === "kanban" && leads.length > 0 && (
-        <div className="grid grid-cols-5 gap-3">
+        <div className="grid grid-cols-3 lg:grid-cols-6 gap-2">
           {STATUSES.map((status) => {
             const cfg = STATUS_CONFIG[status];
             const col = filtered.filter((l) => l.status === status);
@@ -361,27 +380,38 @@ export default function LeadsManager({ initialLeads }: { initialLeads: Lead[] })
             return (
               <div
                 key={status}
+                onDragEnter={(e) => { e.preventDefault(); setDragOver(status); }}
                 onDragOver={(e) => onDragOverColumn(e, status)}
-                onDragLeave={() => setDragOver(null)}
-                onDrop={() => onDropColumn(status)}
+                onDragLeave={(e) => onDragLeaveColumn(e)}
+                onDrop={(e) => onDropColumn(e, status)}
                 className={`bg-slate-800/30 border-t-2 rounded-xl transition-all min-w-0 ${cfg.col} ${
                   isOver ? "ring-2 ring-sky-500/40 bg-slate-800/60" : "border-white/5"
                 }`}
               >
                 {/* Column header */}
-                <div className="px-3 py-2.5 flex items-center justify-between border-b border-white/5">
-                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border truncate ${cfg.color}`}>
+                <div className="px-2.5 py-2 flex items-center justify-between border-b border-white/5 gap-1">
+                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border truncate min-w-0 ${cfg.color}`}>
                     {cfg.label}
                   </span>
-                  <span className="text-slate-500 text-xs font-medium ml-1 flex-shrink-0">{col.length}</span>
+                  <span className="text-slate-500 text-xs font-medium flex-shrink-0">{col.length}</span>
                 </div>
 
                 {/* Cards */}
-                <div className="p-2 space-y-2 min-h-24">
+                <div
+                  className="p-1.5 space-y-1.5 min-h-32"
+                  onDragEnter={(e) => { e.preventDefault(); setDragOver(status); }}
+                  onDragOver={(e) => onDragOverColumn(e, status)}
+                  onDrop={(e) => onDropColumn(e, status)}
+                >
                   {col.length === 0 && (
-                    <div className={`h-16 rounded-lg border-2 border-dashed transition-all ${
-                      isOver ? "border-sky-500/40" : "border-white/5"
-                    }`} />
+                    <div
+                      className={`h-24 rounded-lg border-2 border-dashed transition-all ${
+                        isOver ? "border-sky-500/40" : "border-white/5"
+                      }`}
+                      onDragEnter={(e) => { e.preventDefault(); setDragOver(status); }}
+                      onDragOver={(e) => onDragOverColumn(e, status)}
+                      onDrop={(e) => onDropColumn(e, status)}
+                    />
                   )}
                   {col.map((lead) => (
                     <LeadCard key={lead.id} lead={lead} />
@@ -451,13 +481,6 @@ export default function LeadsManager({ initialLeads }: { initialLeads: Lead[] })
                       <Clock className="w-3 h-3" />
                       {formatDate(lead.createdAt)}
                     </span>
-                    <button
-                      onClick={() => handleDelete(lead.id)}
-                      disabled={deleting === lead.id}
-                      className="text-slate-600 hover:text-red-400 transition-colors disabled:opacity-40"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
                   </div>
                 </div>
 
@@ -536,11 +559,20 @@ export default function LeadsManager({ initialLeads }: { initialLeads: Lead[] })
                   </a>
                   {lead.status === "nouveau" && (
                     <button
+                      onClick={() => updateStatus(lead.id, "pas_de_reponse")}
+                      disabled={updating === lead.id}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:bg-rose-500/20 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                    >
+                      Pas de réponse
+                    </button>
+                  )}
+                  {(lead.status === "nouveau" || lead.status === "pas_de_reponse") && (
+                    <button
                       onClick={() => updateStatus(lead.id, "contacté")}
                       disabled={updating === lead.id}
                       className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
                     >
-                      Marquer contacté
+                      Contact établi
                     </button>
                   )}
                   {lead.status === "gagné" && (
@@ -644,7 +676,7 @@ export default function LeadsManager({ initialLeads }: { initialLeads: Lead[] })
                   )}
                   {lead.location && (
                     <div className="bg-slate-800/40 border border-white/8 rounded-xl p-3">
-                      <p className="text-slate-500 text-[10px] uppercase tracking-wide mb-1">Localisation</p>
+                      <p className="text-slate-500 text-[10px] uppercase tracking-wide mb-1">Ville / CP</p>
                       <p className="text-white text-sm font-medium flex items-center gap-1.5">
                         <MapPin className="w-3 h-3 text-slate-400" />
                         {lead.location}
@@ -659,6 +691,24 @@ export default function LeadsManager({ initialLeads }: { initialLeads: Lead[] })
                     </p>
                   </div>
                 </div>
+
+                {/* Adresse chantier */}
+                {(lead as Lead & { address?: string | null }).address && (
+                  <a
+                    href={`https://maps.google.com/?q=${encodeURIComponent((lead as Lead & { address?: string | null }).address!)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 group"
+                  >
+                    <MapPin className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-slate-500 text-[10px] uppercase tracking-wide mb-0.5">Adresse d&apos;intervention</p>
+                      <p className="text-emerald-300 text-sm font-medium group-hover:text-white transition-colors truncate">
+                        {(lead as Lead & { address?: string | null }).address}
+                      </p>
+                    </div>
+                  </a>
+                )}
 
                 {/* Statut */}
                 <div>
@@ -681,6 +731,36 @@ export default function LeadsManager({ initialLeads }: { initialLeads: Lead[] })
                     ))}
                   </select>
                 </div>
+
+                {/* Commercial */}
+                {commerciaux.length > 0 && (
+                  <div>
+                    <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide flex items-center gap-1.5">
+                      <Briefcase className="w-3 h-3" /> Commercial assigné
+                    </p>
+                    <select
+                      value={(lead as Lead & { commercialId?: string | null }).commercialId ?? ""}
+                      onChange={async (e) => {
+                        const commercialId = e.target.value || null;
+                        await fetch("/api/admin/leads", {
+                          method: "PATCH",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ id: lead.id, commercialId }),
+                        });
+                        setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, commercialId } as Lead : l));
+                        setSelectedLead(prev => prev ? { ...prev, commercialId } as Lead : null);
+                      }}
+                      className="w-full text-sm bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2.5 text-slate-200 appearance-none focus:outline-none focus:border-violet-500/50 cursor-pointer"
+                    >
+                      <option value="">— Aucun —</option>
+                      {commerciaux.map(c => (
+                        <option key={c.id} value={c.id}>
+                          {c.prenom ? `${c.prenom} ${c.name}` : c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 {/* Notes */}
                 <div>
@@ -756,23 +836,23 @@ export default function LeadsManager({ initialLeads }: { initialLeads: Lead[] })
                     </button>
                   ) : lead.status === "nouveau" ? (
                     <button
+                      onClick={() => { updateStatus(lead.id, "pas_de_reponse"); setSelectedLead({ ...lead, status: "pas_de_reponse" }); }}
+                      disabled={updating === lead.id}
+                      className="flex items-center justify-center gap-2 px-4 py-2.5 bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:bg-rose-500/20 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+                    >
+                      Pas de réponse
+                    </button>
+                  ) : lead.status === "pas_de_reponse" ? (
+                    <button
                       onClick={() => { updateStatus(lead.id, "contacté"); setSelectedLead({ ...lead, status: "contacté" }); }}
                       disabled={updating === lead.id}
                       className="flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
                     >
-                      Marquer contacté
+                      Contact établi
                     </button>
                   ) : null}
                 </div>
 
-                <button
-                  onClick={() => { handleDelete(lead.id); setSelectedLead(null); }}
-                  disabled={deleting === lead.id}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500/5 border border-red-500/20 text-red-400 hover:bg-red-500/10 rounded-xl text-sm font-medium transition-colors disabled:opacity-40"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Supprimer ce lead
-                </button>
               </div>
             </div>
           </div>

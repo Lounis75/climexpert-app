@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { MessageCircle, Phone, Mail, MapPin, Zap, CheckCircle2, ArrowRight, Send, Clock, Shield } from "lucide-react";
+import { MessageCircle, Phone, Mail, MapPin, Zap, CheckCircle2, ArrowRight, Send, Clock, Shield, ChevronRight, Home } from "lucide-react";
+import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
@@ -94,6 +95,14 @@ export default function ContactClient() {
   return (
     <>
       <Header />
+      <nav aria-label="Fil d'ariane" className="border-b border-white/8 bg-[#080d18]/60 backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5">
+          <ol className="flex items-center gap-1.5 flex-wrap">
+            <li><Link href="/" className="flex items-center gap-1 text-xs text-slate-400 hover:text-sky-400 transition-colors"><Home className="w-3 h-3" />Accueil</Link></li>
+            <li className="flex items-center gap-1.5"><ChevronRight className="w-3 h-3 text-slate-600" /><span className="text-xs font-medium text-white">Contact</span></li>
+          </ol>
+        </div>
+      </nav>
       <main className="bg-[#f8fafc]">
 
         {/* Hero */}
@@ -313,6 +322,32 @@ export default function ContactClient() {
                 ))}
               </div>
             </motion.div>
+          </div>
+        </section>
+
+        {/* FAQ SEO */}
+        <section className="py-16 bg-white border-t border-slate-100">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-10">
+              <span className="inline-block px-4 py-1.5 rounded-full bg-sky-50 text-sky-600 text-sm font-medium border border-sky-100 mb-3">Questions fréquentes</span>
+              <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Questions les plus courantes</h2>
+            </div>
+            <div className="space-y-4">
+              {[
+                { q: "Quel est le délai de réponse après une prise de contact ?", a: "Nous répondons à toutes les demandes sous 2h en heures ouvrées (7h-20h, 7j/7). Pour les urgences de dépannage, un technicien peut intervenir sous 48h." },
+                { q: "Comment puis-je joindre ClimExpert en urgence ?", a: "Pour une urgence, appelez directement le 06 67 43 27 67 ou écrivez via WhatsApp. Notre équipe est disponible 7j/7 de 7h à 20h." },
+                { q: "Intervenez-vous pour toutes les marques de climatisation ?", a: "Oui, nos techniciens sont formés sur toutes les marques : Daikin, Mitsubishi Electric, Samsung, Toshiba, LG, Fujitsu, Atlantic, Panasonic et bien d'autres." },
+                { q: "Proposez-vous des contrats d'entretien pour les professionnels ?", a: "Oui, nous proposons des contrats d'entretien annuels adaptés aux locaux professionnels, hôtels, restaurants et copropriétés. Contactez-nous pour un devis sur mesure." },
+              ].map(({ q, a }) => (
+                <details key={q} className="group bg-slate-50 border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+                  <summary className="flex items-center justify-between px-6 py-4 cursor-pointer list-none">
+                    <span className="font-semibold text-slate-900 text-sm pr-4">{q}</span>
+                    <ChevronRight className="w-4 h-4 text-slate-400 flex-shrink-0 group-open:rotate-90 transition-transform" />
+                  </summary>
+                  <p className="px-6 pb-5 text-slate-600 text-sm leading-relaxed">{a}</p>
+                </details>
+              ))}
+            </div>
           </div>
         </section>
 

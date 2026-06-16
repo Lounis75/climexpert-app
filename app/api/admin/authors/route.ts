@@ -22,13 +22,18 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   if (!await isAuthed(req)) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
-  const body = await req.json();
-  const { name, role, photo, bio } = body;
-  if (!name?.trim() || !role?.trim()) {
-    return NextResponse.json({ error: "Nom et rôle requis" }, { status: 400 });
+  try {
+    const body = await req.json();
+    const { name, role, photo, bio } = body;
+    if (!name?.trim() || !role?.trim()) {
+      return NextResponse.json({ error: "Nom et rôle requis" }, { status: 400 });
+    }
+    const author = await createAuthor({ name: name.trim(), role: role.trim(), photo, bio: bio?.trim() });
+    return NextResponse.json(author, { status: 201 });
+  } catch (e) {
+    console.error("createAuthor error:", e);
+    return NextResponse.json({ error: "Erreur lors de la création — vérifiez la configuration R2" }, { status: 500 });
   }
-  const author = await createAuthor({ name: name.trim(), role: role.trim(), photo, bio: bio?.trim() });
-  return NextResponse.json(author, { status: 201 });
 }
 
 export async function PUT(req: NextRequest) {

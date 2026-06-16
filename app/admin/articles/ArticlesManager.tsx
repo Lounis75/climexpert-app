@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Star, Tag, Clock, Calendar, ExternalLink, Plus, Pencil, Trash2, Lock } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Star, Tag, Clock, Calendar, ExternalLink, Plus, Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
 
 interface ArticleRow {
@@ -30,12 +31,14 @@ function formatDate(iso: string) {
 }
 
 export default function ArticlesManager({ initialArticles }: { initialArticles: ArticleRow[] }) {
+  const router = useRouter();
   const [articles, setArticles] = useState<ArticleRow[]>(
     [...initialArticles].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
   );
   const [activeCategory, setActiveCategory] = useState<string>("Tous");
   const [toggling, setToggling] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [importing, setImporting] = useState<string | null>(null);
 
   const categories = ["Tous", ...Array.from(new Set(articles.map((a) => a.category)))];
   const filtered = activeCategory === "Tous"
@@ -61,6 +64,23 @@ export default function ArticlesManager({ initialArticles }: { initialArticles: 
       }
     } finally {
       setToggling(null);
+    }
+  }
+
+  async function importAndEdit(slug: string) {
+    setImporting(slug);
+    try {
+      const res = await fetch("/api/admin/articles/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug }),
+      });
+      if (res.ok) {
+        setArticles((prev) => prev.map((a) => (a.slug === slug ? { ...a, isDynamic: true } : a)));
+        router.push(`/admin/articles/${slug}/edit`);
+      }
+    } finally {
+      setImporting(null);
     }
   }
 
@@ -200,12 +220,16 @@ export default function ArticlesManager({ initialArticles }: { initialArticles: 
                     </button>
                   </>
                 ) : (
-                  <span
-                    className="w-8 h-8 rounded-lg border border-white/5 text-slate-700 flex items-center justify-center"
-                    title="Article système (non modifiable)"
+                  <button
+                    onClick={() => importAndEdit(article.slug)}
+                    disabled={importing === article.slug}
+                    title="Modifier cet article"
+                    className={`w-8 h-8 rounded-lg border border-white/10 text-slate-400 hover:text-white hover:border-white/20 flex items-center justify-center transition-colors ${
+                      importing === article.slug ? "opacity-50 cursor-wait" : ""
+                    }`}
                   >
-                    <Lock className="w-3.5 h-3.5" />
-                  </span>
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
                 )}
                 <Link
                   href={`/guide-climatisation/${article.slug}`}
@@ -222,7 +246,7 @@ export default function ArticlesManager({ initialArticles }: { initialArticles: 
       </div>
 
       <p className="text-slate-600 text-xs text-center mt-8">
-        Articles ⭐ apparaissent dans le bandeau du guide et sur la page d&apos;accueil. Articles avec un cadenas sont les articles système.
+        Articles ⭐ apparaissent dans le bandeau du guide et sur la page d&apos;accueil.
       </p>
     </div>
   );

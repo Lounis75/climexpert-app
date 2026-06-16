@@ -1,7 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Calculator as CalculatorIcon, ArrowRight, Info } from "lucide-react";
+import { Calculator as CalculatorIcon, ArrowRight, Info, Building2, Home, Briefcase } from "lucide-react";
+
+const BIEN_TYPES = [
+  { value: "appartement", label: "Appartement", icon: Building2 },
+  { value: "maison",      label: "Maison",       icon: Home },
+  { value: "local",       label: "Local pro",    icon: Briefcase },
+];
 
 const ISOLATION = [
   { id: "good", label: "Bien isolé", sublabel: "Double vitrage, isolation récente", watt: 35 },
@@ -29,17 +35,23 @@ const colorMap: Record<string, { bg: string; border: string; text: string; badge
 };
 
 export default function Calculator() {
-  const [surface, setSurface] = useState(30);
-  const [height, setHeight] = useState(2.5);
+  const [bien, setBien] = useState("appartement");
   const [rooms, setRooms] = useState(1);
+  const [roomSurfaces, setRoomSurfaces] = useState<number[]>([25, 20, 15, 12, 12, 12]);
+  const [height, setHeight] = useState(2.5);
   const [isolation, setIsolation] = useState("average");
   const [exposure, setExposure] = useState("medium");
+
+  const surface = roomSurfaces.slice(0, rooms).reduce((a, b) => a + b, 0);
+
+  function updateRoomSurface(index: number, value: number) {
+    setRoomSurfaces(prev => { const n = [...prev]; n[index] = value; return n; });
+  }
 
   const isolationData = ISOLATION.find((i) => i.id === isolation)!;
   const exposureData = EXPOSURE.find((e) => e.id === exposure)!;
 
-  const kwPerRoom = (surface / rooms) * (height / 2.5) * (isolationData.watt / 1000) * exposureData.factor;
-  const totalKw = kwPerRoom * rooms;
+  const totalKw = surface * (height / 2.5) * (isolationData.watt / 1000) * exposureData.factor;
   const rec = getRecommendation(totalKw, rooms);
   const colors = colorMap[rec.color];
 
@@ -61,58 +73,39 @@ export default function Calculator() {
       </div>
 
       <div className="p-6 space-y-6">
-        {/* Surface + Hauteur */}
-        <div className="grid sm:grid-cols-2 gap-5">
-          <div>
-            <label className="flex items-center justify-between text-sm font-medium text-slate-700 mb-3">
-              Surface totale à climatiser
-              <span className="text-sky-600 font-bold text-base tabular-nums">{surface} m²</span>
-            </label>
-            <input
-              type="range"
-              min={10}
-              max={200}
-              step={5}
-              value={surface}
-              onChange={(e) => setSurface(Number(e.target.value))}
-              className="w-full accent-sky-500"
-            />
-            <div className="flex justify-between text-xs text-slate-400 mt-1">
-              <span>10 m²</span><span>200 m²</span>
-            </div>
-          </div>
-
-          <div>
-            <label className="flex items-center justify-between text-sm font-medium text-slate-700 mb-3">
-              Hauteur sous plafond
-              <span className="text-sky-600 font-bold text-base tabular-nums">{height.toFixed(1)} m</span>
-            </label>
-            <input
-              type="range"
-              min={2.2}
-              max={4.0}
-              step={0.1}
-              value={height}
-              onChange={(e) => setHeight(Number(e.target.value))}
-              className="w-full accent-sky-500"
-            />
-            <div className="flex justify-between text-xs text-slate-400 mt-1">
-              <span>2,2 m</span><span>4,0 m</span>
-            </div>
+        {/* Type de bien */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-3">Type de bien</label>
+          <div className="grid grid-cols-3 gap-2">
+            {BIEN_TYPES.map(({ value, label, icon: Icon }) => (
+              <button
+                key={value}
+                onClick={() => setBien(value)}
+                className={`flex flex-col items-center gap-2 py-3.5 rounded-xl border transition-all touch-manipulation active:scale-[0.97] text-sm font-medium ${
+                  bien === value
+                    ? "bg-sky-50 border-sky-400 text-sky-700"
+                    : "border-slate-200 text-slate-500 hover:border-slate-300"
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                {label}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Nombre de pièces */}
+        {/* Pièces à climatiser */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-3">
-            Nombre de pièces à climatiser
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Pièces à climatiser
           </label>
-          <div className="flex gap-2 flex-wrap">
+          <p className="text-xs text-slate-400 mb-3">Couloirs et dégagements exclus — uniquement les pièces à équiper.</p>
+          <div className="flex gap-2 flex-wrap mb-5">
             {[1, 2, 3, 4, 5, 6].map((n) => (
               <button
                 key={n}
                 onClick={() => setRooms(n)}
-                className={`w-11 h-11 rounded-xl border font-semibold text-sm transition-all ${
+                className={`w-11 h-11 rounded-xl border font-semibold text-sm transition-all touch-manipulation active:scale-95 ${
                   rooms === n
                     ? "bg-sky-500 border-sky-500 text-white shadow-md shadow-sky-500/20"
                     : "border-slate-200 text-slate-600 hover:border-slate-300"
@@ -121,6 +114,50 @@ export default function Calculator() {
                 {n}
               </button>
             ))}
+          </div>
+
+          {/* Surface par pièce */}
+          <div className="space-y-3">
+            {Array.from({ length: rooms }).map((_, i) => (
+              <div key={i}>
+                <label className="flex items-center justify-between text-sm text-slate-600 mb-2">
+                  <span>Pièce {i + 1}</span>
+                  <span className="text-sky-600 font-bold tabular-nums">{roomSurfaces[i] ?? 15} m²</span>
+                </label>
+                <input
+                  type="range" min={5} max={80} step={1}
+                  value={roomSurfaces[i] ?? 15}
+                  onChange={e => updateRoomSurface(i, Number(e.target.value))}
+                  className="w-full accent-sky-500"
+                />
+                <div className="flex justify-between text-xs text-slate-400 mt-1">
+                  <span>5 m²</span><span>80 m²</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-slate-400 mt-2">
+            Surface totale : <span className="font-medium text-slate-600">{surface} m²</span>
+          </p>
+        </div>
+
+        {/* Hauteur */}
+        <div>
+          <label className="flex items-center justify-between text-sm font-medium text-slate-700 mb-3">
+            Hauteur sous plafond
+            <span className="text-sky-600 font-bold text-base tabular-nums">{height.toFixed(1)} m</span>
+          </label>
+          <input
+            type="range"
+            min={2.2}
+            max={4.0}
+            step={0.1}
+            value={height}
+            onChange={(e) => setHeight(Number(e.target.value))}
+            className="w-full accent-sky-500"
+          />
+          <div className="flex justify-between text-xs text-slate-400 mt-1">
+            <span>2,2 m</span><span>4,0 m</span>
           </div>
         </div>
 
@@ -132,7 +169,7 @@ export default function Calculator() {
               <button
                 key={opt.id}
                 onClick={() => setIsolation(opt.id)}
-                className={`text-left px-4 py-3 rounded-xl border transition-all ${
+                className={`text-left px-4 py-3 rounded-xl border transition-all touch-manipulation active:scale-[0.98] ${
                   isolation === opt.id
                     ? "bg-sky-50 border-sky-400 text-sky-700"
                     : "border-slate-200 text-slate-600 hover:border-slate-300"
@@ -153,7 +190,7 @@ export default function Calculator() {
               <button
                 key={opt.id}
                 onClick={() => setExposure(opt.id)}
-                className={`text-left px-4 py-3 rounded-xl border transition-all ${
+                className={`text-left px-4 py-3 rounded-xl border transition-all touch-manipulation active:scale-[0.98] ${
                   exposure === opt.id
                     ? "bg-sky-50 border-sky-400 text-sky-700"
                     : "border-slate-200 text-slate-600 hover:border-slate-300"
@@ -188,7 +225,7 @@ export default function Calculator() {
             </div>
             <button
               onClick={openChat}
-              className="flex-shrink-0 flex items-center gap-2 px-5 py-3 bg-sky-500 hover:bg-sky-400 text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-sky-500/20"
+              className="flex-shrink-0 w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3.5 bg-sky-500 hover:bg-sky-400 active:bg-sky-600 text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-sky-500/20 touch-manipulation"
             >
               Devis précis gratuit
               <ArrowRight className="w-4 h-4" />

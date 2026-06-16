@@ -1,4 +1,4 @@
-import { getDashboardStats, getAlexStats } from "@/lib/dashboard";
+import { getDashboardStats } from "@/lib/dashboard";
 import { getDynamicArticles } from "@/lib/dynamicArticles";
 import { getFeaturedSlugs } from "@/lib/kv";
 import AdminHeader from "@/components/AdminHeader";
@@ -11,7 +11,6 @@ import {
   Wrench, Euro, AlertTriangle,
   ClipboardList, CalendarCheck, CheckCircle2,
   Plus, Star, UserCircle, Home, HeadphonesIcon, TrendingDown,
-  Bot, BarChart2, Repeat2,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -65,9 +64,8 @@ function formatDate(d: Date | string | null) {
 }
 
 export default async function DashboardPage() {
-  const [stats, alexStats, dynamicArticles, featuredSlugs] = await Promise.all([
+  const [stats, dynamicArticles, featuredSlugs] = await Promise.all([
     getDashboardStats(),
-    getAlexStats(),
     getDynamicArticles(),
     getFeaturedSlugs(),
   ]);
@@ -91,43 +89,43 @@ export default async function DashboardPage() {
         </div>
 
         {/* ─── KPIs ──────────────────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
 
-          <Link href="/admin/factures" className="bg-slate-800/40 border border-white/8 rounded-2xl p-5 hover:border-white/15 transition-all group">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mb-3">
-              <Euro className="w-4 h-4" />
+          <Link href="/admin/factures" className="bg-slate-800/40 border border-white/8 rounded-2xl p-3 hover:border-white/15 transition-all group">
+            <div className="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mb-2">
+              <Euro className="w-3.5 h-3.5" />
             </div>
-            <p className="text-2xl font-bold text-white mb-0.5 tabular-nums">{euros(stats.caEncaisseCt)}</p>
+            <p className="text-lg font-bold text-white mb-0.5 tabular-nums">{euros(stats.caEncaisseCt)}</p>
             <p className="text-slate-300 text-xs font-medium">CA encaissé</p>
-            <p className="text-slate-500 text-xs mt-1">{euros(stats.caAttenteCtTotal)} en attente</p>
+            <p className="text-slate-500 text-xs mt-0.5">{euros(stats.caAttenteCtTotal)} en attente</p>
           </Link>
 
-          <Link href="/admin/devis" className="bg-slate-800/40 border border-white/8 rounded-2xl p-5 hover:border-white/15 transition-all group">
-            <div className="w-9 h-9 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-400 flex items-center justify-center mb-3">
-              <ClipboardList className="w-4 h-4" />
+          <Link href="/admin/devis" className="bg-slate-800/40 border border-white/8 rounded-2xl p-3 hover:border-white/15 transition-all group">
+            <div className="w-7 h-7 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-400 flex items-center justify-center mb-2">
+              <ClipboardList className="w-3.5 h-3.5" />
             </div>
-            <p className="text-2xl font-bold text-white mb-0.5">{stats.devisEnvoye + stats.devisBrouillon}</p>
+            <p className="text-lg font-bold text-white mb-0.5">{stats.devisEnvoye + stats.devisBrouillon}</p>
             <p className="text-slate-300 text-xs font-medium">Devis en cours</p>
-            <p className="text-slate-500 text-xs mt-1">{stats.devisAccepte} accepté{stats.devisAccepte > 1 ? "s" : ""} · {stats.devisTotal} total</p>
+            <p className="text-slate-500 text-xs mt-0.5">{stats.devisAccepte} accepté{stats.devisAccepte > 1 ? "s" : ""} · {stats.devisTotal} total</p>
           </Link>
 
-          <Link href="/admin/leads" className="bg-slate-800/40 border border-white/8 rounded-2xl p-5 hover:border-white/15 transition-all group">
-            <div className="w-9 h-9 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center mb-3">
-              <Users className="w-4 h-4" />
+          <Link href="/admin/leads" className="bg-slate-800/40 border border-white/8 rounded-2xl p-3 hover:border-white/15 transition-all group">
+            <div className="w-7 h-7 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center mb-2">
+              <Users className="w-3.5 h-3.5" />
             </div>
-            <p className="text-2xl font-bold text-white mb-0.5">{stats.leadsActifs}</p>
+            <p className="text-lg font-bold text-white mb-0.5">{stats.leadsActifs}</p>
             <p className="text-slate-300 text-xs font-medium">Leads actifs</p>
-            <p className="text-slate-500 text-xs mt-1">{stats.leadsNouveau} nouveau{stats.leadsNouveau > 1 ? "x" : ""} · {tauxConversion}% conversion</p>
+            <p className="text-slate-500 text-xs mt-0.5">{stats.leadsNouveau} nouveau{stats.leadsNouveau > 1 ? "x" : ""} · {tauxConversion}% conversion</p>
           </Link>
 
-          <Link href="/admin/interventions" className="bg-slate-800/40 border border-white/8 rounded-2xl p-5 hover:border-white/15 transition-all group">
-            <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mb-3">
-              <CalendarCheck className="w-4 h-4" />
+          <Link href="/admin/interventions" className="bg-slate-800/40 border border-white/8 rounded-2xl p-3 hover:border-white/15 transition-all group">
+            <div className="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mb-2">
+              <CalendarCheck className="w-3.5 h-3.5" />
             </div>
-            <p className="text-2xl font-bold text-white mb-0.5">{stats.interventionsAVenir}</p>
+            <p className="text-lg font-bold text-white mb-0.5">{stats.interventionsAVenir}</p>
             <p className="text-slate-300 text-xs font-medium">Interventions à venir</p>
             {stats.facturesEnRetard > 0 && (
-              <p className="text-red-400 text-xs mt-1 flex items-center gap-1">
+              <p className="text-red-400 text-xs mt-0.5 flex items-center gap-1">
                 <AlertTriangle className="w-3 h-3" />
                 {stats.facturesEnRetard} facture{stats.facturesEnRetard > 1 ? "s" : ""} en retard
               </p>
@@ -137,54 +135,117 @@ export default async function DashboardPage() {
         </div>
 
         {/* ─── KPIs secondaires ──────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
 
-          <div className="bg-slate-800/40 border border-white/8 rounded-2xl p-5">
-            <div className="w-9 h-9 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center mb-3">
-              <CalendarCheck className="w-4 h-4" />
+          <div className="bg-slate-800/40 border border-white/8 rounded-2xl p-3">
+            <div className="w-7 h-7 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center mb-2">
+              <CalendarCheck className="w-3.5 h-3.5" />
             </div>
-            <p className="text-2xl font-bold text-white mb-0.5">{stats.interventionsCetteSemaine}</p>
+            <p className="text-lg font-bold text-white mb-0.5">{stats.interventionsCetteSemaine}</p>
             <p className="text-slate-300 text-xs font-medium">Interventions cette semaine</p>
-            <p className="text-slate-500 text-xs mt-1">{stats.interventionsTerminees} terminées au total</p>
+            <p className="text-slate-500 text-xs mt-0.5">{stats.interventionsTerminees} terminées au total</p>
           </div>
 
-          <div className="bg-slate-800/40 border border-white/8 rounded-2xl p-5">
-            <div className="w-9 h-9 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-400 flex items-center justify-center mb-3">
-              <CheckCircle2 className="w-4 h-4" />
+          <div className="bg-slate-800/40 border border-white/8 rounded-2xl p-3">
+            <div className="w-7 h-7 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-400 flex items-center justify-center mb-2">
+              <CheckCircle2 className="w-3.5 h-3.5" />
             </div>
-            <p className="text-2xl font-bold text-white mb-0.5">{stats.tauxConversionDevis}%</p>
+            <p className="text-lg font-bold text-white mb-0.5">{stats.tauxConversionDevis}%</p>
             <p className="text-slate-300 text-xs font-medium">Taux conv. devis</p>
-            <p className="text-slate-500 text-xs mt-1">{stats.devisAccepte} accepté{stats.devisAccepte > 1 ? "s" : ""} / {stats.devisTotal}</p>
+            <p className="text-slate-500 text-xs mt-0.5">{stats.devisAccepte} accepté{stats.devisAccepte > 1 ? "s" : ""} / {stats.devisTotal}</p>
           </div>
 
-          <Link href="/admin/sav" className="bg-slate-800/40 border border-white/8 rounded-2xl p-5 hover:border-white/15 transition-all">
-            <div className="w-9 h-9 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center mb-3">
-              <HeadphonesIcon className="w-4 h-4" />
+          <Link href="/admin/sav" className="bg-slate-800/40 border border-white/8 rounded-2xl p-3 hover:border-white/15 transition-all">
+            <div className="w-7 h-7 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center mb-2">
+              <HeadphonesIcon className="w-3.5 h-3.5" />
             </div>
-            <p className="text-2xl font-bold text-white mb-0.5">{stats.savOuverts}</p>
+            <p className="text-lg font-bold text-white mb-0.5">{stats.savOuverts}</p>
             <p className="text-slate-300 text-xs font-medium">SAV ouverts</p>
-            <p className="text-slate-500 text-xs mt-1">tickets en cours</p>
+            <p className="text-slate-500 text-xs mt-0.5">tickets en cours</p>
           </Link>
 
-          <div className="bg-slate-800/40 border border-white/8 rounded-2xl p-5">
-            <div className={`w-9 h-9 rounded-xl border flex items-center justify-center mb-3 ${
+          <div className="bg-slate-800/40 border border-white/8 rounded-2xl p-3">
+            <div className={`w-7 h-7 rounded-lg border flex items-center justify-center mb-2 ${
               stats.caTrendPct === null ? "bg-slate-500/10 border-slate-500/20 text-slate-400" :
               stats.caTrendPct >= 0 ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" :
               "bg-red-500/10 border-red-500/20 text-red-400"
             }`}>
               {stats.caTrendPct === null || stats.caTrendPct >= 0
-                ? <TrendingUp className="w-4 h-4" />
-                : <TrendingDown className="w-4 h-4" />
+                ? <TrendingUp className="w-3.5 h-3.5" />
+                : <TrendingDown className="w-3.5 h-3.5" />
               }
             </div>
-            <p className={`text-2xl font-bold mb-0.5 ${
+            <p className={`text-lg font-bold mb-0.5 ${
               stats.caTrendPct === null ? "text-slate-400" :
               stats.caTrendPct >= 0 ? "text-emerald-400" : "text-red-400"
             }`}>
               {stats.caTrendPct === null ? "—" : `${stats.caTrendPct > 0 ? "+" : ""}${stats.caTrendPct}%`}
             </p>
             <p className="text-slate-300 text-xs font-medium">Tendance CA</p>
-            <p className="text-slate-500 text-xs mt-1">vs mois précédent</p>
+            <p className="text-slate-500 text-xs mt-0.5">vs mois précédent</p>
+          </div>
+
+        </div>
+
+        {/* ─── Leads récents + Interventions à venir ─────────────────────────────── */}
+        <div className="grid lg:grid-cols-3 gap-6 mb-6">
+
+          {/* Derniers leads */}
+          <div className="lg:col-span-2 bg-slate-800/40 border border-white/8 rounded-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
+              <h2 className="text-white font-semibold text-sm">Derniers leads</h2>
+              <Link href="/admin/leads" className="text-sky-400 hover:text-sky-300 text-xs flex items-center gap-1 transition-colors">
+                Voir tout <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+
+            {stats.derniersLeads.length === 0 ? (
+              <div className="py-12 text-center text-slate-500">
+                <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                <p className="text-sm">Aucun lead pour l&apos;instant</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-white/5">
+                {stats.derniersLeads.map((lead) => (
+                  <DashboardLeadRow key={lead.id} lead={lead} />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Interventions à venir */}
+          <div className="bg-slate-800/40 border border-white/8 rounded-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
+              <h2 className="text-white font-semibold text-sm">Prochaines interventions</h2>
+              <Link href="/admin/interventions" className="text-sky-400 hover:text-sky-300 text-xs flex items-center gap-1">
+                Voir <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+
+            {stats.prochaines.length === 0 ? (
+              <div className="py-10 text-center text-slate-500">
+                <CalendarCheck className="w-7 h-7 mx-auto mb-2 opacity-40" />
+                <p className="text-xs">Aucune intervention planifiée</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-white/5">
+                {stats.prochaines.map((i) => (
+                  <Link
+                    key={i.id}
+                    href={`/admin/interventions/${i.id}`}
+                    className="flex items-start gap-3 px-4 py-3 hover:bg-white/3 transition-colors"
+                  >
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border mt-0.5 flex-shrink-0 ${TYPE_COLORS[i.type] ?? TYPE_COLORS.autre}`}>
+                      {TYPE_LABELS[i.type] ?? i.type}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-xs font-medium truncate">{i.clientName ?? "—"}</p>
+                      <p className="text-slate-500 text-[10px] mt-0.5">{formatDate(i.scheduledAt)}</p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
 
         </div>
@@ -265,69 +326,6 @@ export default async function DashboardPage() {
 
         </div>
 
-        {/* ─── Leads récents + Interventions à venir ─────────────────────────────── */}
-        <div className="grid lg:grid-cols-3 gap-6 mb-6">
-
-          {/* Derniers leads */}
-          <div className="lg:col-span-2 bg-slate-800/40 border border-white/8 rounded-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
-              <h2 className="text-white font-semibold text-sm">Derniers leads</h2>
-              <Link href="/admin/leads" className="text-sky-400 hover:text-sky-300 text-xs flex items-center gap-1 transition-colors">
-                Voir tout <ArrowRight className="w-3 h-3" />
-              </Link>
-            </div>
-
-            {stats.derniersLeads.length === 0 ? (
-              <div className="py-12 text-center text-slate-500">
-                <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                <p className="text-sm">Aucun lead pour l&apos;instant</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-white/5">
-                {stats.derniersLeads.map((lead) => (
-                  <DashboardLeadRow key={lead.id} lead={lead} />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Interventions à venir */}
-          <div className="bg-slate-800/40 border border-white/8 rounded-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
-              <h2 className="text-white font-semibold text-sm">Prochaines interventions</h2>
-              <Link href="/admin/interventions" className="text-sky-400 hover:text-sky-300 text-xs flex items-center gap-1">
-                Voir <ArrowRight className="w-3 h-3" />
-              </Link>
-            </div>
-
-            {stats.prochaines.length === 0 ? (
-              <div className="py-10 text-center text-slate-500">
-                <CalendarCheck className="w-7 h-7 mx-auto mb-2 opacity-40" />
-                <p className="text-xs">Aucune intervention planifiée</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-white/5">
-                {stats.prochaines.map((i) => (
-                  <Link
-                    key={i.id}
-                    href={`/admin/interventions/${i.id}`}
-                    className="flex items-start gap-3 px-4 py-3 hover:bg-white/3 transition-colors"
-                  >
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border mt-0.5 flex-shrink-0 ${TYPE_COLORS[i.type] ?? TYPE_COLORS.autre}`}>
-                      {TYPE_LABELS[i.type] ?? i.type}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white text-xs font-medium truncate">{i.clientName ?? "—"}</p>
-                      <p className="text-slate-500 text-[10px] mt-0.5">{formatDate(i.scheduledAt)}</p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-
-        </div>
-
         {/* ─── Calendrier semaine ────────────────────────────────────────────────── */}
         <div className="bg-slate-800/40 border border-white/8 rounded-2xl overflow-hidden mb-6">
           <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
@@ -344,7 +342,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* ─── Actions rapides ───────────────────────────────────────────────────── */}
-        <div className="bg-slate-800/40 border border-white/8 rounded-2xl overflow-hidden">
+        <div className="bg-slate-800/40 border border-white/8 rounded-2xl overflow-hidden mt-6">
           <div className="px-5 py-4 border-b border-white/8">
             <h2 className="text-white font-semibold text-sm">Actions rapides</h2>
           </div>
@@ -382,97 +380,6 @@ export default async function DashboardPage() {
                 </Link>
               );
             })}
-          </div>
-        </div>
-
-        {/* ─── Stats Alex ───────────────────────────────────────────────────────── */}
-        <div className="bg-slate-800/40 border border-white/8 rounded-2xl overflow-hidden">
-          <div className="px-5 py-4 border-b border-white/8 flex items-center justify-between">
-            <h2 className="text-white font-semibold text-sm flex items-center gap-2">
-              <Bot className="w-4 h-4 text-violet-400" /> Alex — Chatbot IA
-            </h2>
-            <span className="text-[10px] text-slate-500 uppercase tracking-widest font-medium">Tout le temps</span>
-          </div>
-          <div className="p-5">
-            {alexStats.conversationsTotal === 0 ? (
-              <div className="text-center py-8 text-slate-600">
-                <Bot className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                <p className="text-sm">Aucune conversation enregistrée pour l&apos;instant.</p>
-                <p className="text-xs mt-1 opacity-60">Les stats apparaîtront dès qu&apos;un visiteur utilise Alex.</p>
-              </div>
-            ) : (
-              <>
-                {/* KPIs */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-                  {[
-                    {
-                      label: "Conversations",
-                      value: alexStats.conversationsTotal,
-                      icon: MessageSquare,
-                      color: "text-violet-400",
-                      bg: "bg-violet-500/10 border-violet-500/20",
-                    },
-                    {
-                      label: "Leads générés",
-                      value: alexStats.conversationsComplete,
-                      icon: Users,
-                      color: "text-emerald-400",
-                      bg: "bg-emerald-500/10 border-emerald-500/20",
-                    },
-                    {
-                      label: "Taux de conv.",
-                      value: `${alexStats.tauxConversion}%`,
-                      icon: BarChart2,
-                      color: "text-sky-400",
-                      bg: "bg-sky-500/10 border-sky-500/20",
-                    },
-                    {
-                      label: "Messages total",
-                      value: alexStats.messagesTotal,
-                      icon: Repeat2,
-                      color: "text-amber-400",
-                      bg: "bg-amber-500/10 border-amber-500/20",
-                    },
-                  ].map(({ label, value, icon: Icon, color, bg }) => (
-                    <div key={label} className={`rounded-xl border p-4 ${bg}`}>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Icon className={`w-3.5 h-3.5 ${color}`} />
-                        <span className="text-slate-400 text-xs">{label}</span>
-                      </div>
-                      <p className={`text-2xl font-bold ${color}`}>{value}</p>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Tendance semaine */}
-                <div className="bg-slate-900/50 rounded-xl p-4 flex items-center justify-between">
-                  <div>
-                    <p className="text-slate-400 text-xs mb-0.5">Leads cette semaine</p>
-                    <p className="text-white font-bold text-xl">{alexStats.conversionCetteSemaine}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-slate-400 text-xs mb-0.5">Semaine précédente</p>
-                    <p className="text-slate-300 font-semibold text-xl">{alexStats.conversionSemainePrecedente}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-slate-400 text-xs mb-1">Tendance</p>
-                    {alexStats.conversionSemainePrecedente === 0 ? (
-                      <span className="text-slate-500 text-xs">—</span>
-                    ) : alexStats.conversionCetteSemaine >= alexStats.conversionSemainePrecedente ? (
-                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-                        <TrendingUp className="w-3 h-3" />
-                        +{alexStats.conversionCetteSemaine - alexStats.conversionSemainePrecedente}
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded-full">
-                        <TrendingDown className="w-3 h-3" />
-                        {alexStats.conversionCetteSemaine - alexStats.conversionSemainePrecedente}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </>
-            )}
           </div>
         </div>
 

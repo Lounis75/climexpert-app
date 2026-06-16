@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Play, CheckCircle, XCircle } from "lucide-react";
+import { Play, CheckCircle, XCircle, Trash2 } from "lucide-react";
 
 const ACTIONS: Record<string, { label: string; status: string; icon: React.ElementType; cls: string }[]> = {
   planifiée: [
@@ -28,8 +28,6 @@ export default function InterventionActions({
   const [loading, setLoading] = useState(false);
   const actions = ACTIONS[currentStatus] ?? [];
 
-  if (actions.length === 0) return null;
-
   async function changeStatus(status: string) {
     setLoading(true);
     try {
@@ -42,6 +40,12 @@ export default function InterventionActions({
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleDelete() {
+    if (!confirm("Supprimer cette intervention ?")) return;
+    await fetch(`/api/admin/interventions/${id}`, { method: "DELETE" });
+    router.push("/admin/interventions");
   }
 
   return (
@@ -57,6 +61,14 @@ export default function InterventionActions({
           {a.label}
         </button>
       ))}
+      <button
+        onClick={handleDelete}
+        disabled={loading}
+        className="flex items-center gap-1.5 px-3 py-2 border border-white/10 bg-slate-700 text-slate-400 hover:text-red-400 text-xs font-medium rounded-xl transition-all disabled:opacity-40"
+      >
+        <Trash2 className="w-3.5 h-3.5" />
+        Supprimer
+      </button>
     </div>
   );
 }

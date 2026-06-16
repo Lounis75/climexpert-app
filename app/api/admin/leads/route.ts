@@ -10,9 +10,10 @@ export async function PATCH(req: NextRequest) {
 
     // Accepte n'importe quelle combinaison de champs : notes, status, clientId...
     const allowed: Record<string, unknown> = {};
-    if (fields.notes !== undefined) allowed.notes = fields.notes;
-    if (fields.status)              allowed.status = fields.status as LeadStatus;
-    if (fields.clientId)            allowed.clientId = fields.clientId;
+    if (fields.notes !== undefined)       allowed.notes = fields.notes;
+    if (fields.status)                    allowed.status = fields.status as LeadStatus;
+    if (fields.clientId)                  allowed.clientId = fields.clientId;
+    if (fields.commercialId !== undefined) allowed.commercialId = fields.commercialId || null;
 
     if (Object.keys(allowed).length === 0) {
       return NextResponse.json({ error: "Aucun champ à mettre à jour" }, { status: 400 });

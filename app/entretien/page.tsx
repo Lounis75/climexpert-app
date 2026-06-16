@@ -8,9 +8,9 @@ import FAQAccordion from "@/components/FAQAccordion";
 import PageCTA from "@/components/PageCTA";
 
 export const metadata: Metadata = {
-  title: "Entretien Climatisation Île-de-France | ClimExpert — à partir de 180 € TTC",
+  title: "Nettoyage & Entretien Climatisation Île-de-France | ClimExpert — 180 € TTC",
   description:
-    "Contrat d'entretien climatisation en Île-de-France. Nettoyage, contrôle frigorigène, rapport d'intervention. à partir de 180 € TTC / unité / an. Techniciens RGE certifiés.",
+    "Nettoyage et entretien climatisation en Île-de-France à partir de 180 € TTC/unité. Contrôle frigorigène F-Gaz, rapport d'intervention. Techniciens RGE certifiés. Devis gratuit.",
   keywords:
     "entretien climatisation ile-de-france, maintenance climatisation paris, contrat entretien clim, nettoyage climatisation, révision climatisation obligatoire",
   alternates: {
@@ -104,7 +104,7 @@ const serviceSchema = {
   name: "Entretien et maintenance de climatisation en Île-de-France",
   serviceType: "Maintenance climatisation",
   description: "Contrat d'entretien annuel de climatisation à partir de 180 € TTC en Île-de-France (Paris intramuros), +60 € TTC/unité supplémentaire. Nettoyage complet, contrôle frigorigène obligatoire F-Gaz, rapport d'intervention par des techniciens RGE certifiés.",
-  provider: { "@type": "LocalBusiness", "@id": "https://climexpert.fr", name: "ClimExpert" },
+  provider: { "@type": "HVACBusiness", "@id": "https://climexpert.fr", name: "ClimExpert" },
   areaServed: { "@type": "AdministrativeArea", name: "Île-de-France" },
   offers: {
     "@type": "Offer",

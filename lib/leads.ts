@@ -1,8 +1,8 @@
 import { db } from "@/lib/db";
 import { leads, type Lead, type NewLead } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, isNull } from "drizzle-orm";
 
-export type LeadStatus = "nouveau" | "contacté" | "devis_envoyé" | "gagné" | "perdu";
+export type LeadStatus = "nouveau" | "pas_de_reponse" | "contacté" | "devis_envoyé" | "gagné" | "perdu";
 export type LeadSource = "alex" | "formulaire" | "téléphone" | "autre";
 
 export type { Lead };
@@ -15,7 +15,7 @@ export async function createLead(
 }
 
 export async function getLeads(): Promise<Lead[]> {
-  return db.select().from(leads).orderBy(desc(leads.createdAt));
+  return db.select().from(leads).where(isNull(leads.supprimeLe)).orderBy(desc(leads.createdAt));
 }
 
 export async function getLeadById(id: string): Promise<Lead | null> {
@@ -37,7 +37,7 @@ export async function updateLeadStatus(
 
 export async function updateLead(
   id: string,
-  data: Partial<Pick<NewLead, "status" | "notes" | "email" | "location" | "clientId">>
+  data: Partial<Pick<NewLead, "status" | "notes" | "email" | "location" | "clientId" | "commercialId">>
 ): Promise<Lead | null> {
   const [lead] = await db
     .update(leads)
@@ -48,7 +48,7 @@ export async function updateLead(
 }
 
 export async function deleteLead(id: string): Promise<void> {
-  await db.delete(leads).where(eq(leads.id, id));
+  await db.update(leads).set({ supprimeLe: new Date() }).where(eq(leads.id, id));
 }
 
 // Fusionne `duplicateId` dans `masterId` : garde les champs du master, complète
@@ -77,7 +77,7 @@ export async function mergeLeads(masterId: string, duplicateId: string): Promise
     .where(eq(leads.id, masterId))
     .returning();
 
-  await db.delete(leads).where(eq(leads.id, duplicateId));
+  await db.update(leads).set({ supprimeLe: new Date() }).where(eq(leads.id, duplicateId));
 
   return updated ?? null;
 }

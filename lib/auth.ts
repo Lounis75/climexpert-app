@@ -16,7 +16,7 @@ export async function signAdminToken(payload: AdminSession): Promise<string> {
   return new SignJWT({ ...payload, role: "admin" })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("8h")
+    .setExpirationTime("7d")
     .sign(getSecret());
 }
 
@@ -67,3 +67,35 @@ export async function verifyTechnicienToken(token: string): Promise<TechnicienSe
 }
 
 export const TECH_COOKIE_NAME = "tech_token";
+
+// ─── Commercial auth ──────────────────────────────────────────────────────────
+
+export interface CommercialSession {
+  sub: string;   // technicien id (role=technico_commercial)
+  email: string;
+  name: string;
+}
+
+export async function signCommercialToken(payload: CommercialSession): Promise<string> {
+  return new SignJWT({ ...payload, role: "commercial" })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("30d")
+    .sign(getSecret());
+}
+
+export async function verifyCommercialToken(token: string): Promise<CommercialSession | null> {
+  try {
+    const { payload } = await jwtVerify(token, getSecret());
+    if (payload.role !== "commercial") return null;
+    return {
+      sub:   payload.sub as string,
+      email: payload.email as string,
+      name:  payload.name as string,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export const COMMERCIAL_COOKIE_NAME = "commercial_token";

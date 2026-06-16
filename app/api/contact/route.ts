@@ -11,6 +11,7 @@ interface ContactFormData {
   telephone: string;
   email: string;
   message: string;
+  societe?: string;
   photosUrls?: string[];
 }
 
@@ -25,6 +26,7 @@ const typeLabels: Record<string, string> = {
 const bienLabels: Record<string, string> = {
   appartement: "Appartement",
   maison: "Maison",
+  local: "Local professionnel",
   "local-professionnel": "Local professionnel",
   "hotel-restaurant": "Hôtel / Restaurant",
   copropriete: "Copropriété / Immeuble",
@@ -62,17 +64,21 @@ export async function POST(req: NextRequest) {
               <tr><td style="padding: 8px 0; color: #64748B; font-size: 14px;">Téléphone</td><td style="padding: 8px 0; font-weight: bold; color: #0EA5E9; font-size: 16px;"><a href="tel:${body.telephone}" style="color: #0EA5E9; text-decoration: none;">${body.telephone}</a></td></tr>
               <tr><td style="padding: 8px 0; color: #64748B; font-size: 14px;">Type de demande</td><td style="padding: 8px 0; font-weight: bold; color: #0F172A; font-size: 14px;">${typeLabels[body.type] ?? body.type}</td></tr>
               <tr><td style="padding: 8px 0; color: #64748B; font-size: 14px;">Type de bien</td><td style="padding: 8px 0; font-weight: bold; color: #0F172A; font-size: 14px;">${bienLabels[body.bien] ?? body.bien}</td></tr>
+              ${body.societe ? `<tr><td style="padding: 8px 0; color: #64748B; font-size: 14px;">Société</td><td style="padding: 8px 0; font-weight: bold; color: #0F172A; font-size: 14px;">${body.societe}</td></tr>` : ""}
               ${body.email ? `<tr><td style="padding: 8px 0; color: #64748B; font-size: 14px;">Email</td><td style="padding: 8px 0; font-weight: bold; color: #0F172A; font-size: 14px;"><a href="mailto:${body.email}" style="color: #0EA5E9; text-decoration: none;">${body.email}</a></td></tr>` : ""}
               ${body.ville ? `<tr><td style="padding: 8px 0; color: #64748B; font-size: 14px;">Localisation</td><td style="padding: 8px 0; font-weight: bold; color: #0F172A; font-size: 14px;">${body.ville}</td></tr>` : ""}
-              ${body.message ? `<tr><td style="padding: 8px 0; color: #64748B; font-size: 14px; vertical-align: top;">Message</td><td style="padding: 8px 0; color: #0F172A; font-size: 14px;">${body.message}</td></tr>` : ""}
+              ${body.message ? `<tr><td style="padding: 8px 0; color: #64748B; font-size: 14px; vertical-align: top;">Message</td><td style="padding: 8px 0; color: #0F172A; font-size: 14px; white-space: pre-wrap;">${body.message}</td></tr>` : ""}
             </table>
           </div>
 
           ${body.photosUrls && body.photosUrls.length > 0 ? `
           <div style="background: white; border-radius: 8px; padding: 24px; margin-bottom: 16px; border: 1px solid #E2E8F0;">
-            <h2 style="color: #0F172A; margin: 0 0 16px; font-size: 16px; border-bottom: 2px solid #0EA5E9; padding-bottom: 8px;">📸 Photos de l'installation (${body.photosUrls.length})</h2>
-            <div style="display: flex; flex-wrap: wrap; gap: 12px;">
-              ${body.photosUrls.map((url, i) => `<a href="${url}" target="_blank" style="display: block;"><img src="${url}" alt="Photo ${i + 1}" style="width: 140px; height: 140px; object-fit: cover; border-radius: 8px; border: 1px solid #E2E8F0;" /></a>`).join("")}
+            <h2 style="color: #0F172A; margin: 0 0 16px; font-size: 16px; border-bottom: 2px solid #0EA5E9; padding-bottom: 8px;">📸 Fichiers joints (${body.photosUrls.length})</h2>
+            <div style="display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px;">
+              ${body.photosUrls.map((url, i) => `<a href="${url}" target="_blank" style="display: block;"><img src="${url}" alt="Fichier ${i + 1}" style="width: 140px; height: 140px; object-fit: cover; border-radius: 8px; border: 1px solid #E2E8F0;" /></a>`).join("")}
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              ${body.photosUrls.map((url, i) => `<a href="${url}" target="_blank" style="color: #0EA5E9; font-size: 13px; text-decoration: none;">→ Voir fichier ${i + 1}</a>`).join("")}
             </div>
           </div>
           ` : ""}

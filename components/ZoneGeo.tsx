@@ -1,18 +1,19 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { MapPin, Check, MessageCircle } from "lucide-react";
+import { MapPin, Check, MessageCircle, ArrowRight } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 const departments = [
-  { code: "75", name: "Paris" },
-  { code: "92", name: "Hauts-de-Seine" },
-  { code: "93", name: "Seine-Saint-Denis" },
-  { code: "94", name: "Val-de-Marne" },
-  { code: "77", name: "Seine-et-Marne" },
-  { code: "78", name: "Yvelines" },
-  { code: "91", name: "Essonne" },
-  { code: "95", name: "Val-d'Oise" },
+  { code: "75", name: "Paris", slug: "paris-75" },
+  { code: "92", name: "Hauts-de-Seine", slug: "hauts-de-seine-92" },
+  { code: "93", name: "Seine-Saint-Denis", slug: "seine-saint-denis-93" },
+  { code: "94", name: "Val-de-Marne", slug: "val-de-marne-94" },
+  { code: "77", name: "Seine-et-Marne", slug: "seine-et-marne-77" },
+  { code: "78", name: "Yvelines", slug: "yvelines-78" },
+  { code: "91", name: "Essonne", slug: "essonne-91" },
+  { code: "95", name: "Val-d'Oise", slug: "val-d-oise-95" },
 ];
 
 const highlights = [
@@ -111,16 +112,21 @@ export default function ZoneGeo() {
                   whileInView={{ opacity: 1, scale: 1 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.06, duration: 0.4 }}
-                  className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:border-sky-200 hover:shadow-md transition-all duration-200"
                 >
-                  <div className="mb-2">
-                    <span className="text-2xl font-bold text-slate-900">{d.code}</span>
-                  </div>
-                  <p className="text-slate-600 text-sm font-medium">{d.name}</p>
-                  <div className="flex items-center gap-1.5 mt-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                    <span className="text-slate-400 text-xs">Disponible</span>
-                  </div>
+                  <Link
+                    href={`/departements/${d.slug}`}
+                    className="group flex flex-col bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:border-sky-200 hover:shadow-md transition-all duration-200"
+                  >
+                    <div className="mb-2 flex items-start justify-between">
+                      <span className="text-2xl font-bold text-slate-900">{d.code}</span>
+                      <ArrowRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-sky-400 mt-1.5 transition-colors" />
+                    </div>
+                    <p className="text-slate-600 text-sm font-medium">{d.name}</p>
+                    <div className="flex items-center gap-1.5 mt-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      <span className="text-slate-400 text-xs">Disponible</span>
+                    </div>
+                  </Link>
                 </motion.div>
               ))}
             </div>

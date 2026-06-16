@@ -278,9 +278,9 @@ export const articles: Article[] = [
   {
     slug: "maprimerenov-climatisation-2025",
     title: "MaPrimeRénov' et aides pour la climatisation en 2026",
-    metaTitle: "MaPrimeRénov' Climatisation 2026 : Montants, Conditions & Démarches | ClimExpert",
+    metaTitle: "MaPrimeRénov' Climatisation 2026 : jusqu'à 4 000 € d'aide | ClimExpert",
     metaDescription:
-      "Quelles aides pour financer votre climatisation en 2026 ? MaPrimeRénov', CEE, TVA 5,5%… Conditions d'éligibilité, montants et démarches expliqués simplement.",
+      "MaPrimeRénov' pour la climatisation en 2026 : jusqu'à 4 000 € pour une PAC air-eau + CEE + TVA 5,5 %. Conditions, montants et démarches expliqués. ClimExpert gère votre dossier.",
     keywords:
       "maprimerenov climatisation, aide climatisation 2025, subvention climatisation, CEE climatisation, TVA climatisation, financement climatisation",
     date: "2025-05-08",
@@ -861,9 +861,9 @@ export const articles: Article[] = [
   {
     slug: "installation-climatisation-paris",
     title: "Installation climatisation à Paris : guide complet par arrondissement",
-    metaTitle: "Installation Climatisation Paris — Techniciens RGE | ClimExpert",
+    metaTitle: "Installer une Climatisation à Paris — Prix, RGE, Devis Gratuit | ClimExpert",
     metaDescription:
-      "Installer une climatisation à Paris : démarches syndic, contraintes haussmanniennes, prix par arrondissement. Techniciens RGE certifiés, devis gratuit 48h.",
+      "Faire installer une climatisation à Paris : prix à partir de 1 500 €, démarches syndic, contraintes haussmanniennes. Techniciens RGE certifiés, devis gratuit sous 48h.",
     keywords:
       "installation climatisation paris, pose clim paris, technicien climatisation paris, clim appartement paris, syndic climatisation copropriété",
     date: "2026-05-01",

@@ -3,7 +3,8 @@
 import { useState, useRef } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { Phone, Mail, CheckCircle2, ArrowRight, MapPin, Camera, X, Loader2 } from "lucide-react";
+import { Phone, Mail, CheckCircle2, ArrowRight, MapPin, Camera, X, Loader2, ChevronRight, Home } from "lucide-react";
+import Link from "next/link";
 
 const serviceOptions = [
   "Installation climatisation",
@@ -116,6 +117,14 @@ export default function DevisClient() {
   return (
     <>
       <Header />
+      <nav aria-label="Fil d'ariane" className="border-b border-white/8 bg-[#0B1120]/60 backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5">
+          <ol className="flex items-center gap-1.5 flex-wrap">
+            <li><Link href="/" className="flex items-center gap-1 text-xs text-slate-400 hover:text-sky-400 transition-colors"><Home className="w-3 h-3" />Accueil</Link></li>
+            <li className="flex items-center gap-1.5"><ChevronRight className="w-3 h-3 text-slate-600" /><span className="text-xs font-medium text-white">Devis gratuit</span></li>
+          </ol>
+        </div>
+      </nav>
       <main>
         {/* Hero */}
         <section className="bg-[#0B1120] pt-28 pb-16 relative overflow-hidden">
@@ -376,6 +385,33 @@ export default function DevisClient() {
                 </div>
               </div>
 
+            </div>
+          </div>
+        </section>
+
+        {/* FAQ SEO */}
+        <section className="py-16 bg-slate-50">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-10">
+              <span className="inline-block px-4 py-1.5 rounded-full bg-sky-50 text-sky-600 text-sm font-medium border border-sky-100 mb-3">Questions fréquentes</span>
+              <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Tout savoir sur notre processus de devis</h2>
+            </div>
+            <div className="space-y-4">
+              {[
+                { q: "Est-ce que le devis est vraiment gratuit ?", a: "Oui, le devis est 100% gratuit et sans engagement. Nous vous envoyons une proposition détaillée sous 24h après étude de votre projet." },
+                { q: "Dans quel délai recevez-vous le devis ?", a: "Vous recevez votre devis sous 24h ouvrées. Pour les projets complexes (gainable, PAC), une visite technique gratuite peut être proposée avant chiffrage." },
+                { q: "Quelles zones géographiques couvrez-vous ?", a: "ClimExpert intervient dans toute l'Île-de-France : Paris, Hauts-de-Seine, Val-de-Marne, Seine-Saint-Denis, Yvelines, Essonne, Seine-et-Marne et Val-d'Oise." },
+                { q: "Puis-je joindre des photos à ma demande de devis ?", a: "Oui, vous pouvez ajouter jusqu'à 5 photos (pièce à climatiser, emplacement envisagé, tableau électrique…). Cela permet un chiffrage plus précis sans déplacement préalable." },
+                { q: "Le devis inclut-il les aides financières disponibles ?", a: "Oui, notre devis détaille toutes les aides applicables à votre projet : MaPrimeRénov', CEE, éco-prêt à taux zéro. Nos techniciens RGE vous permettent d'y accéder directement." },
+              ].map(({ q, a }) => (
+                <details key={q} className="group bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+                  <summary className="flex items-center justify-between px-6 py-4 cursor-pointer list-none">
+                    <span className="font-semibold text-slate-900 text-sm pr-4">{q}</span>
+                    <ChevronRight className="w-4 h-4 text-slate-400 flex-shrink-0 group-open:rotate-90 transition-transform" />
+                  </summary>
+                  <p className="px-6 pb-5 text-slate-600 text-sm leading-relaxed">{a}</p>
+                </details>
+              ))}
             </div>
           </div>
         </section>

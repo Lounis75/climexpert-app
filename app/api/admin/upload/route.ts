@@ -1,10 +1,7 @@
-import { put } from "@vercel/blob";
 import { NextRequest, NextResponse } from "next/server";
+import { r2PutFile } from "@/lib/r2";
 
 export async function POST(req: NextRequest) {
-  const token = process.env.BLOB_READ_WRITE_TOKEN;
-  if (!token) return NextResponse.json({ error: "Non configuré" }, { status: 500 });
-
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
 
@@ -20,13 +17,9 @@ export async function POST(req: NextRequest) {
   }
 
   const ext = file.type.split("/")[1] ?? "jpg";
-  const filename = `articles/${Date.now()}.${ext}`;
+  const key = `articles/${Date.now()}.${ext}`;
+  const buffer = Buffer.from(await file.arrayBuffer());
 
-  const blob = await put(filename, file, {
-    access: "public",
-    token,
-    contentType: file.type,
-  });
-
-  return NextResponse.json({ url: blob.url });
+  const url = await r2PutFile(key, buffer, file.type);
+  return NextResponse.json({ url });
 }

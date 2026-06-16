@@ -40,14 +40,14 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group">
+          <a href="/" className="flex items-center gap-2.5 group">
             <div className="w-9 h-9 rounded-xl bg-sky-500 flex items-center justify-center shadow-lg shadow-sky-500/30 group-hover:shadow-sky-500/50 transition-shadow">
               <Wind className="w-5 h-5 text-white" />
             </div>
             <span className="text-white font-semibold text-lg tracking-tight">
               Clim<span className="text-sky-400">Expert</span>
             </span>
-          </Link>
+          </a>
 
           {/* Nav desktop */}
           <nav className="hidden lg:flex items-center gap-6">

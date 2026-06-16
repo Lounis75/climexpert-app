@@ -16,10 +16,14 @@ export async function POST(req: NextRequest) {
     if (!clientId || !type || !scheduledAt) {
       return NextResponse.json({ error: "clientId, type et scheduledAt requis" }, { status: 400 });
     }
+    const parsedDate = new Date(scheduledAt);
+    if (isNaN(parsedDate.getTime())) {
+      return NextResponse.json({ error: `Date invalide: "${scheduledAt}"` }, { status: 400 });
+    }
     const i = await createIntervention({
       clientId,
       type,
-      scheduledAt: new Date(scheduledAt),
+      scheduledAt: parsedDate,
       technicienId: technicienId || null,
       devisId: devisId || null,
       address: address || null,
@@ -27,7 +31,9 @@ export async function POST(req: NextRequest) {
       status: "planifiée",
     });
     return NextResponse.json({ intervention: i }, { status: 201 });
-  } catch {
-    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+  } catch (err) {
+    console.error("[POST /api/admin/interventions]", err);
+    const msg = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

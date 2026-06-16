@@ -2,7 +2,7 @@ import AdminHeader from "@/components/AdminHeader";
 import { getInterventionById, TYPE_LABELS, TYPE_COLORS, STATUS_INTERVENTION } from "@/lib/interventions";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Calendar, User, MapPin, Wrench, FileText, Trash2 } from "lucide-react";
+import { ArrowLeft, Calendar, User, MapPin, Wrench, FileText } from "lucide-react";
 import InterventionActions from "./InterventionActions";
 
 export const dynamic = "force-dynamic";
@@ -101,22 +101,6 @@ export default async function InterventionDetailPage({
             <h2 className="text-white font-semibold text-sm">Notes internes</h2>
           </div>
           <NotesEditor id={i.id} initialNotes={i.notes ?? ""} />
-        </div>
-
-        {/* Delete */}
-        <div className="flex justify-end">
-          <Link
-            href="/admin/interventions"
-            onClick={async (e) => {
-              e.preventDefault();
-              if (!confirm("Supprimer cette intervention ?")) return;
-              await fetch(`/api/admin/interventions/${i.id}`, { method: "DELETE" });
-              window.location.href = "/admin/interventions";
-            }}
-            className="flex items-center gap-1.5 text-slate-500 hover:text-red-400 text-xs transition-colors"
-          >
-            <Trash2 className="w-3.5 h-3.5" /> Supprimer
-          </Link>
         </div>
 
       </main>

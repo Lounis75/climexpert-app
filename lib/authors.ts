@@ -1,4 +1,4 @@
-import { put, list } from "@vercel/blob";
+import { r2GetJSON, r2PutJSON } from "@/lib/r2";
 
 export interface Author {
   id: string;
@@ -9,31 +9,16 @@ export interface Author {
   createdAt: string;
 }
 
-const BLOB_PATH = "admin/authors.json";
+const R2_KEY = "admin/authors.json";
 
 export async function getAuthors(): Promise<Author[]> {
-  try {
-    const token = process.env.BLOB_READ_WRITE_TOKEN;
-    if (!token) return [];
-    const { blobs } = await list({ prefix: BLOB_PATH, token });
-    if (blobs.length === 0) return [];
-    const res = await fetch(blobs[0].url, { cache: "no-store", next: { revalidate: 0 } });
-    if (!res.ok) return [];
-    return await res.json();
-  } catch {
-    return [];
-  }
+  const data = await r2GetJSON(R2_KEY);
+  if (!Array.isArray(data)) return [];
+  return data as Author[];
 }
 
 async function saveAuthors(authors: Author[]): Promise<void> {
-  const token = process.env.BLOB_READ_WRITE_TOKEN;
-  if (!token) throw new Error("BLOB_READ_WRITE_TOKEN non configuré");
-  await put(BLOB_PATH, JSON.stringify(authors), {
-    access: "public",
-    contentType: "application/json",
-    token,
-    addRandomSuffix: false,
-  });
+  await r2PutJSON(R2_KEY, authors);
 }
 
 export async function createAuthor(data: Omit<Author, "id" | "createdAt">): Promise<Author> {

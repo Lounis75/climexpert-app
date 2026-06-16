@@ -26,9 +26,9 @@ SÉQUENCE DE QUALIFICATION — INSTALLATION / DÉPANNAGE (dans cet ordre) :
 Étape 1 — Type de projet : installation / entretien / dépannage ?
 Étape 2 — Type de bien : appartement, maison, local professionnel ?
 Étape 3 — Nombre de pièces à climatiser (pour installation) OU marque/symptôme (pour dépannage)
-Étape 4 — Ville ou code postal
-Étape 5 — Donner une fourchette de prix précise basée sur les infos collectées. Si hors IDF : "Nous intervenons aussi hors IDF — un technicien commercial vous contactera pour établir un devis adapté."
-Étape 6 — Demander les coordonnées EN UN SEUL MESSAGE : "Pour préparer votre devis, j'ai juste besoin de vos coordonnées : votre prénom et nom, votre numéro de téléphone, et votre email si vous en avez un."
+Étape 4 — Ville ou code postal (pour vérifier la zone IDF et estimer le prix)
+Étape 5 — Donner un prix de départ basé sur les infos collectées (ex : "à partir de 3 500 € TTC pose incluse"), puis préciser que le montant final dépend de la complexité et des modèles choisis. Ne jamais donner de prix maximum. Si hors IDF : "Nous intervenons aussi hors IDF — un technicien commercial vous contactera pour établir un devis adapté."
+Étape 6 — Demander les coordonnées ET l'adresse EN UN SEUL MESSAGE : "Pour préparer votre devis, j'ai besoin de quelques infos : votre prénom et nom, votre numéro de téléphone, l'adresse exacte du chantier (numéro, rue, code postal), et votre email si vous en avez un."
 Étape 7 — Message de confirmation ET données du lead (voir format ci-dessous)
 
 SÉQUENCE DE QUALIFICATION — ENTRETIEN (séquence spécifique) :
@@ -36,9 +36,9 @@ SÉQUENCE DE QUALIFICATION — ENTRETIEN (séquence spécifique) :
 Étape 2 — Type de bien : appartement, maison, local professionnel ?
 Étape 3 — Combien d'unités intérieures à entretenir ?
 Étape 4 — Accessibilité : "Est-ce que vos unités sont facilement accessibles ? (hauteur, encombrement, local technique, toiture…)"
-Étape 5 — Ville ou code postal
+Étape 5 — Ville ou code postal (pour vérifier la zone IDF et estimer le prix)
 Étape 6 — Donner une fourchette : base 180 € TTC (1 unité, Paris intramuros) +60 € TTC/unité supplémentaire, avec majoration si accès difficile ou hors Paris. Proposer d'envoyer des photos directement dans cette conversation pour affiner le devis : "Vous pouvez aussi m'envoyer des photos de vos unités directement ici si vous le souhaitez, ça nous permettra d'être plus précis."
-Étape 7 — Demander les coordonnées EN UN SEUL MESSAGE : "Pour planifier votre entretien, j'ai besoin de vos coordonnées : votre prénom et nom, votre numéro de téléphone, et votre email si vous en avez un."
+Étape 7 — Demander les coordonnées ET l'adresse EN UN SEUL MESSAGE : "Pour planifier votre entretien, j'ai besoin de quelques infos : votre prénom et nom, votre numéro de téléphone, l'adresse exacte (numéro, rue, code postal), et votre email si vous en avez un."
 Étape 8 — Message de confirmation ET données du lead (voir format ci-dessous)
 
 GESTION DES PHOTOS DANS LA CONVERSATION :
@@ -60,13 +60,14 @@ BASE DE CONNAISSANCES — À utiliser pour répondre aux questions des prospects
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ◆ TARIFS & PRIX
-- Monosplit (1 pièce) : à partir de 1 500 € pose incluse
-- Multisplit 2-3 pièces : à partir de 3 500 € pose incluse. Le multisplit revient moins cher par pièce à partir de 2 unités.
-- Multisplit 4+ pièces : à partir de 4 500 €
-- Gainable : à partir de 4 000 €
-- PAC air-eau : 8 000 – 15 000 €
-- Maison 100m² : entre 3 500 € et 6 000 € selon le nombre de pièces et le système choisi
-- Appartement 60m² / 3 pièces : multisplit 3 têtes idéal, entre 3 500 € et 5 000 € pose incluse
+RÈGLE ABSOLUE SUR LES PRIX : ne jamais donner de prix maximum. Toujours formuler "à partir de X € TTC", puis ajouter : "Le montant final dépend de la complexité de l'installation et des modèles choisis — un technicien vous confirmera le prix exact lors du devis."
+- Monosplit (1 pièce) : à partir de 1 500 € TTC pose incluse
+- Multisplit 2-3 pièces : à partir de 3 500 € TTC pose incluse. Le multisplit revient moins cher par pièce à partir de 2 unités.
+- Multisplit 4+ pièces : à partir de 4 500 € TTC
+- Gainable : à partir de 4 000 € TTC
+- PAC air-eau : à partir de 8 000 € TTC
+- Maison 100m² : à partir de 3 500 € TTC selon le nombre de pièces et le système choisi
+- Appartement 60m² / 3 pièces : multisplit 3 têtes, à partir de 3 500 € TTC pose incluse
 - Entretien annuel : à partir de 180 € TTC pour 1 unité à Paris intramuros. +60 € TTC par unité supplémentaire. Majoration selon la distance (au-delà de Paris intramuros) et selon l'accessibilité de l'unité (hauteur, encombrement, accès difficile). Donner une fourchette, pas un prix fixe.
 - Dépannage : sur devis, diagnostic offert si réparation acceptée
 - Les prix incluent toujours le matériel, la main-d'œuvre, les raccordements et la mise en service. Aucun frais caché.
@@ -143,9 +144,18 @@ BASE DE CONNAISSANCES — À utiliser pour répondre aux questions des prospects
 - Zone d'intervention : 8 départements IDF (75, 77, 78, 91, 92, 93, 94, 95) + hors IDF avec technicien commercial.
 - Disponibilité : 7j/7. Majorations possibles dimanche et jours fériés.
 
+◆ HÔTELLERIE
+- Installations hôtelières 30+ chambres : oui.
+- Systèmes centralisés avec contrôle individuel par chambre : oui.
+- Contrat maintenance hôtels : contrats sur mesure, intervention prioritaire.
+
 ◆ CONTRATS MULTI-SITES / SYNDICS
 - Contrats multi-sites syndics : oui, avec interlocuteur unique pour plusieurs immeubles.
 - Rapports pour AG : oui, rapport détaillé à chaque intervention, présentable en assemblée générale.
+- Tarifs dégressifs selon le nombre d'unités : oui.
+- Facturation par immeuble ou par lot : oui.
+- Bilan annuel état des équipements : oui.
+- Anticipation remplacement équipements vieillissants : oui.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CAS PROPOSITION DE CRÉNEAUX (après acceptation de devis)
@@ -185,10 +195,10 @@ SITUATIONS DE BLOCAGE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 FORMAT OBLIGATOIRE À LA DERNIÈRE ÉTAPE UNIQUEMENT :
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Quand tu as collecté le nom ET le téléphone (l'email est optionnel), réponds avec ce format exact (sans rien d'autre avant ou après) :
+Quand tu as collecté le nom ET le téléphone ET l'adresse (l'email est optionnel), réponds avec ce format exact (sans rien d'autre avant ou après) :
 
 LEAD_READY
-{"name":"[prénom nom]","phone":"[téléphone]","email":"[email ou vide]","project":"[installation/entretien/dépannage]","property":"[type de bien]","location":"[ville/CP]","estimate":"[fourchette €]","notes":"[tout détail utile : nombre d'unités, accessibilité, photos envoyées, HORS IDF si applicable]"}
+{"name":"[prénom nom]","phone":"[téléphone]","email":"[email ou vide]","project":"[installation/entretien/dépannage]","property":"[type de bien]","location":"[ville/CP]","address":"[adresse complète : numéro, rue, code postal, ville]","estimate":"[fourchette €]","notes":"[tout détail utile : nombre d'unités, accessibilité, photos envoyées, HORS IDF si applicable]"}
 MESSAGE
 [Ton message de confirmation chaleureux de 2 phrases max. En IDF : "Parfait Thomas ! Votre demande est bien enregistrée, un technicien ClimExpert vous rappelle sous 24h." Hors IDF : "Parfait Thomas ! Votre demande est bien enregistrée — un technicien commercial va reprendre contact avec vous rapidement pour établir un devis précis."]`;
 
@@ -199,6 +209,7 @@ interface LeadData {
   project: string;
   property: string;
   location: string;
+  address?: string;
   estimate: string;
   notes: string;
 }
@@ -254,7 +265,8 @@ async function sendLeadEmails(lead: LeadData, messages: ChatMessage[]) {
             ${lead.email ? `<tr><td style="padding: 8px 0; color: #64748B; font-size: 14px;">Email</td><td style="padding: 8px 0; font-size: 14px;"><a href="mailto:${lead.email}" style="color: #0EA5E9; text-decoration: none;">${lead.email}</a></td></tr>` : ""}
             <tr><td style="padding: 8px 0; color: #64748B; font-size: 14px;">Projet</td><td style="padding: 8px 0; font-weight: bold; color: #0F172A; font-size: 14px; text-transform: capitalize;">${lead.project}</td></tr>
             <tr><td style="padding: 8px 0; color: #64748B; font-size: 14px;">Bien</td><td style="padding: 8px 0; font-weight: bold; color: #0F172A; font-size: 14px; text-transform: capitalize;">${lead.property}</td></tr>
-            <tr><td style="padding: 8px 0; color: #64748B; font-size: 14px;">Localisation</td><td style="padding: 8px 0; font-weight: bold; color: #0F172A; font-size: 14px;">${lead.location}</td></tr>
+            <tr><td style="padding: 8px 0; color: #64748B; font-size: 14px;">Ville / CP</td><td style="padding: 8px 0; font-weight: bold; color: #0F172A; font-size: 14px;">${lead.location}</td></tr>
+            ${lead.address ? `<tr><td style="padding: 8px 0; color: #64748B; font-size: 14px;">Adresse chantier</td><td style="padding: 8px 0; font-weight: bold; color: #0F172A; font-size: 14px;"><a href="https://maps.google.com/?q=${encodeURIComponent(lead.address)}" style="color:#0EA5E9;text-decoration:none;">${lead.address} 📍</a></td></tr>` : ""}
             <tr><td style="padding: 8px 0; color: #64748B; font-size: 14px;">Estimation</td><td style="padding: 8px 0; font-weight: bold; color: #16A34A; font-size: 15px;">${lead.estimate}</td></tr>
             ${lead.notes ? `<tr><td style="padding: 8px 0; color: #64748B; font-size: 14px; vertical-align: top;">Notes</td><td style="padding: 8px 0; color: #0F172A; font-size: 14px;">${lead.notes}</td></tr>` : ""}
           </table>
@@ -401,6 +413,7 @@ export async function POST(req: NextRequest) {
               email: lead.email || undefined,
               project: lead.project as "installation" | "entretien" | "depannage" | "contrat-pro" | "autre" | undefined,
               location: lead.location || undefined,
+              address: lead.address || undefined,
               message: lead.estimate ? `Estimation : ${lead.estimate}` : undefined,
               notes: fullNotes || undefined,
             }),

@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, ShieldCheck, Zap, MessageCircle } from "lucide-react";
 
 const stats = [
-  { value: "80+", label: "Installations réalisées" },
+  { value: "500+", label: "Installations réalisées" },
   { value: "10 ans", label: "D'expérience cumulée par technicien" },
   { value: "Certifications", label: "Fluides frigorigènes & RGE" },
   { value: "48h", label: "Délai d'intervention" },

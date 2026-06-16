@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     description:
       "Pose de climatisation par des techniciens RGE certifiés. Devis gratuit, à partir de 1 500 €.",
     url: "https://climexpert.fr/installation",
-    images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "ClimExpert — Installation climatisation Île-de-France" }],
   },
 };
 
@@ -129,7 +129,7 @@ const serviceSchema = {
   name: "Installation de climatisation en Île-de-France",
   serviceType: "Installation climatisation",
   description: "Installation de systèmes de climatisation monosplit, multisplit, gainable et PAC air-eau en Île-de-France par des techniciens RGE certifiés.",
-  provider: { "@type": "LocalBusiness", "@id": "https://climexpert.fr", name: "ClimExpert" },
+  provider: { "@type": "HVACBusiness", "@id": "https://climexpert.fr", name: "ClimExpert" },
   areaServed: { "@type": "AdministrativeArea", name: "Île-de-France" },
   offers: {
     "@type": "AggregateOffer",

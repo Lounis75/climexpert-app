@@ -47,6 +47,15 @@ export const metadata: Metadata = {
     description: "Installation, entretien et dépannage climatisation. Techniciens RGE certifiés.",
     images: ["/opengraph-image"],
   },
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "48x48", type: "image/x-icon" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: "/icon-192.png",
+  },
   robots: {
     index: true,
     follow: true,
@@ -56,11 +65,14 @@ export const metadata: Metadata = {
       "max-image-preview": "large",
     },
   },
+  verification: {
+    google: "UQ6FVXfNlnuKM--mWCVdcvXjlG0LC_dJFJf_4-H8MEU",
+  },
 };
 
 const jsonLd = {
   "@context": "https://schema.org",
-  "@type": "LocalBusiness",
+  "@type": "HVACBusiness",
   "@id": BASE,
   name: "ClimExpert",
   description:
@@ -68,6 +80,9 @@ const jsonLd = {
   url: BASE,
   telephone: "+33667432767",
   email: "contact@climexpert.fr",
+  priceRange: "€€",
+  currenciesAccepted: "EUR",
+  paymentAccepted: "Carte bancaire, Virement bancaire, Chèque",
   areaServed: {
     "@type": "AdministrativeArea",
     name: "Île-de-France",
@@ -90,6 +105,11 @@ const jsonLd = {
     opens: "07:00",
     closes: "20:00",
   },
+  sameAs: [
+    // Ajouter ici les URLs réseaux sociaux quand disponibles
+    // "https://www.facebook.com/climexpert",
+    // "https://www.instagram.com/climexpert",
+  ],
   hasOfferCatalog: {
     "@type": "OfferCatalog",
     name: "Services climatisation",
@@ -119,6 +139,18 @@ const jsonLd = {
         },
       },
     ],
+  },
+  image: {
+    "@type": "ImageObject",
+    url: `${BASE}/logo.svg`,
+    width: 240,
+    height: 60,
+  },
+  logo: {
+    "@type": "ImageObject",
+    url: `${BASE}/logo.svg`,
+    width: 240,
+    height: 60,
   },
   aggregateRating: {
     "@type": "AggregateRating",

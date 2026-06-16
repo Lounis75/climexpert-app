@@ -55,8 +55,15 @@ export default function Home() {
                     </li>
                   ))}
                 </ul>
-                {/* Photo chantier */}
-                <div className="rounded-2xl overflow-hidden relative aspect-[16/9] shadow-sm border border-slate-100">
+                <a
+                  href="https://calculateur.climexpert.fr"
+                  className="inline-flex items-center gap-2 px-5 py-3 bg-sky-500 hover:bg-sky-400 text-white text-sm font-semibold rounded-xl transition-colors shadow-lg shadow-sky-500/20"
+                >
+                  Ouvrir le calculateur complet
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                </a>
+                {/* Photo chantier — masquée sur mobile pour ne pas séparer le texte du calculateur */}
+                <div className="hidden lg:block mt-6 rounded-2xl overflow-hidden relative aspect-[16/9] shadow-sm border border-slate-100">
                   <Image
                     src="/images/calculator.jpg"
                     alt="Appartement climatisé Paris — installation ClimExpert"

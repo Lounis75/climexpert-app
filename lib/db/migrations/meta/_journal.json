@@ -43,6 +43,13 @@
       "when": 1747612800000,
       "tag": "0005_phase4_8",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1748217600000,
+      "tag": "0006_lead_status_pas_de_reponse",
+      "breakpoints": true
     }
   ]
 }

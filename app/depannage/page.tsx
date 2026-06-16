@@ -130,7 +130,7 @@ const serviceSchema = {
   name: "Dépannage climatisation Île-de-France — Intervention sous 48h",
   serviceType: "Dépannage et réparation climatisation",
   description: "Dépannage de climatisation toutes marques en Île-de-France. Intervention sous 48h, 7j/7. Diagnostic et devis remis avant toute intervention.",
-  provider: { "@type": "LocalBusiness", "@id": "https://climexpert.fr", name: "ClimExpert" },
+  provider: { "@type": "HVACBusiness", "@id": "https://climexpert.fr", name: "ClimExpert" },
   areaServed: { "@type": "AdministrativeArea", name: "Île-de-France" },
   offers: {
     "@type": "Offer",
@@ -181,7 +181,7 @@ export default function DepannagePage() {
                   <MessageCircle className="w-6 h-6" />
                   Décrire ma panne
                 </OpenChatButton>
-                <p className="text-slate-500 text-sm">Diagnostic gratuit · Devis avant intervention · Réponse immédiate</p>
+                <p className="text-slate-500 text-sm">Diagnostic sur devis · Devis avant intervention · Réponse immédiate</p>
               </div>
               <div className="hidden lg:block relative rounded-3xl overflow-hidden aspect-[4/3] shadow-2xl shadow-black/40">
                 <Image
