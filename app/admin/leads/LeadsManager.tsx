@@ -5,6 +5,7 @@ import {
   Phone, Bot, FileText, MapPin, Wrench,
   MessageSquare, Clock, LayoutList, Columns3, UserPlus, CheckCircle2,
   AlertTriangle, GitMerge, X, Search, Mail, ChevronRight, Briefcase, Plus,
+  Pencil, Check,
 } from "lucide-react";
 import type { Lead, LeadStatus } from "@/lib/leads";
 import { detectDuplicates } from "@/lib/leads-utils";
@@ -53,6 +54,9 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
   const [addForm, setAddForm] = useState({ name: "", phone: "", source: "téléphone", project: "", location: "", address: "", email: "", notes: "" });
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState("");
+  const [editingLead, setEditingLead] = useState(false);
+  const [editForm, setEditForm] = useState({ name: "", phone: "", email: "", project: "", location: "", address: "" });
+  const [savingEdit, setSavingEdit] = useState(false);
   const dragId = useRef<string | null>(null);
   const [commerciaux, setCommerciaux] = useState<{ id: string; name: string; prenom: string | null; color: string | null }[]>([]);
 
@@ -201,6 +205,38 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
       }
     } finally {
       setAdding(false);
+    }
+  }
+
+  function startEditLead(lead: Lead) {
+    setEditForm({
+      name: lead.name ?? "",
+      phone: lead.phone ?? "",
+      email: lead.email ?? "",
+      project: lead.project ?? "",
+      location: lead.location ?? "",
+      address: (lead as Lead & { address?: string | null }).address ?? "",
+    });
+    setEditingLead(true);
+  }
+
+  async function saveLeadEdit(id: string) {
+    if (!editForm.name.trim() || !editForm.phone.trim()) return;
+    setSavingEdit(true);
+    try {
+      const res = await fetch("/api/admin/leads", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, ...editForm }),
+      });
+      if (res.ok) {
+        const { lead: updated } = await res.json();
+        setLeads((prev) => prev.map((l) => (l.id === id ? updated : l)));
+        setSelectedLead(updated);
+        setEditingLead(false);
+      }
+    } finally {
+      setSavingEdit(false);
     }
   }
 
@@ -661,7 +697,7 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
         const isConverted = !!lead.clientId || convertDone.has(lead.id);
         const dupes = duplicatesMap.get(lead.id) ?? [];
         return (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-end" onClick={() => setSelectedLead(null)}>
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-end" onClick={() => { setSelectedLead(null); setEditingLead(false); }}>
             <div
               className="bg-slate-900 border-l border-white/10 w-full max-w-md h-full overflow-y-auto shadow-2xl"
               onClick={(e) => e.stopPropagation()}
@@ -677,12 +713,83 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
                   </span>
                   <h3 className="text-white font-semibold text-sm truncate">{lead.name}</h3>
                 </div>
-                <button onClick={() => setSelectedLead(null)} className="text-slate-500 hover:text-white transition-colors flex-shrink-0 ml-3">
-                  <X className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-1 flex-shrink-0 ml-3">
+                  {!editingLead && (
+                    <button
+                      onClick={() => startEditLead(lead)}
+                      title="Modifier les coordonnées"
+                      className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-500 hover:text-white hover:bg-white/8 transition-colors"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                  <button onClick={() => { setSelectedLead(null); setEditingLead(false); }} className="text-slate-500 hover:text-white transition-colors">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
               <div className="p-6 space-y-5">
+                {editingLead ? (
+                  /* ── Mode édition des coordonnées ── */
+                  <div className="bg-slate-800/40 border border-sky-500/20 rounded-2xl p-4 space-y-3">
+                    <p className="text-sky-400 text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5">
+                      <Pencil className="w-3 h-3" /> Modifier les coordonnées
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-slate-400 text-[11px] block mb-1">Nom *</label>
+                        <input value={editForm.name} onChange={(e) => setEditForm(f => ({ ...f, name: e.target.value }))}
+                          className="w-full bg-slate-900/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-sm focus:outline-none focus:border-sky-500/50" />
+                      </div>
+                      <div>
+                        <label className="text-slate-400 text-[11px] block mb-1">Téléphone *</label>
+                        <input value={editForm.phone} onChange={(e) => setEditForm(f => ({ ...f, phone: e.target.value }))}
+                          className="w-full bg-slate-900/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-sm focus:outline-none focus:border-sky-500/50" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-slate-400 text-[11px] block mb-1">Email</label>
+                      <input type="email" value={editForm.email} onChange={(e) => setEditForm(f => ({ ...f, email: e.target.value }))}
+                        className="w-full bg-slate-900/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-sm focus:outline-none focus:border-sky-500/50" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-slate-400 text-[11px] block mb-1">Projet</label>
+                        <select value={editForm.project} onChange={(e) => setEditForm(f => ({ ...f, project: e.target.value }))}
+                          className="w-full bg-slate-900/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-sm appearance-none focus:outline-none focus:border-sky-500/50">
+                          <option value="">— Aucun —</option>
+                          {Object.entries(PROJECT_LABELS).map(([val, lbl]) => (
+                            <option key={val} value={val} className="bg-slate-800">{lbl}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-slate-400 text-[11px] block mb-1">Ville / CP</label>
+                        <input value={editForm.location} onChange={(e) => setEditForm(f => ({ ...f, location: e.target.value }))}
+                          className="w-full bg-slate-900/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-sm focus:outline-none focus:border-sky-500/50" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-slate-400 text-[11px] block mb-1">Adresse du chantier</label>
+                      <input value={editForm.address} onChange={(e) => setEditForm(f => ({ ...f, address: e.target.value }))}
+                        placeholder="12 rue de la Paix, 75002 Paris"
+                        className="w-full bg-slate-900/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-sm placeholder-slate-600 focus:outline-none focus:border-sky-500/50" />
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                      <button onClick={() => setEditingLead(false)}
+                        className="flex-1 px-3 py-2 border border-white/10 text-slate-400 hover:text-white rounded-lg text-xs font-medium transition-colors">
+                        Annuler
+                      </button>
+                      <button onClick={() => saveLeadEdit(lead.id)} disabled={savingEdit || !editForm.name.trim() || !editForm.phone.trim()}
+                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-white font-semibold rounded-lg text-xs transition-colors">
+                        {savingEdit ? <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                        Enregistrer
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                <>
                 {/* Contact info */}
                 <div className="bg-slate-800/40 border border-white/8 rounded-2xl p-4 space-y-3">
                   <a
@@ -757,6 +864,8 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
                       </p>
                     </div>
                   </a>
+                )}
+                </>
                 )}
 
                 {/* Statut */}

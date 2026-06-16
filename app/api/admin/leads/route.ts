@@ -31,12 +31,19 @@ export async function PATCH(req: NextRequest) {
     const { id, ...fields } = body;
     if (!id) return NextResponse.json({ error: "id requis" }, { status: 400 });
 
-    // Accepte n'importe quelle combinaison de champs : notes, status, clientId...
+    // Accepte n'importe quelle combinaison de champs : notes, status, clientId, coordonnées...
     const allowed: Record<string, unknown> = {};
-    if (fields.notes !== undefined)       allowed.notes = fields.notes;
-    if (fields.status)                    allowed.status = fields.status as LeadStatus;
-    if (fields.clientId)                  allowed.clientId = fields.clientId;
+    if (fields.notes !== undefined)        allowed.notes = fields.notes;
+    if (fields.status)                     allowed.status = fields.status as LeadStatus;
+    if (fields.clientId)                   allowed.clientId = fields.clientId;
     if (fields.commercialId !== undefined) allowed.commercialId = fields.commercialId || null;
+    // Champs éditables des coordonnées (name/phone sont NOT NULL : ignorés si vides)
+    if (typeof fields.name === "string" && fields.name.trim())   allowed.name = fields.name.trim();
+    if (typeof fields.phone === "string" && fields.phone.trim()) allowed.phone = fields.phone.trim();
+    if (fields.email !== undefined)        allowed.email = (fields.email?.trim() || null);
+    if (fields.location !== undefined)     allowed.location = (fields.location?.trim() || null);
+    if (fields.address !== undefined)      allowed.address = (fields.address?.trim() || null);
+    if (fields.project !== undefined)      allowed.project = (fields.project || null);
 
     if (Object.keys(allowed).length === 0) {
       return NextResponse.json({ error: "Aucun champ à mettre à jour" }, { status: 400 });
