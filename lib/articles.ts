@@ -1157,6 +1157,85 @@ export const articles: Article[] = [
       "entretien-climatisation",
     ],
   },
+  {
+    slug: "nettoyage-climatisation-paris",
+    title: "Nettoyage Climatisation Paris : Prix, Fréquence et Guide Complet 2026",
+    metaTitle: "Nettoyage Climatisation Paris — Prix & Guide 2026 | ClimExpert",
+    metaDescription: "Nettoyage climatisation à Paris à partir de 180 € TTC. Fréquence recommandée, étapes de la prestation, ce qui est inclus. Techniciens RGE certifiés, intervention sous 48h.",
+    keywords: "nettoyage climatisation paris, entretien clim paris, nettoyage clim prix, nettoyage filtre climatisation, entretien climatisation ile-de-france",
+    date: "2026-06-16",
+    readTime: 6,
+    category: "Entretien",
+    featured: false,
+    heroImage: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=1200&q=85",
+    heroAlt: "Technicien en train de nettoyer une unité intérieure de climatisation à Paris",
+    intro: "Le nettoyage de votre climatisation à Paris est indispensable pour maintenir ses performances, éviter les problèmes sanitaires et respecter vos obligations légales. Voici tout ce qu'il faut savoir sur la prestation, les prix pratiqués et la fréquence recommandée.",
+    author: undefined,
+    sections: [
+      {
+        heading: "Pourquoi faire nettoyer sa climatisation à Paris ?",
+        content: [
+          "Paris et sa petite couronne concentrent une pollution atmosphérique importante : particules fines, suies, poussières urbaines. Vos filtres et évaporateurs s'encrassent bien plus vite qu'en zone rurale. Un appareil non entretenu peut perdre jusqu'à 30 % de son efficacité énergétique en deux ans.",
+          "Au-delà des performances, la qualité de l'air intérieur est en jeu. Un évaporateur sale devient un nid à moisissures et bactéries (dont la Legionella dans les cas extrêmes). L'air soufflé peut alors provoquer allergies et irritations respiratoires.",
+          "Enfin, pour les systèmes contenant plus de 2 kg de fluide frigorigène, la réglementation européenne F-Gaz impose un entretien annuel par un technicien certifié. Le non-respect de cette obligation peut entraîner la perte de votre garantie fabricant.",
+        ],
+        highlight: "À retenir : un appareil encrassé consomme plus d'électricité, souffle un air de moins bonne qualité, et sa durée de vie est réduite.",
+      },
+      {
+        heading: "À quelle fréquence faut-il faire nettoyer sa clim à Paris ?",
+        content: [
+          "La recommandation standard est un nettoyage annuel, idéalement au printemps avant la saison chaude. À Paris, où la pollution est plus dense, deux visites par an (printemps et automne) sont conseillées pour les systèmes très utilisés ou dans des locaux commerciaux.",
+          "Certains signes indiquent qu'un nettoyage est urgent même hors calendrier : débit d'air réduit, odeur de moisi ou de brûlé à la mise en route, givre sur l'unité intérieure, ou facture d'électricité en hausse sans explication.",
+          "Pour les professionnels parisiens (restaurants, cabinets médicaux, coiffeurs), deux entretiens annuels sont souvent imposés par leur assurance ou par les normes sanitaires de leur secteur d'activité.",
+        ],
+      },
+      {
+        heading: "Prix du nettoyage climatisation à Paris en 2026",
+        content: [
+          "Le tarif d'un nettoyage climatisation à Paris intramuros varie selon le prestataire et le nombre d'unités. Chez ClimExpert, nos tarifs sont les suivants : 180 € TTC pour la première unité intérieure (comprend le déplacement et le rapport), +60 € TTC par unité supplémentaire dans la même intervention.",
+          "Des majorations peuvent s'appliquer selon l'accessibilité de l'installation (hauteur, encombrement) et la distance depuis nos équipes. Une unité en toiture ou dans une cage technique compte comme une unité avec accessibilité difficile.",
+          "Méfiez-vous des offres à 49-80 € qui ne comprennent souvent qu'un rinçage rapide des filtres sans démontage de l'évaporateur ni contrôle frigorigène. Un vrai nettoyage professionnel prend entre 45 minutes et 1h30 par unité.",
+        ],
+        highlight: "Tarif ClimExpert Paris : à partir de 180 € TTC pour 1 unité — déplacement, nettoyage complet et rapport inclus.",
+      },
+      {
+        heading: "Ce que comprend un nettoyage professionnel de climatisation",
+        content: [
+          "Un nettoyage complet se distingue d'un simple entretien de base par les étapes réalisées. Voici ce que nos techniciens effectuent systématiquement : démontage et nettoyage en profondeur des filtres (lavage, séchage, ou remplacement si nécessaires), nettoyage à la mousse désinfectante de l'évaporateur intérieur et du bac de condensats, soufflage et nettoyage du condenseur extérieur.",
+          "Le technicien contrôle également le circuit frigorigène : pression de service, absence de fuite, charge en fluide. Ces points sont obligatoires pour les systèmes F-Gaz. Un rapport d'intervention détaillé est remis à la fin de chaque visite, avec le résultat de chaque contrôle.",
+          "À noter : le nettoyage ne comprend pas la recharge en gaz frigorigène (facturation séparée en cas de fuite détectée) ni le remplacement de pièces défectueuses. Si un problème est identifié, un devis de réparation vous est soumis avant toute intervention supplémentaire.",
+        ],
+      },
+      {
+        heading: "Comment choisir son prestataire pour le nettoyage clim à Paris ?",
+        content: [
+          "Trois critères essentiels : la certification RGE ou Qualibat froid, la fourniture d'un rapport d'intervention écrit, et la transparence sur les tarifs avant la visite. Un bon prestataire vous donne un prix ferme sur photos ou lors d'un premier appel, sans supplément mystérieux à la facturation.",
+          "Vérifiez également que le technicien est certifié pour la manipulation des fluides frigorigènes (attestation CERFA délivrée par organisme agréé comme QUALICER ou BWT). Sans cette certification, toute manipulation du circuit frigorigène est illégale.",
+          "Enfin, méfiez-vous des démarchages téléphoniques proposant des entretiens à prix cassés. Ces offres omettent souvent les pièces de base ou facturent des produits inutiles en supplément. Préférez un devis écrit avec le détail des prestations incluses.",
+        ],
+        highlight: "Vérifiez toujours la certification RGE du technicien et demandez un devis écrit avec détail des prestations avant d'accepter.",
+      },
+    ],
+    faq: [
+      {
+        question: "Peut-on nettoyer soi-même sa climatisation à Paris ?",
+        answer: "Vous pouvez nettoyer les filtres amovibles vous-même (eau + savon neutre, séchage complet avant remise en place). En revanche, le nettoyage de l'évaporateur, du circuit frigorigène et du condenseur extérieur nécessite un technicien certifié. Tenter de le faire soi-même avec des produits inadaptés peut endommager les ailettes délicates de l'échangeur.",
+      },
+      {
+        question: "Combien de temps dure un nettoyage de climatisation ?",
+        answer: "Un nettoyage professionnel complet dure entre 45 minutes et 1h30 par unité intérieure. Le technicien doit avoir accès à l'unité intérieure et à l'unité extérieure. Prévoyez d'être présent ou de mandater quelqu'un pour ouvrir l'accès.",
+      },
+      {
+        question: "Mon propriétaire doit-il payer l'entretien de la climatisation ?",
+        answer: "C'est une zone grise juridique. L'entretien courant (dont le nettoyage) est généralement à la charge du locataire, mais l'entretien obligatoire F-Gaz peut être à la charge du propriétaire si le système contient plus de 2 kg de frigorigène. Vérifiez votre bail et, en cas de doute, adressez-vous à votre propriétaire par écrit.",
+      },
+      {
+        question: "ClimExpert intervient-il dans toute Paris ?",
+        answer: "Oui, nous intervenons dans les 20 arrondissements de Paris ainsi que dans toute la petite couronne (92, 93, 94) et la grande couronne (77, 78, 91, 95). La majoration de déplacement varie selon la distance. Demandez un devis gratuit pour connaître le tarif exact pour votre adresse.",
+      },
+    ],
+    relatedSlugs: ["entretien-climatisation", "installation-climatisation-paris", "prix-climatisation-ile-de-france-2025"],
+  },
 ];
 
 export function getArticleBySlug(slug: string): Article | undefined {

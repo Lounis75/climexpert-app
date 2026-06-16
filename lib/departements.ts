@@ -193,21 +193,29 @@ export const DEPARTEMENTS: Departement[] = [
     population: "1,3 million d'habitants",
     communes: 196,
     context:
-      "L'Essonne est un département du sud de l'Île-de-France qui associe pôles technologiques majeurs (Massy, Saclay, Évry-Courcouronnes) et vastes zones résidentielles pavillonnaires. Le plateau de Saclay abrite l'un des plus grands campus scientifiques d'Europe. Les zones industrielles et tertiaires génèrent une forte demande en climatisation professionnelle. Le parc résidentiel, mixte entre maisons individuelles et copropriétés des années 70, bénéficie grandement des solutions réversibles.",
+      "L'Essonne (91) est un département du sud de l'Île-de-France qui associe pôles technologiques majeurs (Massy, Saclay, Évry-Courcouronnes, Palaiseau) et vastes zones résidentielles pavillonnaires à Longjumeau, Corbeil-Essonnes, Montgeron et Brétigny-sur-Orge. Le plateau de Saclay abrite l'un des plus grands campus scientifiques d'Europe. Les zones industrielles et tertiaires génèrent une forte demande en climatisation professionnelle. Le parc résidentiel, mixte entre maisons individuelles et copropriétés des années 70, bénéficie grandement des solutions réversibles monosplit et multisplit. L'installation climatisation en Essonne, le nettoyage annuel et le dépannage représentent nos trois prestations principales sur l'ensemble des 196 communes du 91.",
     highlights: [
       "Couverture complète des 196 communes du 91",
-      "Expertise climatisation professionnelle — bureaux et labos",
-      "Solutions pour les logements anciens énergivores",
+      "Installation, entretien et nettoyage climatisation Essonne",
+      "Dépannage sous 48h — Évry, Massy, Corbeil, Palaiseau",
       "Techniciens RGE, aides CEE et MaPrimeRénov'",
     ],
     faqItems: [
+      {
+        q: "Quel est le prix d'un nettoyage climatisation en Essonne ?",
+        a: "Le nettoyage et l'entretien climatisation en Essonne coûte à partir de 180 € TTC pour 1 unité, avec +60 € TTC par unité supplémentaire. Le tarif peut varier selon la distance depuis Paris et l'accessibilité de l'installation. La prestation comprend le nettoyage des filtres, de l'évaporateur et du condenseur, le contrôle du circuit frigorigène et un rapport d'intervention signé.",
+      },
       {
         q: "Proposez-vous des solutions climatisation pour les entreprises de l'Essonne ?",
         a: "Oui, l'Essonne — et notamment la zone Massy-Palaiseau — est l'une de nos zones principales pour la climatisation professionnelle. Bureaux, salles de réunion, salles serveurs, laboratoires : nous installons des systèmes adaptés à chaque usage. Contrats de maintenance annuelle disponibles avec intervention prioritaire sous 48h.",
       },
       {
-        q: "Y a-t-il des aides pour rénover la climatisation dans les logements anciens d'Évry ?",
-        a: "Les logements anciens d'Évry-Courcouronnes des années 70 bénéficient pleinement des aides à la rénovation : TVA à 5,5 %, CEE, MaPrimeRénov' pour les PAC éligibles. Ces aides peuvent couvrir 20 à 40 % du coût total. Nos techniciens RGE gèrent les dossiers de demande de A à Z.",
+        q: "Intervenez-vous pour le dépannage climatisation en Essonne ?",
+        a: "Oui, nous assurons le dépannage climatisation dans tout le 91 : Évry-Courcouronnes, Massy, Corbeil-Essonnes, Palaiseau, Longjumeau, Brétigny-sur-Orge, Montgeron. Délai d'intervention sous 48h après diagnostic. Toutes marques prises en charge : Daikin, Mitsubishi, Samsung, Fujitsu, Toshiba.",
+      },
+      {
+        q: "Y a-t-il des aides pour installer une climatisation en Essonne ?",
+        a: "Les logements en Essonne bénéficient pleinement des aides à la rénovation : TVA à 5,5 %, CEE, MaPrimeRénov' pour les PAC éligibles. Ces aides peuvent couvrir 20 à 40 % du coût total de l'installation. Nos techniciens RGE gèrent les dossiers de demande de A à Z.",
       },
       {
         q: "Intervenez-vous autour du plateau de Saclay ?",

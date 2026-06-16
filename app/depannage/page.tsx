@@ -9,11 +9,11 @@ import FAQAccordion from "@/components/FAQAccordion";
 import PageCTA from "@/components/PageCTA";
 
 export const metadata: Metadata = {
-  title: "Dépannage Climatisation Île-de-France | ClimExpert — Intervention 48h",
+  title: "Dépannage Climatisation Paris & Île-de-France | ClimExpert — Intervention 48h",
   description:
-    "Dépannage climatisation urgent en Île-de-France. Diagnostic toutes marques, intervention sous 48h. Techniciens certifiés, disponibles 7j/7. Appelez le 06 67 43 27 67.",
+    "Dépannage climatisation Paris et Île-de-France — intervention sous 48h, 7j/7. Techniciens certifiés RGE, diagnostic toutes marques, devis gratuit. Appelez le 06 67 43 27 67.",
   keywords:
-    "dépannage climatisation ile-de-france, réparation climatisation paris, urgence clim, panne climatisation, technicien climatisation paris",
+    "dépannage climatisation paris, réparation climatisation paris, dépannage clim ile-de-france, urgence clim paris, technicien climatisation paris, panne climatisation",
   alternates: {
     canonical: "https://climexpert.fr/depannage",
   },
