@@ -13,6 +13,8 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },
       { protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
+      { protocol: "https", hostname: "*.r2.dev" },           // images uploadées (Cloudflare R2 public)
+      { protocol: "https", hostname: "*.r2.cloudflarestorage.com" },
     ],
     formats: ["image/avif", "image/webp"],
     minimumCacheTTL: 31536000,
