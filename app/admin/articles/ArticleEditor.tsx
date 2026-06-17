@@ -274,7 +274,7 @@ export default function ArticleEditor({ initialArticle, isEditing }: Props) {
 
       {/* Infos de base */}
       <Card title="Informations de base">
-        <Field label="Titre de l'article *">
+        <Field label="Titre de l'article *" hint="sert de titre Google par défaut">
           <input
             type="text"
             value={draft.title}
@@ -282,10 +282,11 @@ export default function ArticleEditor({ initialArticle, isEditing }: Props) {
             placeholder="Ex : Prix d'une climatisation à Paris en 2026"
             className={inputClass}
           />
+          <CharCount len={draft.title.length} max={60} ideal={[40, 60]} />
         </Field>
 
         <div className="grid sm:grid-cols-2 gap-4">
-          <Field label="Slug (URL) *">
+          <Field label="Slug (URL) *" hint={isEditing ? undefined : "généré depuis le titre"}>
             <input
               type="text"
               value={draft.slug}
@@ -305,21 +306,24 @@ export default function ArticleEditor({ initialArticle, isEditing }: Props) {
           </Field>
 
           <Field label="Catégorie">
-            <select
-              value={draft.category}
-              onChange={(e) => setField("category", e.target.value)}
-              className={inputClass}
-            >
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c} className="bg-slate-800">
-                  {c}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                value={draft.category}
+                onChange={(e) => setField("category", e.target.value)}
+                className={`${inputClass} appearance-none pr-10 cursor-pointer`}
+              >
+                {CATEGORIES.map((c) => (
+                  <option key={c} value={c} className="bg-slate-800">
+                    {c}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
           </Field>
         </div>
 
-        <Field label="Introduction (chapeau) *">
+        <Field label="Introduction (chapeau) *" hint="résumé affiché dans les cartes du guide">
           <textarea
             value={draft.intro}
             onChange={(e) => setField("intro", e.target.value)}
@@ -327,6 +331,7 @@ export default function ArticleEditor({ initialArticle, isEditing }: Props) {
             rows={3}
             className={inputClass}
           />
+          <CharCount len={draft.intro.length} max={200} ideal={[110, 180]} />
         </Field>
 
         <Field label="Auteur" hint="Améliore le référencement E-E-A-T — sélectionnez un profil ou saisissez un nom">
@@ -505,7 +510,7 @@ export default function ArticleEditor({ initialArticle, isEditing }: Props) {
             placeholder={draft.title || "Ex : Prix Climatisation Paris 2026 | ClimExpert"}
             className={inputClass}
           />
-          <p className="text-xs text-slate-500 mt-1">{draft.metaTitle.length}/60 caractères</p>
+          <CharCount len={draft.metaTitle.length} max={60} ideal={[40, 60]} />
         </Field>
         <Field label="Meta description" hint="Idéalement 130-155 caractères">
           <textarea
@@ -515,7 +520,7 @@ export default function ArticleEditor({ initialArticle, isEditing }: Props) {
             rows={2}
             className={inputClass}
           />
-          <p className="text-xs text-slate-500 mt-1">{draft.metaDescription.length}/155 caractères</p>
+          <CharCount len={draft.metaDescription.length} max={160} ideal={[130, 155]} />
         </Field>
         <Field label="Mots-clés (séparés par des virgules)">
           <input
@@ -620,6 +625,22 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
       </div>
       {children}
     </div>
+  );
+}
+
+// Compteur de caractères color-codé pour le SEO (vert = plage idéale, ambre = à
+// ajuster, rouge = trop long / tronqué par Google).
+function CharCount({ len, max, ideal }: { len: number; max: number; ideal: [number, number] }) {
+  const over = len > max;
+  const inIdeal = len >= ideal[0] && len <= ideal[1];
+  const color = over ? "text-red-400" : inIdeal ? "text-emerald-400" : len === 0 ? "text-slate-500" : "text-amber-400";
+  let note = "";
+  if (over) note = " — trop long, Google le tronquera";
+  else if (len > 0 && len < ideal[0]) note = " — un peu court";
+  return (
+    <p className={`text-xs mt-1 ${color}`}>
+      {len}/{max} caractères{note}
+    </p>
   );
 }
 
