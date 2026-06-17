@@ -9,7 +9,7 @@ import FAQAccordion from "@/components/FAQAccordion";
 import PageCTA from "@/components/PageCTA";
 
 export const metadata: Metadata = {
-  title: "Dépannage Climatisation Paris & Île-de-France | ClimExpert — Intervention 48h",
+  title: "Dépannage Climatisation Paris & Île-de-France — Intervention 48h",
   description:
     "Dépannage climatisation Paris et Île-de-France — intervention sous 48h, 7j/7. Techniciens certifiés RGE, diagnostic toutes marques, devis gratuit. Appelez le 06 67 43 27 67.",
   keywords:

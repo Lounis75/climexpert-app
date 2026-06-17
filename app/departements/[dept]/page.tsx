@@ -22,7 +22,7 @@ export async function generateMetadata({
   const dept = getDepartementBySlug(slug);
   if (!dept) return {};
 
-  const title = `Climatisation ${dept.name} (${dept.code}) — Installation & Entretien | ClimExpert`;
+  const title = `Climatisation ${dept.name} (${dept.code}) — Installation & Entretien`;
   const description = `Installateur climatisation dans le ${dept.code} — ${dept.name}. Techniciens RGE certifiés, devis gratuit sous 24h. Monosplit, multisplit, gainable — intervention rapide dans tout le département.`;
 
   return {

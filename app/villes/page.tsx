@@ -9,7 +9,7 @@ import { DEPARTEMENTS } from "@/lib/departements";
 const BASE = "https://climexpert.fr";
 
 export const metadata: Metadata = {
-  title: "Climatisation par ville en Île-de-France | ClimExpert",
+  title: "Climatisation par ville en Île-de-France",
   description:
     "Installation, entretien et dépannage de climatisation dans les principales villes d'Île-de-France : Boulogne-Billancourt, Neuilly-sur-Seine, Versailles, et bien d'autres. Techniciens RGE, devis gratuit sous 24h.",
   keywords:

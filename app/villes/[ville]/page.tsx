@@ -19,7 +19,7 @@ export async function generateMetadata({
   const ville = getVilleBySlug(slug);
   if (!ville) return {};
 
-  const title = `Climatisation ${ville.name} — Installation & Entretien | ClimExpert`;
+  const title = `Climatisation ${ville.name} — Installation & Entretien`;
   const description = `Installateur climatisation à ${ville.name} (${ville.dept}). Techniciens RGE certifiés, devis gratuit sous 24h. Monosplit, multisplit, gainable — intervention rapide en ${ville.depName}.`;
 
   return {

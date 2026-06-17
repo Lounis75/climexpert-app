@@ -13,6 +13,7 @@ interface ArticleRow {
   readTime: number;
   featured: boolean;
   isDynamic: boolean;
+  scheduledFor?: string;
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -28,6 +29,10 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
+}
+
+function formatDateTime(iso: string) {
+  return new Date(iso).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 }
 
 export default function ArticlesManager({ initialArticles }: { initialArticles: ArticleRow[] }) {
@@ -183,6 +188,12 @@ export default function ArticlesManager({ initialArticles }: { initialArticles: 
                   {article.isDynamic && (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400 text-[10px] font-semibold">
                       Rédigé par vous
+                    </span>
+                  )}
+                  {article.scheduledFor && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300 text-[10px] font-semibold">
+                      <Clock className="w-2.5 h-2.5" />
+                      Programmé · {formatDateTime(article.scheduledFor)}
                     </span>
                   )}
                 </div>

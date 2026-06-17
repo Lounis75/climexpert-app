@@ -5,14 +5,14 @@ import { CheckCircle2, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Tarifs Climatisation Île-de-France 2025 — Prix Installation & Entretien",
+  title: "Tarifs Climatisation Île-de-France 2026 — Prix Installation & Entretien",
   description:
     "Découvrez les prix d'installation climatisation en Île-de-France : monosplit à partir de 1 500 €, multisplit à partir de 2 800 €, entretien à partir de 180 €. Devis gratuit sous 24h.",
   keywords:
     "prix climatisation ile-de-france, tarif installation climatisation, coût climatisation paris, tarif entretien climatisation, prix monosplit multisplit gainable",
   alternates: { canonical: "https://climexpert.fr/tarifs" },
   openGraph: {
-    title: "Tarifs Climatisation Île-de-France 2025 — ClimExpert",
+    title: "Tarifs Climatisation Île-de-France 2026 — ClimExpert",
     description: "Prix installation, entretien et dépannage climatisation en IDF. Monosplit à partir de 1 500 €.",
     url: "https://climexpert.fr/tarifs",
     images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
@@ -187,7 +187,7 @@ export default function TarifsPage() {
         <div className="bg-[#0B1120] pt-28 pb-14">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center mt-6">
             <span className="inline-block px-4 py-1.5 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400 text-sm font-medium mb-5">
-              Tarifs 2025 · Île-de-France
+              Tarifs 2026 · Île-de-France
             </span>
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight tracking-tight mb-4">
               Prix climatisation<br />

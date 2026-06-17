@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Devis Climatisation Gratuit Île-de-France — ClimExpert",
+  title: "Devis Climatisation Gratuit Île-de-France",
   description:
     "Demandez un devis gratuit pour votre projet de climatisation en Île-de-France. Installation, entretien, dépannage par des techniciens RGE certifiés. Réponse sous 24h.",
   keywords:

@@ -9,7 +9,7 @@ import FAQAccordion from "@/components/FAQAccordion";
 import OpenChatButton from "@/components/OpenChatButton";
 import ArticleBody from "@/components/ArticleBody";
 import { articles, getArticleBySlug, getRelatedArticles } from "@/lib/articles";
-import { getDynamicArticleBySlug, getDynamicArticles } from "@/lib/dynamicArticles";
+import { getDynamicArticleBySlug, getPublishedDynamicArticles, isPublished } from "@/lib/dynamicArticles";
 import { getAuthors } from "@/lib/authors";
 
 interface Props {
@@ -28,7 +28,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const article = getArticleBySlug(slug) ?? await getDynamicArticleBySlug(slug);
   if (!article) return {};
   return {
-    title: article.metaTitle,
+    // metaTitle inclut déjà la marque par convention -> absolute pour éviter
+    // que le template "%s | ClimExpert" ne double "ClimExpert".
+    title: { absolute: article.metaTitle },
     description: article.metaDescription,
     keywords: article.keywords,
     alternates: { canonical: `https://climexpert.fr/guide-climatisation/${article.slug}` },
@@ -56,9 +58,11 @@ export default async function ArticlePage({ params }: Props) {
   const { slug } = await params;
   const article = getArticleBySlug(slug) ?? await getDynamicArticleBySlug(slug);
   if (!article) notFound();
+  // Article programmé non encore publié → masqué publiquement
+  if (!isPublished(article)) notFound();
 
   const [dynamicAll, allAuthors] = await Promise.all([
-    article.relatedSlugs.length > 0 ? getDynamicArticles() : Promise.resolve([]),
+    article.relatedSlugs.length > 0 ? getPublishedDynamicArticles() : Promise.resolve([]),
     getAuthors(),
   ]);
   const related = getRelatedArticles(article.relatedSlugs).length > 0

@@ -14,6 +14,10 @@ export interface Article {
   metaDescription: string;
   keywords: string;
   date: string;
+  /** Date/heure de publication programmée (ISO). Si absente ou ≤ maintenant,
+   *  l'article est public. Si dans le futur, il est masqué du site jusqu'à cette
+   *  date (visible uniquement en admin). */
+  publishedAt?: string;
   readTime: number;
   category: string;
   heroImage: string;

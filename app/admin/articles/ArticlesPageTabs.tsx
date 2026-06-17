@@ -14,6 +14,7 @@ interface ArticleRow {
   readTime: number;
   featured: boolean;
   isDynamic: boolean;
+  scheduledFor?: string;
 }
 
 export default function ArticlesPageTabs({

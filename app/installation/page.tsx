@@ -8,7 +8,7 @@ import FAQAccordion from "@/components/FAQAccordion";
 import PageCTA from "@/components/PageCTA";
 
 export const metadata: Metadata = {
-  title: "Installation Climatisation Île-de-France | ClimExpert",
+  title: "Installation Climatisation Île-de-France",
   description:
     "Installation de climatisation monosplit, multisplit, gainable et PAC en Île-de-France. Techniciens RGE certifiés. Devis gratuit, pose à partir de 1 500 €.",
   keywords:

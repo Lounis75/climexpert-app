@@ -8,7 +8,7 @@ import FAQAccordion from "@/components/FAQAccordion";
 import PageCTA from "@/components/PageCTA";
 
 export const metadata: Metadata = {
-  title: "Nettoyage & Entretien Climatisation Île-de-France | ClimExpert — 180 € TTC",
+  title: "Nettoyage & Entretien Climatisation Île-de-France — 180 € TTC",
   description:
     "Nettoyage et entretien climatisation en Île-de-France à partir de 180 € TTC/unité. Contrôle frigorigène F-Gaz, rapport d'intervention. Techniciens RGE certifiés. Devis gratuit.",
   keywords:

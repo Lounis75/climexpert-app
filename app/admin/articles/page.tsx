@@ -15,6 +15,7 @@ export default async function AdminArticlesPage() {
   ]);
 
   const dynamicSlugs = new Set(dynamicArticles.map((a) => a.slug));
+  const now = Date.now();
 
   const rows = [
     ...dynamicArticles.map((a) => ({
@@ -25,6 +26,8 @@ export default async function AdminArticlesPage() {
       readTime: a.readTime,
       featured: featuredSlugs.includes(a.slug),
       isDynamic: true,
+      // Renseigné seulement si la publication est programmée dans le futur
+      scheduledFor: a.publishedAt && new Date(a.publishedAt).getTime() > now ? a.publishedAt : undefined,
     })),
     ...articles
       .filter((a) => !dynamicSlugs.has(a.slug))
@@ -36,6 +39,7 @@ export default async function AdminArticlesPage() {
         readTime: a.readTime,
         featured: featuredSlugs.includes(a.slug),
         isDynamic: false,
+        scheduledFor: undefined as string | undefined,
       })),
   ];
 

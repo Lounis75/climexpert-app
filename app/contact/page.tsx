@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import ContactClient from "./ContactClient";
 
 export const metadata: Metadata = {
-  title: "Contact ClimExpert — Devis Gratuit, Dépannage, Entretien | Île-de-France",
+  title: "Contact — Devis Gratuit, Dépannage, Entretien en Île-de-France",
   description:
     "Contactez ClimExpert pour une installation, un entretien ou un dépannage de climatisation en Île-de-France. Réponse sous 2h, devis gratuit sans engagement.",
   keywords:

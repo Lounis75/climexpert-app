@@ -22,13 +22,13 @@ import TableOfContents from "@/components/TableOfContents";
 import Calculator from "@/components/Calculator";
 import { articles } from "@/lib/articles";
 import { getFeaturedSlugs } from "@/lib/kv";
-import { getDynamicArticles } from "@/lib/dynamicArticles";
+import { getPublishedDynamicArticles } from "@/lib/dynamicArticles";
 
 export const revalidate = 60;
 import PageCTA from "@/components/PageCTA";
 
 export const metadata: Metadata = {
-  title: "Guide Climatisation 2025 : Tout Savoir Avant de Se Lancer | ClimExpert",
+  title: "Guide Climatisation 2026 : Tout Savoir Avant de Se Lancer",
   description:
     "Guide complet sur la climatisation en Île-de-France : types de systèmes, prix, aides financières, entretien. Tout ce qu'il faut savoir pour bien choisir sa climatisation.",
   keywords:
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     canonical: "https://climexpert.fr/guide-climatisation",
   },
   openGraph: {
-    title: "Guide Climatisation 2025 — ClimExpert",
+    title: "Guide Climatisation 2026 — ClimExpert",
     description:
       "Types de systèmes, prix, aides financières, entretien… Le guide complet pour bien choisir votre climatisation.",
     url: "https://climexpert.fr/guide-climatisation",
@@ -192,7 +192,7 @@ const faqSchema = {
 export default async function GuidePage() {
   const [featuredSlugs, dynamicArticles] = await Promise.all([
     getFeaturedSlugs(),
-    getDynamicArticles(),
+    getPublishedDynamicArticles(),
   ]);
 
   const dynamicSlugs = new Set(dynamicArticles.map((a) => a.slug));
@@ -421,7 +421,7 @@ export default async function GuidePage() {
                     Combien coûte une climatisation en Île-de-France ?
                   </h2>
                   <p className="text-slate-600 mb-8 leading-relaxed">
-                    Le prix d'une installation complète dépend du type de système, du nombre d'unités et des contraintes du chantier. Voici les fourchettes pratiquées en Île-de-France en 2025, pose et matériel inclus.
+                    Le prix d'une installation complète dépend du type de système, du nombre d'unités et des contraintes du chantier. Voici les fourchettes pratiquées en Île-de-France en 2026, pose et matériel inclus.
                   </p>
 
                   {/* Tableau */}

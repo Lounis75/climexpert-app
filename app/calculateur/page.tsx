@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import CalculateurClient from "./CalculateurClient";
 
 export const metadata: Metadata = {
-  title: "Calculateur Climatisation Île-de-France — Estimation Gratuite | ClimExpert",
+  title: "Calculateur Climatisation Île-de-France — Estimation Gratuite",
   description:
     "Calculez la puissance et le prix de votre climatisation en 2 minutes. Monosplit, multisplit, gainable — estimation personnalisée selon votre logement. Devis gratuit sous 24h.",
   keywords:

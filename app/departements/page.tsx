@@ -8,7 +8,7 @@ import { DEPARTEMENTS } from "@/lib/departements";
 const BASE = "https://climexpert.fr";
 
 export const metadata: Metadata = {
-  title: "Climatisation par département en Île-de-France | ClimExpert",
+  title: "Climatisation par département en Île-de-France",
   description:
     "Installation, entretien et dépannage de climatisation dans les 8 départements d'Île-de-France : Paris (75), Hauts-de-Seine (92), Seine-Saint-Denis (93), Val-de-Marne (94), Essonne (91), Yvelines (78), Seine-et-Marne (77), Val-d'Oise (95). Techniciens RGE.",
   keywords:

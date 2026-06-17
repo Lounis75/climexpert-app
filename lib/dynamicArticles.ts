@@ -17,6 +17,21 @@ export async function getDynamicArticles(): Promise<Article[]> {
   }
 }
 
+/** Un article est public si sa date de publication programmée est absente ou
+ *  déjà passée. Les articles statiques (sans publishedAt) sont toujours publics. */
+export function isPublished(article: Pick<Article, "publishedAt">): boolean {
+  if (!article.publishedAt) return true;
+  return new Date(article.publishedAt).getTime() <= Date.now();
+}
+
+/** Articles dynamiques visibles publiquement (exclut les articles programmés
+ *  dont la date est dans le futur). À utiliser sur le site ; l'admin utilise
+ *  getDynamicArticles() pour tout voir. */
+export async function getPublishedDynamicArticles(): Promise<Article[]> {
+  const all = await getDynamicArticles();
+  return all.filter(isPublished);
+}
+
 export async function getDynamicArticleBySlug(slug: string): Promise<Article | undefined> {
   try {
     const [row] = await db.select().from(dynamicArticles).where(eq(dynamicArticles.slug, slug));
