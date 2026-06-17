@@ -433,47 +433,6 @@ export default function ArticleEditor({ initialArticle, isEditing }: Props) {
         </Field>
       </Card>
 
-      {/* Publication / programmation */}
-      <Card title="Publication">
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => setField("publishAt", "")}
-            className={`flex-1 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all ${
-              !draft.publishAt
-                ? "border-sky-500/60 bg-sky-500/10 text-sky-300"
-                : "border-white/10 bg-slate-800/60 text-slate-400 hover:border-white/20"
-            }`}
-          >
-            Publier maintenant
-          </button>
-          <button
-            type="button"
-            onClick={() => { if (!draft.publishAt) setField("publishAt", defaultScheduleLocal()); }}
-            className={`flex-1 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all ${
-              draft.publishAt
-                ? "border-sky-500/60 bg-sky-500/10 text-sky-300"
-                : "border-white/10 bg-slate-800/60 text-slate-400 hover:border-white/20"
-            }`}
-          >
-            Programmer
-          </button>
-        </div>
-        {draft.publishAt && (
-          <Field label="Date et heure de publication">
-            <input
-              type="datetime-local"
-              value={draft.publishAt}
-              onChange={(e) => setField("publishAt", e.target.value)}
-              className={`${inputClass} [color-scheme:dark]`}
-            />
-            <p className="text-xs text-sky-400/80 mt-1">
-              L&apos;article restera masqué du site et n&apos;apparaîtra qu&apos;à cette date (mise en ligne automatique sous ~1 min).
-            </p>
-          </Field>
-        )}
-      </Card>
-
       {/* Image hero — drag & drop */}
       <Card title="Image principale">
         <input
@@ -661,6 +620,47 @@ export default function ArticleEditor({ initialArticle, isEditing }: Props) {
             className={inputClass}
           />
         </Field>
+      </Card>
+
+      {/* Publication / programmation */}
+      <Card title="Publication">
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setField("publishAt", "")}
+            className={`flex-1 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all ${
+              !draft.publishAt
+                ? "border-sky-500/60 bg-sky-500/10 text-sky-300"
+                : "border-white/10 bg-slate-800/60 text-slate-400 hover:border-white/20"
+            }`}
+          >
+            Publier maintenant
+          </button>
+          <button
+            type="button"
+            onClick={() => { if (!draft.publishAt) setField("publishAt", defaultScheduleLocal()); }}
+            className={`flex-1 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all ${
+              draft.publishAt
+                ? "border-sky-500/60 bg-sky-500/10 text-sky-300"
+                : "border-white/10 bg-slate-800/60 text-slate-400 hover:border-white/20"
+            }`}
+          >
+            Programmer la publication
+          </button>
+        </div>
+        {draft.publishAt && (
+          <Field label="Date et heure de publication">
+            <input
+              type="datetime-local"
+              value={draft.publishAt}
+              onChange={(e) => setField("publishAt", e.target.value)}
+              className={`${inputClass} [color-scheme:dark]`}
+            />
+            <p className="text-xs text-sky-400/80 mt-1">
+              L&apos;article restera masqué du site et n&apos;apparaîtra qu&apos;à cette date (mise en ligne automatique sous ~1 min).
+            </p>
+          </Field>
+        )}
       </Card>
 
       {/* Actions bottom */}
