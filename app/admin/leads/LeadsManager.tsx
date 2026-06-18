@@ -2,11 +2,12 @@
 
 import { useState, useRef, useMemo, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import {
   Phone, Bot, FileText, MapPin, Wrench,
   MessageSquare, Clock, LayoutList, Columns3, UserPlus, CheckCircle2,
   AlertTriangle, GitMerge, X, Search, Mail, ChevronRight, Briefcase, Plus,
-  Pencil, Check, ShieldCheck,
+  Pencil, Check, ShieldCheck, CalendarPlus,
 } from "lucide-react";
 import type { Lead, LeadStatus } from "@/lib/leads";
 import { detectDuplicates } from "@/lib/leads-utils";
@@ -1063,6 +1064,16 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
                     </button>
                   ) : null}
                 </div>
+
+                {/* Client gagné & converti → créer l'intervention (date + technicien) */}
+                {lead.status === "gagné" && isConverted && lead.clientId && (
+                  <Link
+                    href={`/admin/interventions/new?client=${lead.clientId}`}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-sky-500 hover:bg-sky-400 text-white rounded-xl text-sm font-semibold transition-colors mt-1"
+                  >
+                    <CalendarPlus className="w-4 h-4" /> Créer l&apos;intervention
+                  </Link>
+                )}
 
               </div>
             </div>

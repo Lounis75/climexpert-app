@@ -147,7 +147,7 @@ export default async function DevisDetailPage({
               </span>
             </Link>
           ) : (
-            <Link href="/admin/interventions/new"
+            <Link href={d.clientId ? `/admin/interventions/new?client=${d.clientId}` : "/admin/interventions/new"}
               className="flex items-center gap-3 bg-sky-500/[0.07] border border-sky-500/25 rounded-2xl p-4 hover:border-sky-500/40 transition-colors group">
               <div className="w-9 h-9 rounded-lg bg-sky-500/15 border border-sky-500/25 text-sky-400 flex items-center justify-center flex-shrink-0">
                 <CalendarPlus className="w-4 h-4" />

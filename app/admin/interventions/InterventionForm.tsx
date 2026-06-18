@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import type { Client, Technicien } from "@/lib/db/schema";
@@ -22,11 +22,14 @@ export default function InterventionForm({
   techniciens: Technicien[];
 }) {
   const router = useRouter();
-  const [clientId, setClientId] = useState(clients[0]?.id ?? "");
+  const searchParams = useSearchParams();
+  // Client pré-sélectionné via ?client=<id> (depuis la fiche prospect / le devis).
+  const preClient = clients.find((c) => c.id === searchParams.get("client")) ?? clients[0];
+  const [clientId, setClientId] = useState(preClient?.id ?? "");
   const [type, setType] = useState("installation");
   const [scheduledAt, setScheduledAt] = useState("");
   const [technicienId, setTechnicienId] = useState("");
-  const [address, setAddress] = useState("");
+  const [address, setAddress] = useState(preClient?.address ?? "");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
