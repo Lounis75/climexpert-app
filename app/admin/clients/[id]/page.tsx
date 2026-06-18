@@ -1,5 +1,8 @@
 import AdminHeader from "@/components/AdminHeader";
 import { getClientActivity } from "@/lib/clients";
+import { db } from "@/lib/db";
+import { leads, techniciens } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import { centimesToEuros, STATUS_DEVIS } from "@/lib/devis";
 import { STATUS_FACTURE } from "@/lib/factures";
 import { notFound } from "next/navigation";
@@ -60,6 +63,16 @@ export default async function ClientDetailPage({
   const c = await getClientActivity(id);
   if (!c) notFound();
 
+  // Commercial affecté : résolu via le prospect (lead) d'origine
+  let commercial: string | null = null;
+  if (c.leadId) {
+    const [lead] = await db.select({ commercialId: leads.commercialId }).from(leads).where(eq(leads.id, c.leadId)).limit(1);
+    if (lead?.commercialId) {
+      const [tech] = await db.select({ name: techniciens.name, prenom: techniciens.prenom }).from(techniciens).where(eq(techniciens.id, lead.commercialId)).limit(1);
+      if (tech) commercial = tech.prenom ? `${tech.prenom} ${tech.name}` : tech.name;
+    }
+  }
+
   const caTotal = c.facturesList
     .filter((f) => f.status === "payée")
     .reduce((s, f) => s + (f.totalTtcCt ?? 0), 0);
@@ -107,11 +120,23 @@ export default async function ClientDetailPage({
           </Link>
           <div className="flex-1 min-w-0">
             <h1 className="text-2xl font-bold text-white">{c.name}</h1>
-            {c.clientToken && (
-              <Link href={`/suivi/${c.clientToken}`} target="_blank" className="text-xs text-sky-500 hover:text-sky-400 underline underline-offset-2 mt-0.5 inline-block">
-                Portail client →
-              </Link>
-            )}
+            <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+              {c.clientToken && (
+                <Link href={`/suivi/${c.clientToken}`} target="_blank" className="text-xs text-sky-500 hover:text-sky-400 underline underline-offset-2">
+                  Portail client →
+                </Link>
+              )}
+              <span className="inline-flex items-center gap-1.5 text-xs text-slate-400">
+                <span className="text-slate-500">Commercial :</span>
+                {commercial ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300 font-medium">
+                    {commercial}
+                  </span>
+                ) : (
+                  <span className="text-slate-500 italic">non affecté</span>
+                )}
+              </span>
+            </div>
           </div>
         </div>
 
