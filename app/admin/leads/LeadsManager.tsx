@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import type { Lead, LeadStatus } from "@/lib/leads";
 import { detectDuplicates } from "@/lib/leads-utils";
+import AddressAutocomplete from "@/components/AddressAutocomplete";
 
 const STATUS_CONFIG: Record<LeadStatus, { label: string; color: string; col: string }> = {
   nouveau:          { label: "Nouveau",          color: "bg-sky-500/10 text-sky-400 border-sky-500/30",       col: "border-t-sky-500" },
@@ -772,7 +773,10 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
                     </div>
                     <div>
                       <label className="text-slate-400 text-[11px] block mb-1">Adresse du chantier</label>
-                      <input value={editForm.address} onChange={(e) => setEditForm(f => ({ ...f, address: e.target.value }))}
+                      <AddressAutocomplete
+                        value={editForm.address}
+                        onChange={(v) => setEditForm(f => ({ ...f, address: v }))}
+                        onSelect={(s) => setEditForm(f => ({ ...f, address: s.label, location: f.location || `${s.postcode} ${s.city}` }))}
                         placeholder="12 rue de la Paix, 75002 Paris"
                         className="w-full bg-slate-900/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-sm placeholder-slate-600 focus:outline-none focus:border-sky-500/50" />
                     </div>
@@ -1209,10 +1213,10 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
               {/* Adresse */}
               <div>
                 <label className="text-slate-400 text-xs font-medium block mb-1">Adresse du chantier</label>
-                <input
-                  type="text"
+                <AddressAutocomplete
                   value={addForm.address}
-                  onChange={e => setAddForm(f => ({ ...f, address: e.target.value }))}
+                  onChange={(v) => setAddForm(f => ({ ...f, address: v }))}
+                  onSelect={(s) => setAddForm(f => ({ ...f, address: s.label, location: f.location || `${s.postcode} ${s.city}` }))}
                   placeholder="12 rue de la Paix, 75002 Paris"
                   className="w-full bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-sky-500/50"
                 />
