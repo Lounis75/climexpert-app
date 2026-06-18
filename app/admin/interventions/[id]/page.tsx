@@ -1,5 +1,5 @@
 import AdminHeader from "@/components/AdminHeader";
-import { getInterventionById, TYPE_LABELS, TYPE_COLORS, STATUS_INTERVENTION } from "@/lib/interventions";
+import { getInterventionById, getTechniciens, TYPE_LABELS, TYPE_COLORS, STATUS_INTERVENTION } from "@/lib/interventions";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Calendar, User, MapPin, Wrench, FileText } from "lucide-react";
@@ -21,8 +21,11 @@ export default async function InterventionDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const i = await getInterventionById(id);
+  const [i, techniciens] = await Promise.all([getInterventionById(id), getTechniciens()]);
   if (!i) notFound();
+  const techList = techniciens
+    .filter((t) => !t.supprimeLe)
+    .map((t) => ({ id: t.id, name: t.prenom ? `${t.prenom} ${t.name}` : t.name }));
 
   const status = STATUS_INTERVENTION[i.status] ?? STATUS_INTERVENTION.planifiée;
   const typeColor = TYPE_COLORS[i.type] ?? TYPE_COLORS.autre;
@@ -51,7 +54,15 @@ export default async function InterventionDetailPage({
               <p className="text-slate-400 text-sm mt-0.5 capitalize">{formatDateLong(i.scheduledAt)}</p>
             </div>
           </div>
-          <InterventionActions id={i.id} currentStatus={i.status} notes={i.notes ?? ""} />
+          <InterventionActions
+            id={i.id}
+            currentStatus={i.status}
+            notes={i.notes ?? ""}
+            techniciens={techList}
+            currentTechnicienId={i.technicienId ?? ""}
+            currentScheduledAt={i.scheduledAt ? new Date(i.scheduledAt).toISOString() : ""}
+            currentType={i.type}
+          />
         </div>
 
         {/* Infos */}

@@ -95,6 +95,32 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       return NextResponse.json({ ok: true, newInterventionId: newId, rdvToken });
     }
 
+    // Planification : définit date + technicien (et type éventuel) sur une intervention
+    if (body.action === "planifier") {
+      const [interv] = await db.select().from(interventions).where(eq(interventions.id, id)).limit(1);
+      if (!interv) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+
+      const patch: Record<string, unknown> = { status: "planifiée", updatedAt: new Date() };
+      if (body.scheduledAt) patch.scheduledAt = new Date(body.scheduledAt);
+      if (body.technicienId !== undefined) patch.technicienId = body.technicienId || null;
+      if (body.type) patch.type = body.type;
+      if (body.address !== undefined) patch.address = body.address || null;
+      await db.update(interventions).set(patch).where(eq(interventions.id, id));
+
+      // Notifie le technicien affecté (table notifications polymorphe : adminId = technicienId)
+      if (body.technicienId) {
+        try {
+          await db.insert(notifications).values({
+            id: createId(), adminId: body.technicienId, type: "nouvelle_intervention",
+            titre: "Nouvelle intervention planifiée",
+            contenu: body.scheduledAt ? `Le ${new Date(body.scheduledAt).toLocaleString("fr-FR")}` : "Date à confirmer",
+            refType: "intervention", refId: id,
+          });
+        } catch (e) { console.error("[planifier] notif technicien:", e); }
+      }
+      return NextResponse.json({ ok: true });
+    }
+
     if (body.status) {
       const i = await updateInterventionStatus(id, body.status as Intervention["status"]);
       if (!i) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
