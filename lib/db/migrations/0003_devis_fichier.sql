@@ -1,0 +1,1 @@
+ALTER TABLE "devis" ADD COLUMN "fichier_url" text;

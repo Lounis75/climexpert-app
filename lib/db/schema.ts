@@ -207,6 +207,7 @@ export const devis = pgTable("devis", {
   totalTtcCt:  integer("total_ttc_ct"),       // centimes
   tvaRate:     numeric("tva_rate", { precision: 5, scale: 2 }).default("5.5"),
   description: text("description"),
+  fichierUrl:  text("fichier_url"),           // PDF du devis joint (R2), saisi à l'envoi
   validUntil:   date("valid_until"),
   pennylaneId:  varchar("pennylane_id", { length: 100 }),
   publicToken:  varchar("public_token", { length: 100 }).unique(),

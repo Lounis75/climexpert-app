@@ -140,6 +140,19 @@ export async function updateDevisStatus(
   return d ?? null;
 }
 
+/** Mise à jour des infos d'envoi : montant HT/TTC et fichier joint (PDF). */
+export async function updateDevisEnvoi(
+  id: string,
+  data: { totalHtCt?: number; totalTtcCt?: number; fichierUrl?: string | null; status?: Devis["status"] }
+): Promise<Devis | null> {
+  const [d] = await db
+    .update(devis)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(devis.id, id))
+    .returning();
+  return d ?? null;
+}
+
 export async function deleteDevis(id: string): Promise<void> {
   await db.delete(lignesDevis).where(eq(lignesDevis.devisId, id));
   await db.delete(devis).where(eq(devis.id, id));

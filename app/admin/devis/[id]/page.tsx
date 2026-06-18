@@ -60,7 +60,13 @@ export default async function DevisDetailPage({
               <Download className="w-3.5 h-3.5" /> PDF
             </a>
             <SendEmailButton devisId={d.id} clientEmail={d.clientEmail ?? null} />
-            <DevisActions id={d.id} currentStatus={d.status} />
+            <DevisActions
+              id={d.id}
+              currentStatus={d.status}
+              currentHtEuros={(d.totalHtCt ?? totalHt) / 100}
+              currentTtcEuros={(d.totalTtcCt ?? totalTtc) / 100}
+              currentFichierUrl={d.fichierUrl}
+            />
           </div>
         </div>
 
@@ -73,6 +79,16 @@ export default async function DevisDetailPage({
               <p className="text-white text-sm font-medium">{d.clientName}</p>
             </div>
           </div>
+          {d.fichierUrl && (
+            <a href={d.fichierUrl} target="_blank" rel="noopener noreferrer"
+              className="bg-slate-800/40 border border-emerald-500/20 rounded-xl px-4 py-3 flex items-center gap-3 hover:border-emerald-500/40 transition-colors group">
+              <FileText className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs text-slate-500">Devis joint</p>
+                <p className="text-emerald-300 text-sm font-medium group-hover:text-white transition-colors">Ouvrir le PDF</p>
+              </div>
+            </a>
+          )}
           {d.validUntil && (
             <div className="bg-slate-800/40 border border-white/8 rounded-xl px-4 py-3 flex items-center gap-3">
               <Calendar className="w-4 h-4 text-slate-500 flex-shrink-0" />
