@@ -185,6 +185,10 @@ export const leads = pgTable("leads", {
   notes:               text("notes"),
   clientId:            text("client_id").references(() => clients.id),
   commercialId:        text("commercial_id").references(() => techniciens.id),
+  // Consentement RGPD au démarchage commercial (opt-in). La prise de contact
+  // sur sa propre demande (devis) reste licite sans consentement.
+  consentementMarketing: boolean("consentement_marketing").default(false).notNull(),
+  consentementLe:        timestamp("consentement_le"),
   createdAt:           timestamp("created_at").defaultNow().notNull(),
   updatedAt:           timestamp("updated_at").defaultNow().notNull(),
   supprimeLe:          timestamp("supprime_le"),

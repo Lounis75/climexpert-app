@@ -33,9 +33,10 @@ interface FormState {
   telephone: string;
   email: string;
   message: string;
+  consent: boolean;
 }
 
-const initialForm: FormState = { type: "", bien: "", ville: "", nom: "", telephone: "", email: "", message: "" };
+const initialForm: FormState = { type: "", bien: "", ville: "", nom: "", telephone: "", email: "", message: "", consent: false };
 
 function openChat() {
   window.dispatchEvent(new CustomEvent("open-chat"));
@@ -230,6 +231,20 @@ export default function ContactClient() {
                     </label>
                     <textarea id="message" name="message" value={form.message} onChange={handleChange} rows={3} placeholder="Précisez votre demande, le nombre de pièces, la marque de votre appareil..." className={`${inputBase} resize-none`} />
                   </div>
+
+                  {/* Consentement RGPD (démarchage) — facultatif */}
+                  <label className="flex items-start gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={form.consent}
+                      onChange={(e) => setForm((p) => ({ ...p, consent: e.target.checked }))}
+                      className="mt-0.5 w-4 h-4 rounded border-slate-500 bg-transparent text-sky-500 focus:ring-sky-500/40 flex-shrink-0"
+                    />
+                    <span className="text-slate-400 text-xs leading-relaxed">
+                      J&apos;accepte que ClimExpert me recontacte pour des offres commerciales et conseils.
+                      Facultatif — vous pouvez vous désinscrire à tout moment. Vos données ne sont jamais revendues.
+                    </span>
+                  </label>
 
                   {status === "error" && (
                     <p className="text-red-500 text-sm">Une erreur est survenue. Réessayez ou appelez le 06 67 43 27 67.</p>

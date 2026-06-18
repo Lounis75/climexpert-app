@@ -43,6 +43,13 @@
       "when": 1781772147519,
       "tag": "0005_rapport_entretien_signature",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1781773846381,
+      "tag": "0006_lead_consentement",
+      "breakpoints": true
     }
   ]
 }

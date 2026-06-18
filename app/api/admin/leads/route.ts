@@ -5,7 +5,7 @@ import type { LeadStatus } from "@/lib/leads";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { name, phone, source, project, location, address, email, notes } = body;
+    const { name, phone, source, project, location, address, email, notes, consentementMarketing } = body;
     if (!name?.trim() || !phone?.trim()) {
       return NextResponse.json({ error: "Nom et téléphone requis" }, { status: 400 });
     }
@@ -18,6 +18,8 @@ export async function POST(req: NextRequest) {
       address: address?.trim() || undefined,
       email: email?.trim() || undefined,
       notes: notes?.trim() || undefined,
+      consentementMarketing: consentementMarketing === true,
+      consentementLe: consentementMarketing === true ? new Date() : undefined,
     });
     return NextResponse.json({ lead });
   } catch {
@@ -44,6 +46,10 @@ export async function PATCH(req: NextRequest) {
     if (fields.location !== undefined)     allowed.location = (fields.location?.trim() || null);
     if (fields.address !== undefined)      allowed.address = (fields.address?.trim() || null);
     if (fields.project !== undefined)      allowed.project = (fields.project || null);
+    if (fields.consentementMarketing !== undefined) {
+      allowed.consentementMarketing = fields.consentementMarketing === true;
+      allowed.consentementLe = fields.consentementMarketing === true ? new Date() : null;
+    }
 
     if (Object.keys(allowed).length === 0) {
       return NextResponse.json({ error: "Aucun champ à mettre à jour" }, { status: 400 });

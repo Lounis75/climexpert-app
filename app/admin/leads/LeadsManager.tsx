@@ -5,7 +5,7 @@ import {
   Phone, Bot, FileText, MapPin, Wrench,
   MessageSquare, Clock, LayoutList, Columns3, UserPlus, CheckCircle2,
   AlertTriangle, GitMerge, X, Search, Mail, ChevronRight, Briefcase, Plus,
-  Pencil, Check,
+  Pencil, Check, ShieldCheck,
 } from "lucide-react";
 import type { Lead, LeadStatus } from "@/lib/leads";
 import { detectDuplicates } from "@/lib/leads-utils";
@@ -52,7 +52,7 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
   const [merging, setMerging] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [addForm, setAddForm] = useState({ name: "", phone: "", source: "téléphone", project: "", location: "", address: "", email: "", notes: "" });
+  const [addForm, setAddForm] = useState({ name: "", phone: "", source: "téléphone", project: "", location: "", address: "", email: "", notes: "", consentementMarketing: false });
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState("");
   const [editingLead, setEditingLead] = useState(false);
@@ -199,7 +199,7 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
         const { lead } = await res.json();
         setLeads((prev) => [lead, ...prev]);
         setShowAddModal(false);
-        setAddForm({ name: "", phone: "", source: "téléphone", project: "", location: "", address: "", email: "", notes: "" });
+        setAddForm({ name: "", phone: "", source: "téléphone", project: "", location: "", address: "", email: "", notes: "", consentementMarketing: false });
       } else {
         const data = await res.json();
         setAddError(data.error ?? "Erreur lors de la création.");
@@ -924,6 +924,37 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
                   </div>
                 )}
 
+                {/* Consentement RGPD (démarchage) */}
+                <div>
+                  <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide flex items-center gap-1.5">
+                    <ShieldCheck className="w-3 h-3" /> Démarchage commercial
+                  </p>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const next = !(lead as Lead).consentementMarketing;
+                      await fetch("/api/admin/leads", {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ id: lead.id, consentementMarketing: next }),
+                      });
+                      setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, consentementMarketing: next } as Lead : l));
+                      setSelectedLead(prev => prev ? { ...prev, consentementMarketing: next } as Lead : null);
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border text-sm transition-colors ${
+                      (lead as Lead).consentementMarketing
+                        ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                        : "bg-slate-800/60 border-white/10 text-slate-400 hover:border-white/20"
+                    }`}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      {(lead as Lead).consentementMarketing ? <Check className="w-3.5 h-3.5" /> : null}
+                      {(lead as Lead).consentementMarketing ? "Consentement donné" : "Pas de consentement"}
+                    </span>
+                    <span className="text-xs opacity-70">{(lead as Lead).consentementMarketing ? "Retirer" : "Marquer accordé"}</span>
+                  </button>
+                </div>
+
                 {/* Notes */}
                 <div>
                   <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide">Note interne</p>
@@ -1233,6 +1264,20 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
                   className="w-full bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-sky-500/50 resize-none"
                 />
               </div>
+
+              {/* Consentement RGPD (démarchage) */}
+              <label className="flex items-start gap-2.5 cursor-pointer bg-slate-800/40 border border-white/8 rounded-xl px-3 py-2.5">
+                <input
+                  type="checkbox"
+                  checked={addForm.consentementMarketing}
+                  onChange={e => setAddForm(f => ({ ...f, consentementMarketing: e.target.checked }))}
+                  className="mt-0.5 w-4 h-4 rounded border-slate-500 bg-transparent text-sky-500 focus:ring-sky-500/40 flex-shrink-0"
+                />
+                <span className="text-slate-400 text-xs leading-relaxed">
+                  Le contact <span className="text-slate-300 font-medium">accepte d&apos;être démarché</span> (offres commerciales).
+                  À cocher uniquement si la personne a donné son accord.
+                </span>
+              </label>
 
               {/* Actions */}
               <div className="flex gap-2 pt-1">
