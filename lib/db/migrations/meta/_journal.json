@@ -50,6 +50,13 @@
       "when": 1781773846381,
       "tag": "0006_lead_consentement",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1781776721116,
+      "tag": "0007_utilisateur_activation",
+      "breakpoints": true
     }
   ]
 }

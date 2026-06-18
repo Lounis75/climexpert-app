@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { utilisateurs, techniciens, type Utilisateur, type NewUtilisateur } from "@/lib/db/schema";
 import { eq, isNull } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
+import { randomBytes } from "node:crypto";
 
 export type { Utilisateur };
 
@@ -95,6 +96,11 @@ export async function updateUtilisateur(
   if (!u) return null;
   // Si un rôle terrain vient d'être ajouté, on (re)lie une fiche technicien.
   const technicienId = await ensureTechnicienLink(u);
+  // Propage l'état actif/inactif vers la fiche technicien → la (dé)sactivation d'un
+  // salarié coupe/rouvre ses accès terrain (la garde de session relit techniciens.active).
+  if (typeof data.actif === "boolean" && technicienId) {
+    await db.update(techniciens).set({ active: data.actif }).where(eq(techniciens.id, technicienId));
+  }
   return { ...u, technicienId };
 }
 
@@ -106,6 +112,39 @@ export async function setUtilisateurPassword(id: string, passwordHash: string): 
     .where(eq(utilisateurs.id, id));
 }
 
+/** Génère un token d'activation (72 h) pour que le salarié choisisse son mot de passe. */
+export async function setActivationToken(id: string): Promise<string> {
+  const token = randomBytes(32).toString("hex");
+  const expiresAt = new Date(Date.now() + 72 * 3600 * 1000);
+  await db
+    .update(utilisateurs)
+    .set({ activationToken: token, activationExpiresAt: expiresAt, updatedAt: new Date() })
+    .where(eq(utilisateurs.id, id));
+  return token;
+}
+
+export async function getUtilisateurByActivationToken(token: string): Promise<Utilisateur | null> {
+  if (!token) return null;
+  const [u] = await db.select().from(utilisateurs).where(eq(utilisateurs.activationToken, token)).limit(1);
+  return u ?? null;
+}
+
+/** Active le compte : pose le mot de passe choisi, consomme le token. */
+export async function activateUtilisateur(id: string, passwordHash: string): Promise<void> {
+  await db
+    .update(utilisateurs)
+    .set({
+      passwordHash, doitDefinirMdp: false, actif: true,
+      activationToken: null, activationExpiresAt: null, updatedAt: new Date(),
+    })
+    .where(eq(utilisateurs.id, id));
+}
+
 export async function deleteUtilisateur(id: string): Promise<void> {
+  const u = await getUtilisateurById(id);
   await db.update(utilisateurs).set({ supprimeLe: new Date(), actif: false }).where(eq(utilisateurs.id, id));
+  // Révoque aussi l'accès terrain lié (la garde de session relit techniciens).
+  if (u?.technicienId) {
+    await db.update(techniciens).set({ active: false, supprimeLe: new Date() }).where(eq(techniciens.id, u.technicienId));
+  }
 }

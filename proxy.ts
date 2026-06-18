@@ -7,9 +7,40 @@ const PUBLIC_PATHS = [
   "/api/admin/setup",   // création premier admin
 ];
 
+// Chemins publics des espaces salariés (login, activation, consommation du lien magique).
+const TECH_PUBLIC = ["/technicien/login", "/technicien/activation", "/api/technicien/login", "/api/technicien/verify"];
+const COMMERCIAL_PUBLIC = ["/commercial/login", "/commercial/activation", "/api/commercial/login", "/api/commercial/verify"];
+
 function getSecret(): Uint8Array {
   const secret = process.env.NEXTAUTH_SECRET ?? "";
   return new TextEncoder().encode(secret);
+}
+
+function matchesAny(pathname: string, paths: string[]): boolean {
+  return paths.some((p) => pathname === p || pathname.startsWith(p + "/"));
+}
+
+/** Garde optimiste : exige un cookie de session au JWT valide (signature + expiration).
+ *  L'autorisation fine (rôle, compte actif/non supprimé) est faite dans la couche
+ *  données — la doc Next recommande de ne PAS faire d'auth complète dans le proxy. */
+async function guardSpace(req: NextRequest, cookieName: string, loginPath: string): Promise<NextResponse> {
+  const { pathname } = req.nextUrl;
+  const isApi = pathname.startsWith("/api/");
+  const token = req.cookies.get(cookieName)?.value;
+
+  if (!token) {
+    if (isApi) return NextResponse.json({ error: "Session expirée — reconnectez-vous" }, { status: 401 });
+    return NextResponse.redirect(new URL(loginPath, req.url));
+  }
+  try {
+    await jwtVerify(token, getSecret());
+    return NextResponse.next();
+  } catch {
+    if (isApi) return NextResponse.json({ error: "Session expirée — reconnectez-vous" }, { status: 401 });
+    const res = NextResponse.redirect(new URL(loginPath, req.url));
+    res.cookies.set(cookieName, "", { maxAge: 0, path: "/" });
+    return res;
+  }
 }
 
 export async function proxy(req: NextRequest) {
@@ -25,16 +56,27 @@ export async function proxy(req: NextRequest) {
     return NextResponse.rewrite(url);
   }
 
+  // Espace technicien
+  if (pathname.startsWith("/technicien") || pathname.startsWith("/api/technicien")) {
+    if (matchesAny(pathname, TECH_PUBLIC)) return NextResponse.next();
+    return guardSpace(req, "tech_token", "/technicien/login");
+  }
+
+  // Espace commercial
+  if (pathname.startsWith("/commercial") || pathname.startsWith("/api/commercial")) {
+    if (matchesAny(pathname, COMMERCIAL_PUBLIC)) return NextResponse.next();
+    return guardSpace(req, "commercial_token", "/commercial/login");
+  }
+
   if (!pathname.startsWith("/admin") && !pathname.startsWith("/api/admin")) {
     return NextResponse.next();
   }
 
-  if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
+  if (matchesAny(pathname, PUBLIC_PATHS)) {
     return NextResponse.next();
   }
 
   const token = req.cookies.get("admin_token")?.value;
-
   const isApiRoute = pathname.startsWith("/api/");
 
   if (!token) {
@@ -57,6 +99,10 @@ export const config = {
   matcher: [
     "/admin/:path*",
     "/api/admin/:path*",
+    "/technicien/:path*",
+    "/api/technicien/:path*",
+    "/commercial/:path*",
+    "/api/commercial/:path*",
     "/((?!_next/static|_next/image|favicon.ico|icon.svg|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)).*)",
   ],
 };

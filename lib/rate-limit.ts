@@ -18,7 +18,16 @@ export function rateLimit(key: string, max: number, windowMs: number): boolean {
   return true;
 }
 
-/** Extrait l'IP cliente d'une requête (header x-forwarded-for de Vercel). */
+/** Extrait l'IP cliente. On privilégie `x-real-ip` (posé par Vercel = vraie IP,
+ *  non spoofable par le client), puis le DERNIER segment de x-forwarded-for
+ *  (ajouté par le proxy de confiance) — pas le premier, qui est client-spoofable. */
 export function clientIp(req: Request): string {
-  return req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
+  const realIp = req.headers.get("x-real-ip")?.trim();
+  if (realIp) return realIp;
+  const xff = req.headers.get("x-forwarded-for");
+  if (xff) {
+    const parts = xff.split(",").map((s) => s.trim()).filter(Boolean);
+    if (parts.length) return parts[parts.length - 1];
+  }
+  return "unknown";
 }

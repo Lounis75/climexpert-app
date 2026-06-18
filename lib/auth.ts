@@ -1,9 +1,24 @@
 import { SignJWT, jwtVerify } from "jose";
+import { db } from "@/lib/db";
+import { techniciens } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 
 export interface AdminSession {
   sub: string;   // admin id
   email: string;
   nom: string;
+}
+
+// Révocation : une session technicien/commercial n'est valide que si la fiche
+// technicien est toujours active et non supprimée. Désactiver/supprimer un salarié
+// coupe donc ses accès au prochain appel (la couche données fait foi, cf. doc Proxy).
+async function technicienEstActif(id: string): Promise<boolean> {
+  const [t] = await db
+    .select({ active: techniciens.active, supprimeLe: techniciens.supprimeLe })
+    .from(techniciens)
+    .where(eq(techniciens.id, id))
+    .limit(1);
+  return !!t && t.active === true && !t.supprimeLe;
 }
 
 function getSecret(): Uint8Array {
@@ -48,7 +63,7 @@ export async function signTechnicienToken(payload: TechnicienSession): Promise<s
   return new SignJWT({ ...payload, role: "technicien" })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("30d")
+    .setExpirationTime("7d")
     .sign(getSecret());
 }
 
@@ -56,6 +71,7 @@ export async function verifyTechnicienToken(token: string): Promise<TechnicienSe
   try {
     const { payload } = await jwtVerify(token, getSecret());
     if (payload.role !== "technicien") return null;
+    if (!(await technicienEstActif(payload.sub as string))) return null;
     return {
       sub:   payload.sub as string,
       email: payload.email as string,
@@ -80,7 +96,7 @@ export async function signCommercialToken(payload: CommercialSession): Promise<s
   return new SignJWT({ ...payload, role: "commercial" })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("30d")
+    .setExpirationTime("7d")
     .sign(getSecret());
 }
 
@@ -88,6 +104,7 @@ export async function verifyCommercialToken(token: string): Promise<CommercialSe
   try {
     const { payload } = await jwtVerify(token, getSecret());
     if (payload.role !== "commercial") return null;
+    if (!(await technicienEstActif(payload.sub as string))) return null;
     return {
       sub:   payload.sub as string,
       email: payload.email as string,

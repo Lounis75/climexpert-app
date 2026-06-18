@@ -130,6 +130,10 @@ export const utilisateurs = pgTable("utilisateurs", {
   totpSecret:    text("totp_secret"),            // 2FA optionnelle (admins)
   doitDefinirMdp: boolean("doit_definir_mdp").default(true).notNull(), // 1ʳᵉ connexion
   actif:         boolean("actif").default(true).notNull(),
+  // Activation : token à usage unique envoyé par email pour que le salarié
+  // CHOISISSE son mot de passe (au lieu d'en recevoir un en clair).
+  activationToken:     text("activation_token").unique(),
+  activationExpiresAt: timestamp("activation_expires_at"),
   // Lien vers la fiche technicien historique (interventions/rapports) si applicable.
   technicienId:  text("technicien_id"),
   createdAt:     timestamp("created_at").defaultNow().notNull(),

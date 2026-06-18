@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUtilisateurByEmail } from "@/lib/utilisateurs";
-import { verifyPassword } from "@/lib/password";
+import { verifyPassword, hashPassword } from "@/lib/password";
 import {
   signAdminToken, signTechnicienToken, signCommercialToken,
   COOKIE_NAME, TECH_COOKIE_NAME, COMMERCIAL_COOKIE_NAME,
@@ -8,12 +8,18 @@ import {
 import { homeSpace } from "@/lib/roles";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 
+// Hash factice pour égaliser le temps de réponse : on exécute toujours scrypt,
+// même si le compte n'existe pas, pour ne pas révéler par timing quels emails existent.
+const DUMMY_HASH = hashPassword("climexpert-dummy-password");
+
 // Connexion unifiée par identifiant (email) + mot de passe.
 // Pour rester 100 % compatible avec l'existant SANS toucher au proxy ni aux
 // gardes de page, on émet les MÊMES cookies que les logins historiques
 // (admin_token / tech_token / commercial_token) selon les rôles du salarié.
 export async function POST(req: NextRequest) {
-  if (!rateLimit(`login:${clientIp(req)}`, 10, 15 * 60 * 1000)) {
+  // Limite par IP (anti-balayage depuis une source) ET par email (anti-brute-force
+  // ciblé via un botnet multi-IP : la clé email plafonne les essais quelle que soit l'IP).
+  if (!rateLimit(`login:ip:${clientIp(req)}`, 10, 15 * 60 * 1000)) {
     return NextResponse.json({ error: "Trop de tentatives. Réessayez dans 15 minutes." }, { status: 429 });
   }
 
@@ -22,8 +28,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Identifiant et mot de passe requis" }, { status: 400 });
   }
 
+  const emailKey = email.toLowerCase().trim();
+  if (!rateLimit(`login:email:${emailKey}`, 5, 15 * 60 * 1000)) {
+    return NextResponse.json({ error: "Trop de tentatives sur ce compte. Réessayez dans 15 minutes." }, { status: 429 });
+  }
+
   const u = await getUtilisateurByEmail(email);
-  if (!u || !u.actif || u.supprimeLe || !verifyPassword(password, u.passwordHash)) {
+  // Toujours exécuter scrypt (sur le vrai hash ou un hash factice) → temps constant.
+  const passwordOk = verifyPassword(password, u?.passwordHash || DUMMY_HASH);
+  if (!u || !u.actif || u.supprimeLe || !u.passwordHash || !passwordOk) {
     return NextResponse.json({ error: "Identifiants invalides" }, { status: 401 });
   }
 
