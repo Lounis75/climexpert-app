@@ -73,7 +73,8 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
   const [commerciaux, setCommerciaux] = useState<{ id: string; name: string; prenom: string | null; color: string | null }[]>([]);
 
   useEffect(() => {
-    fetch("/api/admin/commerciaux").then(r => r.json()).then(d => setCommerciaux(d.commerciaux ?? [])).catch(() => {});
+    // Liste des commerciaux affectables (inclut les administrateurs, qui ont tous les rôles).
+    fetch("/api/admin/equipe").then(r => r.json()).then(d => setCommerciaux(d.commerciaux ?? [])).catch(() => {});
   }, []);
 
   const filtered = leads.filter((l) => {

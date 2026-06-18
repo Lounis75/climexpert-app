@@ -441,3 +441,28 @@ export async function getInterventionsDuJour(): Promise<IntervJour[]> {
     ))
     .orderBy(interventions.scheduledAt);
 }
+
+// ─── Interventions à planifier (sans date — ex. devis gagné) ─────────────────
+
+export async function getInterventionsAPlanifier(): Promise<IntervJour[]> {
+  return db
+    .select({
+      id: interventions.id,
+      clientName: clients.name,
+      type: interventions.type,
+      scheduledAt: interventions.scheduledAt,
+      status: interventions.status,
+      technicienId: interventions.technicienId,
+      technicienName: techniciens.name,
+    })
+    .from(interventions)
+    .leftJoin(clients, eq(interventions.clientId, clients.id))
+    .leftJoin(techniciens, eq(interventions.technicienId, techniciens.id))
+    .where(and(
+      isNull(interventions.scheduledAt),
+      eq(interventions.status, "planifiée"),
+      isNull(interventions.supprimeLe),
+    ))
+    .orderBy(desc(interventions.createdAt))
+    .limit(8);
+}

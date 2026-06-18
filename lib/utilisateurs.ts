@@ -1,19 +1,20 @@
 import { db } from "@/lib/db";
 import { utilisateurs, techniciens, type Utilisateur, type NewUtilisateur } from "@/lib/db/schema";
-import { eq, isNull } from "drizzle-orm";
+import { eq, isNull, and } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 import { randomBytes } from "node:crypto";
 
 export type { Utilisateur };
 
-// Les rôles "terrain" ont besoin d'une fiche technicien (leur id sert de sujet de
-// session et de clé pour les interventions). Sans elle, la connexion ne pose aucun
-// cookie et le salarié reste bloqué dehors. On provisionne donc la fiche à la volée.
-const ROLES_TERRAIN = ["technicien", "commercial"];
+// Rôles qui ont besoin d'une fiche technicien (son id sert de sujet de session,
+// de clé pour les interventions ET d'identité affectable comme commercial/technicien).
+// L'administrateur a TOUS les rôles → on lui provisionne aussi une fiche, pour qu'il
+// soit affectable partout (petite structure : le patron est commercial ET technicien).
+const ROLES_AVEC_FICHE = ["technicien", "commercial", "administrateur"];
 
-async function ensureTechnicienLink(u: Utilisateur): Promise<string | null> {
+export async function ensureTechnicienLink(u: Utilisateur): Promise<string | null> {
   if (u.technicienId) return u.technicienId;
-  if (!u.roles.some((r) => ROLES_TERRAIN.includes(r))) return null;
+  if (!u.roles.some((r) => ROLES_AVEC_FICHE.includes(r))) return null;
 
   const email = u.email.toLowerCase().trim();
   // Réutilise une fiche technicien existante (même email) sinon en crée une.
@@ -26,21 +27,56 @@ async function ensureTechnicienLink(u: Utilisateur): Promise<string | null> {
   let techId = existing?.id;
   if (!techId) {
     const fullName = u.prenom ? `${u.prenom} ${u.nom}` : u.nom;
-    const role = u.roles.includes("commercial") && !u.roles.includes("technicien")
-      ? "technico_commercial"
-      : "technicien";
-    const [t] = await db
+    // Libellé de rôle (informatif) ; les listes d'affectation se basent sur les
+    // rôles de l'UTILISATEUR, pas sur ce champ.
+    const role = u.roles.includes("administrateur")
+      ? "responsable"
+      : u.roles.includes("commercial") && !u.roles.includes("technicien")
+        ? "technico_commercial"
+        : "technicien";
+    // onConflictDoNothing + reselect : robuste à la concurrence (deux appels parallèles
+    // qui provisionnent le même email → email unique, on ne crée pas de doublon).
+    await db
       .insert(techniciens)
       .values({
         id: createId(), name: fullName, prenom: u.prenom ?? null, email,
         phone: u.phone ?? null, color: u.color ?? undefined, role, active: true, actif: true,
       })
-      .returning({ id: techniciens.id });
-    techId = t.id;
+      .onConflictDoNothing({ target: techniciens.email });
+    const [t] = await db.select({ id: techniciens.id }).from(techniciens).where(eq(techniciens.email, email)).limit(1);
+    techId = t?.id;
   }
 
+  if (!techId) return null;
   await db.update(utilisateurs).set({ technicienId: techId, updatedAt: new Date() }).where(eq(utilisateurs.id, u.id));
   return techId;
+}
+
+export type AssignOption = { id: string; name: string; prenom: string | null };
+
+/** Salariés affectables comme COMMERCIAL (rôle commercial OU administrateur),
+ *  chacun avec son id de fiche technicien (provisionnée à la volée si besoin). */
+export async function getCommerciauxAssignables(): Promise<AssignOption[]> {
+  return assignablesPourRoles(["commercial", "administrateur"]);
+}
+
+/** Salariés affectables comme TECHNICIEN (rôle technicien OU administrateur). */
+export async function getTechniciensAssignables(): Promise<AssignOption[]> {
+  return assignablesPourRoles(["technicien", "administrateur"]);
+}
+
+async function assignablesPourRoles(roles: string[]): Promise<AssignOption[]> {
+  const users = await db
+    .select()
+    .from(utilisateurs)
+    .where(and(isNull(utilisateurs.supprimeLe), eq(utilisateurs.actif, true)));
+  const eligibles = users.filter((u) => (u.roles ?? []).some((r) => roles.includes(r)));
+  const out: AssignOption[] = [];
+  for (const u of eligibles) {
+    const techId = await ensureTechnicienLink(u);
+    if (techId) out.push({ id: techId, name: u.nom, prenom: u.prenom });
+  }
+  return out;
 }
 
 export async function getUtilisateurs(): Promise<Utilisateur[]> {

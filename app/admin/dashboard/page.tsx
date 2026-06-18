@@ -1,14 +1,15 @@
-import { getDashboardStats, getTachesAFaire, getInterventionsDuJour } from "@/lib/dashboard";
+import { getDashboardStats, getTachesAFaire, getInterventionsDuJour, getInterventionsAPlanifier } from "@/lib/dashboard";
 import { getDynamicArticles } from "@/lib/dynamicArticles";
-import { getTechniciens } from "@/lib/techniciens";
+import { getCommerciauxAssignables, getTechniciensAssignables } from "@/lib/utilisateurs";
 import AdminHeader from "@/components/AdminHeader";
 import DashboardLeadRow from "@/components/DashboardLeadRow";
 import InlineAssign from "@/components/InlineAssign";
+import PlanifierInline from "@/components/PlanifierInline";
 import CalendrierDashboardWrapper from "@/components/CalendrierDashboardWrapper";
 import Link from "next/link";
 import {
   Users, FileText, ArrowRight, Wrench, Euro, AlertTriangle,
-  ClipboardList, CalendarCheck, CheckCircle2, Clock, Plus,
+  ClipboardList, CalendarCheck, CalendarPlus, CheckCircle2, Clock, Plus,
   UserCircle, Home, HeadphonesIcon, MessageSquare, TrendingUp, TrendingDown,
 } from "lucide-react";
 
@@ -42,19 +43,15 @@ const TASK_COLORS: Record<string, string> = {
 };
 
 export default async function DashboardPage() {
-  const [stats, dynamicArticles, taches, interventionsJour, techniciensList] = await Promise.all([
+  const [stats, dynamicArticles, taches, interventionsJour, interventionsAPlanifier, commerciaux, techOptions] = await Promise.all([
     getDashboardStats(),
     getDynamicArticles(),
     getTachesAFaire(),
     getInterventionsDuJour(),
-    getTechniciens(),
+    getInterventionsAPlanifier(),
+    getCommerciauxAssignables(),  // commerciaux + admins
+    getTechniciensAssignables(),  // techniciens + admins
   ]);
-
-  // Options d'affectation : commerciaux (role technico_commercial) et techniciens.
-  const commerciaux = techniciensList
-    .filter((t) => t.role === "technico_commercial")
-    .map((t) => ({ id: t.id, name: t.name, prenom: t.prenom }));
-  const techOptions = techniciensList.map((t) => ({ id: t.id, name: t.name, prenom: t.prenom }));
 
   // ─── Bloc « À faire » (action-first) : tâches en attente, factures, SAV ───────
   const tachesList = [
@@ -121,6 +118,29 @@ export default async function DashboardPage() {
             </div>
           )}
         </div>
+
+        {/* ─── À planifier (interventions sans date — ex. devis gagné) ────────────── */}
+        {interventionsAPlanifier.length > 0 && (
+          <div className="bg-slate-800/40 border border-sky-500/20 rounded-2xl overflow-hidden mb-6">
+            <div className="px-5 py-4 border-b border-white/8 flex items-center gap-2 flex-wrap">
+              <CalendarPlus className="w-4 h-4 text-sky-400" />
+              <h2 className="text-white font-semibold text-sm">À planifier</h2>
+              <span className="text-sky-400 text-xs font-bold bg-sky-500/15 px-2 py-0.5 rounded-full">{interventionsAPlanifier.length}</span>
+              <span className="text-slate-500 text-xs">interventions sans date (devis gagnés)</span>
+            </div>
+            <div className="divide-y divide-white/5">
+              {interventionsAPlanifier.map((i) => (
+                <div key={i.id} className="flex flex-col sm:flex-row sm:items-center gap-3 px-5 py-3">
+                  <Link href={`/admin/interventions/${i.id}`} className="flex-1 min-w-0 group">
+                    <p className="text-white text-sm font-medium truncate group-hover:text-sky-300 transition-colors">{i.clientName ?? "—"}</p>
+                    <p className="text-slate-500 text-xs">{TYPE_LABELS[i.type] ?? i.type}</p>
+                  </Link>
+                  <PlanifierInline interventionId={i.id} currentTechnicienId={i.technicienId} techniciens={techOptions} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ─── Aujourd'hui  |  Argent du mois ────────────────────────────────────── */}
         <div className="grid lg:grid-cols-3 gap-6 mb-6">
