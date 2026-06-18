@@ -141,29 +141,11 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
     if (lead.clientId || convertDone.has(lead.id)) return; // déjà converti
     setConvertingId(lead.id);
     try {
-      const address = (lead as Lead & { address?: string | null }).address ?? undefined;
-      // Créer le client à partir du lead (avec l'adresse complète pour l'intervention)
-      const res = await fetch("/api/admin/clients", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: lead.name,
-          phone: lead.phone,
-          email: lead.email ?? undefined,
-          city: lead.location ?? undefined,
-          address,
-          leadId: lead.id,
-        }),
-      });
+      // createClientFromLead côté serveur : copie TOUTES les données (adresse incluse),
+      // lie le lead, marque "gagné". Idempotent → zéro doublon.
+      const res = await fetch(`/api/admin/leads/${lead.id}/convert`, { method: "POST" });
       if (!res.ok) return;
       const { client } = await res.json();
-
-      // Lier le clientId au lead + passer en "gagné"
-      await fetch("/api/admin/leads", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: lead.id, status: "gagné", clientId: client.id }),
-      });
 
       setLeads((prev) =>
         prev.map((l) =>
@@ -308,9 +290,9 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
         }`}
       >
         {/* Source badge + date */}
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between gap-2 mb-2">
           <span
-            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-[10px] font-semibold ${
+            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-[10px] font-semibold flex-shrink-0 ${
               lead.source === "alex"
                 ? "bg-sky-500/10 text-sky-400 border-sky-500/20"
                 : lead.source === "téléphone" || lead.source === "whatsapp"
@@ -331,9 +313,9 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
                 Doublon
               </button>
             )}
-            <span className="text-slate-600 text-[10px] flex items-center gap-0.5">
-              <Clock className="w-2.5 h-2.5" />
-              {formatDate(lead.createdAt)}
+            <span className="text-slate-600 text-[10px] flex items-center gap-0.5 whitespace-nowrap flex-shrink-0">
+              <Clock className="w-2.5 h-2.5 flex-shrink-0" />
+              {new Date(lead.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
             </span>
           </div>
         </div>
