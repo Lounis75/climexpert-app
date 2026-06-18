@@ -138,9 +138,11 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
   }
 
   async function convertToClient(lead: Lead) {
+    if (lead.clientId || convertDone.has(lead.id)) return; // déjà converti
     setConvertingId(lead.id);
     try {
-      // Créer le client à partir du lead
+      const address = (lead as Lead & { address?: string | null }).address ?? undefined;
+      // Créer le client à partir du lead (avec l'adresse complète pour l'intervention)
       const res = await fetch("/api/admin/clients", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -149,6 +151,7 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
           phone: lead.phone,
           email: lead.email ?? undefined,
           city: lead.location ?? undefined,
+          address,
           leadId: lead.id,
         }),
       });
@@ -166,6 +169,10 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
         prev.map((l) =>
           l.id === lead.id ? { ...l, status: "gagné" as LeadStatus, clientId: client.id } : l
         )
+      );
+      // Met à jour le panneau ouvert → fait apparaître « Client créé » + « Créer l'intervention »
+      setSelectedLead((prev) =>
+        prev && prev.id === lead.id ? { ...prev, status: "gagné" as LeadStatus, clientId: client.id } : prev
       );
       setConvertDone((prev) => new Set(prev).add(lead.id));
     } finally {
@@ -892,8 +899,14 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
                   <select
                     value={lead.status}
                     onChange={(e) => {
-                      updateStatus(lead.id, e.target.value);
-                      setSelectedLead({ ...lead, status: e.target.value as LeadStatus });
+                      const newStatus = e.target.value as LeadStatus;
+                      setSelectedLead({ ...lead, status: newStatus });
+                      // Passer en « Gagné » crée automatiquement le client (comme une signature).
+                      if (newStatus === "gagné" && !lead.clientId && !convertDone.has(lead.id)) {
+                        convertToClient({ ...lead, status: newStatus });
+                      } else {
+                        updateStatus(lead.id, newStatus);
+                      }
                     }}
                     disabled={updating === lead.id}
                     className={`text-xs font-semibold px-3 py-2 rounded-xl border bg-slate-800/60 cursor-pointer transition-opacity appearance-none w-full ${statusCfg.color} ${
