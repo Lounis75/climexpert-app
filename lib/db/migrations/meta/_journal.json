@@ -15,6 +15,13 @@
       "when": 1781621533343,
       "tag": "0001_drop_notifications_admin_fk",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1781763088420,
+      "tag": "0002_table_utilisateurs",
+      "breakpoints": true
     }
   ]
 }

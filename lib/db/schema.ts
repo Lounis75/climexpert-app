@@ -10,7 +10,7 @@ import {
   date,
   index,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 
 export const technicienRoleEnum = pgEnum("technicien_role", [
@@ -111,6 +111,33 @@ export const admins = pgTable("admins", {
   createdAt:  timestamp("created_at").defaultNow().notNull(),
   supprimeLe: timestamp("supprime_le"),
 });
+
+// ─── Utilisateurs / salariés (modèle unifié multi-rôles) ──────────────────────
+// Remplace progressivement admins + techniciens : une seule fiche par personne,
+// avec une liste de rôles extensible (administrateur, commercial, technicien, …).
+// Auth par identifiant (email) + mot de passe haché (scrypt).
+
+export const utilisateurs = pgTable("utilisateurs", {
+  id:            text("id").primaryKey().$defaultFn(() => createId()),
+  email:         varchar("email", { length: 255 }).notNull().unique(),
+  nom:           varchar("nom", { length: 255 }).notNull(),
+  prenom:        varchar("prenom", { length: 255 }),
+  phone:         varchar("phone", { length: 30 }),
+  color:         varchar("color", { length: 7 }).default("#0ea5e9"),
+  // Rôles multiples, vocabulaire extensible côté applicatif (cf. lib/roles.ts).
+  roles:         text("roles").array().notNull().default(sql`'{}'::text[]`),
+  passwordHash:  text("password_hash"),          // null tant que l'accès n'est pas défini
+  totpSecret:    text("totp_secret"),            // 2FA optionnelle (admins)
+  doitDefinirMdp: boolean("doit_definir_mdp").default(true).notNull(), // 1ʳᵉ connexion
+  actif:         boolean("actif").default(true).notNull(),
+  // Lien vers la fiche technicien historique (interventions/rapports) si applicable.
+  technicienId:  text("technicien_id"),
+  createdAt:     timestamp("created_at").defaultNow().notNull(),
+  updatedAt:     timestamp("updated_at").defaultNow().notNull(),
+  supprimeLe:    timestamp("supprime_le"),
+}, (t) => ({
+  emailIdx: index("utilisateurs_email_idx").on(t.email),
+}));
 
 // ─── Clients ──────────────────────────────────────────────────────────────────
 // leadId et contratEntretienId sont des références logiques sans contrainte FK
@@ -526,6 +553,8 @@ export type Client           = typeof clients.$inferSelect;
 export type NewClient        = typeof clients.$inferInsert;
 export type Admin            = typeof admins.$inferSelect;
 export type NewAdmin         = typeof admins.$inferInsert;
+export type Utilisateur      = typeof utilisateurs.$inferSelect;
+export type NewUtilisateur   = typeof utilisateurs.$inferInsert;
 export type Technicien       = typeof techniciens.$inferSelect;
 export type Devis            = typeof devis.$inferSelect;
 export type NewDevis         = typeof devis.$inferInsert;
