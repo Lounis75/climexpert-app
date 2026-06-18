@@ -181,9 +181,11 @@ export default function ClientsManager({ initialClients }: { initialClients: Cli
         {filtered.map((client) => (
           <div
             key={client.id}
-            className="bg-slate-800/40 border border-white/8 rounded-2xl p-4 hover:border-white/15 transition-all"
+            className="relative bg-slate-800/40 border border-white/8 rounded-2xl p-4 hover:border-sky-500/30 transition-all"
           >
-            <div className="flex items-start justify-between gap-3 flex-wrap">
+            {/* Toute la carte est cliquable → fiche client (overlay) */}
+            <Link href={`/admin/clients/${client.id}`} className="absolute inset-0 z-0" aria-label={`Voir la fiche de ${client.name}`} />
+            <div className="relative z-10 flex items-start justify-between gap-3 flex-wrap pointer-events-none">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-2">
                   <span className="text-white font-semibold text-sm">{client.name}</span>
@@ -195,12 +197,12 @@ export default function ClientsManager({ initialClients }: { initialClients: Cli
                   )}
                 </div>
                 <div className="flex flex-wrap gap-3 text-xs text-slate-400">
-                  <a href={`tel:${client.phone}`} className="flex items-center gap-1 text-sky-400 hover:text-sky-300 transition-colors">
+                  <a href={`tel:${client.phone}`} className="flex items-center gap-1 text-sky-400 hover:text-sky-300 transition-colors pointer-events-auto relative z-10">
                     <Phone className="w-3 h-3" />
                     {client.phone}
                   </a>
                   {client.email && (
-                    <a href={`mailto:${client.email}`} className="flex items-center gap-1 hover:text-slate-300 transition-colors">
+                    <a href={`mailto:${client.email}`} className="flex items-center gap-1 hover:text-slate-300 transition-colors pointer-events-auto relative z-10">
                       <Mail className="w-3 h-3" />
                       {client.email}
                     </a>
@@ -221,17 +223,11 @@ export default function ClientsManager({ initialClients }: { initialClients: Cli
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <span className="text-slate-600 text-xs">{formatDate(client.createdAt)}</span>
-                <Link
-                  href={`/admin/clients/${client.id}`}
-                  className="text-slate-500 hover:text-sky-400 transition-colors"
-                  title="Voir la fiche"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </Link>
+                <ChevronRight className="w-4 h-4 text-slate-500" />
                 <button
                   onClick={() => handleDelete(client.id)}
                   disabled={deleting === client.id}
-                  className="text-slate-600 hover:text-red-400 transition-colors disabled:opacity-40"
+                  className="text-slate-600 hover:text-red-400 transition-colors disabled:opacity-40 pointer-events-auto relative z-10"
                   title="Supprimer"
                 >
                   <Trash2 className="w-4 h-4" />

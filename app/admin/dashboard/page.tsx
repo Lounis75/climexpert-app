@@ -1,5 +1,6 @@
 import { getDashboardStats, getTachesAFaire, getInterventionsDuJour, getInterventionsAPlanifier } from "@/lib/dashboard";
-import { getDynamicArticles } from "@/lib/dynamicArticles";
+import { getAudience } from "@/lib/analytics";
+import { getDynamicArticles, isPublished } from "@/lib/dynamicArticles";
 import { getCommerciauxAssignables, getTechniciensAssignables } from "@/lib/utilisateurs";
 import AdminHeader from "@/components/AdminHeader";
 import DashboardLeadRow from "@/components/DashboardLeadRow";
@@ -43,7 +44,7 @@ const TASK_COLORS: Record<string, string> = {
 };
 
 export default async function DashboardPage() {
-  const [stats, dynamicArticles, taches, interventionsJour, interventionsAPlanifier, commerciaux, techOptions] = await Promise.all([
+  const [stats, dynamicArticles, taches, interventionsJour, interventionsAPlanifier, commerciaux, techOptions, audience] = await Promise.all([
     getDashboardStats(),
     getDynamicArticles(),
     getTachesAFaire(),
@@ -51,7 +52,16 @@ export default async function DashboardPage() {
     getInterventionsAPlanifier(),
     getCommerciauxAssignables(),  // commerciaux + admins
     getTechniciensAssignables(),  // techniciens + admins
+    getAudience(7),
   ]);
+
+  const articlesPublies = dynamicArticles.filter((a) => isPublished(a)).length;
+  const audienceKpis = [
+    { label: "Visites", value: audience.visites, sub: `${audience.visiteurs} visiteurs`, color: "text-sky-400 bg-sky-500/10 border-sky-500/20", icon: TrendingUp },
+    { label: "Calculateur", value: audience.calculateur, sub: "utilisations", color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20", icon: ClipboardList },
+    { label: "Alex", value: audience.alexConversations, sub: `${audience.alexLeads} leads`, color: "text-violet-400 bg-violet-500/10 border-violet-500/20", icon: MessageSquare },
+    { label: "Articles SEO", value: articlesPublies, sub: "publiés", color: "text-amber-400 bg-amber-500/10 border-amber-500/20", icon: FileText },
+  ];
 
   // ─── Bloc « À faire » (action-first) : tâches en attente, factures, SAV ───────
   const tachesList = [
@@ -303,6 +313,31 @@ export default async function DashboardPage() {
             )}
           </div>
 
+        </div>
+
+        {/* ─── Audience (7 derniers jours) ───────────────────────────────────────── */}
+        <div className="bg-slate-800/40 border border-white/8 rounded-2xl p-5 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-white font-semibold text-sm flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-sky-400" /> Audience — 7 derniers jours
+            </h2>
+            <Link href="/admin/marketing/statistiques" className="text-sky-400 hover:text-sky-300 text-xs flex items-center gap-1 transition-colors">
+              Statistiques détaillées <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {audienceKpis.map((k) => (
+              <div key={k.label} className="bg-slate-900/40 border border-white/8 rounded-xl p-3">
+                <div className={`w-7 h-7 rounded-lg border flex items-center justify-center mb-2 ${k.color}`}>
+                  <k.icon className="w-3.5 h-3.5" />
+                </div>
+                <p className="text-lg font-bold text-white tabular-nums">{k.value}</p>
+                <p className="text-slate-300 text-xs font-medium">{k.label}</p>
+                <p className="text-slate-500 text-xs mt-0.5">{k.sub}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-slate-600 text-[11px] mt-3">Le suivi des visites démarre maintenant — les chiffres se rempliront au fil du trafic.</p>
         </div>
 
         {/* ─── Calendrier semaine ────────────────────────────────────────────────── */}

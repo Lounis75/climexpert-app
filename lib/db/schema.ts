@@ -387,6 +387,21 @@ export const logsAlex = pgTable("logs_alex", {
   sessionIdx:   index("logs_alex_session_id_idx").on(t.sessionId),
 }));
 
+// ─── Événements analytics (visites, calculateur, Alex…) ──────────────────────
+
+export const evenements = pgTable("evenements", {
+  id:        text("id").primaryKey().$defaultFn(() => createId()),
+  type:      varchar("type", { length: 50 }).notNull(),   // page_view | calculateur_complete | alex_open | ...
+  path:      text("path"),                                 // chemin visité
+  sessionId: varchar("session_id", { length: 100 }),       // visiteur anonyme (localStorage)
+  referer:   text("referer"),                              // provenance (domaine)
+  meta:      text("meta"),                                 // JSON optionnel (détails)
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  typeIdx:      index("evenements_type_idx").on(t.type),
+  createdAtIdx: index("evenements_created_at_idx").on(t.createdAt),
+}));
+
 // ─── Magic link tokens (auth technicien) ─────────────────────────────────────
 
 export const magicLinkTokens = pgTable("magic_link_tokens", {

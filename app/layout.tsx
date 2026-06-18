@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import ChatBotLoader from "@/components/ChatBotLoader";
+import Tracker from "@/components/Tracker";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -176,6 +177,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         {children}
         <ChatBotLoader />
+        <Tracker />
       </body>
     </html>
   );

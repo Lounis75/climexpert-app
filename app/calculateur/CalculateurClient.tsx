@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { trackEvent } from "@/components/Tracker";
 import {
   ArrowRight, ArrowLeft, CheckCircle2, Phone,
   ShieldCheck, Zap, Info, ChevronRight,
@@ -89,6 +90,12 @@ const colorMap = {
 export default function CalculateurClient() {
   const [step,      setStep]      = useState(1);
   const [fade,      setFade]      = useState(false);
+
+  // Tracking : enregistre une utilisation aboutie du calculateur (étape résultat).
+  useEffect(() => {
+    if (step === 5) trackEvent("calculateur_complete", { rooms, surface: roomSurfaces.slice(0, rooms).reduce((a, b) => a + b, 0) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
 
   // Step 1
   const [bien, setBien] = useState("appartement");

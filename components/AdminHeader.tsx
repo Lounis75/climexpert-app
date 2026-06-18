@@ -3,7 +3,7 @@
 import {
   Wind, LayoutDashboard, FileText, Users, LogOut, Contact,
   ClipboardList, Receipt, Wrench, Bell, CheckCheck, HardHat,
-  ScrollText, HeadphonesIcon, Thermometer, ChevronDown, Briefcase, Megaphone,
+  ScrollText, HeadphonesIcon, Thermometer, ChevronDown, Briefcase, Megaphone, BarChart2,
 } from "lucide-react";
 import AdminChatBot from "./AdminChatBot";
 import Link from "next/link";
@@ -47,8 +47,9 @@ const groups = [
   {
     label: "Marketing",
     items: [
-      { href: "/admin/articles",            label: "Articles",         icon: FileText },
-      { href: "/admin/marketing/contacts",  label: "Base de contacts", icon: Megaphone },
+      { href: "/admin/marketing/statistiques", label: "Statistiques",     icon: BarChart2 },
+      { href: "/admin/articles",               label: "Articles",         icon: FileText },
+      { href: "/admin/marketing/contacts",     label: "Base de contacts", icon: Megaphone },
     ],
   },
 ];

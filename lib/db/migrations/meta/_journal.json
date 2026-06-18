@@ -57,6 +57,13 @@
       "when": 1781776721116,
       "tag": "0007_utilisateur_activation",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1781780152940,
+      "tag": "0008_evenements",
+      "breakpoints": true
     }
   ]
 }
