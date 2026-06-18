@@ -199,9 +199,12 @@ FORMAT OBLIGATOIRE À LA DERNIÈRE ÉTAPE UNIQUEMENT :
 Quand tu as collecté le nom ET le téléphone ET l'adresse (l'email est optionnel), réponds avec ce format exact (sans rien d'autre avant ou après) :
 
 LEAD_READY
-{"name":"[prénom nom]","phone":"[téléphone]","email":"[email ou vide]","project":"[installation/entretien/depannage/contrat-pro/autre — en minuscules SANS accent]","property":"[type de bien]","location":"[ville/CP]","address":"[adresse complète : numéro, rue, code postal, ville]","estimate":"[fourchette €]","notes":"[tout détail utile : nombre d'unités, accessibilité, photos envoyées, HORS IDF si applicable]"}
+{"name":"[prénom nom]","phone":"[téléphone]","email":"[email ou vide]","project":"[installation/entretien/depannage/contrat-pro/autre — en minuscules SANS accent]","property":"[type de bien]","location":"[ville/CP]","address":"[adresse complète : numéro, rue, code postal, ville]","estimate":"[fourchette €]","notes":"[tout détail utile : nombre d'unités, accessibilité, photos envoyées, HORS IDF si applicable]","refuseContact":false}
 MESSAGE
-[Ton message de confirmation chaleureux de 2 phrases max. En IDF : "Parfait Thomas ! Votre demande est bien enregistrée, un technicien ClimExpert vous rappelle sous 24h." Hors IDF : "Parfait Thomas ! Votre demande est bien enregistrée — un technicien commercial va reprendre contact avec vous rapidement pour établir un devis précis."]`;
+[Ton message de confirmation chaleureux. Termine TOUJOURS par cette information sur le consentement (formulée naturellement) : "Sauf indication contraire de votre part, nous conservons vos coordonnées pour vous recontacter — uniquement par les équipes ClimExpert, jamais de revente à des tiers."
+En IDF : "Parfait Thomas ! Votre demande est bien enregistrée, un technicien ClimExpert vous rappelle sous 24h. Sauf indication contraire de votre part, nous conservons vos coordonnées pour vous recontacter, uniquement par les équipes ClimExpert (jamais de revente à des tiers)."
+Hors IDF : "Parfait Thomas ! Votre demande est bien enregistrée — un technicien commercial va reprendre contact avec vous pour établir un devis précis. Sauf indication contraire de votre part, nous conservons vos coordonnées pour vous recontacter, uniquement par les équipes ClimExpert (jamais de revente à des tiers)."
+IMPORTANT : si la personne dit explicitement qu'elle ne veut PAS être recontactée pour des offres / démarchage, mets "refuseContact":true dans le JSON (le rappel pour SA demande en cours reste assuré).]`;
 
 interface LeadData {
   name: string;
@@ -213,6 +216,7 @@ interface LeadData {
   address?: string;
   estimate: string;
   notes: string;
+  refuseContact?: boolean;   // true UNIQUEMENT si la personne refuse le démarchage
 }
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
@@ -439,6 +443,11 @@ export async function POST(req: NextRequest) {
               address: lead.address || undefined,
               message: lead.estimate ? `Estimation : ${lead.estimate}` : undefined,
               notes: fullNotes || undefined,
+              // Consentement par défaut (opt-out) : Alex informe l'utilisateur en fin
+              // d'échange qu'il sera recontacté uniquement par les équipes ClimExpert
+              // sauf opposition de sa part. Permet la prospection ultérieure (cf. RGPD).
+              consentementMarketing: lead.refuseContact !== true,
+              consentementLe: new Date(),
             });
           } catch (e) {
             console.error("[chat] ÉCHEC createLead — lead potentiellement perdu:", e, JSON.stringify(lead));
