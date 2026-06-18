@@ -153,12 +153,9 @@ const jsonLd = {
     width: 240,
     height: 60,
   },
-  aggregateRating: {
-    "@type": "AggregateRating",
-    ratingValue: "4.9",
-    reviewCount: "200",
-    bestRating: "5",
-  },
+  // Pas d'AggregateRating tant qu'il n'y a pas d'avis Google réels (un rating fictif
+  // viole les règles Google et expose à une action manuelle). À réactiver en le tirant
+  // des vrais avis (lib/google-reviews getGoogleData) une fois les avis collectés.
 };
 
 export default function RootLayout({

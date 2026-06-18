@@ -61,7 +61,7 @@ const faqSchema = {
       name: "Y a-t-il des aides financières pour réduire le coût ?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Les pompes à chaleur air-eau sont éligibles à MaPrimeRénov' (jusqu'à 4 000 €) et aux CEE (200 à 800 €). Les climatiseurs réversibles peuvent bénéficier d'aides locales. La TVA est à 5,5 % pour les logements de plus de 2 ans. Nos techniciens RGE gèrent les dossiers.",
+        text: "Les pompes à chaleur air-eau sont éligibles à MaPrimeRénov' (jusqu'à 4 000 €) et aux CEE (200 à 800 €). Les climatiseurs réversibles (air-air) bénéficient des CEE et d'aides locales. Côté TVA, la pose bénéficie d'un taux réduit (10 % pour une clim réversible, 5,5 % pour une PAC air-eau) dans les logements de plus de 2 ans. Nos techniciens RGE gèrent les dossiers.",
       },
     },
     {
@@ -194,7 +194,7 @@ export default function TarifsPage() {
               <span className="text-sky-400">en Île-de-France</span>
             </h1>
             <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-              Tarifs pose incluse, sans frais cachés. Paiement en 2 fois. TVA 5,5 % pour les logements de plus de 2 ans.
+              Tarifs pose incluse, sans frais cachés. Paiement en 2 fois. TVA réduite (10 % sur la pose d'une clim réversible, 5,5 % pour une PAC air-eau) pour les logements de plus de 2 ans.
             </p>
           </div>
         </div>
@@ -293,7 +293,7 @@ export default function TarifsPage() {
             <div className="mt-8 bg-sky-50 border border-sky-100 rounded-2xl p-6 flex flex-col sm:flex-row items-center gap-4">
               <div className="flex-1">
                 <p className="font-bold text-slate-900 mb-1">Paiement en 2 fois · Aucun frais caché</p>
-                <p className="text-slate-500 text-sm">30 % à la commande, 70 % à la livraison. TVA 5,5 % pour les logements de plus de 2 ans.</p>
+                <p className="text-slate-500 text-sm">30 % à la commande, 70 % à la livraison. TVA réduite (10 % sur la pose d'une clim réversible, 5,5 % pour une PAC air-eau) pour les logements de plus de 2 ans.</p>
               </div>
               <Link
                 href="/devis"

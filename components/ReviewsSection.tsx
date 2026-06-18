@@ -79,7 +79,7 @@ export async function ReviewsSection() {
         ) : (
           <div className="rounded-3xl border border-slate-100 bg-slate-50 p-10 text-center max-w-lg mx-auto">
             <p className="text-slate-600 mb-5 text-sm leading-relaxed">
-              Vous avez fait appel a nous recemment ? Votre retour nous aide a grandir et a mieux vous servir.
+              Vous avez fait appel à nous récemment ? Votre retour nous aide à grandir et à mieux vous servir.
             </p>
             <a
               href={writeReviewUrl()}

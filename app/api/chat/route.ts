@@ -126,7 +126,7 @@ RÈGLE ABSOLUE SUR LES PRIX : ne jamais donner de prix maximum. Toujours formule
 - MaPrimeRénov' : s'applique aux PAC air-eau (jusqu'à 4 000 €). Pour les climatiseurs réversibles, d'autres aides existent selon la situation. Nous vérifions l'éligibilité.
 - CEE (Certificats d'Économie d'Énergie) : dispositif d'État obligeant les fournisseurs d'énergie à financer une partie des travaux de rénovation énergétique des particuliers. Montant : 200 – 800 €.
 - Dossiers aides : nous gérons le montage des dossiers CEE et MaPrimeRénov' de A à Z.
-- TVA à 5,5 % : à vérifier selon la loi de finances 2026 (applicable aux logements de plus de 2 ans).
+- TVA réduite sur la pose (logement de plus de 2 ans, installateur RGE) : 10 % pour une climatisation réversible (air-air), 5,5 % pour une PAC air-eau. NE JAMAIS promettre 5,5 % ni MaPrimeRénov' pour une clim réversible.
 - Aides locales IDF : nous renseignons sur les dispositifs disponibles lors de la visite ou du rappel.
 
 ◆ ENTRETIEN & DURÉE DE VIE

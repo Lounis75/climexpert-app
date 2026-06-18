@@ -112,7 +112,7 @@ export default function Home() {
                   icon: Award,
                   color: "emerald",
                   title: "Certifiés RGE",
-                  body: "Techniciens RGE Qualibat et attestation fluides frigorigènes cat. I. Accès garanti à MaPrimeRénov', CEE et TVA 5,5 %.",
+                  body: "Techniciens RGE Qualibat et attestation fluides frigorigènes cat. I. Nous mobilisons les aides éligibles à votre projet : prime CEE pour la climatisation réversible, MaPrimeRénov' et TVA 5,5 % pour les PAC air-eau.",
                 },
                 {
                   icon: Wrench,

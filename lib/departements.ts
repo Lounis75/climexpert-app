@@ -58,7 +58,7 @@ export const DEPARTEMENTS: Departement[] = [
     faqItems: [
       {
         q: "Y a-t-il des aides spécifiques aux Hauts-de-Seine pour la climatisation ?",
-        a: "Les aides nationales s'appliquent pleinement dans le 92 : TVA à 5,5 % pour les logements de plus de 2 ans, certificats d'économies d'énergie (CEE) pour les PAC air-eau éligibles, et MaPrimeRénov' selon vos revenus. Le Département des Hauts-de-Seine peut proposer des aides complémentaires pour la rénovation énergétique. Nos techniciens RGE vérifient votre éligibilité.",
+        a: "Les aides nationales s'appliquent pleinement dans le 92 : TVA réduite (10 % sur la pose d'une clim réversible, 5,5 % pour une PAC air-eau) pour les logements de plus de 2 ans, certificats d'économies d'énergie (CEE) pour les PAC air-eau éligibles, et MaPrimeRénov' selon vos revenus. Le Département des Hauts-de-Seine peut proposer des aides complémentaires pour la rénovation énergétique. Nos techniciens RGE vérifient votre éligibilité.",
       },
       {
         q: "Intervenez-vous à La Défense pour des locaux professionnels ?",
@@ -87,7 +87,7 @@ export const DEPARTEMENTS: Departement[] = [
     faqItems: [
       {
         q: "Comment réduire le coût d'une installation climatisation en Seine-Saint-Denis ?",
-        a: "Plusieurs leviers permettent de réduire la facture dans le 93 : la TVA à 5,5 % s'applique pour les logements de plus de 2 ans (économie de 14,5 points vs le taux normal), les CEE peuvent apporter jusqu'à 800 € pour certaines installations, et MaPrimeRénov' est accessible sous conditions de revenus. En cumulant ces aides, un monosplit installé à 1 500 € TTC peut revenir à moins de 900 € net.",
+        a: "Plusieurs leviers permettent de réduire la facture dans le 93 : la TVA réduite (10 % sur la pose d'une clim réversible, 5,5 % pour une PAC air-eau) s'applique sur la pose pour les logements de plus de 2 ans (jusqu'à 14,5 points d'économie pour une PAC air-eau), les CEE peuvent apporter jusqu'à 800 € pour certaines installations, et MaPrimeRénov' est accessible sous conditions de revenus. En cumulant ces aides, un monosplit installé à 1 500 € TTC peut revenir à moins de 900 € net.",
       },
       {
         q: "Proposez-vous des interventions dans les logements sociaux en Seine-Saint-Denis ?",
@@ -124,7 +124,7 @@ export const DEPARTEMENTS: Departement[] = [
       },
       {
         q: "Y a-t-il des aides locales dans le Val-de-Marne pour la climatisation ?",
-        a: "Les aides nationales s'appliquent dans le 94 : TVA à 5,5 % pour les logements +2 ans, CEE, MaPrimeRénov' selon revenus. Le Département du Val-de-Marne peut proposer des aides complémentaires pour la rénovation énergétique dans le cadre de ses politiques habitat. Nos techniciens RGE vous guident dans les dossiers.",
+        a: "Les aides nationales s'appliquent dans le 94 : TVA réduite (10 % sur la pose d'une clim réversible, 5,5 % pour une PAC air-eau) pour les logements +2 ans, CEE, MaPrimeRénov' selon revenus. Le Département du Val-de-Marne peut proposer des aides complémentaires pour la rénovation énergétique dans le cadre de ses politiques habitat. Nos techniciens RGE vous guident dans les dossiers.",
       },
     ],
   },
@@ -215,7 +215,7 @@ export const DEPARTEMENTS: Departement[] = [
       },
       {
         q: "Y a-t-il des aides pour installer une climatisation en Essonne ?",
-        a: "Les logements en Essonne bénéficient pleinement des aides à la rénovation : TVA à 5,5 %, CEE, MaPrimeRénov' pour les PAC éligibles. Ces aides peuvent couvrir 20 à 40 % du coût total de l'installation. Nos techniciens RGE gèrent les dossiers de demande de A à Z.",
+        a: "Les logements en Essonne bénéficient pleinement des aides à la rénovation : TVA réduite (10 % sur la pose d'une clim réversible, 5,5 % pour une PAC air-eau), CEE, MaPrimeRénov' pour les PAC éligibles. Ces aides peuvent couvrir 20 à 40 % du coût total de l'installation. Nos techniciens RGE gèrent les dossiers de demande de A à Z.",
       },
       {
         q: "Intervenez-vous autour du plateau de Saclay ?",

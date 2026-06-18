@@ -88,7 +88,7 @@ export const VILLES: Ville[] = [
     depName: "Seine-Saint-Denis",
     context: "Montreuil, ville dynamique et diverse de Seine-Saint-Denis, connaît une forte croissance immobilière avec de nombreux programmes neufs dans le quartier Croix-de-Chavaux. Le parc ancien des Murs à Pêches et des quartiers populaires représente également une clientèle importante pour la climatisation réversible économique. Nos techniciens interviennent dans toute la commune.",
     faqQ: "Proposez-vous des climatisations économiques pour les logements anciens à Montreuil ?",
-    faqA: "Oui, à Montreuil nous proposons des solutions adaptées à tous les budgets. Pour les logements anciens aux budgets serrés, le monosplit à partir de 1 500 € TTC reste la solution la plus accessible. Les aides CEE (jusqu'à 800 €) et la TVA à 5,5 % pour les logements de plus de 2 ans permettent de réduire significativement le coût final.",
+    faqA: "Oui, à Montreuil nous proposons des solutions adaptées à tous les budgets. Pour les logements anciens aux budgets serrés, le monosplit à partir de 1 500 € TTC reste la solution la plus accessible. Les aides CEE (jusqu'à 800 €) et la TVA réduite (10 % sur la pose d'une clim réversible, 5,5 % pour une PAC air-eau) pour les logements de plus de 2 ans permettent de réduire significativement le coût final.",
   },
   {
     slug: "saint-maur-des-fosses",
@@ -124,7 +124,7 @@ export const VILLES: Ville[] = [
     depName: "Hauts-de-Seine",
     context: "Troisième ville des Hauts-de-Seine par sa population, Colombes est une commune populaire et familiale. Le parc immobilier varié (maisons individuelles, immeubles des années 60-80, programmes neufs) offre une grande diversité de cas d'installation. Nos techniciens y réalisent aussi bien des monosplits pour les appartements que des multisplits pour les maisons.",
     faqQ: "Y a-t-il des aides spécifiques pour la climatisation à Colombes ?",
-    faqA: "À Colombes, les aides nationales s'appliquent : TVA à 5,5 % pour les logements de plus de 2 ans, CEE pour les PAC air-eau éligibles, MaPrimeRénov' selon vos revenus. Des aides locales des Hauts-de-Seine peuvent également être disponibles. Nos techniciens RGE vérifient votre éligibilité et gèrent les dossiers.",
+    faqA: "À Colombes, les aides nationales s'appliquent : TVA réduite (10 % sur la pose d'une clim réversible, 5,5 % pour une PAC air-eau) pour les logements de plus de 2 ans, CEE pour les PAC air-eau éligibles, MaPrimeRénov' selon vos revenus. Des aides locales des Hauts-de-Seine peuvent également être disponibles. Nos techniciens RGE vérifient votre éligibilité et gèrent les dossiers.",
   },
   {
     slug: "argenteuil",
@@ -196,7 +196,7 @@ export const VILLES: Ville[] = [
     depName: "Essonne",
     context: "Préfecture de l'Essonne et ville nouvelle planifiée, Évry-Courcouronnes dispose d'un parc immobilier des années 70-80 énergivore qui bénéficie grandement de la climatisation réversible. La ville accueille des logements sociaux, des copropriétés privées et des zones d'activités. Les aides à la rénovation énergétique s'y appliquent pleinement.",
     faqQ: "Y a-t-il des aides spéciales pour rénover la climatisation dans les logements anciens à Évry ?",
-    faqA: "Les logements anciens d'Évry-Courcouronnes des années 70 bénéficient pleinement des aides à la rénovation énergétique : TVA à 5,5 %, CEE, et MaPrimeRénov' pour les PAC air-eau. Ces aides peuvent représenter jusqu'à 30-40 % du coût total d'une installation PAC. Nos techniciens RGE gèrent les dossiers de A à Z.",
+    faqA: "Les logements anciens d'Évry-Courcouronnes des années 70 bénéficient pleinement des aides à la rénovation énergétique : TVA réduite (10 % sur la pose d'une clim réversible, 5,5 % pour une PAC air-eau), CEE, et MaPrimeRénov' pour les PAC air-eau. Ces aides peuvent représenter jusqu'à 30-40 % du coût total d'une installation PAC. Nos techniciens RGE gèrent les dossiers de A à Z.",
   },
   {
     slug: "meaux",

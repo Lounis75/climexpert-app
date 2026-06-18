@@ -113,9 +113,9 @@ const aids = [
     color: "emerald",
   },
   {
-    name: "TVA à 5,5 %",
-    amount: "Économie sur la TVA",
-    condition: "Logement de plus de 2 ans, travaux de rénovation énergétique",
+    name: "TVA réduite",
+    amount: "10 % (clim réversible) ou 5,5 % (PAC air-eau)",
+    condition: "Sur la pose, logement de plus de 2 ans, installateur RGE",
     color: "amber",
   },
   {
@@ -477,7 +477,7 @@ export default async function GuidePage() {
                     Les aides financières disponibles
                   </h2>
                   <p className="text-slate-600 mb-8 leading-relaxed">
-                    Plusieurs dispositifs permettent de réduire le coût de votre installation. L'éligibilité dépend du type de système et de vos revenus. Nos techniciens RGE vous permettent d'accéder à l'ensemble de ces aides.
+                    Plusieurs dispositifs permettent de réduire le coût de votre installation. L'éligibilité dépend du type de système et de vos revenus. La climatisation réversible (air-air) relève d'une TVA de 20 % sur le matériel et de 10 % sur la pose ; le taux de 5,5 % concerne les PAC air-eau et géothermiques. Nos techniciens RGE vous permettent d'accéder aux aides éligibles à votre projet.
                   </p>
                   <div className="grid sm:grid-cols-2 gap-4 mb-8">
                     {aids.map((a) => (

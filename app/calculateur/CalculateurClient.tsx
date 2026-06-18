@@ -46,7 +46,7 @@ function calcResult(surface: number, height: number, rooms: number, isoId: strin
                                  return { system: "Gainable / PAC",      kwRaw: kw, priceMin: 4000, priceMax: 10000, color: "amber"   };
 }
 
-function kwLabel(kw: number) { return `${Math.round(kw * 2) / 2} kW`; }
+function kwLabel(kw: number) { return `${(Math.round(kw * 2) / 2).toLocaleString("fr-FR")} kW`; }
 function fmt(n: number) { return n.toLocaleString("fr-FR") + " €"; }
 
 function getBrands(priceMin: number, priceMax: number) {
@@ -75,7 +75,7 @@ function getAides(system: string) {
     lines: [
       { label: "CEE (Certificats d'Économies d'Énergie)", amount: "150 – 300 €", detail: "Versée par l'installateur en déduction de facture · Automatique avec technicien RGE" },
     ],
-    note: "La TVA à 5,5 % s'applique si votre logement a plus de 2 ans. Économie supplémentaire de 4,5 % sur le devis.",
+    note: "La pose bénéficie d'une TVA réduite à 10 % pour une climatisation réversible (logement de plus de 2 ans, installateur RGE). Le taux de 5,5 % est réservé aux PAC air-eau.",
   };
 }
 
