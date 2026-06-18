@@ -189,6 +189,8 @@ export const leads = pgTable("leads", {
   status:              leadStatusEnum("status").default("nouveau").notNull(),
   source:              leadSourceEnum("source").default("formulaire").notNull(),
   notes:               text("notes"),
+  // Montant du devis (centimes) — à renseigner dès le passage en "devis_envoyé".
+  montantDevisCt:      integer("montant_devis_ct"),
   clientId:            text("client_id").references(() => clients.id),
   commercialId:        text("commercial_id").references(() => techniciens.id),
   // Consentement RGPD au démarchage commercial (opt-in). La prise de contact

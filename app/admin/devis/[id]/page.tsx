@@ -10,6 +10,7 @@ import DevisActions from "./DevisActions";
 import SendEmailButton from "./SendEmailButton";
 import CopyLinkButton from "./CopyLinkButton";
 import CopyableContact from "@/components/CopyableContact";
+import DeleteDevisButton from "./DeleteDevisButton";
 
 export const dynamic = "force-dynamic";
 
@@ -216,20 +217,7 @@ export default async function DevisDetailPage({
 
         {/* Delete zone */}
         <div className="flex justify-end">
-          <form action={`/api/admin/devis/${d.id}`} method="DELETE">
-            <Link
-              href={`/admin/devis`}
-              onClick={async (e) => {
-                e.preventDefault();
-                if (!confirm("Supprimer ce devis définitivement ?")) return;
-                await fetch(`/api/admin/devis/${d.id}`, { method: "DELETE" });
-                window.location.href = "/admin/devis";
-              }}
-              className="flex items-center gap-1.5 text-slate-500 hover:text-red-400 text-xs transition-colors"
-            >
-              <Trash2 className="w-3.5 h-3.5" /> Supprimer ce devis
-            </Link>
-          </form>
+          <DeleteDevisButton devisId={d.id} />
         </div>
 
       </main>

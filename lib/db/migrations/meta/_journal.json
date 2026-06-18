@@ -71,6 +71,13 @@
       "when": 1781785357857,
       "tag": "0009_lead_type_client",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1781787413601,
+      "tag": "0010_lead_montant_devis",
+      "breakpoints": true
     }
   ]
 }

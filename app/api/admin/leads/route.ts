@@ -51,6 +51,10 @@ export async function PATCH(req: NextRequest) {
       allowed.consentementMarketing = fields.consentementMarketing === true;
       allowed.consentementLe = fields.consentementMarketing === true ? new Date() : null;
     }
+    if (fields.montantDevisCt !== undefined) {
+      const n = Number(fields.montantDevisCt);
+      allowed.montantDevisCt = Number.isFinite(n) && n > 0 ? Math.round(n) : null;
+    }
 
     if (Object.keys(allowed).length === 0) {
       return NextResponse.json({ error: "Aucun champ à mettre à jour" }, { status: 400 });

@@ -1,0 +1,1 @@
+ALTER TABLE "leads" ADD COLUMN "montant_devis_ct" integer;

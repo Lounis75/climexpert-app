@@ -24,8 +24,11 @@ export default function InterventionForm({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  // Client pré-sélectionné via ?client=<id> (depuis la fiche prospect / le devis).
-  const preClient = clients.find((c) => c.id === searchParams.get("client")) ?? clients[0];
+  // Client pré-sélectionné via ?client=<id>. Si l'id est fourni mais introuvable,
+  // on NE retombe PAS silencieusement sur le 1er client (risque de planifier pour le
+  // mauvais) : on laisse vide pour forcer un choix explicite.
+  const clientParam = searchParams.get("client");
+  const preClient = clientParam ? clients.find((c) => c.id === clientParam) : clients[0];
   const [clientId, setClientId] = useState(preClient?.id ?? "");
   const [type, setType] = useState("installation");
   const [scheduledAt, setScheduledAt] = useState("");
@@ -94,6 +97,7 @@ export default function InterventionForm({
             required
             className="w-full h-11 px-3 rounded-xl bg-slate-900 border border-white/10 text-white text-sm focus:outline-none focus:border-sky-500 transition-all"
           >
+            {!clientId && <option value="">— Choisir un client —</option>}
             {clients.map((c) => (
               <option key={c.id} value={c.id}>{c.name}{c.city ? ` — ${c.city}` : ""}</option>
             ))}

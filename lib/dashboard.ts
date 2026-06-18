@@ -368,11 +368,12 @@ export type TachesAFaire = {
   interventionsSansTechnicien: number;
   interventionsSansDate: number;
   devisARelancer: number;
+  devisAChiffrer: number;
 };
 
 export async function getTachesAFaire(): Promise<TachesAFaire> {
   const il7j = new Date(Date.now() - 7 * 86400000);
-  const [a, b, c, d] = await Promise.all([
+  const [a, b, c, d, e] = await Promise.all([
     // Prospects actifs (non convertis, non perdus) sans commercial affecté
     db.select({ n: count() }).from(leads).where(and(
       isNull(leads.commercialId),
@@ -397,12 +398,19 @@ export async function getTachesAFaire(): Promise<TachesAFaire> {
       eq(devis.status, "envoyé"),
       lte(devis.updatedAt, il7j),
     )),
+    // Prospects en "devis envoyé" ou "gagné" SANS montant de devis renseigné
+    db.select({ n: count() }).from(leads).where(and(
+      inArray(leads.status, ["devis_envoyé", "gagné"]),
+      isNull(leads.montantDevisCt),
+      isNull(leads.supprimeLe),
+    )),
   ]);
   return {
     prospectsSansCommercial:     Number(a[0]?.n ?? 0),
     interventionsSansTechnicien: Number(b[0]?.n ?? 0),
     interventionsSansDate:       Number(c[0]?.n ?? 0),
     devisARelancer:              Number(d[0]?.n ?? 0),
+    devisAChiffrer:              Number(e[0]?.n ?? 0),
   };
 }
 

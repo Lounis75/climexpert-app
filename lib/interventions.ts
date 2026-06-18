@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { interventions, clients, techniciens, suivisPlanifies, rapportsIntervention, savTickets, suivis } from "@/lib/db/schema";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
-import { eq, desc, gte, asc } from "drizzle-orm";
+import { eq, desc, gte, asc, and, isNull } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 
 export type Intervention = InferSelectModel<typeof interventions>;
@@ -92,7 +92,10 @@ export async function getUpcomingInterventions(): Promise<InterventionWithRefs[]
 }
 
 export async function getTechniciens(): Promise<Technicien[]> {
-  return db.select().from(techniciens).orderBy(asc(techniciens.name));
+  // Exclut les fiches supprimées ou désactivées (ne pas proposer un technicien parti).
+  return db.select().from(techniciens)
+    .where(and(isNull(techniciens.supprimeLe), eq(techniciens.active, true)))
+    .orderBy(asc(techniciens.name));
 }
 
 export async function createIntervention(

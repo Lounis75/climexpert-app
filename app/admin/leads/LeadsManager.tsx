@@ -910,6 +910,40 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
                   </select>
                 </div>
 
+                {/* Montant du devis — obligatoire dès "devis envoyé" / "gagné" */}
+                {(lead.status === "devis_envoyé" || lead.status === "gagné") && (
+                  <div>
+                    <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide flex items-center gap-1.5">
+                      <FileText className="w-3 h-3" /> Montant du devis (€ TTC)
+                    </p>
+                    <input
+                      type="number" min="0" step="1"
+                      defaultValue={lead.montantDevisCt ? lead.montantDevisCt / 100 : ""}
+                      placeholder="ex : 3500"
+                      onBlur={async (e) => {
+                        const euros = parseFloat(e.target.value);
+                        const ct = Number.isFinite(euros) && euros > 0 ? Math.round(euros * 100) : null;
+                        if (ct === (lead.montantDevisCt ?? null)) return;
+                        const res = await fetch("/api/admin/leads", {
+                          method: "PATCH", headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ id: lead.id, montantDevisCt: ct }),
+                        });
+                        if (res.status === 401) { window.location.href = "/admin"; return; }
+                        if (res.ok) {
+                          setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, montantDevisCt: ct } as Lead : l));
+                          setSelectedLead(prev => prev ? { ...prev, montantDevisCt: ct } as Lead : null);
+                        }
+                      }}
+                      className={`w-full bg-slate-800/60 border rounded-xl px-3 py-2 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-sky-500/50 ${lead.montantDevisCt ? "border-white/10" : "border-amber-500/40"}`}
+                    />
+                    {!lead.montantDevisCt && (
+                      <p className="text-amber-400 text-[11px] mt-1.5 flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" /> Renseignez le montant du devis (tâche à effectuer).
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 {/* Commercial */}
                 {commerciaux.length > 0 && (
                   <div>

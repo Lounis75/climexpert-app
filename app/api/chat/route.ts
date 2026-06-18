@@ -449,7 +449,7 @@ export async function POST(req: NextRequest) {
               // sauf opposition de sa part. Permet la prospection ultérieure (cf. RGPD).
               consentementMarketing: lead.refuseContact !== true,
               consentementLe: new Date(),
-              typeClient: lead.typeClient === "professionnel" ? "professionnel" : "particulier",
+              typeClient: String(lead.typeClient ?? "").toLowerCase().includes("pro") ? "professionnel" : "particulier",
             });
           } catch (e) {
             console.error("[chat] ÉCHEC createLead — lead potentiellement perdu:", e, JSON.stringify(lead));

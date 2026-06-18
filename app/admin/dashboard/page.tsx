@@ -73,6 +73,7 @@ export default async function DashboardPage() {
     { n: taches.interventionsSansDate,       label: "intervention(s) à planifier",      href: "/admin/interventions", color: "amber",  icon: CalendarCheck },
     { n: taches.prospectsSansCommercial,     label: "prospect(s) à affecter",           href: "/admin/leads",         color: "sky",    icon: Users },
     { n: taches.devisARelancer,              label: "devis à relancer (>7j)",           href: "/admin/devis",         color: "violet", icon: FileText },
+    { n: taches.devisAChiffrer,              label: "devis à chiffrer (montant manquant)", href: "/admin/leads",      color: "red",    icon: FileText },
     { n: stats.facturesEnRetard,             label: "facture(s) en retard",             href: "/admin/factures",      color: "red",    icon: AlertTriangle },
     { n: stats.savOuverts,                   label: "SAV ouvert(s)",                    href: "/admin/sav",           color: "red",    icon: HeadphonesIcon },
   ].filter((t) => t.n > 0);
