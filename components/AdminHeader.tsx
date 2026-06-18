@@ -39,6 +39,12 @@ const groups = [
     ],
   },
   {
+    label: "Équipe",
+    items: [
+      { href: "/admin/salaries", label: "Salariés & accès", icon: Users },
+    ],
+  },
+  {
     label: "Contenu",
     items: [
       { href: "/admin/articles", label: "Articles", icon: FileText },
