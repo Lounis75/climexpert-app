@@ -8,8 +8,8 @@ import Footer from "@/components/Footer";
 import FAQAccordion from "@/components/FAQAccordion";
 import OpenChatButton from "@/components/OpenChatButton";
 import ArticleBody from "@/components/ArticleBody";
-import { articles, getArticleBySlug, getRelatedArticles } from "@/lib/articles";
-import { getDynamicArticleBySlug, getPublishedDynamicArticles, isPublished } from "@/lib/dynamicArticles";
+import { articles, getArticleBySlug } from "@/lib/articles";
+import { getResolvedArticle, getPublishedDynamicArticles, isPublished } from "@/lib/dynamicArticles";
 import { getAuthors } from "@/lib/authors";
 
 interface Props {
@@ -19,13 +19,17 @@ interface Props {
 export const revalidate = 60;
 
 export async function generateStaticParams() {
-  return articles.map((a) => ({ slug: a.slug }));
-  // Dynamic articles render on-demand with ISR (60s cache)
+  // Slugs statiques + dynamiques (dédupliqués). Les articles dynamiques restent
+  // régénérés via ISR (60s). Un slug édité existe dans les deux → une seule entrée.
+  const dynamic = await getPublishedDynamicArticles();
+  const slugs = new Set<string>([...articles.map((a) => a.slug), ...dynamic.map((a) => a.slug)]);
+  return [...slugs].map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const article = getArticleBySlug(slug) ?? await getDynamicArticleBySlug(slug);
+  // Dynamique d'abord : si l'article a été édité, c'est sa version qui prime.
+  const article = await getResolvedArticle(slug);
   if (!article) return {};
   return {
     // metaTitle inclut déjà la marque par convention -> absolute pour éviter
@@ -56,7 +60,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ArticlePage({ params }: Props) {
   const { slug } = await params;
-  const article = getArticleBySlug(slug) ?? await getDynamicArticleBySlug(slug);
+  // Dynamique d'abord : la version éditée prime sur la version statique d'origine.
+  const article = await getResolvedArticle(slug);
   if (!article) notFound();
   // Article programmé non encore publié → masqué publiquement
   if (!isPublished(article)) notFound();
@@ -65,11 +70,11 @@ export default async function ArticlePage({ params }: Props) {
     article.relatedSlugs.length > 0 ? getPublishedDynamicArticles() : Promise.resolve([]),
     getAuthors(),
   ]);
-  const related = getRelatedArticles(article.relatedSlugs).length > 0
-    ? getRelatedArticles(article.relatedSlugs)
-    : article.relatedSlugs
-        .map((s) => dynamicAll.find((a) => a.slug === s))
-        .filter(Boolean) as typeof dynamicAll;
+  // Articles liés résolus dynamique-d'abord (cohérent avec le reste du site).
+  const dynBySlug = new Map(dynamicAll.map((a) => [a.slug, a]));
+  const related = article.relatedSlugs
+    .map((s) => dynBySlug.get(s) ?? getArticleBySlug(s))
+    .filter(Boolean) as typeof dynamicAll;
   const authorProfile = article.author
     ? allAuthors.find((a) => a.name === article.author)
     : undefined;

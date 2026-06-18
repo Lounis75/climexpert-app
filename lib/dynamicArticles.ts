@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { dynamicArticles } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
-import type { Article } from "./articles";
+import { getArticleBySlug, type Article } from "./articles";
 
 export async function getDynamicArticles(): Promise<Article[]> {
   try {
@@ -15,6 +15,13 @@ export async function getDynamicArticles(): Promise<Article[]> {
   } catch {
     return [];
   }
+}
+
+/** Résout un article par slug en faisant PRIMER la version dynamique (éditée)
+ *  sur la version statique d'origine. C'est la règle unique pour tout le site :
+ *  si tu édites un ancien article, ta version s'affiche partout. */
+export async function getResolvedArticle(slug: string): Promise<Article | undefined> {
+  return (await getDynamicArticleBySlug(slug)) ?? getArticleBySlug(slug);
 }
 
 /** Un article est public si sa date de publication programmée est absente ou
