@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { leads, devis, factures, interventions, clients, savTickets, logsAlex } from "@/lib/db/schema";
+import { leads, devis, factures, interventions, clients, savTickets, logsAlex, techniciens } from "@/lib/db/schema";
 import { eq, gte, lte, ne, desc, and, sql, isNull, count, notInArray } from "drizzle-orm";
 
 export type DashboardStats = {
@@ -55,6 +55,7 @@ export type DernierLead = {
   source: string | null;
   project: string | null;
   location: string | null;
+  commercialId: string | null;
   createdAt: Date | string;
 };
 
@@ -200,7 +201,8 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     // ─ Derniers 6 leads seulement
     db.select({
       id: leads.id, name: leads.name, phone: leads.phone, status: leads.status,
-      source: leads.source, project: leads.project, location: leads.location, createdAt: leads.createdAt,
+      source: leads.source, project: leads.project, location: leads.location,
+      commercialId: leads.commercialId, createdAt: leads.createdAt,
     })
     .from(leads)
     .where(isNull(leads.supprimeLe))
@@ -401,4 +403,41 @@ export async function getTachesAFaire(): Promise<TachesAFaire> {
     interventionsSansDate:       Number(c[0]?.n ?? 0),
     devisARelancer:              Number(d[0]?.n ?? 0),
   };
+}
+
+// ─── Interventions du jour (dashboard) ───────────────────────────────────────
+
+export type IntervJour = {
+  id: string;
+  clientName: string | null;
+  type: string;
+  scheduledAt: Date | string | null;
+  status: string;
+  technicienId: string | null;
+  technicienName: string | null;
+};
+
+export async function getInterventionsDuJour(): Promise<IntervJour[]> {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const end = new Date(start.getTime() + 86400000 - 1);
+  return db
+    .select({
+      id: interventions.id,
+      clientName: clients.name,
+      type: interventions.type,
+      scheduledAt: interventions.scheduledAt,
+      status: interventions.status,
+      technicienId: interventions.technicienId,
+      technicienName: techniciens.name,
+    })
+    .from(interventions)
+    .leftJoin(clients, eq(interventions.clientId, clients.id))
+    .leftJoin(techniciens, eq(interventions.technicienId, techniciens.id))
+    .where(and(
+      gte(interventions.scheduledAt, start),
+      lte(interventions.scheduledAt, end),
+      ne(interventions.status, "annulée"),
+    ))
+    .orderBy(interventions.scheduledAt);
 }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Phone, Mail, Bot, MessageSquare, Wrench, MapPin, Clock } from "lucide-react";
+import InlineAssign from "@/components/InlineAssign";
 
 interface Lead {
   id: string;
@@ -13,8 +14,11 @@ interface Lead {
   status: string;
   project?: string | null;
   location?: string | null;
+  commercialId?: string | null;
   createdAt: Date | string;
 }
+
+type Commercial = { id: string; name: string; prenom?: string | null };
 
 const STATUS_COLORS: Record<string, string> = {
   nouveau:      "bg-sky-500/10 text-sky-400 border-sky-500/30",
@@ -42,9 +46,11 @@ function timeAgo(d: Date | string) {
   return `${Math.floor(h / 24)}j`;
 }
 
-export default function DashboardLeadRow({ lead }: { lead: Lead }) {
+export default function DashboardLeadRow({ lead, commerciaux = [] }: { lead: Lead; commerciaux?: Commercial[] }) {
   const [showPhone, setShowPhone] = useState(false);
   const [showEmail, setShowEmail] = useState(false);
+  // Un prospect "actif" (ni gagné ni perdu) peut être affecté à un commercial.
+  const affectable = lead.status !== "gagné" && lead.status !== "perdu";
 
   return (
     <div className="px-5 py-3.5 flex items-center gap-3 hover:bg-white/3 transition-colors">
@@ -88,6 +94,11 @@ export default function DashboardLeadRow({ lead }: { lead: Lead }) {
 
       {/* Actions */}
       <div className="flex items-center gap-1.5 flex-shrink-0">
+        {/* Affecter un commercial */}
+        {commerciaux.length > 0 && affectable && (
+          <InlineAssign kind="commercial" targetId={lead.id} currentId={lead.commercialId ?? null} options={commerciaux} />
+        )}
+
         {/* Phone */}
         {showPhone ? (
           <a
