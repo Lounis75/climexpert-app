@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Phone, Mail, Bot, MessageSquare, Wrench, MapPin, Clock } from "lucide-react";
 
 interface Lead {
@@ -47,40 +48,43 @@ export default function DashboardLeadRow({ lead }: { lead: Lead }) {
 
   return (
     <div className="px-5 py-3.5 flex items-center gap-3 hover:bg-white/3 transition-colors">
-      {/* Source icon */}
-      <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-        lead.source === "alex" ? "bg-sky-500/10 text-sky-400" : "bg-violet-500/10 text-violet-400"
-      }`}>
-        {lead.source === "alex" ? <Bot className="w-4 h-4" /> : <MessageSquare className="w-4 h-4" />}
-      </div>
+      {/* Zone cliquable → ouvre la fiche du prospect */}
+      <Link href={`/admin/leads?lead=${lead.id}`} className="flex items-center gap-3 flex-1 min-w-0 group">
+        {/* Source icon */}
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+          lead.source === "alex" ? "bg-sky-500/10 text-sky-400" : "bg-violet-500/10 text-violet-400"
+        }`}>
+          {lead.source === "alex" ? <Bot className="w-4 h-4" /> : <MessageSquare className="w-4 h-4" />}
+        </div>
 
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-white text-sm font-medium">{lead.name}</span>
-          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${STATUS_COLORS[lead.status] ?? ""}`}>
-            {STATUS_LABELS[lead.status] ?? lead.status}
-          </span>
-        </div>
-        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-          {lead.project && (
-            <span className="text-slate-500 text-xs flex items-center gap-1">
-              <Wrench className="w-2.5 h-2.5" />
-              {PROJECT_LABELS[lead.project] ?? lead.project}
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-white text-sm font-medium group-hover:text-sky-300 transition-colors">{lead.name}</span>
+            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${STATUS_COLORS[lead.status] ?? ""}`}>
+              {STATUS_LABELS[lead.status] ?? lead.status}
             </span>
-          )}
-          {lead.location && (
-            <span className="text-slate-500 text-xs flex items-center gap-1">
-              <MapPin className="w-2.5 h-2.5" />
-              {lead.location}
+          </div>
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            {lead.project && (
+              <span className="text-slate-500 text-xs flex items-center gap-1">
+                <Wrench className="w-2.5 h-2.5" />
+                {PROJECT_LABELS[lead.project] ?? lead.project}
+              </span>
+            )}
+            {lead.location && (
+              <span className="text-slate-500 text-xs flex items-center gap-1">
+                <MapPin className="w-2.5 h-2.5" />
+                {lead.location}
+              </span>
+            )}
+            <span className="text-slate-600 text-xs flex items-center gap-1">
+              <Clock className="w-2.5 h-2.5" />
+              {timeAgo(lead.createdAt)}
             </span>
-          )}
-          <span className="text-slate-600 text-xs flex items-center gap-1">
-            <Clock className="w-2.5 h-2.5" />
-            {timeAgo(lead.createdAt)}
-          </span>
+          </div>
         </div>
-      </div>
+      </Link>
 
       {/* Actions */}
       <div className="flex items-center gap-1.5 flex-shrink-0">

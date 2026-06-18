@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useMemo, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Phone, Bot, FileText, MapPin, Wrench,
   MessageSquare, Clock, LayoutList, Columns3, UserPlus, CheckCircle2,
@@ -51,6 +52,16 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
   const [mergingPanel, setMergingPanel] = useState<{ leadId: string; dupes: Lead[] } | null>(null);
   const [merging, setMerging] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const openedFromUrl = useRef(false);
+  const searchParams = useSearchParams();
+  // Ouvre directement la fiche du prospect ciblé via ?lead=<id> (lien depuis le dashboard).
+  useEffect(() => {
+    if (openedFromUrl.current) return;
+    const leadId = searchParams.get("lead");
+    if (!leadId) return;
+    const found = leads.find((l) => l.id === leadId);
+    if (found) { setSelectedLead(found); openedFromUrl.current = true; }
+  }, [searchParams, leads]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [addForm, setAddForm] = useState({ name: "", phone: "", source: "téléphone", project: "", location: "", address: "", email: "", notes: "", consentementMarketing: false });
   const [adding, setAdding] = useState(false);
