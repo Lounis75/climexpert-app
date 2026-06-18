@@ -26,9 +26,13 @@ function fmt(n: number) {
   return n.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
 }
 
-export default function DevisForm({ clients }: { clients: Client[] }) {
+type Prospect = { id: string; name: string; location: string | null };
+
+export default function DevisForm({ clients, prospects }: { clients: Client[]; prospects: Prospect[] }) {
   const router = useRouter();
-  const [clientId, setClientId] = useState(clients[0]?.id ?? "");
+  // Cible du devis : un prospect (lead) OU un client existant
+  const [mode, setMode] = useState<"prospect" | "client">(prospects.length > 0 ? "prospect" : "client");
+  const [cibleId, setCibleId] = useState(prospects[0]?.id ?? clients[0]?.id ?? "");
   const [description, setDescription] = useState("");
   const [validUntil, setValidUntil] = useState("");
   const [lignes, setLignes] = useState<Ligne[]>([{ ...EMPTY_LIGNE }]);
@@ -58,7 +62,7 @@ export default function DevisForm({ clients }: { clients: Client[] }) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    if (!clientId) { setError("Sélectionnez un client"); return; }
+    if (!cibleId) { setError(mode === "prospect" ? "Sélectionnez un prospect" : "Sélectionnez un client"); return; }
     const emptyLine = lignes.find((l) => !l.designation.trim());
     if (emptyLine) { setError("Toutes les lignes doivent avoir une désignation"); return; }
     setLoading(true);
@@ -66,7 +70,10 @@ export default function DevisForm({ clients }: { clients: Client[] }) {
       const res = await fetch("/api/admin/devis", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clientId, description, validUntil: validUntil || undefined, lignes }),
+        body: JSON.stringify({
+          [mode === "prospect" ? "leadId" : "clientId"]: cibleId,
+          description, validUntil: validUntil || undefined, lignes,
+        }),
       });
       if (!res.ok) {
         const d = await res.json();
@@ -96,18 +103,34 @@ export default function DevisForm({ clients }: { clients: Client[] }) {
       {/* Infos générales */}
       <div className="bg-slate-800/40 border border-white/8 rounded-2xl p-6 grid sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs text-slate-400 mb-1.5 font-medium">Client *</label>
+          <label className="block text-xs text-slate-400 mb-1.5 font-medium">Destinataire *</label>
+          <div className="flex gap-1.5 mb-2">
+            {(["prospect", "client"] as const).map((m) => (
+              <button key={m} type="button"
+                onClick={() => { setMode(m); setCibleId(m === "prospect" ? (prospects[0]?.id ?? "") : (clients[0]?.id ?? "")); }}
+                className={`flex-1 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
+                  mode === m ? "border-sky-500/60 bg-sky-500/10 text-sky-300" : "border-white/10 bg-slate-900/60 text-slate-400 hover:border-white/20"
+                }`}>
+                {m === "prospect" ? "Prospect" : "Client existant"}
+              </button>
+            ))}
+          </div>
           <select
-            value={clientId}
-            onChange={(e) => setClientId(e.target.value)}
+            value={cibleId}
+            onChange={(e) => setCibleId(e.target.value)}
             required
             className="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-white text-sm focus:outline-none focus:border-sky-500 transition-all"
           >
-            <option value="">Sélectionner un client</option>
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>{c.name} {c.city ? `— ${c.city}` : ""}</option>
+            <option value="">{mode === "prospect" ? "Sélectionner un prospect" : "Sélectionner un client"}</option>
+            {(mode === "prospect" ? prospects : clients).map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name} {("location" in c ? c.location : ("city" in c ? c.city : null)) ? `— ${("location" in c ? c.location : (c as Client).city)}` : ""}
+              </option>
             ))}
           </select>
+          {mode === "prospect" && (
+            <p className="text-slate-500 text-[11px] mt-1">Le prospect deviendra client automatiquement à la signature.</p>
+          )}
         </div>
         <div>
           <label className="block text-xs text-slate-400 mb-1.5 font-medium">Valable jusqu&apos;au</label>

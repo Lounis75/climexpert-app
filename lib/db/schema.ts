@@ -200,7 +200,9 @@ export const leads = pgTable("leads", {
 export const devis = pgTable("devis", {
   id:          text("id").primaryKey().$defaultFn(() => createId()),
   number:      varchar("number", { length: 50 }).notNull().unique(),
-  clientId:    text("client_id").notNull().references(() => clients.id),
+  // Optionnel : un devis peut viser un PROSPECT (leadId seul) avant la signature.
+  // À la signature, le prospect est converti en client et clientId est renseigné.
+  clientId:    text("client_id").references(() => clients.id),
   leadId:      text("lead_id").references(() => leads.id),
   status:      devisStatusEnum("status").default("brouillon").notNull(),
   totalHtCt:   integer("total_ht_ct"),        // centimes

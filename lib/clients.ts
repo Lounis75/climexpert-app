@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { clients, devis, factures, interventions, savTickets, suivisPlanifies, type Client, type NewClient } from "@/lib/db/schema";
+import { clients, devis, factures, interventions, savTickets, suivisPlanifies, leads, type Client, type NewClient } from "@/lib/db/schema";
 import type { InferSelectModel } from "drizzle-orm";
 import { eq, desc } from "drizzle-orm";
 import { randomBytes } from "crypto";
@@ -28,6 +28,42 @@ export async function createClient(
 ): Promise<Client> {
   const clientToken = data.clientToken ?? randomBytes(24).toString("hex");
   const [client] = await db.insert(clients).values({ ...data, clientToken }).returning();
+  return client;
+}
+
+/** Crée un client à partir d'un prospect (lead) en recopiant TOUTES ses données.
+ *  Réutilise le client existant si le lead a déjà été converti (lead.clientId). */
+export async function createClientFromLead(leadId: string): Promise<Client | null> {
+  const [lead] = await db.select().from(leads).where(eq(leads.id, leadId)).limit(1);
+  if (!lead) return null;
+
+  // Si déjà converti, on renvoie le client existant (idempotence)
+  if (lead.clientId) {
+    const existing = await getClientById(lead.clientId);
+    if (existing) return existing;
+  }
+
+  const notes = [
+    lead.notes,
+    lead.project ? `Projet : ${lead.project}` : "",
+    lead.equipementInteresse ? `Équipement : ${lead.equipementInteresse}` : "",
+    lead.surfaceM2 ? `Surface : ${lead.surfaceM2} m²` : "",
+    lead.message ? `Message : ${lead.message}` : "",
+  ].filter(Boolean).join("\n");
+
+  const client = await createClient({
+    name: lead.name,
+    phone: lead.phone,
+    email: lead.email ?? undefined,
+    address: lead.address ?? undefined,
+    city: lead.location ?? undefined,
+    notes: notes || undefined,
+    leadId: lead.id,
+  });
+
+  // Lie le lead au client et le marque gagné
+  await db.update(leads).set({ clientId: client.id, status: "gagné", updatedAt: new Date() }).where(eq(leads.id, lead.id));
+
   return client;
 }
 

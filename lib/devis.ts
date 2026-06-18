@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { devis, lignesDevis, clients } from "@/lib/db/schema";
+import { devis, lignesDevis, clients, leads } from "@/lib/db/schema";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import { eq, desc, count } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
@@ -35,19 +35,22 @@ export async function getDevis(): Promise<(Devis & { clientName: string })[]> {
     .select({
       devis: devis,
       clientName: clients.name,
+      leadName: leads.name,
     })
     .from(devis)
     .leftJoin(clients, eq(devis.clientId, clients.id))
+    .leftJoin(leads, eq(devis.leadId, leads.id))
     .orderBy(desc(devis.createdAt));
 
-  return rows.map((r) => ({ ...r.devis, clientName: r.clientName ?? "—" }));
+  return rows.map((r) => ({ ...r.devis, clientName: r.clientName ?? r.leadName ?? "—" }));
 }
 
 export async function getDevisById(id: string): Promise<DevisWithLignes | null> {
   const [row] = await db
-    .select({ devis: devis, clientName: clients.name, clientEmail: clients.email })
+    .select({ devis: devis, clientName: clients.name, clientEmail: clients.email, leadName: leads.name, leadEmail: leads.email })
     .from(devis)
     .leftJoin(clients, eq(devis.clientId, clients.id))
+    .leftJoin(leads, eq(devis.leadId, leads.id))
     .where(eq(devis.id, id));
 
   if (!row) return null;
@@ -58,11 +61,11 @@ export async function getDevisById(id: string): Promise<DevisWithLignes | null> 
     .where(eq(lignesDevis.devisId, id))
     .orderBy(lignesDevis.ordre);
 
-  return { ...row.devis, clientName: row.clientName ?? "—", clientEmail: row.clientEmail ?? null, lignes };
+  return { ...row.devis, clientName: row.clientName ?? row.leadName ?? "—", clientEmail: row.clientEmail ?? row.leadEmail ?? null, lignes };
 }
 
 export async function createDevis(
-  data: { clientId: string; description?: string; validUntil?: string },
+  data: { clientId?: string; leadId?: string; description?: string; validUntil?: string },
   lignesInput: LigneInput[]
 ): Promise<DevisWithLignes> {
   const number = await generateDevisNumber();
@@ -92,7 +95,8 @@ export async function createDevis(
     .values({
       id,
       number,
-      clientId: data.clientId,
+      clientId: data.clientId ?? null,
+      leadId: data.leadId ?? null,
       description: data.description ?? null,
       validUntil: data.validUntil ?? null,
       totalHtCt,
@@ -112,9 +116,10 @@ export async function createDevis(
 
 export async function getDevisByToken(token: string): Promise<DevisWithLignes | null> {
   const [row] = await db
-    .select({ devis: devis, clientName: clients.name, clientEmail: clients.email })
+    .select({ devis: devis, clientName: clients.name, clientEmail: clients.email, leadName: leads.name, leadEmail: leads.email })
     .from(devis)
     .leftJoin(clients, eq(devis.clientId, clients.id))
+    .leftJoin(leads, eq(devis.leadId, leads.id))
     .where(eq(devis.publicToken, token));
 
   if (!row) return null;
@@ -125,7 +130,7 @@ export async function getDevisByToken(token: string): Promise<DevisWithLignes | 
     .where(eq(lignesDevis.devisId, row.devis.id))
     .orderBy(lignesDevis.ordre);
 
-  return { ...row.devis, clientName: row.clientName ?? "—", clientEmail: row.clientEmail ?? null, lignes };
+  return { ...row.devis, clientName: row.clientName ?? row.leadName ?? "—", clientEmail: row.clientEmail ?? row.leadEmail ?? null, lignes };
 }
 
 export async function updateDevisStatus(

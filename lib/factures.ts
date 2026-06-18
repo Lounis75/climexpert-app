@@ -97,6 +97,9 @@ export async function getFactureById(id: string): Promise<FactureWithRefs | null
 export async function createFactureFromDevis(devisId: string): Promise<Facture> {
   const [d] = await db.select().from(devis).where(eq(devis.id, devisId));
   if (!d) throw new Error("Devis introuvable");
+  // Une facture exige un client. Un devis "prospect" doit d'abord être signé
+  // (la signature crée le client), ce qui renseigne clientId.
+  if (!d.clientId) throw new Error("Devis sans client : faites-le signer avant de facturer.");
 
   const number = await generateFactureNumber();
   const id = createId();

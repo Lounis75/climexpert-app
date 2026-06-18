@@ -12,10 +12,10 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { clientId, description, validUntil, lignes } = await req.json();
-    if (!clientId) return NextResponse.json({ error: "clientId requis" }, { status: 400 });
+    const { clientId, leadId, description, validUntil, lignes } = await req.json();
+    if (!clientId && !leadId) return NextResponse.json({ error: "Un prospect ou un client est requis" }, { status: 400 });
     if (!lignes?.length) return NextResponse.json({ error: "Au moins une ligne requise" }, { status: 400 });
-    const d = await createDevis({ clientId, description, validUntil }, lignes);
+    const d = await createDevis({ clientId, leadId, description, validUntil }, lignes);
     return NextResponse.json({ devis: d }, { status: 201 });
   } catch {
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });

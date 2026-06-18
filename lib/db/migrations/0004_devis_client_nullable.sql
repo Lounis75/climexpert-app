@@ -1,0 +1,1 @@
+ALTER TABLE "devis" ALTER COLUMN "client_id" DROP NOT NULL;

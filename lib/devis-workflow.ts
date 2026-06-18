@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { devis, interventions, suivis, notifications, admins } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
+import { createClientFromLead } from "@/lib/clients";
 
 /**
  * Traitement à la SIGNATURE d'un devis (transition -> "accepté").
@@ -17,8 +18,19 @@ export async function acceptDevis(devisId: string): Promise<{ interventionId?: s
 
   await db.update(devis).set({ status: "accepté", updatedAt: new Date() }).where(eq(devis.id, devisId));
 
-  // Pas de client lié -> rien à planifier (cas devis "prospect" géré en 2c)
-  if (!d.clientId) return {};
+  // SIGNATURE = passage prospect -> client : si le devis vise un prospect (leadId
+  // sans client), on crée le client à partir du lead et on lie le devis.
+  let clientId = d.clientId;
+  if (!clientId && d.leadId) {
+    const client = await createClientFromLead(d.leadId);
+    if (client) {
+      clientId = client.id;
+      await db.update(devis).set({ clientId: client.id, updatedAt: new Date() }).where(eq(devis.id, devisId));
+    }
+  }
+
+  // Toujours pas de client -> rien à planifier
+  if (!clientId) return {};
 
   // Idempotence : une seule intervention par devis
   const [existing] = await db
@@ -31,7 +43,7 @@ export async function acceptDevis(devisId: string): Promise<{ interventionId?: s
   const interventionId = createId();
   await db.insert(interventions).values({
     id: interventionId,
-    clientId: d.clientId,
+    clientId,
     devisId: d.id,
     type: "installation",   // valeur par défaut, ajustable lors de la planification
     status: "planifiée",    // créée, en attente de date + technicien
@@ -42,7 +54,7 @@ export async function acceptDevis(devisId: string): Promise<{ interventionId?: s
   try {
     await db.insert(suivis).values({
       id: createId(),
-      clientId: d.clientId,
+      clientId,
       interventionId,
       type: "note",
       contenu: `Devis ${d.number} signé. Intervention à planifier (date + technicien).`,
