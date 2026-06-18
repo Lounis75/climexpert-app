@@ -14,7 +14,7 @@ export type LigneDevis = InferSelectModel<typeof lignesDevis>;
 export type NewDevis = InferInsertModel<typeof devis>;
 export type NewLigneDevis = InferInsertModel<typeof lignesDevis>;
 
-export type DevisWithLignes = Devis & { lignes: LigneDevis[]; clientName?: string; clientEmail?: string | null };
+export type DevisWithLignes = Devis & { lignes: LigneDevis[]; clientName?: string; clientEmail?: string | null; clientPhone?: string | null };
 
 export type LigneInput = {
   designation: string;
@@ -47,7 +47,7 @@ export async function getDevis(): Promise<(Devis & { clientName: string })[]> {
 
 export async function getDevisById(id: string): Promise<DevisWithLignes | null> {
   const [row] = await db
-    .select({ devis: devis, clientName: clients.name, clientEmail: clients.email, leadName: leads.name, leadEmail: leads.email })
+    .select({ devis: devis, clientName: clients.name, clientEmail: clients.email, clientPhone: clients.phone, leadName: leads.name, leadEmail: leads.email, leadPhone: leads.phone })
     .from(devis)
     .leftJoin(clients, eq(devis.clientId, clients.id))
     .leftJoin(leads, eq(devis.leadId, leads.id))
@@ -61,7 +61,7 @@ export async function getDevisById(id: string): Promise<DevisWithLignes | null> 
     .where(eq(lignesDevis.devisId, id))
     .orderBy(lignesDevis.ordre);
 
-  return { ...row.devis, clientName: row.clientName ?? row.leadName ?? "—", clientEmail: row.clientEmail ?? row.leadEmail ?? null, lignes };
+  return { ...row.devis, clientName: row.clientName ?? row.leadName ?? "—", clientEmail: row.clientEmail ?? row.leadEmail ?? null, clientPhone: row.clientPhone ?? row.leadPhone ?? null, lignes };
 }
 
 export async function createDevis(

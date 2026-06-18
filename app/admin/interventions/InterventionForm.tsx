@@ -88,7 +88,7 @@ export default function InterventionForm({
             value={clientId}
             onChange={(e) => handleClientChange(e.target.value)}
             required
-            className="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-white text-sm focus:outline-none focus:border-sky-500 transition-all"
+            className="w-full h-11 px-3 rounded-xl bg-slate-900 border border-white/10 text-white text-sm focus:outline-none focus:border-sky-500 transition-all"
           >
             {clients.map((c) => (
               <option key={c.id} value={c.id}>{c.name}{c.city ? ` — ${c.city}` : ""}</option>
@@ -101,7 +101,7 @@ export default function InterventionForm({
           <select
             value={type}
             onChange={(e) => setType(e.target.value)}
-            className="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-white text-sm focus:outline-none focus:border-sky-500 transition-all"
+            className="w-full h-11 px-3 rounded-xl bg-slate-900 border border-white/10 text-white text-sm focus:outline-none focus:border-sky-500 transition-all"
           >
             {TYPES.map((t) => (
               <option key={t.value} value={t.value}>{t.label}</option>
@@ -116,7 +116,7 @@ export default function InterventionForm({
             value={scheduledAt}
             onChange={(e) => setScheduledAt(e.target.value)}
             required
-            className="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-white text-sm focus:outline-none focus:border-sky-500 transition-all"
+            className="w-full h-11 px-3 rounded-xl bg-slate-900 border border-white/10 text-white text-sm focus:outline-none focus:border-sky-500 transition-all"
           />
         </div>
 
@@ -125,7 +125,7 @@ export default function InterventionForm({
           <select
             value={technicienId}
             onChange={(e) => setTechnicienId(e.target.value)}
-            className="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-white text-sm focus:outline-none focus:border-sky-500 transition-all"
+            className="w-full h-11 px-3 rounded-xl bg-slate-900 border border-white/10 text-white text-sm focus:outline-none focus:border-sky-500 transition-all"
           >
             <option value="">— Non assigné</option>
             {techniciens.map((t) => (
@@ -141,7 +141,7 @@ export default function InterventionForm({
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             placeholder="15 rue de la Paix, Paris 75001"
-            className="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-sky-500 transition-all"
+            className="w-full h-11 px-3 rounded-xl bg-slate-900 border border-white/10 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-sky-500 transition-all"
           />
         </div>
 

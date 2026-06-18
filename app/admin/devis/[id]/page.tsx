@@ -1,11 +1,15 @@
 import AdminHeader from "@/components/AdminHeader";
 import { getDevisById, centimesToEuros, STATUS_DEVIS } from "@/lib/devis";
+import { db } from "@/lib/db";
+import { interventions } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Calendar, User, FileText, Trash2, Download } from "lucide-react";
+import { ArrowLeft, Calendar, User, FileText, Trash2, Download, Wrench, ArrowRight, CalendarPlus } from "lucide-react";
 import DevisActions from "./DevisActions";
 import SendEmailButton from "./SendEmailButton";
 import CopyLinkButton from "./CopyLinkButton";
+import CopyableContact from "@/components/CopyableContact";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +30,13 @@ export default async function DevisDetailPage({
     return s + Math.round(ht * (Number(l.tvaRate) / 100));
   }, 0);
   const totalTtc = totalHt + totalTva;
+
+  // Intervention liée (créée automatiquement à la signature du devis).
+  const [interv] = await db
+    .select({ id: interventions.id, status: interventions.status, scheduledAt: interventions.scheduledAt, technicienId: interventions.technicienId })
+    .from(interventions)
+    .where(eq(interventions.devisId, d.id))
+    .limit(1);
 
   return (
     <div className="min-h-screen bg-[#080d18]">
@@ -79,6 +90,9 @@ export default async function DevisDetailPage({
               <p className="text-white text-sm font-medium">{d.clientName}</p>
             </div>
           </div>
+
+          {/* Contact copiable (email + téléphone) */}
+          <CopyableContact email={d.clientEmail} phone={d.clientPhone} />
           {d.fichierUrl && (
             <a href={d.fichierUrl} target="_blank" rel="noopener noreferrer"
               className="bg-slate-800/40 border border-emerald-500/20 rounded-xl px-4 py-3 flex items-center gap-3 hover:border-emerald-500/40 transition-colors group">
@@ -110,6 +124,42 @@ export default async function DevisDetailPage({
             </div>
           )}
         </div>
+
+        {/* Intervention liée (devis accepté → client + intervention créés) */}
+        {(d.status === "accepté" || interv) && (
+          interv ? (
+            <Link href={`/admin/interventions/${interv.id}`}
+              className="flex items-center gap-3 bg-emerald-500/[0.07] border border-emerald-500/25 rounded-2xl p-4 hover:border-emerald-500/40 transition-colors group">
+              <div className="w-9 h-9 rounded-lg bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 flex items-center justify-center flex-shrink-0">
+                <Wrench className="w-4 h-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-white text-sm font-semibold">Intervention {interv.scheduledAt ? "planifiée" : "à planifier"}</p>
+                <p className="text-slate-400 text-xs">
+                  {interv.scheduledAt
+                    ? `Le ${new Date(interv.scheduledAt).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}${interv.technicienId ? "" : " · technicien à affecter"}`
+                    : "Ouvrez l'intervention pour affecter un technicien et une date."}
+                </p>
+              </div>
+              <span className="flex items-center gap-1 text-emerald-300 text-xs font-medium group-hover:text-white transition-colors flex-shrink-0">
+                {interv.scheduledAt ? "Ouvrir" : <>Planifier <CalendarPlus className="w-3.5 h-3.5" /></>}
+                <ArrowRight className="w-3.5 h-3.5" />
+              </span>
+            </Link>
+          ) : (
+            <Link href="/admin/interventions/new"
+              className="flex items-center gap-3 bg-sky-500/[0.07] border border-sky-500/25 rounded-2xl p-4 hover:border-sky-500/40 transition-colors group">
+              <div className="w-9 h-9 rounded-lg bg-sky-500/15 border border-sky-500/25 text-sky-400 flex items-center justify-center flex-shrink-0">
+                <CalendarPlus className="w-4 h-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-white text-sm font-semibold">Créer l&apos;intervention</p>
+                <p className="text-slate-400 text-xs">Planifiez l&apos;intervention pour ce client (date + technicien).</p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-white transition-colors flex-shrink-0" />
+            </Link>
+          )
+        )}
 
         {/* Lignes */}
         <div className="bg-slate-800/40 border border-white/8 rounded-2xl overflow-hidden">

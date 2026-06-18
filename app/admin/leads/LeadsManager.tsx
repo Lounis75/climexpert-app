@@ -846,7 +846,8 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
                       </p>
                     </div>
                   )}
-                  {lead.location && (
+                  {/* Ville/CP : masquée si une adresse complète existe (la ville y figure déjà). */}
+                  {lead.location && !(lead as Lead & { address?: string | null }).address && (
                     <div className="bg-slate-800/40 border border-white/8 rounded-xl p-3">
                       <p className="text-slate-500 text-[10px] uppercase tracking-wide mb-1">Ville / CP</p>
                       <p className="text-white text-sm font-medium flex items-center gap-1.5">
