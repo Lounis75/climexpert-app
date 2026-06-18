@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 
-const PUBLIC_PATHS = [
+// Chemins admin publics — correspondance EXACTE (et NON par préfixe) : sinon
+// "/admin" rendrait tout /admin/* public (fuite du dashboard, des données clients…).
+const ADMIN_PUBLIC = [
   "/admin",              // page login
+  "/admin/setup",        // page création premier admin
   "/api/admin/login",   // POST login, DELETE logout
-  "/api/admin/setup",   // création premier admin
+  "/api/admin/setup",   // API création premier admin
 ];
 
 // Chemins publics des espaces salariés (login, activation, consommation du lien magique).
@@ -72,7 +75,8 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  if (matchesAny(pathname, PUBLIC_PATHS)) {
+  // Correspondance EXACTE (cf. ADMIN_PUBLIC) : ne pas rendre /admin/* public.
+  if (ADMIN_PUBLIC.includes(pathname)) {
     return NextResponse.next();
   }
 
