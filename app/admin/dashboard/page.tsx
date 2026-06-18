@@ -1,4 +1,4 @@
-import { getDashboardStats } from "@/lib/dashboard";
+import { getDashboardStats, getTachesAFaire } from "@/lib/dashboard";
 import { getDynamicArticles } from "@/lib/dynamicArticles";
 import { getFeaturedSlugs } from "@/lib/kv";
 import AdminHeader from "@/components/AdminHeader";
@@ -64,11 +64,20 @@ function formatDate(d: Date | string | null) {
 }
 
 export default async function DashboardPage() {
-  const [stats, dynamicArticles, featuredSlugs] = await Promise.all([
+  const [stats, dynamicArticles, featuredSlugs, taches] = await Promise.all([
     getDashboardStats(),
     getDynamicArticles(),
     getFeaturedSlugs(),
+    getTachesAFaire(),
   ]);
+
+  const tachesList = [
+    { n: taches.interventionsSansTechnicien, label: "intervention(s) sans technicien", href: "/admin/interventions", color: "amber", icon: Wrench },
+    { n: taches.interventionsSansDate,       label: "intervention(s) sans date",        href: "/admin/interventions", color: "amber", icon: CalendarCheck },
+    { n: taches.prospectsSansCommercial,     label: "prospect(s) sans commercial",      href: "/admin/leads",         color: "sky",   icon: Users },
+    { n: taches.devisARelancer,              label: "devis envoyé(s) à relancer (>7j)", href: "/admin/devis",         color: "violet", icon: FileText },
+  ].filter((t) => t.n > 0);
+  const totalTaches = tachesList.reduce((s, t) => s + t.n, 0);
 
   const maxCa = Math.max(...stats.caMensuel.map((m) => m.ct), 1);
   const tauxConversion = stats.leadsTotal > 0
@@ -87,6 +96,37 @@ export default async function DashboardPage() {
             {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
           </p>
         </div>
+
+        {/* ─── Tâches à faire ──────────────────────────────────────────────────────── */}
+        {tachesList.length > 0 && (
+          <div className="bg-amber-500/[0.06] border border-amber-500/20 rounded-2xl p-4 mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-7 h-7 rounded-lg bg-amber-500/15 border border-amber-500/25 text-amber-400 flex items-center justify-center">
+                <ClipboardList className="w-4 h-4" />
+              </div>
+              <h2 className="text-white font-semibold text-sm">À faire</h2>
+              <span className="text-amber-400 text-xs font-bold bg-amber-500/15 px-2 py-0.5 rounded-full">{totalTaches}</span>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-2">
+              {tachesList.map((t) => (
+                <Link key={t.label} href={t.href}
+                  className="flex items-center gap-3 bg-slate-800/40 border border-white/8 rounded-xl px-3 py-2.5 hover:border-white/20 transition-all group">
+                  <span className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                    t.color === "amber" ? "bg-amber-500/10 text-amber-400" :
+                    t.color === "sky" ? "bg-sky-500/10 text-sky-400" :
+                    "bg-violet-500/10 text-violet-400"
+                  }`}>
+                    <t.icon className="w-4 h-4" />
+                  </span>
+                  <p className="text-sm text-slate-200 flex-1">
+                    <span className="font-bold text-white">{t.n}</span> {t.label}
+                  </p>
+                  <ArrowRight className="w-4 h-4 text-slate-600 group-hover:text-white transition-colors" />
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ─── KPIs ──────────────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">

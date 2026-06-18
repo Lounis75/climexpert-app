@@ -55,6 +55,22 @@ export default async function TechnicienDashboard() {
     )
     .orderBy(interventions.scheduledAt);
 
+  // Prochaines interventions (après aujourd'hui)
+  const upcomingInterventions = await db
+    .select({
+      id: interventions.id, type: interventions.type, status: interventions.status,
+      scheduledAt: interventions.scheduledAt, address: interventions.address, clientName: clients.name,
+    })
+    .from(interventions)
+    .leftJoin(clients, eq(interventions.clientId, clients.id))
+    .where(and(
+      eq(interventions.technicienId, session.sub),
+      isNull(interventions.supprimeLe),
+      gte(interventions.scheduledAt, new Date(endOfDay.getTime() + 1)),
+    ))
+    .orderBy(interventions.scheduledAt)
+    .limit(5);
+
   const unreadCount = await db
     .select({ id: notifications.id })
     .from(notifications)
@@ -117,6 +133,34 @@ export default async function TechnicienDashboard() {
           </div>
         )}
       </section>
+
+      {/* Prochaines interventions (à venir) */}
+      {upcomingInterventions.length > 0 && (
+        <section>
+          <h2 className="font-semibold text-slate-900 flex items-center gap-2 mb-3">
+            <Clock className="w-4 h-4 text-violet-500" />
+            Prochaines interventions
+          </h2>
+          <div className="space-y-2">
+            {upcomingInterventions.map((i) => (
+              <Link key={i.id} href={`/technicien/interventions/${i.id}`}
+                className="flex items-center gap-3 bg-white border border-slate-100 rounded-2xl p-3.5 hover:border-violet-200 transition-colors">
+                <div className="flex-shrink-0 text-center min-w-[56px]">
+                  <p className="text-xs font-semibold text-violet-600 capitalize">
+                    {i.scheduledAt ? new Date(i.scheduledAt).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short", timeZone: "Europe/Paris" }) : "—"}
+                  </p>
+                  <p className="text-xs text-slate-500">{formatTime(i.scheduledAt)}</p>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-slate-900 text-sm truncate">{i.clientName ?? "—"}</p>
+                  <p className="text-slate-500 text-xs truncate">{TYPE_LABELS[i.type] ?? i.type} · {i.address ?? "Adresse à confirmer"}</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-300 flex-shrink-0" />
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

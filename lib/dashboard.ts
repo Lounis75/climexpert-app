@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { leads, devis, factures, interventions, clients, savTickets, logsAlex } from "@/lib/db/schema";
-import { eq, gte, lte, ne, desc, and, sql, isNull, count } from "drizzle-orm";
+import { eq, gte, lte, ne, desc, and, sql, isNull, count, notInArray } from "drizzle-orm";
 
 export type DashboardStats = {
   // Factures
@@ -355,5 +355,50 @@ export async function getLeadsPageStats(alexSince?: Date): Promise<LeadsPageStat
     parSource,
     parMois,
     alex,
+  };
+}
+
+// ─── Tâches à faire (dashboard admin) ────────────────────────────────────────
+
+export type TachesAFaire = {
+  prospectsSansCommercial: number;
+  interventionsSansTechnicien: number;
+  interventionsSansDate: number;
+  devisARelancer: number;
+};
+
+export async function getTachesAFaire(): Promise<TachesAFaire> {
+  const il7j = new Date(Date.now() - 7 * 86400000);
+  const [a, b, c, d] = await Promise.all([
+    // Prospects actifs (non convertis, non perdus) sans commercial affecté
+    db.select({ n: count() }).from(leads).where(and(
+      isNull(leads.commercialId),
+      isNull(leads.clientId),
+      isNull(leads.supprimeLe),
+      notInArray(leads.status, ["perdu", "gagné"]),
+    )),
+    // Interventions à planifier : sans technicien
+    db.select({ n: count() }).from(interventions).where(and(
+      isNull(interventions.technicienId),
+      eq(interventions.status, "planifiée"),
+      isNull(interventions.supprimeLe),
+    )),
+    // Interventions à planifier : sans date
+    db.select({ n: count() }).from(interventions).where(and(
+      isNull(interventions.scheduledAt),
+      eq(interventions.status, "planifiée"),
+      isNull(interventions.supprimeLe),
+    )),
+    // Devis envoyés sans réponse depuis plus de 7 jours
+    db.select({ n: count() }).from(devis).where(and(
+      eq(devis.status, "envoyé"),
+      lte(devis.updatedAt, il7j),
+    )),
+  ]);
+  return {
+    prospectsSansCommercial:     Number(a[0]?.n ?? 0),
+    interventionsSansTechnicien: Number(b[0]?.n ?? 0),
+    interventionsSansDate:       Number(c[0]?.n ?? 0),
+    devisARelancer:              Number(d[0]?.n ?? 0),
   };
 }
