@@ -6,11 +6,14 @@ import { createId } from "@paralleldrive/cuid2";
 
 export type Notification = InferSelectModel<typeof notifications>;
 
+// Les notifications admin ont adminId = NULL. Celles dont adminId est renseigné
+// sont destinées à un technicien (table polymorphe) et ne doivent PAS apparaître
+// dans la cloche admin.
 export async function getUnreadCount(): Promise<number> {
   const rows = await db
     .select({ id: notifications.id })
     .from(notifications)
-    .where(eq(notifications.lu, false));
+    .where(and(eq(notifications.lu, false), isNull(notifications.adminId)));
   return rows.length;
 }
 
@@ -18,6 +21,7 @@ export async function getRecentNotifications(limit = 15): Promise<Notification[]
   return db
     .select()
     .from(notifications)
+    .where(isNull(notifications.adminId))
     .orderBy(desc(notifications.createdAt))
     .limit(limit);
 }
@@ -26,6 +30,7 @@ export async function getAllNotifications(): Promise<Notification[]> {
   return db
     .select()
     .from(notifications)
+    .where(isNull(notifications.adminId))
     .orderBy(desc(notifications.createdAt));
 }
 
@@ -33,7 +38,7 @@ export async function markAllAsRead(): Promise<void> {
   await db
     .update(notifications)
     .set({ lu: true })
-    .where(eq(notifications.lu, false));
+    .where(and(eq(notifications.lu, false), isNull(notifications.adminId)));
 }
 
 export async function markAsRead(id: string): Promise<void> {

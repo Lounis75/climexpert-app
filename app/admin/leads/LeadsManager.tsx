@@ -904,11 +904,13 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
                       value={(lead as Lead & { commercialId?: string | null }).commercialId ?? ""}
                       onChange={async (e) => {
                         const commercialId = e.target.value || null;
-                        await fetch("/api/admin/leads", {
+                        const res = await fetch("/api/admin/leads", {
                           method: "PATCH",
                           headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({ id: lead.id, commercialId }),
                         });
+                        if (res.status === 401) { window.location.href = "/admin"; return; }
+                        if (!res.ok) { alert("Échec de l'affectation du commercial. Réessayez."); return; }
                         setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, commercialId } as Lead : l));
                         setSelectedLead(prev => prev ? { ...prev, commercialId } as Lead : null);
                       }}
@@ -933,11 +935,14 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
                     type="button"
                     onClick={async () => {
                       const next = !(lead as Lead).consentementMarketing;
-                      await fetch("/api/admin/leads", {
+                      const res = await fetch("/api/admin/leads", {
                         method: "PATCH",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ id: lead.id, consentementMarketing: next }),
                       });
+                      // Champ RGPD opposable : ne JAMAIS afficher un consentement non persisté.
+                      if (res.status === 401) { window.location.href = "/admin"; return; }
+                      if (!res.ok) { alert("Échec de l'enregistrement du consentement. Réessayez."); return; }
                       setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, consentementMarketing: next } as Lead : l));
                       setSelectedLead(prev => prev ? { ...prev, consentementMarketing: next } as Lead : null);
                     }}

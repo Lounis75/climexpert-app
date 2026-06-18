@@ -45,6 +45,18 @@ export async function POST(req: NextRequest) {
 
   if (!interv) return NextResponse.json({ error: "Intervention introuvable" }, { status: 404 });
 
+  // Idempotence : si un rapport existe déjà (intervention déjà clôturée), ne pas
+  // réinsérer — la contrainte unique sur interventionId crasherait en 500. Cas réel :
+  // iPad en veille / réseau coupé → 1er POST réussit serveur mais réponse perdue → re-soumission.
+  const [dejaRapport] = await db
+    .select({ id: rapportsIntervention.id })
+    .from(rapportsIntervention)
+    .where(eq(rapportsIntervention.interventionId, interventionId))
+    .limit(1);
+  if (dejaRapport || interv.status === "terminée") {
+    return NextResponse.json({ ok: true, dejaCloture: true });
+  }
+
   // Créer le rapport
   const [rapport] = await db
     .insert(rapportsIntervention)

@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { factures, devis, clients, lignesDevis } from "@/lib/db/schema";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
-import { eq, desc, count, and, lt } from "drizzle-orm";
+import { eq, desc, count, and, lt, ne } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 import { centimesToEuros } from "@/lib/devis";
 import { createNotification } from "@/lib/notifications";
@@ -101,6 +101,15 @@ export async function createFactureFromDevis(devisId: string): Promise<Facture> 
   // (la signature crée le client), ce qui renseigne clientId.
   if (!d.clientId) throw new Error("Devis sans client : faites-le signer avant de facturer.");
 
+  // Idempotence : si une facture (non annulée) existe déjà pour ce devis, la renvoyer
+  // au lieu d'en créer une seconde (anti double-clic / retry → double facturation).
+  const [existing] = await db
+    .select()
+    .from(factures)
+    .where(and(eq(factures.devisId, devisId), ne(factures.status, "annulée")))
+    .limit(1);
+  if (existing) return existing;
+
   const number = await generateFactureNumber();
   const id = createId();
 
@@ -108,6 +117,14 @@ export async function createFactureFromDevis(devisId: string): Promise<Facture> 
   const dueDate = new Date();
   dueDate.setDate(dueDate.getDate() + 30);
   const dueDateStr = dueDate.toISOString().split("T")[0];
+
+  // Taux de TVA effectif déduit des montants (le champ d'en-tête du devis n'est pas
+  // fiable). Évite d'afficher "TVA 5,5%" sur une facture dont le TTC correspond à 20%.
+  const htCt = d.totalHtCt ?? 0;
+  const ttcCt = d.totalTtcCt ?? 0;
+  const effectiveTva = htCt > 0
+    ? (Math.round((ttcCt / htCt - 1) * 10000) / 100).toFixed(2)
+    : d.tvaRate;
 
   const [f] = await db
     .insert(factures)
@@ -118,7 +135,7 @@ export async function createFactureFromDevis(devisId: string): Promise<Facture> 
       devisId: d.id,
       totalHtCt: d.totalHtCt,
       totalTtcCt: d.totalTtcCt,
-      tvaRate: d.tvaRate,
+      tvaRate: effectiveTva,
       dueDate: dueDateStr,
       status: "en_attente",
     })

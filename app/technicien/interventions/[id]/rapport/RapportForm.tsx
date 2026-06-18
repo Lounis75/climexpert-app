@@ -55,8 +55,13 @@ export default function RapportForm({
       const form = new FormData();
       form.append("file", p.file);
       const res = await fetch("/api/technicien/upload", { method: "POST", body: form });
-      const data = await res.json();
-      if (data.url) urls.push(data.url);
+      const data = await res.json().catch(() => ({}));
+      // Échec d'upload (taille >5Mo, format HEIC, R2 KO, session expirée) : on
+      // STOPPE au lieu de perdre la photo en silence — c'est une preuve d'intervention.
+      if (!res.ok || !data.url) {
+        throw new Error(data.error ?? "Échec de l'envoi d'une photo. Vérifiez le format (JPG/PNG, <5 Mo) et réessayez.");
+      }
+      urls.push(data.url);
     }
     return urls;
   }
@@ -85,7 +90,12 @@ export default function RapportForm({
         const form = new FormData();
         form.append("file", new File([blob], "signature.png", { type: "image/png" }));
         const res = await fetch("/api/technicien/upload", { method: "POST", body: form });
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
+        // Si la signature ne s'enregistre pas, on NE clôture PAS : le contrat signé
+        // par le client serait perdu sans trace. On bloque pour que le technicien réessaie.
+        if (!res.ok || !data.url) {
+          throw new Error(data.error ?? "Échec de l'enregistrement de la signature. Réessayez.");
+        }
         signatureUrl = data.url;
       }
       setUploading(false);
