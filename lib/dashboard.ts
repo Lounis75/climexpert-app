@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { leads, devis, factures, interventions, clients, savTickets, logsAlex, techniciens } from "@/lib/db/schema";
-import { eq, gte, lte, ne, desc, and, sql, isNull, count, notInArray } from "drizzle-orm";
+import { eq, gte, lte, ne, desc, and, sql, isNull, count, notInArray, inArray } from "drizzle-orm";
 
 export type DashboardStats = {
   // Factures
@@ -56,6 +56,7 @@ export type DernierLead = {
   project: string | null;
   location: string | null;
   commercialId: string | null;
+  clientId: string | null;
   createdAt: Date | string;
 };
 
@@ -202,7 +203,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     db.select({
       id: leads.id, name: leads.name, phone: leads.phone, status: leads.status,
       source: leads.source, project: leads.project, location: leads.location,
-      commercialId: leads.commercialId, createdAt: leads.createdAt,
+      commercialId: leads.commercialId, clientId: leads.clientId, createdAt: leads.createdAt,
     })
     .from(leads)
     .where(isNull(leads.supprimeLe))
@@ -465,4 +466,24 @@ export async function getInterventionsAPlanifier(): Promise<IntervJour[]> {
     ))
     .orderBy(desc(interventions.createdAt))
     .limit(8);
+}
+
+// ─── Interventions par client (pour le bouton créer/voir du dashboard) ───────
+
+export async function getInterventionsParClient(
+  clientIds: string[],
+): Promise<Record<string, { count: number; latestId: string }>> {
+  if (clientIds.length === 0) return {};
+  const rows = await db
+    .select({ id: interventions.id, clientId: interventions.clientId })
+    .from(interventions)
+    .where(and(inArray(interventions.clientId, clientIds), isNull(interventions.supprimeLe)))
+    .orderBy(desc(interventions.createdAt));
+  const map: Record<string, { count: number; latestId: string }> = {};
+  for (const r of rows) {
+    if (!r.clientId) continue;
+    if (!map[r.clientId]) map[r.clientId] = { count: 0, latestId: r.id }; // 1er = plus récent (desc)
+    map[r.clientId].count++;
+  }
+  return map;
 }

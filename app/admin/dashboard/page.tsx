@@ -1,4 +1,4 @@
-import { getDashboardStats, getTachesAFaire, getInterventionsDuJour, getInterventionsAPlanifier } from "@/lib/dashboard";
+import { getDashboardStats, getTachesAFaire, getInterventionsDuJour, getInterventionsAPlanifier, getInterventionsParClient } from "@/lib/dashboard";
 import { getAudience } from "@/lib/analytics";
 import { getDynamicArticles, isPublished } from "@/lib/dynamicArticles";
 import { getCommerciauxAssignables, getTechniciensAssignables } from "@/lib/utilisateurs";
@@ -54,6 +54,10 @@ export default async function DashboardPage() {
     getTechniciensAssignables(),  // techniciens + admins
     getAudience(7),
   ]);
+
+  // Interventions par client (pour le bouton Créer/Voir sur les prospects gagnés).
+  const clientIds = stats.derniersLeads.map((l) => l.clientId).filter((x): x is string => !!x);
+  const intervsByClient = await getInterventionsParClient(clientIds);
 
   const articlesPublies = dynamicArticles.filter((a) => isPublished(a)).length;
   const audienceKpis = [
@@ -264,7 +268,8 @@ export default async function DashboardPage() {
             ) : (
               <div className="divide-y divide-white/5">
                 {stats.derniersLeads.map((lead) => (
-                  <DashboardLeadRow key={lead.id} lead={lead} commerciaux={commerciaux} />
+                  <DashboardLeadRow key={lead.id} lead={lead} commerciaux={commerciaux}
+                    interventionInfo={lead.clientId ? intervsByClient[lead.clientId] : undefined} />
                 ))}
               </div>
             )}

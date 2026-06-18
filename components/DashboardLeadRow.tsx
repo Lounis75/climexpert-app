@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Phone, Mail, Bot, MessageSquare, Wrench, MapPin, Clock } from "lucide-react";
+import { Phone, Mail, Bot, MessageSquare, Wrench, MapPin, Clock, CalendarPlus } from "lucide-react";
 import InlineAssign from "@/components/InlineAssign";
 
 interface Lead {
@@ -15,10 +15,12 @@ interface Lead {
   project?: string | null;
   location?: string | null;
   commercialId?: string | null;
+  clientId?: string | null;
   createdAt: Date | string;
 }
 
 type Commercial = { id: string; name: string; prenom?: string | null };
+type InterventionInfo = { count: number; latestId: string };
 
 const STATUS_COLORS: Record<string, string> = {
   nouveau:      "bg-sky-500/10 text-sky-400 border-sky-500/30",
@@ -46,11 +48,14 @@ function timeAgo(d: Date | string) {
   return `${Math.floor(h / 24)}j`;
 }
 
-export default function DashboardLeadRow({ lead, commerciaux = [] }: { lead: Lead; commerciaux?: Commercial[] }) {
+export default function DashboardLeadRow({ lead, commerciaux = [], interventionInfo }: { lead: Lead; commerciaux?: Commercial[]; interventionInfo?: InterventionInfo }) {
   const [showPhone, setShowPhone] = useState(false);
   const [showEmail, setShowEmail] = useState(false);
   // Un prospect "actif" (ni gagné ni perdu) peut être affecté à un commercial.
   const affectable = lead.status !== "gagné" && lead.status !== "perdu";
+  // Prospect gagné & converti : créer ou voir l'/les intervention(s).
+  const showIntervBtn = lead.status === "gagné" && !!lead.clientId;
+  const hasInterv = !!interventionInfo && interventionInfo.count > 0;
 
   return (
     <div className="px-5 py-3.5 flex items-center gap-3 hover:bg-white/3 transition-colors">
@@ -97,6 +102,26 @@ export default function DashboardLeadRow({ lead, commerciaux = [] }: { lead: Lea
         {/* Affecter un commercial */}
         {commerciaux.length > 0 && affectable && (
           <InlineAssign kind="commercial" targetId={lead.id} currentId={lead.commercialId ?? null} options={commerciaux} />
+        )}
+
+        {/* Créer / voir l'intervention (prospect gagné) */}
+        {showIntervBtn && (
+          hasInterv ? (
+            <Link
+              href={interventionInfo!.count === 1 ? `/admin/interventions/${interventionInfo!.latestId}` : `/admin/clients/${lead.clientId}`}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs font-medium hover:bg-emerald-500/20 transition-colors whitespace-nowrap"
+            >
+              <Wrench className="w-3 h-3 flex-shrink-0" />
+              {interventionInfo!.count > 1 ? `Voir interventions (${interventionInfo!.count})` : "Voir l'intervention"}
+            </Link>
+          ) : (
+            <Link
+              href={`/admin/interventions/new?client=${lead.clientId}`}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-sky-500/15 border border-sky-500/30 text-sky-300 text-xs font-medium hover:bg-sky-500/25 transition-colors whitespace-nowrap"
+            >
+              <CalendarPlus className="w-3 h-3 flex-shrink-0" /> Créer l&apos;intervention
+            </Link>
+          )
         )}
 
         {/* Phone */}

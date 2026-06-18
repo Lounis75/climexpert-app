@@ -339,29 +339,33 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
         </div>
 
         {/* Name */}
-        <p className="text-white font-semibold text-sm mb-1 truncate">{lead.name}</p>
-        <p className="text-slate-400 text-xs mb-2 flex items-center gap-1">
-          <Phone className="w-2.5 h-2.5 flex-shrink-0" />
-          {lead.phone}
-        </p>
+        <p className="text-white font-semibold text-sm mb-2 truncate">{lead.name}</p>
 
-        {/* Meta */}
-        {(lead.project || lead.location) && (
-          <div className="flex flex-wrap gap-2 text-[10px] text-slate-500">
-            {lead.project && (
-              <span className="flex items-center gap-0.5">
-                <Wrench className="w-2.5 h-2.5" />
-                {PROJECT_LABELS[lead.project] ?? lead.project}
+        {/* Meta : type · lieu · commercial affecté */}
+        <div className="flex flex-wrap gap-x-2 gap-y-1 text-[10px] text-slate-500">
+          {lead.project && (
+            <span className="flex items-center gap-0.5">
+              <Wrench className="w-2.5 h-2.5" />
+              {PROJECT_LABELS[lead.project] ?? lead.project}
+            </span>
+          )}
+          {lead.location && (
+            <span className="flex items-center gap-0.5 truncate">
+              <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
+              {lead.location}
+            </span>
+          )}
+          {(() => {
+            const commercialId = (lead as Lead & { commercialId?: string | null }).commercialId;
+            const c = commerciaux.find((x) => x.id === commercialId);
+            return (
+              <span className={`flex items-center gap-0.5 ${c ? "text-violet-300" : "text-slate-600"}`}>
+                <Briefcase className="w-2.5 h-2.5 flex-shrink-0" />
+                {c ? (c.prenom ? `${c.prenom} ${c.name}` : c.name) : "non affecté"}
               </span>
-            )}
-            {lead.location && (
-              <span className="flex items-center gap-0.5 truncate">
-                <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
-                {lead.location}
-              </span>
-            )}
-          </div>
-        )}
+            );
+          })()}
+        </div>
       </div>
     );
   }

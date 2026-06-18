@@ -138,6 +138,11 @@ export default async function ClientDetailPage({
               </span>
             </div>
           </div>
+          {/* Un client peut avoir plusieurs interventions (installation, puis entretien, 2e logement…). */}
+          <Link href={`/admin/interventions/new?client=${c.id}`}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-white text-sm font-semibold transition-colors flex-shrink-0">
+            <Wrench className="w-4 h-4" /> Nouvelle intervention
+          </Link>
         </div>
 
         {/* Coordonnées */}
