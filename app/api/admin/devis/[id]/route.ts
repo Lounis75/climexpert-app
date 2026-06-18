@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDevisById, updateDevisStatus, deleteDevis } from "@/lib/devis";
+import { acceptDevis } from "@/lib/devis-workflow";
 import type { Devis } from "@/lib/devis";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -18,6 +19,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const { id } = await params;
     const { status } = await req.json();
     if (!status) return NextResponse.json({ error: "status requis" }, { status: 400 });
+    if (status === "accepté") {
+      // Même automatisation que la signature publique : crée l'intervention à planifier
+      await acceptDevis(id);
+      const d = await getDevisById(id);
+      if (!d) return NextResponse.json({ error: "Devis introuvable" }, { status: 404 });
+      return NextResponse.json({ devis: d });
+    }
     const d = await updateDevisStatus(id, status as Devis["status"]);
     if (!d) return NextResponse.json({ error: "Devis introuvable" }, { status: 404 });
     return NextResponse.json({ devis: d });

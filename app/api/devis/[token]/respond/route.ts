@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDevisByToken, updateDevisStatus } from "@/lib/devis";
+import { acceptDevis } from "@/lib/devis-workflow";
 
 export async function POST(
   req: NextRequest,
@@ -20,7 +21,12 @@ export async function POST(
       return NextResponse.json({ error: "Ce devis ne peut plus être modifié" }, { status: 409 });
     }
 
-    await updateDevisStatus(d.id, action);
+    if (action === "accepté") {
+      // Signature : passe accepté + crée l'intervention à planifier + notifie
+      await acceptDevis(d.id);
+    } else {
+      await updateDevisStatus(d.id, action);
+    }
     return NextResponse.json({ success: true, status: action });
   } catch (err) {
     console.error("Devis respond error:", err);
