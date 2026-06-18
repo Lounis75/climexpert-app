@@ -199,7 +199,7 @@ FORMAT OBLIGATOIRE À LA DERNIÈRE ÉTAPE UNIQUEMENT :
 Quand tu as collecté le nom ET le téléphone ET l'adresse (l'email est optionnel), réponds avec ce format exact (sans rien d'autre avant ou après) :
 
 LEAD_READY
-{"name":"[prénom nom]","phone":"[téléphone]","email":"[email ou vide]","project":"[installation/entretien/depannage/contrat-pro/autre — en minuscules SANS accent]","property":"[type de bien]","location":"[ville/CP]","address":"[adresse complète : numéro, rue, code postal, ville]","estimate":"[fourchette €]","notes":"[tout détail utile : nombre d'unités, accessibilité, photos envoyées, HORS IDF si applicable]","refuseContact":false}
+{"name":"[prénom nom]","phone":"[téléphone]","email":"[email ou vide]","project":"[installation/entretien/depannage/contrat-pro/autre — en minuscules SANS accent]","property":"[type de bien]","location":"[ville/CP]","address":"[adresse complète : numéro, rue, code postal, ville]","estimate":"[fourchette €]","notes":"[tout détail utile : nombre d'unités, accessibilité, photos envoyées, HORS IDF si applicable]","refuseContact":false,"typeClient":"[particulier OU professionnel — 'professionnel' si local pro/entreprise/société/contrat-pro, sinon 'particulier']"}
 MESSAGE
 [Ton message de confirmation chaleureux. Termine TOUJOURS par cette information sur le consentement (formulée naturellement) : "Sauf indication contraire de votre part, nous conservons vos coordonnées pour vous recontacter — uniquement par les équipes ClimExpert, jamais de revente à des tiers."
 En IDF : "Parfait Thomas ! Votre demande est bien enregistrée, un technicien ClimExpert vous rappelle sous 24h. Sauf indication contraire de votre part, nous conservons vos coordonnées pour vous recontacter, uniquement par les équipes ClimExpert (jamais de revente à des tiers)."
@@ -217,6 +217,7 @@ interface LeadData {
   estimate: string;
   notes: string;
   refuseContact?: boolean;   // true UNIQUEMENT si la personne refuse le démarchage
+  typeClient?: string;       // "particulier" | "professionnel"
 }
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
@@ -448,6 +449,7 @@ export async function POST(req: NextRequest) {
               // sauf opposition de sa part. Permet la prospection ultérieure (cf. RGPD).
               consentementMarketing: lead.refuseContact !== true,
               consentementLe: new Date(),
+              typeClient: lead.typeClient === "professionnel" ? "professionnel" : "particulier",
             });
           } catch (e) {
             console.error("[chat] ÉCHEC createLead — lead potentiellement perdu:", e, JSON.stringify(lead));

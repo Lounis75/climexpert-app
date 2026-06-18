@@ -34,9 +34,10 @@ interface FormState {
   email: string;
   message: string;
   consent: boolean;
+  typeClient: string;
 }
 
-const initialForm: FormState = { type: "", bien: "", ville: "", nom: "", telephone: "", email: "", message: "", consent: false };
+const initialForm: FormState = { type: "", bien: "", ville: "", nom: "", telephone: "", email: "", message: "", consent: false, typeClient: "particulier" };
 
 function openChat() {
   window.dispatchEvent(new CustomEvent("open-chat"));
@@ -165,6 +166,17 @@ export default function ContactClient() {
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="px-8 py-7 space-y-6">
+
+                  {/* Particulier / Professionnel */}
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2.5">Vous êtes</label>
+                    <PillGroup
+                      options={[{ value: "particulier", label: "Particulier" }, { value: "professionnel", label: "Professionnel" }]}
+                      name="typeClient"
+                      value={form.typeClient}
+                      onChange={(v) => setForm((p) => ({ ...p, typeClient: v }))}
+                    />
+                  </div>
 
                   {/* Type de demande */}
                   <div>

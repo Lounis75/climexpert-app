@@ -1,0 +1,1 @@
+ALTER TABLE "leads" ADD COLUMN "type_client" varchar(20) DEFAULT 'particulier' NOT NULL;

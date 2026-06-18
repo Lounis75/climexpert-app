@@ -5,7 +5,7 @@ import type { LeadStatus } from "@/lib/leads";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { name, phone, source, project, location, address, email, notes, consentementMarketing } = body;
+    const { name, phone, source, project, location, address, email, notes, consentementMarketing, typeClient } = body;
     if (!name?.trim() || !phone?.trim()) {
       return NextResponse.json({ error: "Nom et téléphone requis" }, { status: 400 });
     }
@@ -20,6 +20,7 @@ export async function POST(req: NextRequest) {
       notes: notes?.trim() || undefined,
       consentementMarketing: consentementMarketing === true,
       consentementLe: consentementMarketing === true ? new Date() : undefined,
+      typeClient: typeClient === "professionnel" ? "professionnel" : "particulier",
     });
     return NextResponse.json({ lead });
   } catch {

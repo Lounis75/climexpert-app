@@ -177,6 +177,8 @@ export const leads = pgTable("leads", {
   email:               varchar("email", { length: 255 }),
   location:            varchar("location", { length: 255 }),
   address:             text("address"),
+  // Particulier ou professionnel (utile pour devis, TVA, démarchage B2B).
+  typeClient:          varchar("type_client", { length: 20 }).default("particulier").notNull(),
   project:             projectTypeEnum("project"),
   typeBatiment:        batimentTypeEnum("type_batiment"),
   surfaceM2:           integer("surface_m2"),

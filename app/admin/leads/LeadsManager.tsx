@@ -64,7 +64,7 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
     if (found) { setSelectedLead(found); openedFromUrl.current = true; }
   }, [searchParams, leads]);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [addForm, setAddForm] = useState({ name: "", phone: "", source: "téléphone", project: "", location: "", address: "", email: "", notes: "", consentementMarketing: false });
+  const [addForm, setAddForm] = useState({ name: "", phone: "", source: "téléphone", project: "", location: "", address: "", email: "", notes: "", consentementMarketing: false, typeClient: "particulier" });
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState("");
   const [editingLead, setEditingLead] = useState(false);
@@ -219,7 +219,7 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
         const { lead } = await res.json();
         setLeads((prev) => [lead, ...prev]);
         setShowAddModal(false);
-        setAddForm({ name: "", phone: "", source: "téléphone", project: "", location: "", address: "", email: "", notes: "", consentementMarketing: false });
+        setAddForm({ name: "", phone: "", source: "téléphone", project: "", location: "", address: "", email: "", notes: "", consentementMarketing: false, typeClient: "particulier" });
       } else {
         const data = await res.json();
         setAddError(data.error ?? "Erreur lors de la création.");
@@ -733,6 +733,9 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
                     {lead.source === "alex" ? "Alex" : "Formulaire"}
                   </span>
                   <h3 className="text-white font-semibold text-sm truncate">{lead.name}</h3>
+                  {(lead as Lead & { typeClient?: string }).typeClient === "professionnel" && (
+                    <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-semibold flex-shrink-0">Pro</span>
+                  )}
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0 ml-3">
                   {!editingLead && (
@@ -1206,6 +1209,27 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
                       }`}
                     >
                       <Icon className="w-3.5 h-3.5" />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Type de client */}
+              <div>
+                <p className="text-slate-400 text-xs font-medium mb-2">Type de client</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { value: "particulier", label: "Particulier" },
+                    { value: "professionnel", label: "Professionnel" },
+                  ].map(({ value, label }) => (
+                    <button key={value} type="button"
+                      onClick={() => setAddForm(f => ({ ...f, typeClient: value }))}
+                      className={`px-3 py-2.5 rounded-xl border text-sm font-medium transition-all ${
+                        addForm.typeClient === value
+                          ? "border-violet-500/60 bg-violet-500/10 text-violet-300"
+                          : "border-white/10 bg-slate-800/60 text-slate-400 hover:border-white/20"
+                      }`}>
                       {label}
                     </button>
                   ))}

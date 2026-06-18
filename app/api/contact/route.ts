@@ -15,6 +15,7 @@ interface ContactFormData {
   societe?: string;
   photosUrls?: string[];
   consent?: boolean;
+  typeClient?: string;
 }
 
 const typeLabels: Record<string, string> = {
@@ -117,6 +118,7 @@ export async function POST(req: NextRequest) {
       message: notesWithPhotos || undefined,
       consentementMarketing: body.consent === true,
       consentementLe: body.consent === true ? new Date() : undefined,
+      typeClient: body.typeClient === "professionnel" ? "professionnel" : "particulier",
     });
 
     await createNotification({

@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, MapPin } from "lucide-react";
 import Link from "next/link";
+import AddressAutocomplete from "@/components/AddressAutocomplete";
 import type { Client, Technicien } from "@/lib/db/schema";
 
 const TYPES = [
@@ -138,12 +139,23 @@ export default function InterventionForm({
         </div>
 
         <div className="sm:col-span-2">
-          <label className="block text-xs text-slate-400 mb-1.5 font-medium">Adresse d&apos;intervention</label>
-          <input
-            type="text"
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="block text-xs text-slate-400 font-medium">Adresse d&apos;intervention</label>
+            {(() => {
+              const clientAddr = clients.find((c) => c.id === clientId)?.address;
+              return clientAddr && clientAddr !== address ? (
+                <button type="button" onClick={() => setAddress(clientAddr)}
+                  className="flex items-center gap-1 text-[11px] text-sky-400 hover:text-sky-300 transition-colors">
+                  <MapPin className="w-3 h-3" /> Adresse du client
+                </button>
+              ) : null;
+            })()}
+          </div>
+          <AddressAutocomplete
             value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder="15 rue de la Paix, Paris 75001"
+            onChange={setAddress}
+            onSelect={(s) => setAddress(s.label)}
+            placeholder="Adresse du chantier (différente possible pour les pros)"
             className="w-full h-11 px-3 rounded-xl bg-slate-900 border border-white/10 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-sky-500 transition-all"
           />
         </div>
