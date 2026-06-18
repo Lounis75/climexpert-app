@@ -293,6 +293,8 @@ export const contratsEntretien = pgTable("contrats_entretien", {
   startDate:      date("start_date").notNull(),
   nextVisit:      date("next_visit"),
   active:         boolean("active").default(true).notNull(),
+  signatureUrl:   text("signature_url"),       // signature client (contrat signé sur l'écran technicien)
+  signeLe:        timestamp("signe_le"),        // date de signature
   createdAt:      timestamp("created_at").defaultNow().notNull(),
   supprimeLe:     timestamp("supprime_le"),
 });
@@ -404,6 +406,9 @@ export const rapportsIntervention = pgTable("rapports_intervention", {
   contraintesElec:      text("contraintes_elec"),
   equipementRecommande: text("equipement_recommande"),
   difficulte:           varchar("difficulte", { length: 30 }),  // "standard"|"complexe"|"tres_complexe"
+  // Entretien annuel : obligatoire à la clôture (le technicien DOIT répondre)
+  entretienAnnuelPropose: boolean("entretien_annuel_propose"),  // null = non répondu
+  entretienAnnuelAccepte: boolean("entretien_annuel_accepte"),  // si proposé : client a accepté ?
   dateSoumission:       timestamp("date_soumission").defaultNow().notNull(),
 });
 

@@ -1,8 +1,9 @@
 "use client";
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Upload, X, CheckCircle2, AlertTriangle, ChevronLeft } from "lucide-react";
+import { Upload, X, CheckCircle2, AlertTriangle, ChevronLeft, Camera, PenLine } from "lucide-react";
 import Link from "next/link";
+import SignaturePad from "@/components/SignaturePad";
 
 export default function RapportForm({
   interventionId,
@@ -13,8 +14,13 @@ export default function RapportForm({
 }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
 
   const [conforme, setConforme]           = useState(true);
+  // Entretien annuel (obligatoire) + signature contrat
+  const [entretienPropose, setEntretienPropose] = useState<boolean | null>(null);
+  const [entretienAccepte, setEntretienAccepte] = useState<boolean | null>(null);
+  const [signature, setSignature]         = useState<string | null>(null);
   const [notes, setNotes]                 = useState("");
   const [dureeH, setDureeH]               = useState(""); // heures
   const [dureeM, setDureeM]               = useState(""); // minutes
@@ -58,10 +64,30 @@ export default function RapportForm({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    // Validation obligatoire : entretien annuel proposé ?
+    if (entretienPropose === null) {
+      setError("Indiquez si vous avez proposé l'entretien annuel.");
+      return;
+    }
+    if (entretienPropose && entretienAccepte && !signature) {
+      setError("Le client doit signer le contrat d'entretien.");
+      return;
+    }
     setSubmitting(true);
     try {
       setUploading(true);
       const photosUrls = await uploadPhotos();
+
+      // Upload de la signature (si contrat accepté)
+      let signatureUrl: string | undefined;
+      if (entretienPropose && entretienAccepte && signature) {
+        const blob = await (await fetch(signature)).blob();
+        const form = new FormData();
+        form.append("file", new File([blob], "signature.png", { type: "image/png" }));
+        const res = await fetch("/api/technicien/upload", { method: "POST", body: form });
+        const data = await res.json();
+        signatureUrl = data.url;
+      }
       setUploading(false);
 
       const dureeMin = (parseInt(dureeH || "0") * 60) + parseInt(dureeM || "0");
@@ -72,6 +98,9 @@ export default function RapportForm({
         notes,
         photosUrls,
         dureeReelleMinutes: dureeMin || null,
+        entretienAnnuelPropose: entretienPropose,
+        entretienAnnuelAccepte: entretienPropose ? !!entretienAccepte : false,
+        signatureUrl,
         ...(isVisiteTechnique && {
           dimensionsPiece: dimensions,
           typeMur,
@@ -221,23 +250,23 @@ export default function RapportForm({
           <div className="flex items-center justify-between mb-3">
             <p className="text-sm font-semibold text-slate-900">Photos ({photos.length}/5)</p>
             {photos.length < 5 && (
-              <button
-                type="button"
-                onClick={() => fileRef.current?.click()}
-                className="flex items-center gap-1.5 text-xs text-sky-500 font-medium"
-              >
-                <Upload className="w-3.5 h-3.5" /> Ajouter
-              </button>
+              <div className="flex items-center gap-3">
+                <button type="button" onClick={() => cameraRef.current?.click()}
+                  className="flex items-center gap-1.5 text-xs text-sky-600 font-semibold">
+                  <Camera className="w-3.5 h-3.5" /> Photo
+                </button>
+                <button type="button" onClick={() => fileRef.current?.click()}
+                  className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+                  <Upload className="w-3.5 h-3.5" /> Galerie
+                </button>
+              </div>
             )}
           </div>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            multiple
-            className="hidden"
-            onChange={(e) => e.target.files && addPhotos(e.target.files)}
-          />
+          {/* Caméra directe (iPad/iPhone) */}
+          <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden"
+            onChange={(e) => e.target.files && addPhotos(e.target.files)} />
+          <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden"
+            onChange={(e) => e.target.files && addPhotos(e.target.files)} />
           {photos.length > 0 ? (
             <div className="grid grid-cols-3 gap-2">
               {photos.map((p, i) => (
@@ -261,6 +290,48 @@ export default function RapportForm({
             >
               Appuyer pour ajouter des photos
             </button>
+          )}
+        </div>
+
+        {/* Entretien annuel — OBLIGATOIRE */}
+        <div className="bg-white border border-slate-100 rounded-2xl p-5">
+          <p className="text-sm font-semibold text-slate-900 mb-1">Entretien annuel proposé au client ? <span className="text-red-500">*</span></p>
+          <p className="text-xs text-slate-500 mb-3">Obligatoire pour clôturer l&apos;intervention.</p>
+          <div className="flex gap-3">
+            <button type="button" onClick={() => { setEntretienPropose(true); }}
+              className={`flex-1 py-3 rounded-xl border text-sm font-semibold transition-colors ${entretienPropose === true ? "bg-sky-50 border-sky-300 text-sky-700" : "bg-white border-slate-200 text-slate-500"}`}>
+              Oui, proposé
+            </button>
+            <button type="button" onClick={() => { setEntretienPropose(false); setEntretienAccepte(null); setSignature(null); }}
+              className={`flex-1 py-3 rounded-xl border text-sm font-semibold transition-colors ${entretienPropose === false ? "bg-slate-100 border-slate-300 text-slate-700" : "bg-white border-slate-200 text-slate-500"}`}>
+              Non
+            </button>
+          </div>
+
+          {entretienPropose === true && (
+            <div className="mt-4 pt-4 border-t border-slate-100">
+              <p className="text-sm font-semibold text-slate-900 mb-3">Le client accepte-t-il le contrat ?</p>
+              <div className="flex gap-3">
+                <button type="button" onClick={() => setEntretienAccepte(true)}
+                  className={`flex-1 py-3 rounded-xl border text-sm font-semibold transition-colors ${entretienAccepte === true ? "bg-emerald-50 border-emerald-300 text-emerald-700" : "bg-white border-slate-200 text-slate-500"}`}>
+                  Oui, il signe
+                </button>
+                <button type="button" onClick={() => { setEntretienAccepte(false); setSignature(null); }}
+                  className={`flex-1 py-3 rounded-xl border text-sm font-semibold transition-colors ${entretienAccepte === false ? "bg-slate-100 border-slate-300 text-slate-700" : "bg-white border-slate-200 text-slate-500"}`}>
+                  Pas maintenant
+                </button>
+              </div>
+
+              {entretienAccepte === true && (
+                <div className="mt-4">
+                  <p className="text-sm font-semibold text-slate-900 mb-1 flex items-center gap-1.5">
+                    <PenLine className="w-4 h-4 text-emerald-600" /> Signature du client
+                  </p>
+                  <p className="text-xs text-slate-500 mb-2">Contrat d&apos;entretien annuel — 180 € TTC/an. Faites signer le client ci-dessous.</p>
+                  <SignaturePad onChange={setSignature} />
+                </div>
+              )}
+            </div>
           )}
         </div>
 
