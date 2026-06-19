@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createLead, updateLead, deleteLead } from "@/lib/leads";
+import { createClientFromLead } from "@/lib/clients";
 import type { LeadStatus } from "@/lib/leads";
 
 export async function POST(req: NextRequest) {
@@ -54,6 +55,12 @@ export async function PATCH(req: NextRequest) {
     if (fields.montantDevisCt !== undefined) {
       const n = Number(fields.montantDevisCt);
       allowed.montantDevisCt = Number.isFinite(n) && n > 0 ? Math.round(n) : null;
+    }
+
+    // Passage en "gagné" → conversion auto en client (idempotent : copie l'adresse/
+    // notes, lie le lead). Couvre TOUS les chemins (panneau, glisser-déposer Kanban…).
+    if (fields.status === "gagné") {
+      await createClientFromLead(id).catch((e) => console.error("[leads PATCH] conversion auto:", e));
     }
 
     if (Object.keys(allowed).length === 0) {

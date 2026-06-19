@@ -111,7 +111,12 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
         return;
       }
       if (res.ok) {
-        setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status: status as LeadStatus } : l)));
+        // Le serveur peut avoir converti le lead en client (statut "gagné") → on récupère le clientId.
+        const data = await res.json().catch(() => ({}));
+        const newClientId: string | null = data.lead?.clientId ?? null;
+        setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status: status as LeadStatus, clientId: newClientId ?? l.clientId } as Lead : l)));
+        setSelectedLead((prev) => prev && prev.id === id ? { ...prev, status: status as LeadStatus, clientId: newClientId ?? prev.clientId } as Lead : prev);
+        if (newClientId) setConvertDone((prev) => new Set(prev).add(id));
       } else {
         if (previous) setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status: previous } : l)));
       }
