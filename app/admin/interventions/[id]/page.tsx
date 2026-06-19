@@ -2,28 +2,17 @@ import AdminHeader from "@/components/AdminHeader";
 import { getInterventionById, getTechniciens, TYPE_LABELS, TYPE_COLORS, STATUS_INTERVENTION } from "@/lib/interventions";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Calendar, User, MapPin, Wrench, FileText, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, User, MapPin, Wrench, FileText, Image as ImageIcon } from "lucide-react";
 import InterventionActions from "./InterventionActions";
 import CopyableContact from "@/components/CopyableContact";
 import BriefingPhotos from "./BriefingPhotos";
+import CreneauEditor from "./CreneauEditor";
 
 export const dynamic = "force-dynamic";
 
 function parsePhotos(json: string | null): string[] {
   if (!json) return [];
   try { return JSON.parse(json) as string[]; } catch { return []; }
-}
-
-// Affiche le créneau « 10:00 – 12:00 (2 h) » à partir du début et de la durée.
-function formatCreneau(d: Date | string | null, dureeMin: number | null) {
-  if (!d) return null;
-  const start = new Date(d);
-  const opts: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit" };
-  const startHM = start.toLocaleTimeString("fr-FR", opts);
-  if (!dureeMin || dureeMin <= 0) return startHM;
-  const end = new Date(start.getTime() + dureeMin * 60000);
-  const label = dureeMin < 60 ? `${dureeMin} min` : `${dureeMin / 60} h`;
-  return `${startHM} – ${end.toLocaleTimeString("fr-FR", opts)} (${label})`;
 }
 
 function formatDateLong(d: Date | string | null) {
@@ -106,16 +95,11 @@ export default async function InterventionDetailPage({
             </div>
           )}
           {i.scheduledAt && (
-            <div className="bg-slate-800/40 border border-white/8 rounded-xl px-4 py-3 flex items-center gap-3">
-              <Calendar className="w-4 h-4 text-slate-500 flex-shrink-0" />
-              <div>
-                <p className="text-xs text-slate-500">Créneau</p>
-                <p className="text-white text-sm capitalize">{formatDateLong(i.scheduledAt)}</p>
-                {i.dureeEstimeeMinutes ? (
-                  <p className="text-slate-400 text-xs mt-0.5">{formatCreneau(i.scheduledAt, i.dureeEstimeeMinutes)}</p>
-                ) : null}
-              </div>
-            </div>
+            <CreneauEditor
+              id={i.id}
+              scheduledAt={new Date(i.scheduledAt).toISOString()}
+              dureeMin={i.dureeEstimeeMinutes}
+            />
           )}
           {i.completedAt && (
             <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3 flex items-center gap-3">
