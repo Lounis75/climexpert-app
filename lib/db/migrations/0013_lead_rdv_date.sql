@@ -1,0 +1,1 @@
+ALTER TABLE "leads" ADD COLUMN "rdv_date" timestamp;

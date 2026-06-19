@@ -46,6 +46,15 @@ function formatDate(d: Date | string) {
   });
 }
 
+// Convertit une date stockée en valeur d'un <input type="datetime-local">.
+function toLocalDT(d: string | Date | null | undefined): string {
+  if (!d) return "";
+  const x = new Date(d);
+  if (isNaN(x.getTime())) return "";
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${x.getFullYear()}-${p(x.getMonth() + 1)}-${p(x.getDate())}T${p(x.getHours())}:${p(x.getMinutes())}`;
+}
+
 export default function LeadsManager({ initialLeads, initialSource }: { initialLeads: Lead[]; initialSource?: string }) {
   const [leads, setLeads] = useState<Lead[]>(initialLeads);
   const [sourceFilter, setSourceFilter] = useState(initialSource ?? "tous");
@@ -960,6 +969,30 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
                         </option>
                       ))}
                     </select>
+
+                    {/* Date du RDV → calendrier (créneau 2h) */}
+                    {(lead as Lead & { prochaineEtape?: string | null }).prochaineEtape === "rdv_pris" && (
+                      <div className="mt-2.5">
+                        <p className="text-slate-500 text-[11px] mb-1.5 flex items-center gap-1.5">
+                          <CalendarPlus className="w-3 h-3" /> Date du rendez-vous (créneau 2h au calendrier)
+                        </p>
+                        <input
+                          type="datetime-local"
+                          defaultValue={toLocalDT((lead as Lead & { rdvDate?: string | null }).rdvDate)}
+                          onChange={async (e) => {
+                            const rdvDate = e.target.value ? new Date(e.target.value).toISOString() : null;
+                            setSelectedLead(prev => prev ? { ...prev, rdvDate } as Lead : null);
+                            const res = await fetch("/api/admin/leads", {
+                              method: "PATCH", headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ id: lead.id, rdvDate }),
+                            });
+                            if (res.status === 401) { window.location.href = "/admin"; return; }
+                            if (res.ok) setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, rdvDate } as Lead : l));
+                          }}
+                          className="w-full text-sm bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2.5 text-white [color-scheme:dark] focus:outline-none focus:border-sky-500/50"
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
 

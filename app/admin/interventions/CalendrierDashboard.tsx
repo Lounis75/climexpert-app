@@ -18,6 +18,7 @@ type CalIntervention = {
 };
 type CalTechnicien = { id: string; name: string; color: string | null };
 type SimpleClient   = { id: string; name: string; phone: string };
+type CalRdv         = { id: string; clientName: string; rdvDate: string | null };
 
 // ─── Lookup tables ────────────────────────────────────────────────────────────
 const TYPE_COLORS: Record<string, { bg: string; border: string; text: string; dot: string }> = {
@@ -289,6 +290,7 @@ export default function CalendrierDashboard() {
 
   const [interventions, setInterventions] = useState<CalIntervention[]>([]);
   const [techniciens, setTechniciens]     = useState<CalTechnicien[]>([]);
+  const [rdvs, setRdvs]                   = useState<CalRdv[]>([]);
   const [loading, setLoading]             = useState(true);
   const [nowY, setNowY]                   = useState<number | null>(null);
   const [modal, setModal]                 = useState<{ date: Date } | null>(null);
@@ -302,6 +304,7 @@ export default function CalendrierDashboard() {
       const d = await res.json();
       setInterventions(d.interventions ?? []);
       setTechniciens(d.techniciens ?? []);
+      setRdvs(d.rdvs ?? []);
     }
     setLoading(false);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -344,6 +347,9 @@ export default function CalendrierDashboard() {
 
   const forDay = (d: Date) =>
     interventions.filter((i) => i.scheduledAt && isSameDay(new Date(i.scheduledAt), d) && i.status !== "annulée");
+
+  const forDayRdv = (d: Date) =>
+    rdvs.filter((r) => r.rdvDate && isSameDay(new Date(r.rdvDate), d));
 
   return (
     <>
@@ -420,6 +426,7 @@ export default function CalendrierDashboard() {
                   {days.map((d, idx) => {
                     const isToday = isSameDay(d, now);
                     const events  = forDay(d);
+                    const dayRdvs = forDayRdv(d);
                     return (
                       <div
                         key={idx}
@@ -475,6 +482,37 @@ export default function CalendrierDashboard() {
                                         {TYPE_LABELS[ev.type] ?? ev.type}{ev.technicienName ? ` · ${ev.technicienName}` : ""}
                                       </p>
                                     </>
+                                  )}
+                                </div>
+                              </div>
+                            </Link>
+                          );
+                        })}
+
+                        {/* RDV commerciaux (prospects) — créneau 2h */}
+                        {dayRdvs.map((r) => {
+                          if (!r.rdvDate) return null;
+                          const start = new Date(r.rdvDate);
+                          const top = topPx(start);
+                          const h = heightPx(120);
+                          if (top > TOTAL_HEIGHT) return null;
+                          const isShort = h < 44;
+                          return (
+                            <Link
+                              key={r.id}
+                              href={`/admin/leads?lead=${r.id}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="absolute left-1 right-1 rounded-lg border px-2 py-1 overflow-hidden z-10 transition-opacity hover:opacity-80 bg-amber-500/15 border-amber-500/40"
+                              style={{ top, height: h }}
+                            >
+                              <div className="flex items-start gap-1.5 h-full overflow-hidden">
+                                <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-[3px] bg-amber-400" />
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-[10px] font-semibold leading-tight text-amber-300">
+                                    {fmtHM(start)} · RDV
+                                  </p>
+                                  {!isShort && (
+                                    <p className="text-white/85 text-[11px] font-medium leading-tight truncate mt-0.5">{r.clientName}</p>
                                   )}
                                 </div>
                               </div>

@@ -60,6 +60,10 @@ export async function PATCH(req: NextRequest) {
       allowed.prochaineEtape = ["rdv_pris", "a_recontacter", "devis_a_faire"].includes(fields.prochaineEtape)
         ? fields.prochaineEtape : null;
     }
+    if (fields.rdvDate !== undefined) {
+      const d = fields.rdvDate ? new Date(fields.rdvDate) : null;
+      allowed.rdvDate = d && !isNaN(d.getTime()) ? d : null;
+    }
 
     // Passage en "gagné" → conversion auto en client (idempotent : copie l'adresse/
     // notes, lie le lead). Couvre TOUS les chemins (panneau, glisser-déposer Kanban…).

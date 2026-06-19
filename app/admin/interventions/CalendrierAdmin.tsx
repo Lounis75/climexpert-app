@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Calendar, AlertTriangle, Wrench } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, AlertTriangle, Wrench, UserCheck } from "lucide-react";
 
 const TYPE_BG: Record<string, string> = {
   installation:  "bg-sky-500/20 border-sky-500/40 text-sky-300",
@@ -26,6 +26,7 @@ type CalIntervention = {
 };
 type CalTechnicien = { id: string; name: string; color: string | null };
 type CalPeriode    = { id: string; nom: string; dateDebut: string; dateFin: string; maxInterventionsSemaine: number; note: string | null };
+type CalRdv        = { id: string; clientName: string; rdvDate: string | null };
 
 function getMondayOf(d: Date) {
   const day = new Date(d);
@@ -58,6 +59,7 @@ export default function CalendrierAdmin() {
   const [interventions, setInterventions] = useState<CalIntervention[]>([]);
   const [techniciens, setTechniciens] = useState<CalTechnicien[]>([]);
   const [periodes, setPeriodes] = useState<CalPeriode[]>([]);
+  const [rdvs, setRdvs] = useState<CalRdv[]>([]);
   const [loading, setLoading] = useState(true);
 
   const weekEnd = addDays(weekStart, 6);
@@ -71,6 +73,7 @@ export default function CalendrierAdmin() {
       setInterventions(data.interventions);
       setTechniciens(data.techniciens);
       setPeriodes(data.periodes);
+      setRdvs(data.rdvs ?? []);
     }
     setLoading(false);
   }, [weekStart]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -88,6 +91,9 @@ export default function CalendrierAdmin() {
 
   const forDay = (d: Date) =>
     filtered.filter((i) => i.scheduledAt && isSameDay(new Date(i.scheduledAt), d));
+
+  const forDayRdv = (d: Date) =>
+    rdvs.filter((r) => r.rdvDate && isSameDay(new Date(r.rdvDate), d));
 
   const totalThisWeek = filtered.length;
 
@@ -161,16 +167,34 @@ export default function CalendrierAdmin() {
           {days.map((d, idx) => {
             const isToday = isSameDay(d, today);
             const dayItems = forDay(d);
+            const dayRdvs = forDayRdv(d);
             return (
               <div key={idx} className={`min-h-[160px] rounded-2xl border ${isToday ? "border-sky-500/50 bg-sky-500/5" : "border-white/8 bg-slate-800/30"} flex flex-col`}>
                 <div className={`px-2 py-2 text-center border-b ${isToday ? "border-sky-500/30" : "border-white/5"}`}>
                   <p className="text-[10px] text-slate-500 font-medium">{DAYS_FR[idx]}</p>
                   <p className={`text-sm font-bold ${isToday ? "text-sky-400" : "text-slate-300"}`}>{d.getDate()}</p>
-                  {dayItems.length > 0 && (
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-slate-700 text-slate-400">{dayItems.length}</span>
+                  {(dayItems.length + dayRdvs.length) > 0 && (
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-slate-700 text-slate-400">{dayItems.length + dayRdvs.length}</span>
                   )}
                 </div>
                 <div className="flex-1 p-1.5 space-y-1 overflow-y-auto">
+                  {/* RDV commerciaux (prospects) */}
+                  {dayRdvs.map((r) => (
+                    <Link
+                      key={r.id}
+                      href={`/admin/leads?lead=${r.id}`}
+                      className="block rounded-lg border px-2 py-1.5 text-[10px] leading-tight hover:opacity-80 transition-opacity bg-amber-500/20 border-amber-500/40 text-amber-300"
+                    >
+                      <div className="flex items-center gap-1 mb-0.5">
+                        <UserCheck className="w-2.5 h-2.5 flex-shrink-0" />
+                        <span className="font-semibold truncate">RDV</span>
+                      </div>
+                      <p className="truncate text-white/70">{r.clientName}</p>
+                      {r.rdvDate && (
+                        <p className="opacity-50">{new Date(r.rdvDate).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</p>
+                      )}
+                    </Link>
+                  ))}
                   {dayItems.map((i) => (
                     <Link
                       key={i.id}

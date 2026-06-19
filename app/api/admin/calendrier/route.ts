@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { interventions, clients, techniciens, periodesCapacite } from "@/lib/db/schema";
+import { interventions, clients, techniciens, periodesCapacite, leads } from "@/lib/db/schema";
 import { eq, and, gte, lte, isNull } from "drizzle-orm";
 
 export async function GET(req: NextRequest) {
@@ -43,5 +43,22 @@ export async function GET(req: NextRequest) {
     db.select().from(periodesCapacite),
   ]);
 
-  return NextResponse.json({ interventions: rows, techniciens: techRows, periodes });
+  // Rendez-vous commerciaux pris (prospects "rdv_pris" avec une date) dans la plage.
+  const rdvRows = await db
+    .select({
+      id:           leads.id,
+      clientName:   leads.name,
+      rdvDate:      leads.rdvDate,
+      commercialId: leads.commercialId,
+    })
+    .from(leads)
+    .where(
+      and(
+        gte(leads.rdvDate, startDate),
+        lte(leads.rdvDate, endDate),
+        isNull(leads.supprimeLe),
+      ),
+    );
+
+  return NextResponse.json({ interventions: rows, techniciens: techRows, periodes, rdvs: rdvRows });
 }
