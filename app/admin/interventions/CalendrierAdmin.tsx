@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Calendar, AlertTriangle, Wrench, UserCheck } from "lucide-react";
+import { ChevronLeft, ChevronRight, AlertTriangle, Wrench, UserCheck } from "lucide-react";
 
 const TYPE_BG: Record<string, string> = {
   installation:  "bg-sky-500/20 border-sky-500/40 text-sky-300",
@@ -291,9 +291,6 @@ export default function CalendrierAdmin() {
         <div className="flex items-center gap-1.5 text-[10px] px-2 py-1 rounded-lg border bg-amber-500/20 border-amber-500/40 text-amber-300">
           <UserCheck className="w-2.5 h-2.5" /> RDV prospect
         </div>
-        <Link href="/admin/saisonnalite" className="flex items-center gap-1.5 text-[10px] text-slate-500 hover:text-amber-400 ml-auto transition-colors">
-          <Calendar className="w-3 h-3" /> Gérer la saisonnalité
-        </Link>
       </div>
     </div>
   );

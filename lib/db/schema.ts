@@ -202,6 +202,8 @@ export const leads = pgTable("leads", {
   // Date souhaitée d'intervention par le client (notée dès l'envoi du devis) →
   // pré-remplit l'intervention créée lors de la conversion en client.
   dateSouhaiteeIntervention: timestamp("date_souhaitee_intervention"),
+  // Date de passage en "gagné" (signé) → alimente le CA signé du dashboard par période.
+  gagneLe:             timestamp("gagne_le"),
   clientId:            text("client_id").references(() => clients.id),
   commercialId:        text("commercial_id").references(() => techniciens.id),
   // Consentement RGPD au démarchage commercial (opt-in). La prise de contact

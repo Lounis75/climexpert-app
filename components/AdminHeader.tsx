@@ -2,8 +2,8 @@
 
 import {
   Wind, LayoutDashboard, FileText, Users, LogOut, Contact,
-  ClipboardList, Receipt, Wrench, Bell, CheckCheck, HardHat,
-  ScrollText, HeadphonesIcon, Thermometer, ChevronDown, Briefcase, Megaphone, BarChart2, AlertTriangle,
+  Wrench, Bell, CheckCheck, HardHat,
+  ScrollText, HeadphonesIcon, ChevronDown, Briefcase, Megaphone, BarChart2, AlertTriangle,
 } from "lucide-react";
 import AdminChatBot from "./AdminChatBot";
 import Link from "next/link";
@@ -18,30 +18,22 @@ const groups = [
     items: [
       { href: "/admin/leads",        label: "Prospects",    icon: Users },
       { href: "/admin/clients",      label: "Clients",      icon: Contact },
-      { href: "/admin/commerciaux",  label: "Commerciaux",  icon: Briefcase },
-    ],
-  },
-  {
-    label: "Finance",
-    items: [
-      { href: "/admin/devis",     label: "Devis",     icon: ClipboardList },
-      { href: "/admin/factures",  label: "Factures",  icon: Receipt },
-      { href: "/admin/contrats",  label: "Contrats",  icon: ScrollText },
+      { href: "/admin/contrats",     label: "Contrats",     icon: ScrollText },
     ],
   },
   {
     label: "Terrain",
     items: [
       { href: "/admin/interventions", label: "Interventions", icon: Wrench },
-      { href: "/admin/techniciens",   label: "Techniciens",   icon: HardHat },
       { href: "/admin/sav",           label: "SAV",           icon: HeadphonesIcon },
-      { href: "/admin/saisonnalite",  label: "Saisonnalité",  icon: Thermometer },
     ],
   },
   {
     label: "Équipe",
     items: [
-      { href: "/admin/salaries", label: "Salariés & accès", icon: Users },
+      { href: "/admin/salaries",    label: "Salariés & accès", icon: Users },
+      { href: "/admin/commerciaux", label: "Commerciaux",      icon: Briefcase },
+      { href: "/admin/techniciens", label: "Techniciens",      icon: HardHat },
     ],
   },
   {

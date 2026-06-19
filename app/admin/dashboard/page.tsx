@@ -1,4 +1,4 @@
-import { getDashboardStats, getTachesAFaire, getProchainesInterventions, getInterventionsAPlanifier, getInterventionsParClient } from "@/lib/dashboard";
+import { getDashboardStats, getTachesAFaire, getProchainesInterventions, getInterventionsAPlanifier, getInterventionsParClient, getCaSigne, getApercuCommercial } from "@/lib/dashboard";
 import { getAudience } from "@/lib/analytics";
 import { getDynamicArticles, isPublished } from "@/lib/dynamicArticles";
 import { getCommerciauxAssignables, getTechniciensAssignables } from "@/lib/utilisateurs";
@@ -11,7 +11,7 @@ import Link from "next/link";
 import {
   Users, FileText, ArrowRight, Wrench, Euro, AlertTriangle,
   ClipboardList, CalendarCheck, CalendarPlus, CheckCircle2, Clock, Plus,
-  UserCircle, Home, HeadphonesIcon, MessageSquare, TrendingUp, TrendingDown,
+  UserCircle, Home, HeadphonesIcon, MessageSquare, TrendingUp, ScrollText,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -53,7 +53,7 @@ const TASK_COLORS: Record<string, string> = {
 };
 
 export default async function DashboardPage() {
-  const [stats, dynamicArticles, taches, interventionsJour, interventionsAPlanifier, commerciaux, techOptions, audience] = await Promise.all([
+  const [stats, dynamicArticles, taches, interventionsJour, interventionsAPlanifier, commerciaux, techOptions, audience, caSigne, apercu] = await Promise.all([
     getDashboardStats(),
     getDynamicArticles(),
     getTachesAFaire(),
@@ -62,6 +62,8 @@ export default async function DashboardPage() {
     getCommerciauxAssignables(),  // commerciaux + admins
     getTechniciensAssignables(),  // techniciens + admins
     getAudience(7),
+    getCaSigne(),                 // CA signé semaine/mois/année (montant TTC des "gagné")
+    getApercuCommercial(),        // devis envoyés / validés / contrats actifs
   ]);
 
   // Interventions par client (pour le bouton Créer/Voir sur les prospects gagnés).
@@ -81,15 +83,12 @@ export default async function DashboardPage() {
     { n: taches.interventionsSansTechnicien, label: "intervention(s) sans technicien", href: "/admin/interventions", color: "amber",  icon: Wrench },
     { n: taches.interventionsSansDate,       label: "intervention(s) à planifier",      href: "/admin/interventions", color: "amber",  icon: CalendarCheck },
     { n: taches.prospectsSansCommercial,     label: "prospect(s) à affecter",           href: "/admin/leads",         color: "sky",    icon: Users },
-    { n: taches.devisARelancer,              label: "devis à relancer (>7j)",           href: "/admin/devis",         color: "violet", icon: FileText },
     { n: taches.devisAChiffrer,              label: "devis à chiffrer (montant manquant)", href: "/admin/leads",      color: "red",     icon: FileText },
     { n: taches.entretiensARelancer,         label: "entretien(s) à relancer",          href: "/admin/clients",       color: "emerald", icon: Wrench },
-    { n: stats.facturesEnRetard,             label: "facture(s) en retard",             href: "/admin/factures",      color: "red",    icon: AlertTriangle },
     { n: stats.savOuverts,                   label: "SAV ouvert(s)",                    href: "/admin/sav",           color: "red",    icon: HeadphonesIcon },
   ].filter((t) => t.n > 0);
   const totalTaches = tachesList.reduce((s, t) => s + t.n, 0);
 
-  const maxCa = Math.max(...stats.caMensuel.map((m) => m.ct), 1);
   const aujourdhui = new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
   return (
@@ -104,8 +103,8 @@ export default async function DashboardPage() {
             <p className="text-slate-400 text-sm capitalize">{aujourdhui}</p>
           </div>
           <div className="flex items-center gap-2">
-            <Link href="/admin/devis/new" className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-white text-sm font-semibold transition-colors">
-              <Plus className="w-4 h-4" /> Devis
+            <Link href="/admin/leads" className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-white text-sm font-semibold transition-colors">
+              <Plus className="w-4 h-4" /> Prospect
             </Link>
             <Link href="/admin/interventions" className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800/60 border border-white/10 text-slate-200 hover:border-white/20 text-sm font-semibold transition-colors">
               <CalendarCheck className="w-4 h-4" /> Planning
@@ -209,59 +208,38 @@ export default async function DashboardPage() {
             )}
           </div>
 
-          {/* Argent du mois */}
+          {/* Argent — CA signé (montant TTC des prospects "gagné") */}
           <div className="bg-slate-800/40 border border-white/8 rounded-2xl p-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-white font-semibold text-sm flex items-center gap-2">
                 <Euro className="w-4 h-4 text-emerald-400" /> Argent
+                <span className="text-slate-500 font-normal text-xs">· CA signé</span>
               </h2>
-              <Link href="/admin/factures" className="text-sky-400 hover:text-sky-300 text-xs flex items-center gap-1">
-                Factures <ArrowRight className="w-3 h-3" />
+              <Link href="/admin/leads" className="text-sky-400 hover:text-sky-300 text-xs flex items-center gap-1">
+                Prospects <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
 
-            <div className="space-y-3 mb-5">
-              <div>
-                <div className="flex items-baseline justify-between">
-                  <span className="text-slate-400 text-xs">CA encaissé</span>
-                  {stats.caTrendPct !== null && (
-                    <span className={`text-[11px] font-medium flex items-center gap-0.5 ${stats.caTrendPct >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                      {stats.caTrendPct >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                      {stats.caTrendPct > 0 ? "+" : ""}{stats.caTrendPct}%
-                    </span>
-                  )}
-                </div>
-                <p className="text-xl font-bold text-white tabular-nums">{euros(stats.caEncaisseCt)}</p>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400 text-xs">En attente</span>
-                <span className="text-white text-sm font-semibold tabular-nums">{euros(stats.caAttenteCtTotal)}</span>
-              </div>
-              {stats.facturesEnRetard > 0 && (
-                <Link href="/admin/factures" className="flex items-center justify-between text-red-400 hover:text-red-300 transition-colors">
-                  <span className="text-xs flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> En retard</span>
-                  <span className="text-sm font-semibold">{stats.facturesEnRetard} facture{stats.facturesEnRetard > 1 ? "s" : ""}</span>
-                </Link>
-              )}
-            </div>
-
-            <p className="text-slate-500 text-[11px] mb-2">6 derniers mois</p>
-            <div className="flex items-end gap-1 h-16">
-              {stats.caMensuel.map(({ mois, ct }) => (
-                <div key={mois} className="flex-1 flex flex-col items-center gap-1" title={`${mois} : ${euros(ct)}`}>
-                  <div className="w-full flex items-end" style={{ height: "44px" }}>
-                    <div className={`w-full rounded-t transition-all ${ct > 0 ? "bg-emerald-500/40 border border-emerald-500/30" : "bg-slate-700/40"}`}
-                      style={{ height: `${Math.max(Math.round((ct / maxCa) * 100), ct > 0 ? 10 : 4)}%` }} />
-                  </div>
-                  <span className="text-[8px] text-slate-500">{mois.slice(0, 3)}</span>
+            <div className="grid grid-cols-3 gap-2 mb-3">
+              {[
+                { label: "Semaine", ct: caSigne.semaineCt, n: caSigne.nbSemaine },
+                { label: "Mois",    ct: caSigne.moisCt,    n: caSigne.nbMois },
+                { label: "Année",   ct: caSigne.anneeCt,   n: caSigne.nbAnnee },
+              ].map((p) => (
+                <div key={p.label} className="bg-slate-900/40 border border-white/8 rounded-xl px-2.5 py-3 text-center">
+                  <p className="text-[11px] text-slate-500 mb-1">{p.label}</p>
+                  <p className="text-base font-bold text-emerald-300 tabular-nums leading-tight">{euros(p.ct)}</p>
+                  <p className="text-[10px] text-slate-600 mt-0.5">{p.n} signé{p.n > 1 ? "s" : ""}</p>
                 </div>
               ))}
             </div>
+
+            <p className="text-slate-500 text-[11px]">Basé sur le montant TTC des prospects passés en « Gagné ».</p>
           </div>
 
         </div>
 
-        {/* ─── Derniers prospects  |  Pipeline devis ─────────────────────────────── */}
+        {/* ─── Derniers prospects  |  Suivi devis & contrats ─────────────────────── */}
         <div className="grid lg:grid-cols-3 gap-6 mb-6">
 
           {/* Derniers prospects */}
@@ -289,47 +267,45 @@ export default async function DashboardPage() {
             )}
           </div>
 
-          {/* Pipeline devis */}
+          {/* Suivi devis & contrats de maintenance */}
           <div className="bg-slate-800/40 border border-white/8 rounded-2xl p-5">
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center justify-between mb-4">
               <h2 className="text-white font-semibold text-sm flex items-center gap-2">
-                <ClipboardList className="w-4 h-4 text-sky-400" /> Pipeline devis
+                <ClipboardList className="w-4 h-4 text-sky-400" /> Suivi devis
               </h2>
-              <Link href="/admin/devis" className="text-sky-400 hover:text-sky-300 text-xs flex items-center gap-1">
+              <Link href="/admin/leads" className="text-sky-400 hover:text-sky-300 text-xs flex items-center gap-1">
                 Voir <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
-            <div className="space-y-3">
-              {[
-                { label: "Brouillons", count: stats.devisBrouillon, color: "bg-slate-400" },
-                { label: "Envoyés", count: stats.devisEnvoye, color: "bg-violet-400" },
-                { label: "Acceptés", count: stats.devisAccepte, color: "bg-emerald-400" },
-                { label: "Refusés", count: stats.devisRefuse, color: "bg-red-400" },
-              ].map(({ label, count, color }) => {
-                const pct = stats.devisTotal > 0 ? Math.round((count / stats.devisTotal) * 100) : 0;
-                return (
-                  <div key={label}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-slate-400 text-xs">{label}</span>
-                      <span className="text-white text-xs font-medium tabular-nums">{count}</span>
-                    </div>
-                    <div className="h-1.5 bg-slate-700/60 rounded-full overflow-hidden">
-                      <div className={`h-full ${color} rounded-full transition-all`} style={{ width: `${pct}%` }} />
-                    </div>
-                  </div>
-                );
-              })}
+
+            <div className="space-y-2 mb-5">
+              {/* Devis envoyés (en attente de signature) */}
+              <Link href="/admin/leads" className="flex items-center justify-between rounded-xl bg-slate-900/40 border border-white/8 px-3 py-2.5 hover:border-violet-500/30 transition-colors">
+                <span className="text-xs text-slate-300 flex items-center gap-1.5"><FileText className="w-3.5 h-3.5 text-violet-400" /> Devis envoyés</span>
+                <span className="text-right whitespace-nowrap">
+                  <span className="text-white text-sm font-bold tabular-nums">{apercu.devisEnvoyesN}</span>
+                  <span className="text-slate-500 text-[11px] ml-1.5">{euros(apercu.devisEnvoyesCt)}</span>
+                </span>
+              </Link>
+              {/* Validés (signés) — en dessous */}
+              <Link href="/admin/leads" className="flex items-center justify-between rounded-xl bg-emerald-500/5 border border-emerald-500/20 px-3 py-2.5 hover:border-emerald-500/40 transition-colors">
+                <span className="text-xs text-emerald-300 flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5" /> Validés (signés)</span>
+                <span className="text-right whitespace-nowrap">
+                  <span className="text-white text-sm font-bold tabular-nums">{apercu.gagnesN}</span>
+                  <span className="text-emerald-400/70 text-[11px] ml-1.5">{euros(apercu.gagnesCt)}</span>
+                </span>
+              </Link>
             </div>
-            {stats.devisTotal === 0 ? (
-              <p className="text-slate-600 text-xs text-center mt-4">Aucun devis</p>
-            ) : (
-              <div className="mt-5 pt-4 border-t border-white/8">
-                <p className="text-slate-500 text-xs">Taux d&apos;acceptation</p>
-                <p className="text-white text-xl font-bold mt-0.5">
-                  {Math.round((stats.devisAccepte / stats.devisTotal) * 100)}%
-                </p>
-              </div>
-            )}
+
+            {/* Aperçu des contrats de maintenance actifs */}
+            <p className="text-slate-500 text-[11px] uppercase tracking-wide mb-2">Contrats de maintenance</p>
+            <Link href="/admin/contrats" className="flex items-center justify-between rounded-xl bg-slate-900/40 border border-white/8 px-3 py-2.5 hover:border-sky-500/30 transition-colors">
+              <span className="text-xs text-slate-300 flex items-center gap-1.5"><ScrollText className="w-3.5 h-3.5 text-sky-400" /> Actifs</span>
+              <span className="text-right whitespace-nowrap">
+                <span className="text-white text-sm font-bold tabular-nums">{apercu.contratsActifs}</span>
+                <span className="text-slate-500 text-[11px] ml-1.5">{euros(apercu.contratsCaAnnuelCt)}/an</span>
+              </span>
+            </Link>
           </div>
 
         </div>
@@ -381,7 +357,7 @@ export default async function DashboardPage() {
           </div>
           <div className="p-3 grid sm:grid-cols-3 gap-1">
             {[
-              { href: "/admin/devis/new",     icon: ClipboardList, color: "sky",    title: "Nouveau devis",   sub: "Créer et envoyer" },
+              { href: "/admin/contrats",      icon: ScrollText,    color: "sky",    title: "Contrats",        sub: "Entretien & maintenance" },
               { href: "/admin/leads",         icon: Users,         color: "violet", title: "Prospects",       sub: stats.leadsNouveau > 0 ? `${stats.leadsNouveau} à traiter` : "Voir le CRM" },
               { href: "/admin/marketing/contacts", icon: FileText,  color: "amber", title: "Base de contacts", sub: "Campagnes & export" },
               { href: "/admin/interventions", icon: Wrench,        color: "emerald",title: "Interventions",   sub: `${stats.interventionsAVenir} à venir` },

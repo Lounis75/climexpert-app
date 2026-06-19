@@ -78,8 +78,13 @@ export async function createClientFromLead(leadId: string): Promise<Client | nul
     leadId: lead.id,
   });
 
-  // Lie le lead au client et le marque gagné
-  await db.update(leads).set({ clientId: client.id, status: "gagné", updatedAt: new Date() }).where(eq(leads.id, lead.id));
+  // Lie le lead au client et le marque gagné (gagneLe = date de signature → CA du dashboard).
+  await db.update(leads).set({
+    clientId: client.id,
+    status: "gagné",
+    gagneLe: lead.gagneLe ?? new Date(),
+    updatedAt: new Date(),
+  }).where(eq(leads.id, lead.id));
 
   return client;
 }

@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { leads, devis, factures, interventions, clients, savTickets, logsAlex, techniciens } from "@/lib/db/schema";
+import { leads, devis, factures, interventions, clients, savTickets, logsAlex, techniciens, contratsEntretien } from "@/lib/db/schema";
 import { eq, gte, lte, ne, desc, and, sql, isNull, count, notInArray, inArray } from "drizzle-orm";
 
 export type DashboardStats = {
@@ -457,6 +457,63 @@ export async function getInterventionsDuJour(): Promise<IntervJour[]> {
       ne(interventions.status, "annulée"),
     ))
     .orderBy(interventions.scheduledAt);
+}
+
+// CA signé (montant TTC des prospects "gagné") ventilé semaine / mois / année en cours.
+export type CaSigne = { semaineCt: number; moisCt: number; anneeCt: number; nbSemaine: number; nbMois: number; nbAnnee: number };
+
+export async function getCaSigne(): Promise<CaSigne> {
+  const now = new Date();
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  weekStart.setHours(0, 0, 0, 0);
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const yearStart = new Date(now.getFullYear(), 0, 1);
+
+  const rows = await db
+    .select({ montant: leads.montantDevisCt, gagneLe: leads.gagneLe })
+    .from(leads)
+    .where(and(eq(leads.status, "gagné"), isNull(leads.supprimeLe)));
+
+  let semaineCt = 0, moisCt = 0, anneeCt = 0, nbSemaine = 0, nbMois = 0, nbAnnee = 0;
+  for (const r of rows) {
+    if (!r.gagneLe || !r.montant) continue;
+    const d = new Date(r.gagneLe);
+    if (d >= yearStart)  { anneeCt += r.montant; nbAnnee++; }
+    if (d >= monthStart) { moisCt += r.montant; nbMois++; }
+    if (d >= weekStart)  { semaineCt += r.montant; nbSemaine++; }
+  }
+  return { semaineCt, moisCt, anneeCt, nbSemaine, nbMois, nbAnnee };
+}
+
+// Aperçu commercial : devis envoyés (en attente de signature), validés (gagnés),
+// et contrats de maintenance actifs. Basé sur le montant TTC des prospects.
+export type ApercuCommercial = {
+  devisEnvoyesN: number; devisEnvoyesCt: number;
+  gagnesN: number; gagnesCt: number;
+  contratsActifs: number; contratsCaAnnuelCt: number;
+};
+
+export async function getApercuCommercial(): Promise<ApercuCommercial> {
+  const [leadRows, contratRows] = await Promise.all([
+    db.select({ status: leads.status, montant: leads.montantDevisCt })
+      .from(leads)
+      .where(and(inArray(leads.status, ["devis_envoyé", "gagné"]), isNull(leads.supprimeLe))),
+    db.select({ prix: contratsEntretien.prixUnitaireCt })
+      .from(contratsEntretien)
+      .where(and(eq(contratsEntretien.active, true), isNull(contratsEntretien.supprimeLe))),
+  ]);
+
+  let devisEnvoyesN = 0, devisEnvoyesCt = 0, gagnesN = 0, gagnesCt = 0;
+  for (const l of leadRows) {
+    if (l.status === "devis_envoyé") { devisEnvoyesN++; devisEnvoyesCt += l.montant ?? 0; }
+    else if (l.status === "gagné")    { gagnesN++; gagnesCt += l.montant ?? 0; }
+  }
+  return {
+    devisEnvoyesN, devisEnvoyesCt, gagnesN, gagnesCt,
+    contratsActifs: contratRows.length,
+    contratsCaAnnuelCt: contratRows.reduce((s, c) => s + (c.prix ?? 0), 0),
+  };
 }
 
 // Toutes les prochaines interventions (à partir d'aujourd'hui), ordre chronologique.
