@@ -3,7 +3,7 @@
 import { useState } from "react";
 import {
   Phone, Mail, MapPin, Trash2, Plus, X, Check,
-  UserCircle, MessageSquare, Building2, ChevronRight,
+  UserCircle, MessageSquare, Building2, ChevronRight, AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
 import type { Client } from "@/lib/clients";
@@ -27,7 +27,7 @@ interface NewClientForm {
 
 const emptyForm: NewClientForm = { name: "", phone: "", email: "", address: "", city: "", notes: "" };
 
-export default function ClientsManager({ initialClients }: { initialClients: Client[] }) {
+export default function ClientsManager({ initialClients, actions }: { initialClients: Client[]; actions?: Record<string, string> }) {
   const [clients, setClients] = useState<Client[]>(initialClients);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<NewClientForm>(emptyForm);
@@ -178,10 +178,14 @@ export default function ClientsManager({ initialClients }: { initialClients: Cli
 
       {/* Clients list */}
       <div className="space-y-3">
-        {filtered.map((client) => (
+        {filtered.map((client) => {
+          const action = actions?.[client.id];
+          return (
           <div
             key={client.id}
-            className="relative bg-slate-800/40 border border-white/8 rounded-2xl p-4 hover:border-sky-500/30 transition-all"
+            className={`relative bg-slate-800/40 border rounded-2xl p-4 transition-all ${
+              action ? "border-red-500/40 hover:border-red-500/60" : "border-white/8 hover:border-sky-500/30"
+            }`}
           >
             {/* Toute la carte est cliquable → fiche client (overlay) */}
             <Link href={`/admin/clients/${client.id}`} className="absolute inset-0 z-0" aria-label={`Voir la fiche de ${client.name}`} />
@@ -193,6 +197,11 @@ export default function ClientsManager({ initialClients }: { initialClients: Cli
                     <span className="flex items-center gap-1 text-slate-500 text-xs">
                       <MapPin className="w-3 h-3" />
                       {client.city}
+                    </span>
+                  )}
+                  {action && (
+                    <span className="flex items-center gap-1 text-[10px] font-semibold text-red-300 bg-red-500/10 border border-red-500/30 rounded-full px-1.5 py-0.5" title={`Action à faire : ${action}`}>
+                      <AlertTriangle className="w-2.5 h-2.5 flex-shrink-0" /> {action}
                     </span>
                   )}
                 </div>
@@ -235,7 +244,8 @@ export default function ClientsManager({ initialClients }: { initialClients: Cli
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {clients.length > 0 && (

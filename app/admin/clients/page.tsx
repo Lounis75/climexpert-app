@@ -1,4 +1,4 @@
-import { getClients } from "@/lib/clients";
+import { getClients, getClientActions } from "@/lib/clients";
 import AdminHeader from "@/components/AdminHeader";
 import ClientsManager from "./ClientsManager";
 import { Download } from "lucide-react";
@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminClientsPage() {
   const clients = await getClients();
+  const actions = await getClientActions(clients);
 
   return (
     <div className="min-h-screen bg-[#080d18]">
@@ -26,7 +27,7 @@ export default async function AdminClientsPage() {
             <Download className="w-3.5 h-3.5" /> Export CSV
           </a>
         </div>
-        <ClientsManager initialClients={clients} />
+        <ClientsManager initialClients={clients} actions={actions} />
       </main>
     </div>
   );

@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { clients, devis, factures, interventions, savTickets, suivisPlanifies, leads, type Client, type NewClient } from "@/lib/db/schema";
 import type { InferSelectModel } from "drizzle-orm";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, isNull } from "drizzle-orm";
 import { randomBytes } from "crypto";
 
 export type ClientActivity = Client & {
@@ -16,6 +16,23 @@ export type { Client };
 
 export async function getClients(): Promise<Client[]> {
   return db.select().from(clients).orderBy(desc(clients.createdAt));
+}
+
+// Action à faire par client (repère rouge) : entretien à relancer ou facture en retard.
+export async function getClientActions(clientList: Client[]): Promise<Record<string, string>> {
+  const today = new Date().toISOString().split("T")[0];
+  const overdue = await db
+    .select({ clientId: factures.clientId })
+    .from(factures)
+    .where(and(eq(factures.status, "en_retard"), isNull(factures.supprimeLe)));
+  const overdueSet = new Set(overdue.map((f) => f.clientId).filter((x): x is string => !!x));
+
+  const actions: Record<string, string> = {};
+  for (const c of clientList) {
+    if (c.prochainEntretienLe && c.prochainEntretienLe <= today) actions[c.id] = "Entretien à relancer";
+    else if (overdueSet.has(c.id)) actions[c.id] = "Facture en retard";
+  }
+  return actions;
 }
 
 export async function getClientById(id: string): Promise<Client | null> {
