@@ -292,6 +292,8 @@ export default function CalendrierDashboard() {
   const [techniciens, setTechniciens]     = useState<CalTechnicien[]>([]);
   const [rdvs, setRdvs]                   = useState<CalRdv[]>([]);
   const [loading, setLoading]             = useState(true);
+  const [dragId, setDragId]               = useState<string | null>(null);
+  const dragRef = useRef<{ id: string; kind: "int" | "rdv"; grabPx: number; duree: number } | null>(null);
   const [nowY, setNowY]                   = useState<number | null>(null);
   const [modal, setModal]                 = useState<{ date: Date } | null>(null);
   const nowRef  = useRef<HTMLDivElement>(null);
@@ -351,6 +353,44 @@ export default function CalendrierDashboard() {
   const forDayRdv = (d: Date) =>
     rdvs.filter((r) => r.rdvDate && isSameDay(new Date(r.rdvDate), d));
 
+  // ── Glisser-déposer pour déplacer un rendez-vous (comme le calendrier Apple) ──
+  function onEventDragStart(e: React.DragEvent, id: string, kind: "int" | "rdv", duree: number) {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    dragRef.current = { id, kind, grabPx: e.clientY - rect.top, duree };
+    setDragId(id);
+    e.dataTransfer.effectAllowed = "move";
+    try { e.dataTransfer.setData("text/plain", id); } catch { /* ignore */ }
+  }
+
+  async function onColumnDrop(e: React.DragEvent, day: Date) {
+    e.preventDefault();
+    const drag = dragRef.current;
+    dragRef.current = null;
+    setDragId(null);
+    if (!drag) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const minFromStart = ((e.clientY - rect.top - drag.grabPx) / PX_PER_HOUR) * 60;
+    const snapped = Math.max(0, snapMinutes(minFromStart));
+    const newStart = new Date(day);
+    newStart.setHours(HOUR_START + Math.floor(snapped / 60), snapped % 60, 0, 0);
+    const iso = newStart.toISOString();
+
+    if (drag.kind === "int") {
+      setInterventions((prev) => prev.map((i) => (i.id === drag.id ? { ...i, scheduledAt: iso } : i)));
+      await fetch(`/api/admin/interventions/${drag.id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "planifier", scheduledAt: iso, dureeEstimeeMinutes: drag.duree }),
+      }).catch(() => {});
+    } else {
+      setRdvs((prev) => prev.map((r) => (r.id === drag.id ? { ...r, rdvDate: iso } : r)));
+      await fetch(`/api/admin/leads`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: drag.id, rdvDate: iso }),
+      }).catch(() => {});
+    }
+    load();
+  }
+
   return (
     <>
       {modal && (
@@ -394,7 +434,7 @@ export default function CalendrierDashboard() {
 
           {/* ── Hint ─────────────────────────────────────────────────────── */}
           <p className="text-[10px] text-slate-600 text-right pr-1 pt-1 pb-0.5">
-            Cliquez sur un créneau pour ajouter une intervention
+            Cliquez sur un créneau pour ajouter · glissez un rendez-vous pour le déplacer
           </p>
 
           {/* ── Time grid ────────────────────────────────────────────────── */}
@@ -431,6 +471,8 @@ export default function CalendrierDashboard() {
                       <div
                         key={idx}
                         onClick={(e) => handleColumnClick(e, d)}
+                        onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
+                        onDrop={(e) => onColumnDrop(e, d)}
                         className={`flex-1 relative border-l cursor-pointer group ${
                           isToday ? "border-white/10 bg-sky-500/[0.02]" : "border-white/5"
                         }`}
@@ -462,7 +504,10 @@ export default function CalendrierDashboard() {
                               key={ev.id}
                               href={`/admin/interventions/${ev.id}`}
                               onClick={(e) => e.stopPropagation()}
-                              className={`absolute left-1 right-1 rounded-lg border px-2 py-1 overflow-hidden z-10 transition-opacity hover:opacity-80 ${c.bg} ${c.border}`}
+                              draggable
+                              onDragStart={(e) => onEventDragStart(e, ev.id, "int", dur)}
+                              onDragEnd={() => { dragRef.current = null; setDragId(null); }}
+                              className={`absolute left-1 right-1 rounded-lg border px-2 py-1 overflow-hidden z-10 transition-opacity hover:opacity-80 cursor-grab active:cursor-grabbing ${c.bg} ${c.border} ${dragId === ev.id ? "opacity-40" : ""}`}
                               style={{ top, height: h }}
                             >
                               <div className="flex items-start gap-1.5 h-full overflow-hidden">
@@ -502,7 +547,10 @@ export default function CalendrierDashboard() {
                               key={r.id}
                               href={`/admin/leads?lead=${r.id}`}
                               onClick={(e) => e.stopPropagation()}
-                              className="absolute left-1 right-1 rounded-lg border px-2 py-1 overflow-hidden z-10 transition-opacity hover:opacity-80 bg-amber-500/15 border-amber-500/40"
+                              draggable
+                              onDragStart={(e) => onEventDragStart(e, r.id, "rdv", 120)}
+                              onDragEnd={() => { dragRef.current = null; setDragId(null); }}
+                              className={`absolute left-1 right-1 rounded-lg border px-2 py-1 overflow-hidden z-10 transition-opacity hover:opacity-80 cursor-grab active:cursor-grabbing bg-amber-500/15 border-amber-500/40 ${dragId === r.id ? "opacity-40" : ""}`}
                               style={{ top, height: h }}
                             >
                               <div className="flex items-start gap-1.5 h-full overflow-hidden">
