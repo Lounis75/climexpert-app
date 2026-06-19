@@ -2,10 +2,17 @@ import AdminHeader from "@/components/AdminHeader";
 import { getInterventionById, getTechniciens, TYPE_LABELS, TYPE_COLORS, STATUS_INTERVENTION } from "@/lib/interventions";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Calendar, User, MapPin, Wrench, FileText } from "lucide-react";
+import { ArrowLeft, Calendar, User, MapPin, Wrench, FileText, Image as ImageIcon } from "lucide-react";
 import InterventionActions from "./InterventionActions";
+import CopyableContact from "@/components/CopyableContact";
+import BriefingPhotos from "./BriefingPhotos";
 
 export const dynamic = "force-dynamic";
+
+function parsePhotos(json: string | null): string[] {
+  if (!json) return [];
+  try { return JSON.parse(json) as string[]; } catch { return []; }
+}
 
 function formatDateLong(d: Date | string | null) {
   if (!d) return "—";
@@ -76,12 +83,12 @@ export default async function InterventionDetailPage({
               </div>
             </div>
           )}
-          {i.address && (
+          {(i.address || i.clientAddress) && (
             <div className="bg-slate-800/40 border border-white/8 rounded-xl px-4 py-3 flex items-center gap-3">
               <MapPin className="w-4 h-4 text-slate-500 flex-shrink-0" />
-              <div>
-                <p className="text-xs text-slate-500">Adresse</p>
-                <p className="text-white text-sm">{i.address}</p>
+              <div className="min-w-0">
+                <p className="text-xs text-slate-500">Adresse d&apos;intervention</p>
+                <p className="text-white text-sm">{i.address || i.clientAddress}</p>
               </div>
             </div>
           )}
@@ -103,6 +110,8 @@ export default async function InterventionDetailPage({
               </div>
             </div>
           )}
+          {/* Coordonnées client : téléphone + email, copiables */}
+          <CopyableContact phone={i.clientPhone} email={i.clientEmail} />
         </div>
 
         {/* Notes */}
@@ -112,6 +121,15 @@ export default async function InterventionDetailPage({
             <h2 className="text-white font-semibold text-sm">Notes internes</h2>
           </div>
           <NotesEditor id={i.id} initialNotes={i.notes ?? ""} />
+        </div>
+
+        {/* Photos de briefing — l'admin ajoute des photos pour aider le technicien */}
+        <div className="bg-slate-800/40 border border-white/8 rounded-2xl p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <ImageIcon className="w-4 h-4 text-slate-500" />
+            <h2 className="text-white font-semibold text-sm">Photos pour le technicien</h2>
+          </div>
+          <BriefingPhotos id={i.id} initial={parsePhotos(i.photosBriefing)} />
         </div>
 
       </main>

@@ -5,8 +5,13 @@ import { db } from "@/lib/db";
 import { interventions, clients, rapportsIntervention } from "@/lib/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
 import Link from "next/link";
-import { MapPin, Phone, Wrench, Clock, ChevronLeft, ClipboardCheck } from "lucide-react";
+import { MapPin, Phone, Mail, Wrench, Clock, ChevronLeft, ClipboardCheck, Image as ImageIcon } from "lucide-react";
 import InterventionStatusButton from "./InterventionStatusButton";
+
+function parsePhotos(json: string | null): string[] {
+  if (!json) return [];
+  try { return JSON.parse(json) as string[]; } catch { return []; }
+}
 
 const TYPE_LABELS: Record<string, string> = {
   installation: "Installation", entretien: "Entretien",
@@ -38,9 +43,11 @@ export default async function InterventionDetailPage({ params }: { params: Promi
       codePostal:          interventions.codePostal,
       notes:               interventions.notes,
       dureeEstimeeMinutes: interventions.dureeEstimeeMinutes,
+      photosBriefing:      interventions.photosBriefing,
       clientId:            interventions.clientId,
       clientName:          clients.name,
       clientPhone:         clients.phone,
+      clientEmail:         clients.email,
       clientAddress:       clients.address,
       equipement:          clients.equipementInstalle,
       marqueModele:        clients.marqueModele,
@@ -97,6 +104,11 @@ export default async function InterventionDetailPage({ params }: { params: Promi
             <Phone className="w-4 h-4" /> {row.clientPhone}
           </a>
         )}
+        {row.clientEmail && (
+          <a href={`mailto:${row.clientEmail}`} className="flex items-center gap-2 text-sky-500 text-sm font-medium mt-1">
+            <Mail className="w-4 h-4" /> {row.clientEmail}
+          </a>
+        )}
         {row.clientAddress && <p className="text-xs text-slate-500 mt-1">{row.clientAddress}</p>}
       </div>
 
@@ -116,6 +128,23 @@ export default async function InterventionDetailPage({ params }: { params: Promi
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
           <p className="text-[10px] font-bold uppercase tracking-widest text-amber-600 mb-1">Notes admin</p>
           <p className="text-sm text-amber-900">{row.notes}</p>
+        </div>
+      )}
+
+      {/* Photos de briefing (ajoutées par l'admin) */}
+      {parsePhotos(row.photosBriefing).length > 0 && (
+        <div className="bg-white border border-slate-100 rounded-2xl p-5">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-1.5">
+            <ImageIcon className="w-3.5 h-3.5" /> Photos de l&apos;intervention
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            {parsePhotos(row.photosBriefing).map((url) => (
+              <a key={url} href={url} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-xl overflow-hidden border border-slate-200 block">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={url} alt="Photo de l'intervention" className="w-full h-full object-cover" />
+              </a>
+            ))}
+          </div>
         </div>
       )}
 

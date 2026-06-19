@@ -10,6 +10,9 @@ export type Technicien = InferSelectModel<typeof techniciens>;
 export type InterventionWithRefs = Intervention & {
   clientName: string;
   technicienName?: string;
+  clientPhone?: string | null;
+  clientEmail?: string | null;
+  clientAddress?: string | null;
 };
 
 export const TYPE_LABELS: Record<string, string> = {
@@ -60,6 +63,9 @@ export async function getInterventionById(id: string): Promise<InterventionWithR
       intervention: interventions,
       clientName: clients.name,
       technicienName: techniciens.name,
+      clientPhone: clients.phone,
+      clientEmail: clients.email,
+      clientAddress: clients.address,
     })
     .from(interventions)
     .leftJoin(clients, eq(interventions.clientId, clients.id))
@@ -67,7 +73,14 @@ export async function getInterventionById(id: string): Promise<InterventionWithR
     .where(eq(interventions.id, id));
 
   if (!row) return null;
-  return { ...row.intervention, clientName: row.clientName ?? "—", technicienName: row.technicienName ?? undefined };
+  return {
+    ...row.intervention,
+    clientName: row.clientName ?? "—",
+    technicienName: row.technicienName ?? undefined,
+    clientPhone: row.clientPhone,
+    clientEmail: row.clientEmail,
+    clientAddress: row.clientAddress,
+  };
 }
 
 export async function getUpcomingInterventions(): Promise<InterventionWithRefs[]> {
