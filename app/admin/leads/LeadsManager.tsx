@@ -25,10 +25,13 @@ const STATUS_CONFIG: Record<LeadStatus, { label: string; color: string; col: str
 const STATUSES = Object.keys(STATUS_CONFIG) as LeadStatus[];
 
 // Sous-statut « Prochaine étape » quand le contact est établi (avant l'envoi du devis).
+// "aucune_opportunite" est une action terminale : le prospect passe en "perdu".
 const PROCHAINE_ETAPE: Record<string, { label: string; short: string; emoji: string; color: string }> = {
-  rdv_pris:      { label: "Rendez-vous pris", short: "RDV pris",      emoji: "📅", color: "text-emerald-300" },
-  a_recontacter: { label: "À recontacter",    short: "À recontacter", emoji: "🔁", color: "text-amber-300" },
-  devis_a_faire: { label: "Devis à faire",     short: "Devis à faire", emoji: "📝", color: "text-sky-300" },
+  rdv_pris:           { label: "Rendez-vous pris",          short: "RDV pris",      emoji: "📅", color: "text-emerald-300" },
+  a_recontacter:      { label: "À recontacter",             short: "À recontacter", emoji: "🔁", color: "text-amber-300" },
+  en_reflexion:       { label: "Le client doit réfléchir",  short: "Réflexion",     emoji: "🤔", color: "text-slate-300" },
+  devis_a_faire:      { label: "Devis à faire",             short: "Devis à faire", emoji: "📝", color: "text-sky-300" },
+  aucune_opportunite: { label: "Aucune opportunité (→ perdu)", short: "Aucune opportunité", emoji: "❌", color: "text-rose-300" },
 };
 
 const PROJECT_LABELS: Record<string, string> = {
@@ -938,14 +941,17 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
                       value={(lead as Lead & { prochaineEtape?: string | null }).prochaineEtape ?? ""}
                       onChange={async (e) => {
                         const prochaineEtape = e.target.value || null;
-                        setSelectedLead(prev => prev ? { ...prev, prochaineEtape } as Lead : null);
+                        // « Aucune opportunité » → le prospect passe automatiquement en "perdu".
+                        const perdu = prochaineEtape === "aucune_opportunite";
+                        const patch = perdu ? { prochaineEtape, status: "perdu" as LeadStatus } : { prochaineEtape };
+                        setSelectedLead(prev => prev ? { ...prev, ...patch } as Lead : null);
                         const res = await fetch("/api/admin/leads", {
                           method: "PATCH", headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({ id: lead.id, prochaineEtape }),
                         });
                         if (res.status === 401) { window.location.href = "/admin"; return; }
                         if (!res.ok) { alert("Échec de l'enregistrement. Réessayez."); return; }
-                        setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, prochaineEtape } as Lead : l));
+                        setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, ...patch } as Lead : l));
                       }}
                       className="w-full text-sm bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2.5 text-slate-200 appearance-none focus:outline-none focus:border-sky-500/50 cursor-pointer"
                     >

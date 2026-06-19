@@ -57,8 +57,10 @@ export async function PATCH(req: NextRequest) {
       allowed.montantDevisCt = Number.isFinite(n) && n > 0 ? Math.round(n) : null;
     }
     if (fields.prochaineEtape !== undefined) {
-      allowed.prochaineEtape = ["rdv_pris", "a_recontacter", "devis_a_faire"].includes(fields.prochaineEtape)
+      allowed.prochaineEtape = ["rdv_pris", "a_recontacter", "en_reflexion", "devis_a_faire", "aucune_opportunite"].includes(fields.prochaineEtape)
         ? fields.prochaineEtape : null;
+      // « Aucune opportunité » est terminal → le prospect passe automatiquement en "perdu".
+      if (fields.prochaineEtape === "aucune_opportunite") allowed.status = "perdu";
     }
     if (fields.rdvDate !== undefined) {
       const d = fields.rdvDate ? new Date(fields.rdvDate) : null;
