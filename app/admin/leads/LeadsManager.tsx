@@ -49,6 +49,18 @@ function formatDate(d: Date | string) {
   });
 }
 
+// Action à faire sur un prospect → repère rouge discret sur la carte. null = rien à faire.
+function getLeadAction(lead: Lead): string | null {
+  const l = lead as Lead & { montantDevisCt?: number | null; prochaineEtape?: string | null; rdvDate?: string | null };
+  if ((lead.status === "devis_envoyé" || lead.status === "gagné") && !l.montantDevisCt) return "Devis à chiffrer";
+  if (lead.status === "contacté") {
+    if (l.prochaineEtape === "rdv_pris" && !l.rdvDate) return "Fixer le RDV";
+    if (l.prochaineEtape === "a_recontacter") return "À recontacter";
+    if (l.prochaineEtape === "devis_a_faire") return "Devis à faire";
+  }
+  return null;
+}
+
 // Initiales d'un nom (max 2 lettres) pour la pastille commercial.
 function initials(name: string): string {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("");
@@ -314,6 +326,7 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
     const commercialName = c ? (c.prenom ? `${c.prenom} ${c.name}` : c.name) : null;
     const pe = (lead as Lead & { prochaineEtape?: string | null }).prochaineEtape;
     const peCfg = lead.status === "contacté" && pe ? PROCHAINE_ETAPE[pe] : null;
+    const action = getLeadAction(lead);
 
     const SourceIcon = lead.source === "alex" ? Bot : lead.source === "whatsapp" ? MessageSquare : lead.source === "téléphone" ? Phone : FileText;
     const sourceLabel = lead.source === "alex" ? "Alex" : lead.source === "whatsapp" ? "WhatsApp" : lead.source === "téléphone" ? "Téléphone" : "Formulaire";
@@ -326,8 +339,8 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
         draggable
         onDragStart={(e) => onDragStart(e, lead.id)}
         onClick={() => setSelectedLead(lead)}
-        className={`bg-slate-800/40 border rounded-xl px-3 py-2.5 transition-colors cursor-pointer hover:bg-slate-800/70 hover:border-white/15 select-none ${
-          lead.status === "nouveau" ? "border-sky-500/20" : "border-white/[0.06]"
+        className={`bg-slate-800/40 border rounded-xl px-3 py-2.5 transition-colors cursor-pointer hover:bg-slate-800/70 select-none ${
+          action ? "border-red-500/40 hover:border-red-500/60" : lead.status === "nouveau" ? "border-sky-500/20 hover:border-white/15" : "border-white/[0.06] hover:border-white/15"
         }`}
       >
         {/* Ligne 1 : nom (héros) + doublon + pastille commercial */}
@@ -357,17 +370,21 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
           <p className="text-slate-400 text-xs mt-1 truncate">{meta.join(" · ")}</p>
         )}
 
-        {/* Ligne 3 : source + date · sous-statut */}
-        <div className="flex items-center justify-between gap-2 mt-1.5">
+        {/* Ligne 3 : source + date · action (rouge) ou sous-statut */}
+        <div className="flex items-center justify-between gap-2 mt-1.5 flex-wrap">
           <span className="flex items-center gap-1 text-slate-500 text-[11px]" title={`Source : ${sourceLabel}`}>
             <SourceIcon className={`w-3 h-3 flex-shrink-0 ${sourceColor}`} />
             {new Date(lead.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
           </span>
-          {peCfg && (
+          {action ? (
+            <span className="flex items-center gap-1 text-[10px] font-semibold text-red-300 bg-red-500/10 border border-red-500/30 rounded-full px-1.5 py-0.5 whitespace-nowrap" title={`Action à faire : ${action}`}>
+              <AlertTriangle className="w-2.5 h-2.5 flex-shrink-0" /> {action}
+            </span>
+          ) : peCfg ? (
             <span className={`flex items-center gap-0.5 text-[10px] font-medium ${peCfg.color}`}>
               {peCfg.emoji} {peCfg.short}
             </span>
-          )}
+          ) : null}
         </div>
       </div>
     );
