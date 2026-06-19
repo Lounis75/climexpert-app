@@ -352,7 +352,7 @@ export default async function DashboardPage() {
         <div className="bg-slate-800/40 border border-white/8 rounded-2xl overflow-hidden mb-6">
           <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
             <h2 className="text-white font-semibold text-sm flex items-center gap-2">
-              <CalendarCheck className="w-4 h-4 text-sky-400" /> Semaine en cours
+              <CalendarCheck className="w-4 h-4 text-sky-400" /> Planning
             </h2>
             <Link href="/admin/interventions" className="text-sky-400 hover:text-sky-300 text-xs flex items-center gap-1 transition-colors">
               Gérer <ArrowRight className="w-3 h-3" />
