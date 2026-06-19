@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { X, Plus, Check } from "lucide-react";
+import { X, Plus, Check, ChevronLeft, ChevronRight } from "lucide-react";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 const HOUR_START   = 7;
@@ -37,6 +37,10 @@ const MONTHS_FR = ["jan", "fév", "mar", "avr", "mai", "jun", "jul", "aoû", "se
 
 // ─── Utils ────────────────────────────────────────────────────────────────────
 function addDays(d: Date, n: number) { const r = new Date(d); r.setDate(r.getDate() + n); return r; }
+function addMonths(d: Date, n: number) { const r = new Date(d); r.setMonth(r.getMonth() + n); return r; }
+function getMondayOf(d: Date) { const x = new Date(d); const dow = x.getDay(); x.setDate(x.getDate() + (dow === 0 ? -6 : 1 - dow)); x.setHours(0, 0, 0, 0); return x; }
+function monthGridStart(d: Date) { return getMondayOf(new Date(d.getFullYear(), d.getMonth(), 1)); }
+function monthGridEnd(d: Date) { return addDays(getMondayOf(new Date(d.getFullYear(), d.getMonth() + 1, 0)), 6); }
 function isSameDay(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
@@ -286,22 +290,36 @@ function QuickAddModal({
 export default function CalendrierDashboard() {
   const todayBase = new Date();
   todayBase.setHours(0, 0, 0, 0);
-  const days = Array.from({ length: 7 }, (_, i) => addDays(todayBase, i));
 
+  const [viewMode, setViewMode]           = useState<"semaine" | "mois">("semaine");
+  const [monthAnchor, setMonthAnchor]     = useState(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; });
   const [interventions, setInterventions] = useState<CalIntervention[]>([]);
   const [techniciens, setTechniciens]     = useState<CalTechnicien[]>([]);
   const [rdvs, setRdvs]                   = useState<CalRdv[]>([]);
   const [loading, setLoading]             = useState(true);
   const [dragId, setDragId]               = useState<string | null>(null);
-  const dragRef = useRef<{ id: string; kind: "int" | "rdv"; grabPx: number; duree: number } | null>(null);
+  const dragRef = useRef<{ id: string; kind: "int" | "rdv"; grabPx: number; duree: number; origStart: number } | null>(null);
   const [nowY, setNowY]                   = useState<number | null>(null);
   const [modal, setModal]                 = useState<{ date: Date } | null>(null);
   const nowRef  = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
 
+  const isMonth = viewMode === "mois";
+  const days = Array.from({ length: 7 }, (_, i) => addDays(todayBase, i)); // vue semaine
+  const monthStart = monthGridStart(monthAnchor);
+  const monthDays = Array.from({ length: Math.round((monthGridEnd(monthAnchor).getTime() - monthStart.getTime()) / 86400000) + 1 }, (_, i) => addDays(monthStart, i));
+
   const load = useCallback(async () => {
     const fmt = (d: Date) => d.toISOString().slice(0, 10);
-    const res = await fetch(`/api/admin/calendrier?start=${fmt(days[0])}&end=${fmt(days[6])}`);
+    let rangeStart: Date, rangeEnd: Date;
+    if (viewMode === "mois") {
+      rangeStart = monthGridStart(monthAnchor);
+      rangeEnd = monthGridEnd(monthAnchor);
+    } else {
+      const t = new Date(); t.setHours(0, 0, 0, 0);
+      rangeStart = t; rangeEnd = addDays(t, 6);
+    }
+    const res = await fetch(`/api/admin/calendrier?start=${fmt(rangeStart)}&end=${fmt(rangeEnd)}`);
     if (res.ok) {
       const d = await res.json();
       setInterventions(d.interventions ?? []);
@@ -309,7 +327,7 @@ export default function CalendrierDashboard() {
       setRdvs(d.rdvs ?? []);
     }
     setLoading(false);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [viewMode, monthAnchor]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -354,27 +372,15 @@ export default function CalendrierDashboard() {
     rdvs.filter((r) => r.rdvDate && isSameDay(new Date(r.rdvDate), d));
 
   // ── Glisser-déposer pour déplacer un rendez-vous (comme le calendrier Apple) ──
-  function onEventDragStart(e: React.DragEvent, id: string, kind: "int" | "rdv", duree: number) {
+  function onEventDragStart(e: React.DragEvent, id: string, kind: "int" | "rdv", duree: number, origStart: number) {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    dragRef.current = { id, kind, grabPx: e.clientY - rect.top, duree };
+    dragRef.current = { id, kind, grabPx: e.clientY - rect.top, duree, origStart };
     setDragId(id);
     e.dataTransfer.effectAllowed = "move";
     try { e.dataTransfer.setData("text/plain", id); } catch { /* ignore */ }
   }
 
-  async function onColumnDrop(e: React.DragEvent, day: Date) {
-    e.preventDefault();
-    const drag = dragRef.current;
-    dragRef.current = null;
-    setDragId(null);
-    if (!drag) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const minFromStart = ((e.clientY - rect.top - drag.grabPx) / PX_PER_HOUR) * 60;
-    const snapped = Math.max(0, snapMinutes(minFromStart));
-    const newStart = new Date(day);
-    newStart.setHours(HOUR_START + Math.floor(snapped / 60), snapped % 60, 0, 0);
-    const iso = newStart.toISOString();
-
+  async function applyMove(drag: NonNullable<typeof dragRef.current>, iso: string) {
     if (drag.kind === "int") {
       setInterventions((prev) => prev.map((i) => (i.id === drag.id ? { ...i, scheduledAt: iso } : i)));
       await fetch(`/api/admin/interventions/${drag.id}`, {
@@ -391,6 +397,32 @@ export default function CalendrierDashboard() {
     load();
   }
 
+  // Vue semaine : drop = nouveau jour + heure (selon la position verticale).
+  async function onColumnDrop(e: React.DragEvent, day: Date) {
+    e.preventDefault();
+    const drag = dragRef.current;
+    dragRef.current = null; setDragId(null);
+    if (!drag) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const minFromStart = ((e.clientY - rect.top - drag.grabPx) / PX_PER_HOUR) * 60;
+    const snapped = Math.max(0, snapMinutes(minFromStart));
+    const newStart = new Date(day);
+    newStart.setHours(HOUR_START + Math.floor(snapped / 60), snapped % 60, 0, 0);
+    await applyMove(drag, newStart.toISOString());
+  }
+
+  // Vue mois : drop = nouveau jour, on garde l'heure d'origine.
+  async function onMonthDayDrop(e: React.DragEvent, day: Date) {
+    e.preventDefault();
+    const drag = dragRef.current;
+    dragRef.current = null; setDragId(null);
+    if (!drag) return;
+    const orig = new Date(drag.origStart);
+    const newStart = new Date(day);
+    newStart.setHours(orig.getHours() || 9, orig.getMinutes(), 0, 0);
+    await applyMove(drag, newStart.toISOString());
+  }
+
   return (
     <>
       {modal && (
@@ -402,9 +434,71 @@ export default function CalendrierDashboard() {
         />
       )}
 
+      {/* Bascule Semaine / Mois (+ navigation mois) */}
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <div className="flex items-center gap-2">
+          {isMonth && (
+            <>
+              <button onClick={() => setMonthAnchor(addMonths(monthAnchor, -1))} className="p-1.5 rounded-lg bg-slate-800 border border-white/8 text-slate-400 hover:text-white transition-colors"><ChevronLeft className="w-4 h-4" /></button>
+              <span className="text-sm font-semibold text-white capitalize min-w-[140px] text-center">{monthAnchor.toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}</span>
+              <button onClick={() => setMonthAnchor(addMonths(monthAnchor, 1))} className="p-1.5 rounded-lg bg-slate-800 border border-white/8 text-slate-400 hover:text-white transition-colors"><ChevronRight className="w-4 h-4" /></button>
+              <button onClick={() => { const d = new Date(); d.setHours(0, 0, 0, 0); setMonthAnchor(d); }} className="px-3 py-1.5 text-xs rounded-lg bg-slate-800 border border-white/8 text-slate-400 hover:text-white transition-colors">Ce mois</button>
+            </>
+          )}
+        </div>
+        <div className="flex items-center rounded-xl bg-slate-800 border border-white/8 p-0.5">
+          {(["semaine", "mois"] as const).map((m) => (
+            <button key={m} onClick={() => setViewMode(m)} className={`px-3 py-1 text-xs font-medium rounded-lg capitalize transition-colors ${viewMode === m ? "bg-sky-500 text-white" : "text-slate-400 hover:text-white"}`}>{m}</button>
+          ))}
+        </div>
+      </div>
+
       {loading ? (
         <div className="h-48 flex items-center justify-center">
           <div className="w-5 h-5 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : isMonth ? (
+        /* ── Vue MOIS ─────────────────────────────────────────────────── */
+        <div className="overflow-x-auto">
+          <div className="grid grid-cols-7 gap-1.5 mb-1.5 min-w-[600px]">
+            {["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"].map((d) => <p key={d} className="text-[10px] text-slate-500 font-medium text-center">{d}</p>)}
+          </div>
+          <div className="grid grid-cols-7 gap-1.5 min-w-[600px]">
+            {monthDays.map((d, idx) => {
+              const inMonth = d.getMonth() === monthAnchor.getMonth();
+              const isToday = isSameDay(d, now);
+              const all: { kind: "int" | "rdv"; id: string; label: string; time: string; start: number; duree: number; type?: string }[] = [
+                ...forDayRdv(d).map((r) => ({ kind: "rdv" as const, id: r.id, label: r.clientName, time: r.rdvDate ? fmtHM(new Date(r.rdvDate)) : "", start: r.rdvDate ? new Date(r.rdvDate).getTime() : 0, duree: 120 })),
+                ...forDay(d).map((i) => ({ kind: "int" as const, id: i.id, label: i.clientName, time: i.scheduledAt ? fmtHM(new Date(i.scheduledAt)) : "", start: i.scheduledAt ? new Date(i.scheduledAt).getTime() : 0, duree: i.duree ?? 120, type: i.type })),
+              ];
+              return (
+                <div key={idx}
+                  onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
+                  onDrop={(e) => onMonthDayDrop(e, d)}
+                  onClick={(e) => { if ((e.target as HTMLElement).closest("a")) return; const dd = new Date(d); dd.setHours(9, 0, 0, 0); setModal({ date: dd }); }}
+                  className={`min-h-[92px] rounded-xl border p-1.5 flex flex-col cursor-pointer transition-colors hover:border-white/15 ${isToday ? "border-sky-500/50 bg-sky-500/5" : "border-white/8 bg-slate-800/30"} ${inMonth ? "" : "opacity-40"}`}>
+                  <p className={`text-[11px] font-bold mb-1 ${isToday ? "text-sky-400" : "text-slate-400"}`}>{d.getDate()}</p>
+                  <div className="space-y-0.5 overflow-hidden">
+                    {all.slice(0, 3).map((ev) => {
+                      const cfg = TYPE_COLORS[ev.type ?? "autre"] ?? TYPE_COLORS.autre;
+                      return (
+                        <Link key={`${ev.kind}-${ev.id}`}
+                          href={ev.kind === "rdv" ? `/admin/leads?lead=${ev.id}` : `/admin/interventions/${ev.id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          draggable
+                          onDragStart={(e) => onEventDragStart(e, ev.id, ev.kind, ev.duree, ev.start)}
+                          onDragEnd={() => { dragRef.current = null; setDragId(null); }}
+                          className={`block rounded px-1 py-0.5 text-[9px] leading-tight truncate cursor-grab active:cursor-grabbing hover:opacity-80 ${ev.kind === "rdv" ? "bg-amber-500/20 text-amber-300" : `${cfg.bg} ${cfg.text}`} ${dragId === ev.id ? "opacity-40" : ""}`}>
+                          {ev.time && <span className="opacity-70">{ev.time} </span>}{ev.kind === "rdv" ? "RDV " : ""}{ev.label}
+                        </Link>
+                      );
+                    })}
+                    {all.length > 3 && <p className="text-[9px] text-slate-500 px-1">+{all.length - 3}</p>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       ) : (
         <div className="overflow-x-auto">
@@ -505,7 +599,7 @@ export default function CalendrierDashboard() {
                               href={`/admin/interventions/${ev.id}`}
                               onClick={(e) => e.stopPropagation()}
                               draggable
-                              onDragStart={(e) => onEventDragStart(e, ev.id, "int", dur)}
+                              onDragStart={(e) => onEventDragStart(e, ev.id, "int", dur, start.getTime())}
                               onDragEnd={() => { dragRef.current = null; setDragId(null); }}
                               className={`absolute left-1 right-1 rounded-lg border px-2 py-1 overflow-hidden z-10 transition-opacity hover:opacity-80 cursor-grab active:cursor-grabbing ${c.bg} ${c.border} ${dragId === ev.id ? "opacity-40" : ""}`}
                               style={{ top, height: h }}
@@ -548,7 +642,7 @@ export default function CalendrierDashboard() {
                               href={`/admin/leads?lead=${r.id}`}
                               onClick={(e) => e.stopPropagation()}
                               draggable
-                              onDragStart={(e) => onEventDragStart(e, r.id, "rdv", 120)}
+                              onDragStart={(e) => onEventDragStart(e, r.id, "rdv", 120, start.getTime())}
                               onDragEnd={() => { dragRef.current = null; setDragId(null); }}
                               className={`absolute left-1 right-1 rounded-lg border px-2 py-1 overflow-hidden z-10 transition-opacity hover:opacity-80 cursor-grab active:cursor-grabbing bg-amber-500/15 border-amber-500/40 ${dragId === r.id ? "opacity-40" : ""}`}
                               style={{ top, height: h }}
