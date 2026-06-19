@@ -194,6 +194,9 @@ export const leads = pgTable("leads", {
   notes:               text("notes"),
   // Montant du devis (centimes) — à renseigner dès le passage en "devis_envoyé".
   montantDevisCt:      integer("montant_devis_ct"),
+  // Sous-statut quand le contact est établi (avant l'envoi du devis) :
+  // "rdv_pris" | "a_recontacter" | "devis_a_faire". Null = non précisé.
+  prochaineEtape:      varchar("prochaine_etape", { length: 20 }),
   clientId:            text("client_id").references(() => clients.id),
   commercialId:        text("commercial_id").references(() => techniciens.id),
   // Consentement RGPD au démarchage commercial (opt-in). La prise de contact
@@ -284,6 +287,8 @@ export const interventions = pgTable("interventions", {
   notes:                text("notes"),
   // Entretien : le client est-il sous contrat d'entretien pour cette intervention ?
   sousContrat:          boolean("sous_contrat"),
+  // Photos de briefing ajoutées par l'admin pour aider le technicien (JSON : string[] d'URLs R2).
+  photosBriefing:       text("photos_briefing"),
   dureeEstimeeMinutes:  integer("duree_estimee_minutes"),
   dureeReelleMinutes:   integer("duree_reelle_minutes"),
   rdvToken:               varchar("rdv_token", { length: 100 }).unique(),

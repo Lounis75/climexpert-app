@@ -24,6 +24,13 @@ const STATUS_CONFIG: Record<LeadStatus, { label: string; color: string; col: str
 
 const STATUSES = Object.keys(STATUS_CONFIG) as LeadStatus[];
 
+// Sous-statut « Prochaine étape » quand le contact est établi (avant l'envoi du devis).
+const PROCHAINE_ETAPE: Record<string, { label: string; short: string; emoji: string; color: string }> = {
+  rdv_pris:      { label: "Rendez-vous pris", short: "RDV pris",      emoji: "📅", color: "text-emerald-300" },
+  a_recontacter: { label: "À recontacter",    short: "À recontacter", emoji: "🔁", color: "text-amber-300" },
+  devis_a_faire: { label: "Devis à faire",     short: "Devis à faire", emoji: "📝", color: "text-sky-300" },
+};
+
 const PROJECT_LABELS: Record<string, string> = {
   installation: "Installation",
   entretien: "Entretien",
@@ -351,6 +358,16 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
                 {c ? (c.prenom ? `${c.prenom} ${c.name}` : c.name) : "non affecté"}
               </span>
             );
+          })()}
+          {/* Sous-statut "Prochaine étape" (contact établi) */}
+          {(() => {
+            const pe = (lead as Lead & { prochaineEtape?: string | null }).prochaineEtape;
+            const cfg = pe ? PROCHAINE_ETAPE[pe] : null;
+            return lead.status === "contacté" && cfg ? (
+              <span className={`flex items-center gap-0.5 font-medium ${cfg.color}`}>
+                {cfg.emoji} {cfg.short}
+              </span>
+            ) : null;
           })()}
         </div>
       </div>
@@ -914,6 +931,37 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
                     ))}
                   </select>
                 </div>
+
+                {/* Prochaine étape — quand le contact est établi, avant l'envoi du devis */}
+                {lead.status === "contacté" && (
+                  <div>
+                    <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide flex items-center gap-1.5">
+                      <Clock className="w-3 h-3" /> Prochaine étape
+                    </p>
+                    <select
+                      value={(lead as Lead & { prochaineEtape?: string | null }).prochaineEtape ?? ""}
+                      onChange={async (e) => {
+                        const prochaineEtape = e.target.value || null;
+                        setSelectedLead(prev => prev ? { ...prev, prochaineEtape } as Lead : null);
+                        const res = await fetch("/api/admin/leads", {
+                          method: "PATCH", headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ id: lead.id, prochaineEtape }),
+                        });
+                        if (res.status === 401) { window.location.href = "/admin"; return; }
+                        if (!res.ok) { alert("Échec de l'enregistrement. Réessayez."); return; }
+                        setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, prochaineEtape } as Lead : l));
+                      }}
+                      className="w-full text-sm bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2.5 text-slate-200 appearance-none focus:outline-none focus:border-sky-500/50 cursor-pointer"
+                    >
+                      <option value="">— Non précisé</option>
+                      {Object.entries(PROCHAINE_ETAPE).map(([val, cfg]) => (
+                        <option key={val} value={val} className="bg-slate-800 text-white">
+                          {cfg.emoji} {cfg.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 {/* Montant du devis — obligatoire dès "devis envoyé" / "gagné" */}
                 {(lead.status === "devis_envoyé" || lead.status === "gagné") && (

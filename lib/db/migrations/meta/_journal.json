@@ -85,6 +85,13 @@
       "when": 1781857957049,
       "tag": "0011_entretien_relance_contrat",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1781881411957,
+      "tag": "0012_sous_statut_et_photos_briefing",
+      "breakpoints": true
     }
   ]
 }

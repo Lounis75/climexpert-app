@@ -56,6 +56,10 @@ export async function PATCH(req: NextRequest) {
       const n = Number(fields.montantDevisCt);
       allowed.montantDevisCt = Number.isFinite(n) && n > 0 ? Math.round(n) : null;
     }
+    if (fields.prochaineEtape !== undefined) {
+      allowed.prochaineEtape = ["rdv_pris", "a_recontacter", "devis_a_faire"].includes(fields.prochaineEtape)
+        ? fields.prochaineEtape : null;
+    }
 
     // Passage en "gagné" → conversion auto en client (idempotent : copie l'adresse/
     // notes, lie le lead). Couvre TOUS les chemins (panneau, glisser-déposer Kanban…).
