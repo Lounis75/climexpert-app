@@ -46,6 +46,11 @@ function formatDate(d: Date | string) {
   });
 }
 
+// Initiales d'un nom (max 2 lettres) pour la pastille commercial.
+function initials(name: string): string {
+  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("");
+}
+
 // Convertit une date stockée en valeur d'un <input type="datetime-local">.
 function toLocalDT(d: string | Date | null | undefined): string {
   if (!d) return "";
@@ -301,83 +306,65 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
 
   function LeadCard({ lead }: { lead: Lead }) {
     const dupes = duplicatesMap.get(lead.id) ?? [];
+    const commercialId = (lead as Lead & { commercialId?: string | null }).commercialId;
+    const c = commerciaux.find((x) => x.id === commercialId);
+    const commercialName = c ? (c.prenom ? `${c.prenom} ${c.name}` : c.name) : null;
+    const pe = (lead as Lead & { prochaineEtape?: string | null }).prochaineEtape;
+    const peCfg = lead.status === "contacté" && pe ? PROCHAINE_ETAPE[pe] : null;
+
+    const SourceIcon = lead.source === "alex" ? Bot : lead.source === "whatsapp" ? MessageSquare : lead.source === "téléphone" ? Phone : FileText;
+    const sourceLabel = lead.source === "alex" ? "Alex" : lead.source === "whatsapp" ? "WhatsApp" : lead.source === "téléphone" ? "Téléphone" : "Formulaire";
+    const sourceColor = lead.source === "alex" ? "text-sky-400" : (lead.source === "whatsapp" || lead.source === "téléphone") ? "text-emerald-400" : "text-violet-400";
+
+    const meta = [lead.project ? (PROJECT_LABELS[lead.project] ?? lead.project) : null, lead.location || null].filter(Boolean);
+
     return (
       <div
         draggable
         onDragStart={(e) => onDragStart(e, lead.id)}
         onClick={() => setSelectedLead(lead)}
-        className={`bg-slate-800/60 border rounded-xl p-2.5 transition-all cursor-pointer hover:border-sky-500/40 hover:bg-slate-800/80 select-none ${
-          lead.status === "nouveau" ? "border-sky-500/20" : "border-white/8"
+        className={`bg-slate-800/40 border rounded-xl px-3 py-2.5 transition-colors cursor-pointer hover:bg-slate-800/70 hover:border-white/15 select-none ${
+          lead.status === "nouveau" ? "border-sky-500/20" : "border-white/[0.06]"
         }`}
       >
-        {/* Source badge + date */}
-        <div className="flex items-center justify-between gap-2 mb-2">
+        {/* Ligne 1 : nom (héros) + doublon + pastille commercial */}
+        <div className="flex items-center gap-2">
+          <p className="text-white font-semibold text-sm truncate flex-1">{lead.name}</p>
+          {dupes.length > 0 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setMergingPanel({ leadId: lead.id, dupes }); }}
+              title="Doublon potentiel"
+              className="w-5 h-5 rounded-full border border-orange-500/40 bg-orange-500/10 text-orange-400 flex items-center justify-center flex-shrink-0 hover:bg-orange-500/20 transition-colors"
+            >
+              <AlertTriangle className="w-3 h-3" />
+            </button>
+          )}
           <span
-            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-[10px] font-semibold flex-shrink-0 ${
-              lead.source === "alex"
-                ? "bg-sky-500/10 text-sky-400 border-sky-500/20"
-                : lead.source === "téléphone" || lead.source === "whatsapp"
-                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                : "bg-violet-500/10 text-violet-400 border-violet-500/20"
+            title={commercialName ?? "Non affecté"}
+            className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0 border ${
+              c ? "bg-violet-500/15 text-violet-200 border-violet-500/30" : "border-dashed border-slate-600 text-slate-600"
             }`}
           >
-            {lead.source === "alex" ? <Bot className="w-2.5 h-2.5" /> : lead.source === "whatsapp" ? <MessageSquare className="w-2.5 h-2.5" /> : lead.source === "téléphone" ? <Phone className="w-2.5 h-2.5" /> : <FileText className="w-2.5 h-2.5" />}
-            {lead.source === "alex" ? "Alex" : lead.source === "whatsapp" ? "WhatsApp" : lead.source === "téléphone" ? "Tél." : "Form"}
+            {commercialName ? initials(commercialName) : "?"}
           </span>
-          <div className="flex items-center gap-1.5">
-            {dupes.length > 0 && (
-              <button
-                onClick={(e) => { e.stopPropagation(); setMergingPanel({ leadId: lead.id, dupes }); }}
-                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border border-orange-500/40 bg-orange-500/10 text-orange-400 text-[10px] font-semibold hover:bg-orange-500/20 transition-colors"
-              >
-                <AlertTriangle className="w-2.5 h-2.5" />
-                Doublon
-              </button>
-            )}
-            <span className="text-slate-600 text-[10px] flex items-center gap-0.5 whitespace-nowrap flex-shrink-0">
-              <Clock className="w-2.5 h-2.5 flex-shrink-0" />
-              {new Date(lead.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
-            </span>
-          </div>
         </div>
 
-        {/* Name */}
-        <p className="text-white font-semibold text-sm mb-2 truncate">{lead.name}</p>
+        {/* Ligne 2 : type · lieu */}
+        {meta.length > 0 && (
+          <p className="text-slate-400 text-xs mt-1 truncate">{meta.join(" · ")}</p>
+        )}
 
-        {/* Meta : type · lieu · commercial affecté */}
-        <div className="flex flex-wrap gap-x-2 gap-y-1 text-[10px] text-slate-500">
-          {lead.project && (
-            <span className="flex items-center gap-0.5">
-              <Wrench className="w-2.5 h-2.5" />
-              {PROJECT_LABELS[lead.project] ?? lead.project}
+        {/* Ligne 3 : source + date · sous-statut */}
+        <div className="flex items-center justify-between gap-2 mt-1.5">
+          <span className="flex items-center gap-1 text-slate-500 text-[11px]" title={`Source : ${sourceLabel}`}>
+            <SourceIcon className={`w-3 h-3 flex-shrink-0 ${sourceColor}`} />
+            {new Date(lead.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+          </span>
+          {peCfg && (
+            <span className={`flex items-center gap-0.5 text-[10px] font-medium ${peCfg.color}`}>
+              {peCfg.emoji} {peCfg.short}
             </span>
           )}
-          {lead.location && (
-            <span className="flex items-center gap-0.5 truncate">
-              <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
-              {lead.location}
-            </span>
-          )}
-          {(() => {
-            const commercialId = (lead as Lead & { commercialId?: string | null }).commercialId;
-            const c = commerciaux.find((x) => x.id === commercialId);
-            return (
-              <span className={`flex items-center gap-0.5 ${c ? "text-violet-300" : "text-slate-600"}`}>
-                <Briefcase className="w-2.5 h-2.5 flex-shrink-0" />
-                {c ? (c.prenom ? `${c.prenom} ${c.name}` : c.name) : "non affecté"}
-              </span>
-            );
-          })()}
-          {/* Sous-statut "Prochaine étape" (contact établi) */}
-          {(() => {
-            const pe = (lead as Lead & { prochaineEtape?: string | null }).prochaineEtape;
-            const cfg = pe ? PROCHAINE_ETAPE[pe] : null;
-            return lead.status === "contacté" && cfg ? (
-              <span className={`flex items-center gap-0.5 font-medium ${cfg.color}`}>
-                {cfg.emoji} {cfg.short}
-              </span>
-            ) : null;
-          })()}
         </div>
       </div>
     );
