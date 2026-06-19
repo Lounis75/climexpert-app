@@ -12,7 +12,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { clientId, type, scheduledAt, technicienId, devisId, address, notes, sousContrat } = body;
+    const { clientId, type, scheduledAt, technicienId, devisId, address, notes, sousContrat, dureeEstimeeMinutes } = body;
     if (!clientId || !type || !scheduledAt) {
       return NextResponse.json({ error: "clientId, type et scheduledAt requis" }, { status: 400 });
     }
@@ -20,10 +20,12 @@ export async function POST(req: NextRequest) {
     if (isNaN(parsedDate.getTime())) {
       return NextResponse.json({ error: `Date invalide: "${scheduledAt}"` }, { status: 400 });
     }
+    const duree = Number(dureeEstimeeMinutes);
     const i = await createIntervention({
       clientId,
       type,
       scheduledAt: parsedDate,
+      dureeEstimeeMinutes: Number.isFinite(duree) && duree > 0 ? Math.round(duree) : 120,
       technicienId: technicienId || null,
       devisId: devisId || null,
       address: address || null,

@@ -105,6 +105,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       if (body.technicienId !== undefined) patch.technicienId = body.technicienId || null;
       if (body.type) patch.type = body.type;
       if (body.address !== undefined) patch.address = body.address || null;
+      if (body.dureeEstimeeMinutes !== undefined) {
+        const d = Number(body.dureeEstimeeMinutes);
+        if (Number.isFinite(d) && d > 0) patch.dureeEstimeeMinutes = Math.round(d);
+      }
       await db.update(interventions).set(patch).where(eq(interventions.id, id));
 
       // Notifie le technicien affecté (table notifications polymorphe : adminId = technicienId)

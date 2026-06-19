@@ -14,6 +14,18 @@ function parsePhotos(json: string | null): string[] {
   try { return JSON.parse(json) as string[]; } catch { return []; }
 }
 
+// Affiche le créneau « 10:00 – 12:00 (2 h) » à partir du début et de la durée.
+function formatCreneau(d: Date | string | null, dureeMin: number | null) {
+  if (!d) return null;
+  const start = new Date(d);
+  const opts: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit" };
+  const startHM = start.toLocaleTimeString("fr-FR", opts);
+  if (!dureeMin || dureeMin <= 0) return startHM;
+  const end = new Date(start.getTime() + dureeMin * 60000);
+  const label = dureeMin < 60 ? `${dureeMin} min` : `${dureeMin / 60} h`;
+  return `${startHM} – ${end.toLocaleTimeString("fr-FR", opts)} (${label})`;
+}
+
 function formatDateLong(d: Date | string | null) {
   if (!d) return "—";
   return new Date(d).toLocaleDateString("fr-FR", {
@@ -69,6 +81,7 @@ export default async function InterventionDetailPage({
             currentTechnicienId={i.technicienId ?? ""}
             currentScheduledAt={i.scheduledAt ? new Date(i.scheduledAt).toISOString() : ""}
             currentType={i.type}
+            currentDuree={i.dureeEstimeeMinutes ?? 120}
           />
         </div>
 
@@ -96,8 +109,9 @@ export default async function InterventionDetailPage({
             <div className="bg-slate-800/40 border border-white/8 rounded-xl px-4 py-3 flex items-center gap-3">
               <Calendar className="w-4 h-4 text-slate-500 flex-shrink-0" />
               <div>
-                <p className="text-xs text-slate-500">Planifiée le</p>
+                <p className="text-xs text-slate-500">Créneau</p>
                 <p className="text-white text-sm capitalize">{formatDateLong(i.scheduledAt)}</p>
+                <p className="text-slate-400 text-xs mt-0.5">{formatCreneau(i.scheduledAt, i.dureeEstimeeMinutes)}</p>
               </div>
             </div>
           )}

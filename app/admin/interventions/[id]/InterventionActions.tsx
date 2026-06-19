@@ -35,10 +35,13 @@ interface Props {
   currentTechnicienId: string;
   currentScheduledAt: string;
   currentType: string;
+  currentDuree: number;
 }
 
+const DUREES: number[] = [30, 60, 90, 120, 180, 240, 300, 360, 480];
+
 export default function InterventionActions({
-  id, currentStatus, techniciens, currentTechnicienId, currentScheduledAt, currentType,
+  id, currentStatus, techniciens, currentTechnicienId, currentScheduledAt, currentType, currentDuree,
 }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -46,6 +49,7 @@ export default function InterventionActions({
   const [scheduledAt, setScheduledAt] = useState(isoToLocal(currentScheduledAt));
   const [technicienId, setTechnicienId] = useState(currentTechnicienId);
   const [type, setType] = useState(currentType);
+  const [duree, setDuree] = useState(currentDuree || 120);
   const actions = ACTIONS[currentStatus] ?? [];
 
   async function changeStatus(status: string) {
@@ -67,7 +71,7 @@ export default function InterventionActions({
         body: JSON.stringify({
           action: "planifier",
           scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null,
-          technicienId, type,
+          technicienId, type, dureeEstimeeMinutes: duree,
         }),
       });
       setPlanning(false);
@@ -110,10 +114,19 @@ export default function InterventionActions({
           <p className="text-violet-300 text-xs font-semibold flex items-center gap-1.5">
             <CalendarClock className="w-3.5 h-3.5" /> Planifier l&apos;intervention
           </p>
-          <div>
-            <label className="text-slate-400 text-xs block mb-1">Date et heure</label>
-            <input type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)}
-              className="w-full bg-slate-900/60 border border-white/10 rounded-lg px-2.5 py-2 text-white text-sm [color-scheme:dark] focus:outline-none focus:border-violet-500/50" />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-slate-400 text-xs block mb-1">Début</label>
+              <input type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)}
+                className="w-full bg-slate-900/60 border border-white/10 rounded-lg px-2.5 py-2 text-white text-sm [color-scheme:dark] focus:outline-none focus:border-violet-500/50" />
+            </div>
+            <div>
+              <label className="text-slate-400 text-xs block mb-1">Durée (créneau)</label>
+              <select value={duree} onChange={(e) => setDuree(Number(e.target.value))}
+                className="w-full bg-slate-900/60 border border-white/10 rounded-lg px-2.5 py-2 text-white text-sm appearance-none focus:outline-none focus:border-violet-500/50">
+                {DUREES.map((m) => <option key={m} value={m} className="bg-slate-800">{m < 60 ? `${m} min` : `${m / 60} h`}</option>)}
+              </select>
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>

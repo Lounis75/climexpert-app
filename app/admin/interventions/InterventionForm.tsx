@@ -33,6 +33,7 @@ export default function InterventionForm({
   const [type, setType] = useState("installation");
   const [sousContrat, setSousContrat] = useState<boolean | null>(null);
   const [scheduledAt, setScheduledAt] = useState("");
+  const [scheduledEndAt, setScheduledEndAt] = useState("");
   const [technicienId, setTechnicienId] = useState("");
   const [address, setAddress] = useState(preClient?.address ?? "");
   const [notes, setNotes] = useState("");
@@ -52,7 +53,13 @@ export default function InterventionForm({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    if (!scheduledAt) { setError("Date et heure requises"); return; }
+    if (!scheduledAt) { setError("Heure de début requise"); return; }
+    if (!scheduledEndAt) { setError("Heure de fin requise"); return; }
+    // Durée du créneau (minutes). La fin doit être après le début.
+    const dureeEstimeeMinutes = Math.round((new Date(scheduledEndAt).getTime() - new Date(scheduledAt).getTime()) / 60000);
+    if (!Number.isFinite(dureeEstimeeMinutes) || dureeEstimeeMinutes <= 0) {
+      setError("La fin doit être après le début."); return;
+    }
     setLoading(true);
     try {
       const res = await fetch("/api/admin/interventions", {
@@ -62,6 +69,7 @@ export default function InterventionForm({
           clientId,
           type,
           scheduledAt,
+          dureeEstimeeMinutes,
           technicienId: technicienId || undefined,
           address: address || undefined,
           notes: notes || undefined,
@@ -122,11 +130,31 @@ export default function InterventionForm({
         </div>
 
         <div>
-          <label className="block text-xs text-slate-400 mb-1.5 font-medium">Date et heure *</label>
+          <label className="block text-xs text-slate-400 mb-1.5 font-medium">Début *</label>
           <input
             type="datetime-local"
             value={scheduledAt}
-            onChange={(e) => setScheduledAt(e.target.value)}
+            onChange={(e) => {
+              const v = e.target.value;
+              setScheduledAt(v);
+              // Créneau par défaut de 2h : cale la fin si elle est vide ou avant le début.
+              if (v && (!scheduledEndAt || scheduledEndAt <= v)) {
+                const d = new Date(v); d.setHours(d.getHours() + 2);
+                const pad = (n: number) => String(n).padStart(2, "0");
+                setScheduledEndAt(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`);
+              }
+            }}
+            required
+            className="w-full h-11 px-3 rounded-xl bg-slate-900 border border-white/10 text-white text-sm focus:outline-none focus:border-sky-500 transition-all"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs text-slate-400 mb-1.5 font-medium">Fin *</label>
+          <input
+            type="datetime-local"
+            value={scheduledEndAt}
+            onChange={(e) => setScheduledEndAt(e.target.value)}
             required
             className="w-full h-11 px-3 rounded-xl bg-slate-900 border border-white/10 text-white text-sm focus:outline-none focus:border-sky-500 transition-all"
           />
