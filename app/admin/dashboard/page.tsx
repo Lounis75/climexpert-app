@@ -1,4 +1,4 @@
-import { getDashboardStats, getTachesAFaire, getInterventionsDuJour, getInterventionsAPlanifier, getInterventionsParClient } from "@/lib/dashboard";
+import { getDashboardStats, getTachesAFaire, getProchainesInterventions, getInterventionsAPlanifier, getInterventionsParClient } from "@/lib/dashboard";
 import { getAudience } from "@/lib/analytics";
 import { getDynamicArticles, isPublished } from "@/lib/dynamicArticles";
 import { getCommerciauxAssignables, getTechniciensAssignables } from "@/lib/utilisateurs";
@@ -36,6 +36,14 @@ function formatTime(d: Date | string | null) {
   return new Date(d).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Paris" });
 }
 
+function formatDayShort(d: Date | string | null) {
+  if (!d) return "—";
+  const date = new Date(d);
+  const today = new Date();
+  if (date.toDateString() === today.toDateString()) return "Auj.";
+  return date.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short", timeZone: "Europe/Paris" });
+}
+
 const TASK_COLORS: Record<string, string> = {
   amber:   "bg-amber-500/10 text-amber-400",
   sky:     "bg-sky-500/10 text-sky-400",
@@ -49,7 +57,7 @@ export default async function DashboardPage() {
     getDashboardStats(),
     getDynamicArticles(),
     getTachesAFaire(),
-    getInterventionsDuJour(),
+    getProchainesInterventions(12),
     getInterventionsAPlanifier(),
     getCommerciauxAssignables(),  // commerciaux + admins
     getTechniciensAssignables(),  // techniciens + admins
@@ -166,7 +174,7 @@ export default async function DashboardPage() {
           <div className="lg:col-span-2 bg-slate-800/40 border border-white/8 rounded-2xl overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
               <h2 className="text-white font-semibold text-sm flex items-center gap-2">
-                <CalendarCheck className="w-4 h-4 text-sky-400" /> Aujourd&apos;hui
+                <CalendarCheck className="w-4 h-4 text-sky-400" /> Prochaines interventions
               </h2>
               <Link href="/admin/interventions" className="text-sky-400 hover:text-sky-300 text-xs flex items-center gap-1 transition-colors">
                 Planning <ArrowRight className="w-3 h-3" />
@@ -175,15 +183,18 @@ export default async function DashboardPage() {
             {interventionsJour.length === 0 ? (
               <div className="py-10 text-center text-slate-500">
                 <CalendarCheck className="w-7 h-7 mx-auto mb-2 opacity-40" />
-                <p className="text-sm">Aucune intervention aujourd&apos;hui.</p>
+                <p className="text-sm">Aucune intervention à venir.</p>
               </div>
             ) : (
               <div className="divide-y divide-white/5">
                 {interventionsJour.map((i) => (
                   <div key={i.id} className="flex items-center gap-3 px-5 py-3 hover:bg-white/3 transition-colors">
                     <Link href={`/admin/interventions/${i.id}`} className="flex items-center gap-3 flex-1 min-w-0 group">
-                      <div className="flex items-center gap-1.5 text-sm font-bold text-white tabular-nums min-w-[64px]">
-                        <Clock className="w-3.5 h-3.5 text-sky-400" /> {formatTime(i.scheduledAt)}
+                      <div className="min-w-[78px] flex-shrink-0">
+                        <p className="text-[11px] text-slate-400 capitalize leading-tight">{formatDayShort(i.scheduledAt)}</p>
+                        <p className="flex items-center gap-1 text-sm font-bold text-white tabular-nums leading-tight">
+                          <Clock className="w-3.5 h-3.5 text-sky-400" /> {formatTime(i.scheduledAt)}
+                        </p>
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-white text-sm font-medium truncate group-hover:text-sky-300 transition-colors">{i.clientName ?? "—"}</p>

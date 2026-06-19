@@ -459,6 +459,31 @@ export async function getInterventionsDuJour(): Promise<IntervJour[]> {
     .orderBy(interventions.scheduledAt);
 }
 
+// Toutes les prochaines interventions (à partir d'aujourd'hui), ordre chronologique.
+export async function getProchainesInterventions(limit = 12): Promise<IntervJour[]> {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return db
+    .select({
+      id: interventions.id,
+      clientName: clients.name,
+      type: interventions.type,
+      scheduledAt: interventions.scheduledAt,
+      status: interventions.status,
+      technicienId: interventions.technicienId,
+      technicienName: techniciens.name,
+    })
+    .from(interventions)
+    .leftJoin(clients, eq(interventions.clientId, clients.id))
+    .leftJoin(techniciens, eq(interventions.technicienId, techniciens.id))
+    .where(and(
+      gte(interventions.scheduledAt, start),
+      ne(interventions.status, "annulée"),
+    ))
+    .orderBy(interventions.scheduledAt)
+    .limit(limit);
+}
+
 // ─── Interventions à planifier (sans date — ex. devis gagné) ─────────────────
 
 export async function getInterventionsAPlanifier(): Promise<IntervJour[]> {
