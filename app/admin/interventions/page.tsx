@@ -13,42 +13,26 @@ function formatDate(d: Date | string | null) {
   });
 }
 
-function isToday(d: Date | string | null) {
-  if (!d) return false;
-  const date = new Date(d);
-  const now = new Date();
-  return date.toDateString() === now.toDateString();
-}
-
-function isThisWeek(d: Date | string | null) {
-  if (!d) return false;
-  const date = new Date(d);
-  const now = new Date();
-  const startOfWeek = new Date(now);
-  startOfWeek.setDate(now.getDate() - now.getDay() + 1);
-  startOfWeek.setHours(0, 0, 0, 0);
-  const endOfWeek = new Date(startOfWeek);
-  endOfWeek.setDate(startOfWeek.getDate() + 6);
-  return date >= startOfWeek && date <= endOfWeek;
-}
-
 export default async function AdminInterventionsPage() {
   const list = await getInterventions();
 
-  const today   = list.filter((i) => isToday(i.scheduledAt) && i.status !== "annulée");
-  const week    = list.filter((i) => !isToday(i.scheduledAt) && isThisWeek(i.scheduledAt) && i.status !== "annulée");
-  const upcoming = list.filter((i) => {
+  // Bornes normalisées à minuit pour un découpage sans trou ni chevauchement.
+  const now = new Date();
+  const startOfDay = (d: Date) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+  const todayStart = startOfDay(now);
+  const tomorrowStart = new Date(todayStart); tomorrowStart.setDate(todayStart.getDate() + 1);
+  const dow = (now.getDay() + 6) % 7; // lundi=0 … dimanche=6
+  const nextWeekStart = new Date(todayStart); nextWeekStart.setDate(todayStart.getDate() + (7 - dow)); // lundi prochain 00:00
+
+  const active = list.filter((i) => i.status !== "annulée");
+  const today = active.filter((i) => i.scheduledAt && startOfDay(new Date(i.scheduledAt)).getTime() === todayStart.getTime());
+  const week = active.filter((i) => {
     if (!i.scheduledAt) return false;
     const d = new Date(i.scheduledAt);
-    const now = new Date();
-    const endOfWeek = new Date(now);
-    endOfWeek.setDate(now.getDate() - now.getDay() + 8);
-    return d > endOfWeek && i.status !== "annulée";
+    return d >= tomorrowStart && d < nextWeekStart; // reste de la semaine (hors aujourd'hui)
   });
-  const past = list.filter((i) => {
-    if (!i.scheduledAt) return true;
-    return new Date(i.scheduledAt) < new Date() && i.status !== "annulée";
-  });
+  const upcoming = active.filter((i) => i.scheduledAt && new Date(i.scheduledAt) >= nextWeekStart);
+  const past = active.filter((i) => !i.scheduledAt || new Date(i.scheduledAt) < todayStart);
 
   function Section({ title, items, accent }: { title: string; items: typeof list; accent?: string }) {
     if (items.length === 0) return null;
