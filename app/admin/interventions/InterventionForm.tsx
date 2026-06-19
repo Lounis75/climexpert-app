@@ -29,11 +29,19 @@ export default function InterventionForm({
   // mauvais) : on laisse vide pour forcer un choix explicite.
   const clientParam = searchParams.get("client");
   const preClient = clientParam ? clients.find((c) => c.id === clientParam) : clients[0];
+  // Date souhaitée pré-remplie via ?date=<datetime-local|ISO> (souhait du client).
+  const dateParam = searchParams.get("date");
+  const preStart = dateParam && !isNaN(new Date(dateParam).getTime())
+    ? (() => { const d = new Date(dateParam); const p = (n: number) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; })()
+    : "";
+  const preEnd = preStart
+    ? (() => { const d = new Date(preStart); d.setHours(d.getHours() + 2); const p = (n: number) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; })()
+    : "";
   const [clientId, setClientId] = useState(preClient?.id ?? "");
   const [type, setType] = useState("installation");
   const [sousContrat, setSousContrat] = useState<boolean | null>(null);
-  const [scheduledAt, setScheduledAt] = useState("");
-  const [scheduledEndAt, setScheduledEndAt] = useState("");
+  const [scheduledAt, setScheduledAt] = useState(preStart);
+  const [scheduledEndAt, setScheduledEndAt] = useState(preEnd);
   const [technicienId, setTechnicienId] = useState("");
   const [address, setAddress] = useState(preClient?.address ?? "");
   const [notes, setNotes] = useState("");

@@ -744,7 +744,17 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
                     {lead.source === "alex" ? <Bot className="w-2.5 h-2.5" /> : <FileText className="w-2.5 h-2.5" />}
                     {lead.source === "alex" ? "Alex" : "Formulaire"}
                   </span>
-                  <h3 className="text-white font-semibold text-sm truncate">{lead.name}</h3>
+                  {lead.clientId ? (
+                    <Link
+                      href={`/admin/clients/${lead.clientId}`}
+                      title="Voir la fiche client"
+                      className="text-white font-semibold text-sm truncate hover:text-sky-300 hover:underline underline-offset-2 transition-colors"
+                    >
+                      {lead.name}
+                    </Link>
+                  ) : (
+                    <h3 className="text-white font-semibold text-sm truncate">{lead.name}</h3>
+                  )}
                   {(lead as Lead & { typeClient?: string }).typeClient === "professionnel" && (
                     <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-semibold flex-shrink-0">Pro</span>
                   )}
@@ -1028,6 +1038,31 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
                   </div>
                 )}
 
+                {/* Date souhaitée d'intervention (dès l'envoi du devis) */}
+                {(lead.status === "devis_envoyé" || lead.status === "gagné") && (
+                  <div>
+                    <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide flex items-center gap-1.5">
+                      <CalendarPlus className="w-3 h-3" /> Date souhaitée d&apos;intervention
+                    </p>
+                    <input
+                      type="datetime-local"
+                      defaultValue={toLocalDT((lead as Lead & { dateSouhaiteeIntervention?: string | null }).dateSouhaiteeIntervention)}
+                      onChange={async (e) => {
+                        const dateSouhaiteeIntervention = e.target.value ? new Date(e.target.value).toISOString() : null;
+                        setSelectedLead(prev => prev ? { ...prev, dateSouhaiteeIntervention } as Lead : null);
+                        const res = await fetch("/api/admin/leads", {
+                          method: "PATCH", headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ id: lead.id, dateSouhaiteeIntervention }),
+                        });
+                        if (res.status === 401) { window.location.href = "/admin"; return; }
+                        if (res.ok) setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, dateSouhaiteeIntervention } as Lead : l));
+                      }}
+                      className="w-full bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2 text-white text-sm [color-scheme:dark] focus:outline-none focus:border-sky-500/50"
+                    />
+                    <p className="text-slate-500 text-[10px] mt-1">Souhait du client — pré-remplira l&apos;intervention à la conversion.</p>
+                  </div>
+                )}
+
                 {/* Commercial */}
                 {commerciaux.length > 0 && (
                   <div>
@@ -1185,10 +1220,14 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
                   ) : null}
                 </div>
 
-                {/* Client gagné & converti → créer l'intervention (date + technicien) */}
+                {/* Client gagné & converti → créer l'intervention (pré-remplie avec la date souhaitée) */}
                 {lead.status === "gagné" && isConverted && lead.clientId && (
                   <Link
-                    href={`/admin/interventions/new?client=${lead.clientId}`}
+                    href={`/admin/interventions/new?client=${lead.clientId}${
+                      (lead as Lead & { dateSouhaiteeIntervention?: string | null }).dateSouhaiteeIntervention
+                        ? `&date=${encodeURIComponent(toLocalDT((lead as Lead & { dateSouhaiteeIntervention?: string | null }).dateSouhaiteeIntervention))}`
+                        : ""
+                    }`}
                     className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-sky-500 hover:bg-sky-400 text-white rounded-xl text-sm font-semibold transition-colors mt-1"
                   >
                     <CalendarPlus className="w-4 h-4" /> Créer l&apos;intervention

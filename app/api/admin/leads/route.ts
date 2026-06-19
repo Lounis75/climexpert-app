@@ -66,6 +66,10 @@ export async function PATCH(req: NextRequest) {
       const d = fields.rdvDate ? new Date(fields.rdvDate) : null;
       allowed.rdvDate = d && !isNaN(d.getTime()) ? d : null;
     }
+    if (fields.dateSouhaiteeIntervention !== undefined) {
+      const d = fields.dateSouhaiteeIntervention ? new Date(fields.dateSouhaiteeIntervention) : null;
+      allowed.dateSouhaiteeIntervention = d && !isNaN(d.getTime()) ? d : null;
+    }
 
     // Passage en "gagné" → conversion auto en client (idempotent : copie l'adresse/
     // notes, lie le lead). Couvre TOUS les chemins (panneau, glisser-déposer Kanban…).

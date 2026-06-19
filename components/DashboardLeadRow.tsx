@@ -16,6 +16,7 @@ interface Lead {
   location?: string | null;
   commercialId?: string | null;
   clientId?: string | null;
+  dateSouhaiteeIntervention?: Date | string | null;
   createdAt: Date | string;
 }
 
@@ -116,7 +117,7 @@ export default function DashboardLeadRow({ lead, commerciaux = [], interventionI
             </Link>
           ) : (
             <Link
-              href={`/admin/interventions/new?client=${lead.clientId}`}
+              href={`/admin/interventions/new?client=${lead.clientId}${lead.dateSouhaiteeIntervention ? `&date=${encodeURIComponent(new Date(lead.dateSouhaiteeIntervention).toISOString())}` : ""}`}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-sky-500/15 border border-sky-500/30 text-sky-300 text-xs font-medium hover:bg-sky-500/25 transition-colors whitespace-nowrap"
             >
               <CalendarPlus className="w-3 h-3 flex-shrink-0" /> Créer l&apos;intervention

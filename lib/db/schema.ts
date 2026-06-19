@@ -199,6 +199,9 @@ export const leads = pgTable("leads", {
   prochaineEtape:      varchar("prochaine_etape", { length: 20 }),
   // Date du rendez-vous commercial pris (sous-statut "rdv_pris") → affiché au calendrier.
   rdvDate:             timestamp("rdv_date"),
+  // Date souhaitée d'intervention par le client (notée dès l'envoi du devis) →
+  // pré-remplit l'intervention créée lors de la conversion en client.
+  dateSouhaiteeIntervention: timestamp("date_souhaitee_intervention"),
   clientId:            text("client_id").references(() => clients.id),
   commercialId:        text("commercial_id").references(() => techniciens.id),
   // Consentement RGPD au démarchage commercial (opt-in). La prise de contact

@@ -37,7 +37,7 @@ export async function updateLeadStatus(
 
 export async function updateLead(
   id: string,
-  data: Partial<Pick<NewLead, "status" | "notes" | "email" | "location" | "address" | "project" | "name" | "phone" | "clientId" | "commercialId" | "consentementMarketing" | "consentementLe" | "montantDevisCt" | "prochaineEtape" | "rdvDate">>
+  data: Partial<Pick<NewLead, "status" | "notes" | "email" | "location" | "address" | "project" | "name" | "phone" | "clientId" | "commercialId" | "consentementMarketing" | "consentementLe" | "montantDevisCt" | "prochaineEtape" | "rdvDate" | "dateSouhaiteeIntervention">>
 ): Promise<Lead | null> {
   const [lead] = await db
     .update(leads)

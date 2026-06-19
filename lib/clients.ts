@@ -15,7 +15,7 @@ export type ClientActivity = Client & {
 export type { Client };
 
 export async function getClients(): Promise<Client[]> {
-  return db.select().from(clients).orderBy(desc(clients.createdAt));
+  return db.select().from(clients).where(isNull(clients.supprimeLe)).orderBy(desc(clients.createdAt));
 }
 
 // Action à faire par client (repère rouge) : entretien à relancer ou facture en retard.
@@ -97,7 +97,9 @@ export async function updateClient(
 }
 
 export async function deleteClient(id: string): Promise<void> {
-  await db.delete(clients).where(eq(clients.id, id));
+  // Soft delete (cohérent avec leads/techniciens/contrats + évite les violations de
+  // clés étrangères depuis factures/interventions/devis qui référencent le client).
+  await db.update(clients).set({ supprimeLe: new Date() }).where(eq(clients.id, id));
 }
 
 export async function getClientActivity(id: string): Promise<ClientActivity | null> {
