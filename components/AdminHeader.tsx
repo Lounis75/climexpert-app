@@ -3,7 +3,7 @@
 import {
   Wind, LayoutDashboard, FileText, Users, LogOut, Contact,
   ClipboardList, Receipt, Wrench, Bell, CheckCheck, HardHat,
-  ScrollText, HeadphonesIcon, Thermometer, ChevronDown, Briefcase, Megaphone, BarChart2,
+  ScrollText, HeadphonesIcon, Thermometer, ChevronDown, Briefcase, Megaphone, BarChart2, AlertTriangle,
 } from "lucide-react";
 import AdminChatBot from "./AdminChatBot";
 import Link from "next/link";
@@ -134,6 +134,7 @@ export default function AdminHeader() {
   const pathname = usePathname();
   const router = useRouter();
   const [unread, setUnread] = useState(0);
+  const [actions, setActions] = useState(0);
   const [notifs, setNotifs] = useState<Notif[]>([]);
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -150,6 +151,10 @@ export default function AdminHeader() {
     fetch("/api/admin/notifications?count=1")
       .then((r) => r.json())
       .then((d) => setUnread(d.count ?? 0))
+      .catch(() => {});
+    fetch("/api/admin/actions")
+      .then((r) => r.json())
+      .then((d) => setActions(d.total ?? 0))
       .catch(() => {});
   }, [pathname]);
 
@@ -212,8 +217,20 @@ export default function AdminHeader() {
           ))}
         </nav>
 
-        {/* Right: bell + logout */}
+        {/* Right: actions + bell + logout */}
         <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Compteur global d'actions à faire (repères rouges) */}
+          {actions > 0 && (
+            <Link
+              href="/admin/dashboard"
+              title={`${actions} action${actions > 1 ? "s" : ""} à faire`}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-[11px] font-semibold hover:bg-red-500/20 transition-colors"
+            >
+              <AlertTriangle className="w-3 h-3" />
+              {actions}
+              <span className="hidden sm:inline">action{actions > 1 ? "s" : ""}</span>
+            </Link>
+          )}
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={openDropdown}

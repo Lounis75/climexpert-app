@@ -10,7 +10,7 @@ import {
   Pencil, Check, ShieldCheck, CalendarPlus,
 } from "lucide-react";
 import type { Lead, LeadStatus } from "@/lib/leads";
-import { detectDuplicates } from "@/lib/leads-utils";
+import { detectDuplicates, leadAction } from "@/lib/leads-utils";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 
 const STATUS_CONFIG: Record<LeadStatus, { label: string; color: string; col: string }> = {
@@ -47,18 +47,6 @@ function formatDate(d: Date | string) {
     day: "numeric", month: "short",
     hour: "2-digit", minute: "2-digit",
   });
-}
-
-// Action à faire sur un prospect → repère rouge discret sur la carte. null = rien à faire.
-function getLeadAction(lead: Lead): string | null {
-  const l = lead as Lead & { montantDevisCt?: number | null; prochaineEtape?: string | null; rdvDate?: string | null };
-  if ((lead.status === "devis_envoyé" || lead.status === "gagné") && !l.montantDevisCt) return "Devis à chiffrer";
-  if (lead.status === "contacté") {
-    if (l.prochaineEtape === "rdv_pris" && !l.rdvDate) return "Fixer le RDV";
-    if (l.prochaineEtape === "a_recontacter") return "À recontacter";
-    if (l.prochaineEtape === "devis_a_faire") return "Devis à faire";
-  }
-  return null;
 }
 
 // Initiales d'un nom (max 2 lettres) pour la pastille commercial.
@@ -326,7 +314,7 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
     const commercialName = c ? (c.prenom ? `${c.prenom} ${c.name}` : c.name) : null;
     const pe = (lead as Lead & { prochaineEtape?: string | null }).prochaineEtape;
     const peCfg = lead.status === "contacté" && pe ? PROCHAINE_ETAPE[pe] : null;
-    const action = getLeadAction(lead);
+    const action = leadAction(lead);
 
     const SourceIcon = lead.source === "alex" ? Bot : lead.source === "whatsapp" ? MessageSquare : lead.source === "téléphone" ? Phone : FileText;
     const sourceLabel = lead.source === "alex" ? "Alex" : lead.source === "whatsapp" ? "WhatsApp" : lead.source === "téléphone" ? "Téléphone" : "Formulaire";

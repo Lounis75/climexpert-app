@@ -1,5 +1,17 @@
 import type { Lead } from "@/lib/db/schema";
 
+// Action à faire sur un prospect → repère rouge discret. null = rien à faire.
+// Logique PARTAGÉE entre la carte Kanban et le compteur global (cohérence garantie).
+export function leadAction(lead: Lead): string | null {
+  if ((lead.status === "devis_envoyé" || lead.status === "gagné") && !lead.montantDevisCt) return "Devis à chiffrer";
+  if (lead.status === "contacté") {
+    if (lead.prochaineEtape === "rdv_pris" && !lead.rdvDate) return "Fixer le RDV";
+    if (lead.prochaineEtape === "a_recontacter") return "À recontacter";
+    if (lead.prochaineEtape === "devis_a_faire") return "Devis à faire";
+  }
+  return null;
+}
+
 export function normalizePhone(phone: string): string {
   let p = phone.replace(/[\s\-\.]/g, "");
   if (p.startsWith("+33")) p = "0" + p.slice(3);
