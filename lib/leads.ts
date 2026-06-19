@@ -1,11 +1,34 @@
 import { db } from "@/lib/db";
-import { leads, type Lead, type NewLead } from "@/lib/db/schema";
-import { eq, desc, isNull } from "drizzle-orm";
+import { leads, interventions, type Lead, type NewLead } from "@/lib/db/schema";
+import { eq, desc, isNull, and, inArray, ne, isNotNull } from "drizzle-orm";
 
 export type LeadStatus = "nouveau" | "pas_de_reponse" | "contacté" | "devis_envoyé" | "gagné" | "perdu";
 export type LeadSource = "alex" | "formulaire" | "téléphone" | "whatsapp" | "autre";
 
 export type { Lead };
+
+// Prospects « passés en production » : gagnés ET dont une intervention liée est planifiée
+// (date + technicien affectés). Ils sortent du Kanban CRM (le pilotage vit dans Terrain).
+export async function getEnProductionLeadIds(leadList: Lead[]): Promise<Set<string>> {
+  const clientIds = leadList
+    .filter((l) => l.status === "gagné" && l.clientId)
+    .map((l) => l.clientId as string);
+  if (clientIds.length === 0) return new Set();
+
+  const rows = await db
+    .select({ clientId: interventions.clientId })
+    .from(interventions)
+    .where(and(
+      inArray(interventions.clientId, clientIds),
+      isNotNull(interventions.scheduledAt),
+      isNotNull(interventions.technicienId),
+      ne(interventions.status, "annulée"),
+      isNull(interventions.supprimeLe),
+    ));
+
+  const prodClients = new Set(rows.map((r) => r.clientId).filter((x): x is string => !!x));
+  return new Set(leadList.filter((l) => l.clientId && prodClients.has(l.clientId)).map((l) => l.id));
+}
 
 export async function createLead(
   data: Omit<NewLead, "id" | "createdAt" | "updatedAt" | "status">
