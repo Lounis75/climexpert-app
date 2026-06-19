@@ -37,10 +37,11 @@ function formatTime(d: Date | string | null) {
 }
 
 const TASK_COLORS: Record<string, string> = {
-  amber:  "bg-amber-500/10 text-amber-400",
-  sky:    "bg-sky-500/10 text-sky-400",
-  violet: "bg-violet-500/10 text-violet-400",
-  red:    "bg-red-500/10 text-red-400",
+  amber:   "bg-amber-500/10 text-amber-400",
+  sky:     "bg-sky-500/10 text-sky-400",
+  violet:  "bg-violet-500/10 text-violet-400",
+  red:     "bg-red-500/10 text-red-400",
+  emerald: "bg-emerald-500/10 text-emerald-400",
 };
 
 export default async function DashboardPage() {
@@ -73,7 +74,8 @@ export default async function DashboardPage() {
     { n: taches.interventionsSansDate,       label: "intervention(s) à planifier",      href: "/admin/interventions", color: "amber",  icon: CalendarCheck },
     { n: taches.prospectsSansCommercial,     label: "prospect(s) à affecter",           href: "/admin/leads",         color: "sky",    icon: Users },
     { n: taches.devisARelancer,              label: "devis à relancer (>7j)",           href: "/admin/devis",         color: "violet", icon: FileText },
-    { n: taches.devisAChiffrer,              label: "devis à chiffrer (montant manquant)", href: "/admin/leads",      color: "red",    icon: FileText },
+    { n: taches.devisAChiffrer,              label: "devis à chiffrer (montant manquant)", href: "/admin/leads",      color: "red",     icon: FileText },
+    { n: taches.entretiensARelancer,         label: "entretien(s) à relancer",          href: "/admin/clients",       color: "emerald", icon: Wrench },
     { n: stats.facturesEnRetard,             label: "facture(s) en retard",             href: "/admin/factures",      color: "red",    icon: AlertTriangle },
     { n: stats.savOuverts,                   label: "SAV ouvert(s)",                    href: "/admin/sav",           color: "red",    icon: HeadphonesIcon },
   ].filter((t) => t.n > 0);

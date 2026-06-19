@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { interventions, rapportsIntervention, notifications, contratsEntretien, suivis } from "@/lib/db/schema";
+import { interventions, rapportsIntervention, notifications, contratsEntretien, suivis, clients } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { verifyTechnicienToken, TECH_COOKIE_NAME } from "@/lib/auth";
 import { createId } from "@paralleldrive/cuid2";
@@ -117,6 +117,17 @@ export async function POST(req: NextRequest) {
       updatedAt:          new Date(),
     })
     .where(eq(interventions.id, interventionId));
+
+  // Entretien terminé : programmer la relance du client à +330 jours (nouvel entretien).
+  if (["entretien", "maintenance", "contrat-pro"].includes(interv.type)) {
+    const relance = new Date();
+    relance.setDate(relance.getDate() + 330);
+    await db.update(clients).set({
+      prochainEntretienLe: relance.toISOString().split("T")[0],
+      relanceEntretienNotifiee: false,
+      updatedAt: new Date(),
+    }).where(eq(clients.id, interv.clientId)).catch((e) => console.error("[rapport] relance entretien:", e));
+  }
 
   // Notif admin
   await db.insert(notifications).values({

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { suivisPlanifies, clients, interventions } from "@/lib/db/schema";
+import { suivisPlanifies, clients, interventions, notifications } from "@/lib/db/schema";
 import { eq, and, lte, isNull } from "drizzle-orm";
+import { createId } from "@paralleldrive/cuid2";
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -98,5 +99,32 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, sent, errors });
+  // ─── Relances entretien : notification admin (cloche) le jour J ──────────────
+  const relances = await db
+    .select({ id: clients.id, name: clients.name })
+    .from(clients)
+    .where(and(
+      isNull(clients.supprimeLe),
+      lte(clients.prochainEntretienLe, today),
+      eq(clients.relanceEntretienNotifiee, false),
+    ));
+  let relancesNotifiees = 0;
+  for (const c of relances) {
+    try {
+      await db.insert(notifications).values({
+        id: createId(),
+        type: "relance_entretien",
+        titre: "Entretien à relancer",
+        contenu: `Il est temps de recontacter ${c.name} pour son entretien annuel.`,
+        refType: "client",
+        refId: c.id,
+      });
+      await db.update(clients).set({ relanceEntretienNotifiee: true }).where(eq(clients.id, c.id));
+      relancesNotifiees++;
+    } catch (err) {
+      errors.push(`relance ${c.id}: ${String(err)}`);
+    }
+  }
+
+  return NextResponse.json({ ok: true, sent, relancesNotifiees, errors });
 }

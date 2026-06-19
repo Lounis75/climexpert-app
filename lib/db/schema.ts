@@ -162,6 +162,9 @@ export const clients = pgTable("clients", {
   technicienId:       text("technicien_id").references(() => techniciens.id),
   garantieExpireLe:   date("garantie_expire_le"),
   contratEntretienId: text("contrat_entretien_id"),                                // ref logique → contratsEntretien
+  // Date à laquelle relancer le client pour son prochain entretien (= dernier entretien + 330 j).
+  prochainEntretienLe: date("prochain_entretien_le"),
+  relanceEntretienNotifiee: boolean("relance_entretien_notifiee").default(false).notNull(), // cloche déjà émise ?
   clientToken:        varchar("client_token", { length: 64 }).unique(),
   createdAt:          timestamp("created_at").defaultNow().notNull(),
   updatedAt:          timestamp("updated_at").defaultNow().notNull(),
@@ -279,6 +282,8 @@ export const interventions = pgTable("interventions", {
   address:              text("address"),
   codePostal:           varchar("code_postal", { length: 10 }),
   notes:                text("notes"),
+  // Entretien : le client est-il sous contrat d'entretien pour cette intervention ?
+  sousContrat:          boolean("sous_contrat"),
   dureeEstimeeMinutes:  integer("duree_estimee_minutes"),
   dureeReelleMinutes:   integer("duree_reelle_minutes"),
   rdvToken:               varchar("rdv_token", { length: 100 }).unique(),

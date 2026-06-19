@@ -31,12 +31,15 @@ export default function InterventionForm({
   const preClient = clientParam ? clients.find((c) => c.id === clientParam) : clients[0];
   const [clientId, setClientId] = useState(preClient?.id ?? "");
   const [type, setType] = useState("installation");
+  const [sousContrat, setSousContrat] = useState<boolean | null>(null);
   const [scheduledAt, setScheduledAt] = useState("");
   const [technicienId, setTechnicienId] = useState("");
   const [address, setAddress] = useState(preClient?.address ?? "");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const isEntretien = ["entretien", "maintenance", "contrat-pro"].includes(type);
 
   // Pré-remplir l'adresse depuis le client sélectionné
   function handleClientChange(id: string) {
@@ -62,6 +65,7 @@ export default function InterventionForm({
           technicienId: technicienId || undefined,
           address: address || undefined,
           notes: notes || undefined,
+          sousContrat: isEntretien ? sousContrat : undefined,
         }),
       });
       if (!res.ok) {
@@ -141,6 +145,25 @@ export default function InterventionForm({
             ))}
           </select>
         </div>
+
+        {/* Sous contrat d'entretien ? (uniquement pour un entretien) */}
+        {isEntretien && (
+          <div className="sm:col-span-2">
+            <label className="block text-xs text-slate-400 mb-1.5 font-medium">Sous contrat d&apos;entretien ?</label>
+            <div className="flex gap-2">
+              {[{ v: true, l: "Oui, sous contrat" }, { v: false, l: "Non (entretien ponctuel)" }].map(({ v, l }) => (
+                <button key={String(v)} type="button" onClick={() => setSousContrat(v)}
+                  className={`flex-1 h-11 px-3 rounded-xl border text-sm font-medium transition-all ${
+                    sousContrat === v
+                      ? (v ? "border-emerald-500/60 bg-emerald-500/10 text-emerald-300" : "border-white/20 bg-slate-800/60 text-slate-200")
+                      : "border-white/10 bg-slate-900/60 text-slate-400 hover:border-white/20"
+                  }`}>
+                  {l}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="sm:col-span-2">
           <div className="flex items-center justify-between mb-1.5">

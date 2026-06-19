@@ -136,6 +136,20 @@ export default async function ClientDetailPage({
                   <span className="text-slate-500 italic">non affecté</span>
                 )}
               </span>
+              {/* Contrat d'entretien */}
+              {c.contratEntretienId ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 font-medium text-xs">
+                  <Shield className="w-3 h-3" /> Sous contrat d&apos;entretien
+                </span>
+              ) : (
+                <span className="text-xs text-slate-500">Sans contrat d&apos;entretien</span>
+              )}
+              {/* Prochain entretien à relancer */}
+              {c.prochainEntretienLe && (
+                <span className="inline-flex items-center gap-1 text-xs text-amber-400">
+                  <Wrench className="w-3 h-3" /> Prochain entretien : {fmtFull(c.prochainEntretienLe)}
+                </span>
+              )}
             </div>
           </div>
           {/* Un client peut avoir plusieurs interventions (installation, puis entretien, 2e logement…). */}

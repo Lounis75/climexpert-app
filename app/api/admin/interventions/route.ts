@@ -12,7 +12,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { clientId, type, scheduledAt, technicienId, devisId, address, notes } = body;
+    const { clientId, type, scheduledAt, technicienId, devisId, address, notes, sousContrat } = body;
     if (!clientId || !type || !scheduledAt) {
       return NextResponse.json({ error: "clientId, type et scheduledAt requis" }, { status: 400 });
     }
@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
       devisId: devisId || null,
       address: address || null,
       notes: notes || null,
+      sousContrat: typeof sousContrat === "boolean" ? sousContrat : null,
       status: "planifiée",
     });
     return NextResponse.json({ intervention: i }, { status: 201 });
