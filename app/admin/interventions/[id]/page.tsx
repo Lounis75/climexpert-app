@@ -111,7 +111,9 @@ export default async function InterventionDetailPage({
               <div>
                 <p className="text-xs text-slate-500">Créneau</p>
                 <p className="text-white text-sm capitalize">{formatDateLong(i.scheduledAt)}</p>
-                <p className="text-slate-400 text-xs mt-0.5">{formatCreneau(i.scheduledAt, i.dureeEstimeeMinutes)}</p>
+                {i.dureeEstimeeMinutes ? (
+                  <p className="text-slate-400 text-xs mt-0.5">{formatCreneau(i.scheduledAt, i.dureeEstimeeMinutes)}</p>
+                ) : null}
               </div>
             </div>
           )}

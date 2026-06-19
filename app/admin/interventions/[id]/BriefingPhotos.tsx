@@ -7,6 +7,7 @@ import { ImagePlus, X, Loader2 } from "lucide-react";
 export default function BriefingPhotos({ id, initial }: { id: string; initial: string[] }) {
   const [photos, setPhotos] = useState<string[]>(initial);
   const [uploading, setUploading] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -38,7 +39,12 @@ export default function BriefingPhotos({ id, initial }: { id: string; initial: s
   }
 
   return (
-    <div>
+    <div
+      onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+      onDragLeave={(e) => { e.preventDefault(); setDragging(false); }}
+      onDrop={(e) => { e.preventDefault(); setDragging(false); onFiles(e.dataTransfer.files); }}
+      className={`rounded-2xl transition-colors ${dragging ? "ring-2 ring-sky-500/60 bg-sky-500/5" : ""}`}
+    >
       <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
         {photos.map((url) => (
           <div key={url} className="relative group aspect-square rounded-xl overflow-hidden border border-white/10">
@@ -62,7 +68,7 @@ export default function BriefingPhotos({ id, initial }: { id: string; initial: s
           className="aspect-square rounded-xl border border-dashed border-white/15 bg-slate-900/40 text-slate-400 hover:text-white hover:border-white/30 flex flex-col items-center justify-center gap-1 transition-colors disabled:opacity-50"
         >
           {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <ImagePlus className="w-5 h-5" />}
-          <span className="text-[10px]">{uploading ? "Envoi…" : "Ajouter"}</span>
+          <span className="text-[10px] text-center px-1">{uploading ? "Envoi…" : dragging ? "Déposez ici" : "Ajouter / glisser"}</span>
         </button>
       </div>
       <input
@@ -74,7 +80,7 @@ export default function BriefingPhotos({ id, initial }: { id: string; initial: s
         className="hidden"
       />
       {error && <p className="text-red-400 text-xs mt-2">{error}</p>}
-      <p className="text-slate-500 text-[11px] mt-2">Visibles par le technicien sur sa fiche d&apos;intervention.</p>
+      <p className="text-slate-500 text-[11px] mt-2">Glissez-déposez vos photos ici ou cliquez sur « Ajouter ». Visibles par le technicien sur sa fiche.</p>
     </div>
   );
 }

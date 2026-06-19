@@ -27,6 +27,14 @@ function isoToLocal(iso: string): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
+// Heure de fin "HH:MM" déduite du début + durée (défaut 2h).
+function computeEndTime(iso: string, dureeMin: number): string {
+  if (!iso) return "";
+  const end = new Date(new Date(iso).getTime() + (dureeMin || 120) * 60000);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${p(end.getHours())}:${p(end.getMinutes())}`;
+}
+
 interface Props {
   id: string;
   currentStatus: string;
@@ -38,8 +46,6 @@ interface Props {
   currentDuree: number;
 }
 
-const DUREES: number[] = [30, 60, 90, 120, 180, 240, 300, 360, 480];
-
 export default function InterventionActions({
   id, currentStatus, techniciens, currentTechnicienId, currentScheduledAt, currentType, currentDuree,
 }: Props) {
@@ -49,8 +55,19 @@ export default function InterventionActions({
   const [scheduledAt, setScheduledAt] = useState(isoToLocal(currentScheduledAt));
   const [technicienId, setTechnicienId] = useState(currentTechnicienId);
   const [type, setType] = useState(currentType);
-  const [duree, setDuree] = useState(currentDuree || 120);
+  const [endTime, setEndTime] = useState(() => computeEndTime(currentScheduledAt, currentDuree));
   const actions = ACTIONS[currentStatus] ?? [];
+
+  // Durée (min) déduite du créneau Début → Heure de fin (même jour).
+  function dureeFromCreneau(): number {
+    if (!scheduledAt || !endTime) return currentDuree || 120;
+    const start = new Date(scheduledAt);
+    const [eh, em] = endTime.split(":").map(Number);
+    const end = new Date(start);
+    end.setHours(eh, em, 0, 0);
+    const diff = Math.round((end.getTime() - start.getTime()) / 60000);
+    return diff > 0 ? diff : (currentDuree || 120);
+  }
 
   async function changeStatus(status: string) {
     setLoading(true);
@@ -71,7 +88,7 @@ export default function InterventionActions({
         body: JSON.stringify({
           action: "planifier",
           scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null,
-          technicienId, type, dureeEstimeeMinutes: duree,
+          technicienId, type, dureeEstimeeMinutes: dureeFromCreneau(),
         }),
       });
       setPlanning(false);
@@ -114,19 +131,24 @@ export default function InterventionActions({
           <p className="text-violet-300 text-xs font-semibold flex items-center gap-1.5">
             <CalendarClock className="w-3.5 h-3.5" /> Planifier l&apos;intervention
           </p>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-slate-400 text-xs block mb-1">Début</label>
-              <input type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)}
-                className="w-full bg-slate-900/60 border border-white/10 rounded-lg px-2.5 py-2 text-white text-sm [color-scheme:dark] focus:outline-none focus:border-violet-500/50" />
-            </div>
-            <div>
-              <label className="text-slate-400 text-xs block mb-1">Durée (créneau)</label>
-              <select value={duree} onChange={(e) => setDuree(Number(e.target.value))}
-                className="w-full bg-slate-900/60 border border-white/10 rounded-lg px-2.5 py-2 text-white text-sm appearance-none focus:outline-none focus:border-violet-500/50">
-                {DUREES.map((m) => <option key={m} value={m} className="bg-slate-800">{m < 60 ? `${m} min` : `${m / 60} h`}</option>)}
-              </select>
-            </div>
+          <div>
+            <label className="text-slate-400 text-xs block mb-1">Date &amp; heure de début</label>
+            <input type="datetime-local" value={scheduledAt}
+              onChange={(e) => {
+                const v = e.target.value;
+                setScheduledAt(v);
+                // Cale la fin à +2h si elle est vide ou avant le début.
+                if (v && (!endTime || new Date(`${v.slice(0, 10)}T${endTime}`) <= new Date(v))) {
+                  setEndTime(computeEndTime(new Date(v).toISOString(), 120));
+                }
+              }}
+              className="w-full bg-slate-900/60 border border-white/10 rounded-lg px-2.5 py-2 text-white text-sm [color-scheme:dark] focus:outline-none focus:border-violet-500/50" />
+          </div>
+          <div>
+            <label className="text-slate-400 text-xs block mb-1">Heure de fin (créneau)</label>
+            <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)}
+              className="w-full bg-slate-900/60 border border-white/10 rounded-lg px-2.5 py-2 text-white text-sm [color-scheme:dark] focus:outline-none focus:border-violet-500/50" />
+            <p className="text-slate-500 text-[10px] mt-1">Ex. début 08:00 + fin 10:00 = créneau 8h–10h.</p>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
