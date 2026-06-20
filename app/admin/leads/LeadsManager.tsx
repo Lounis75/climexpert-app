@@ -562,7 +562,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
       {/* ── KANBAN VIEW ─────────────────────────────────────────────────────── */}
       {view === "kanban" && leads.length > 0 && (
-        <div className="grid grid-cols-3 lg:grid-cols-6 gap-2">
+        <div className="flex lg:grid lg:grid-cols-6 gap-2 overflow-x-auto lg:overflow-visible snap-x snap-mandatory lg:snap-none pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
           {STATUSES.map((status) => {
             const cfg = STATUS_CONFIG[status];
             const col = filtered.filter((l) => l.status === status);
@@ -574,7 +574,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                 onDragOver={(e) => onDragOverColumn(e, status)}
                 onDragLeave={(e) => onDragLeaveColumn(e)}
                 onDrop={(e) => onDropColumn(e, status)}
-                className={`bg-slate-800/30 border-t-2 rounded-xl transition-all min-w-0 ${cfg.col} ${
+                className={`bg-slate-800/30 border-t-2 rounded-xl transition-all min-w-[80%] sm:min-w-[300px] lg:min-w-0 flex-shrink-0 lg:flex-shrink snap-start ${cfg.col} ${
                   isOver ? "ring-2 ring-sky-500/40 bg-slate-800/60" : "border-white/5"
                 }`}
               >
