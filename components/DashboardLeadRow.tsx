@@ -59,7 +59,7 @@ export default function DashboardLeadRow({ lead, commerciaux = [], interventionI
   const hasInterv = !!interventionInfo && interventionInfo.count > 0;
 
   return (
-    <div className="px-5 py-3.5 flex items-center gap-3 hover:bg-white/3 transition-colors">
+    <div className="px-5 py-3.5 flex flex-wrap md:flex-nowrap items-center gap-3 hover:bg-white/3 transition-colors">
       {/* Zone cliquable → ouvre la fiche du prospect */}
       <Link href={`/admin/leads?lead=${lead.id}`} className="flex items-center gap-3 flex-1 min-w-0 group">
         {/* Source icon */}
@@ -73,25 +73,25 @@ export default function DashboardLeadRow({ lead, commerciaux = [], interventionI
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-white text-sm font-medium group-hover:text-sky-300 transition-colors">{lead.name}</span>
-            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${STATUS_COLORS[lead.status] ?? ""}`}>
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${STATUS_COLORS[lead.status] ?? ""}`}>
               {STATUS_LABELS[lead.status] ?? lead.status}
             </span>
           </div>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
             {lead.project && (
               <span className="text-slate-500 text-xs flex items-center gap-1">
-                <Wrench className="w-2.5 h-2.5" />
+                <Wrench className="w-3 h-3" />
                 {PROJECT_LABELS[lead.project] ?? lead.project}
               </span>
             )}
             {lead.location && (
               <span className="text-slate-500 text-xs flex items-center gap-1">
-                <MapPin className="w-2.5 h-2.5" />
+                <MapPin className="w-3 h-3" />
                 {lead.location}
               </span>
             )}
             <span className="text-slate-600 text-xs flex items-center gap-1">
-              <Clock className="w-2.5 h-2.5" />
+              <Clock className="w-3 h-3" />
               {timeAgo(lead.createdAt)}
             </span>
           </div>
@@ -99,7 +99,7 @@ export default function DashboardLeadRow({ lead, commerciaux = [], interventionI
       </Link>
 
       {/* Actions */}
-      <div className="flex items-center gap-1.5 flex-shrink-0">
+      <div className="flex items-center flex-wrap gap-1.5 flex-shrink-0 w-full md:w-auto justify-end">
         {/* Affecter un commercial */}
         {commerciaux.length > 0 && affectable && (
           <InlineAssign kind="commercial" targetId={lead.id} currentId={lead.commercialId ?? null} options={commerciaux} />
@@ -137,7 +137,7 @@ export default function DashboardLeadRow({ lead, commerciaux = [], interventionI
         ) : (
           <button
             onClick={() => setShowPhone(true)}
-            className="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400 hover:bg-sky-500/20 flex items-center justify-center transition-colors"
+            className="w-10 h-10 md:w-8 md:h-8 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400 hover:bg-sky-500/20 flex items-center justify-center transition-colors"
             title="Afficher le téléphone"
           >
             <Phone className="w-3.5 h-3.5" />
@@ -157,10 +157,10 @@ export default function DashboardLeadRow({ lead, commerciaux = [], interventionI
           ) : (
             <button
               onClick={() => setShowEmail(true)}
-              className="w-8 h-8 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-400 hover:bg-violet-500/20 flex items-center justify-center transition-colors"
+              className="w-10 h-10 md:w-8 md:h-8 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-400 hover:bg-violet-500/20 flex items-center justify-center transition-colors"
               title="Afficher l'email"
             >
-              <Mail className="w-3 h-3.5" />
+              <Mail className="w-3.5 h-3.5" />
             </button>
           )
         )}

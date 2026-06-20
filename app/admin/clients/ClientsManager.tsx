@@ -270,12 +270,12 @@ export default function ClientsManager({ initialClients, actions }: { initialCli
                   )}
                 </div>
                 <div className="flex flex-wrap gap-3 text-xs text-slate-400">
-                  <a href={`tel:${client.phone}`} className="flex items-center gap-1 text-sky-400 hover:text-sky-300 transition-colors pointer-events-auto relative z-10">
+                  <a href={`tel:${client.phone}`} className="flex items-center gap-1 py-1 text-sky-400 hover:text-sky-300 transition-colors pointer-events-auto relative z-10">
                     <Phone className="w-3 h-3" />
                     {client.phone}
                   </a>
                   {client.email && (
-                    <a href={`mailto:${client.email}`} className="flex items-center gap-1 hover:text-slate-300 transition-colors pointer-events-auto relative z-10">
+                    <a href={`mailto:${client.email}`} className="flex items-center gap-1 py-1 hover:text-slate-300 transition-colors pointer-events-auto relative z-10">
                       <Mail className="w-3 h-3" />
                       {client.email}
                     </a>
@@ -300,7 +300,7 @@ export default function ClientsManager({ initialClients, actions }: { initialCli
                 <button
                   onClick={() => handleDelete(client.id)}
                   disabled={deleting === client.id}
-                  className="text-slate-600 hover:text-red-400 transition-colors disabled:opacity-40 pointer-events-auto relative z-10"
+                  className="p-2 -m-1 rounded-lg text-slate-600 hover:text-red-400 hover:bg-white/5 transition-colors disabled:opacity-40 pointer-events-auto relative z-10"
                   title="Supprimer"
                 >
                   <Trash2 className="w-4 h-4" />

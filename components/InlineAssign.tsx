@@ -51,20 +51,20 @@ export default function InlineAssign({
   const accent = kind === "commercial" ? "focus:border-violet-500/50" : "focus:border-emerald-500/50";
 
   return (
-    <div className="relative flex items-center">
+    <div className="flex items-center gap-1">
       <select
         value={value}
         onChange={onChange}
         disabled={saving}
         onClick={(e) => e.stopPropagation()}
-        className={`appearance-none text-xs bg-slate-900/70 border rounded-lg pl-2.5 pr-6 py-1.5 text-slate-200 cursor-pointer focus:outline-none disabled:opacity-50 ${value ? "border-white/15" : "border-amber-500/30 text-amber-300"} ${accent}`}
+        className={`appearance-none text-sm bg-slate-900/70 border rounded-lg pl-3 pr-8 py-2.5 text-slate-200 cursor-pointer focus:outline-none disabled:opacity-50 ${value ? "border-white/15" : "border-amber-500/30 text-amber-300"} ${accent}`}
       >
         <option value="">{kind === "commercial" ? "Commercial…" : "Technicien…"}</option>
         {options.map((o) => (
           <option key={o.id} value={o.id}>{o.prenom ? `${o.prenom} ${o.name}` : o.name}</option>
         ))}
       </select>
-      {ok && <Check className="w-3.5 h-3.5 text-emerald-400 absolute -right-5" />}
+      {ok && <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />}
     </div>
   );
 }

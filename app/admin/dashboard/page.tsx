@@ -164,7 +164,7 @@ export default async function DashboardPage() {
                 Voir le CRM <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
-            <div className="divide-y divide-white/5">
+            <div className="divide-y divide-white/5 max-h-[420px] overflow-y-auto">
               {relances.map((r) => (
                 <div key={r.id} className="flex items-center gap-3 px-5 py-3 hover:bg-white/3 transition-colors">
                   <Link href={`/admin/leads?lead=${r.id}`} className="flex-1 min-w-0 group">
@@ -189,7 +189,7 @@ export default async function DashboardPage() {
               <span className="text-sky-400 text-xs font-bold bg-sky-500/15 px-2 py-0.5 rounded-full">{interventionsAPlanifier.length}</span>
               <span className="text-slate-500 text-xs">interventions sans date (devis gagnés)</span>
             </div>
-            <div className="divide-y divide-white/5">
+            <div className="divide-y divide-white/5 max-h-[420px] overflow-y-auto">
               {interventionsAPlanifier.map((i) => (
                 <div key={i.id} className="flex flex-col sm:flex-row sm:items-center gap-3 px-5 py-3">
                   <Link href={`/admin/interventions/${i.id}`} className="flex-1 min-w-0 group">
@@ -222,7 +222,7 @@ export default async function DashboardPage() {
                 <p className="text-sm">Aucune intervention à venir.</p>
               </div>
             ) : (
-              <div className="divide-y divide-white/5">
+              <div className="divide-y divide-white/5 max-h-[420px] overflow-y-auto">
                 {interventionsJour.map((i) => (
                   <div key={i.id} className="flex items-center gap-3 px-5 py-3 hover:bg-white/3 transition-colors">
                     <Link href={`/admin/interventions/${i.id}`} className="flex items-center gap-3 flex-1 min-w-0 group">

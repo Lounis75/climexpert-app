@@ -845,14 +845,14 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                 </div>
               </div>
 
-              <div className="p-6 space-y-5">
+              <div className="p-4 sm:p-6 space-y-5">
                 {editingLead ? (
                   /* ── Mode édition des coordonnées ── */
                   <div className="bg-slate-800/40 border border-sky-500/20 rounded-2xl p-4 space-y-3">
                     <p className="text-sky-400 text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5">
                       <Pencil className="w-3 h-3" /> Modifier les coordonnées
                     </p>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="text-slate-400 text-[11px] block mb-1">Nom *</label>
                         <input value={editForm.name} onChange={(e) => setEditForm(f => ({ ...f, name: e.target.value }))}
@@ -869,7 +869,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                       <input type="email" value={editForm.email} onChange={(e) => setEditForm(f => ({ ...f, email: e.target.value }))}
                         className="w-full bg-slate-900/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-sm focus:outline-none focus:border-sky-500/50" />
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="text-slate-400 text-[11px] block mb-1">Projet</label>
                         <select value={editForm.project} onChange={(e) => setEditForm(f => ({ ...f, project: e.target.value }))}
@@ -1277,7 +1277,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                       { v: "note",  emoji: "📝", l: "Note" },
                     ].map(({ v, emoji, l }) => (
                       <button key={v} type="button" onClick={() => setSuiviType(v)}
-                        className={`flex-1 px-2 py-1.5 rounded-lg border text-[11px] font-medium transition-colors ${
+                        className={`flex-1 px-2 py-2 rounded-lg border text-xs font-medium transition-colors ${
                           suiviType === v ? "bg-sky-500/15 border-sky-500/40 text-sky-300" : "bg-slate-800/60 border-white/10 text-slate-400 hover:border-white/20"
                         }`}>
                         {emoji} {l}

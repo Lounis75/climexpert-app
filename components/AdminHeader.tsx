@@ -186,7 +186,7 @@ export default function AdminHeader() {
             <Link
               href="/admin/dashboard"
               title={`${actions} action${actions > 1 ? "s" : ""} à faire`}
-              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-[11px] font-semibold hover:bg-red-500/20 transition-colors"
+              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-red-500/10 border border-red-500/30 text-red-200 text-xs font-semibold hover:bg-red-500/20 transition-colors"
             >
               <AlertTriangle className="w-3 h-3" />
               {actions}

@@ -350,7 +350,7 @@ function ContratCard({
             onClick={() => onToggle(c)}
             disabled={toggling === c.id}
             title={c.active ? "Désactiver" : "Réactiver"}
-            className="text-slate-500 hover:text-sky-400 transition-colors disabled:opacity-40"
+            className="p-1.5 rounded-lg text-slate-500 hover:text-sky-400 hover:bg-white/5 transition-colors disabled:opacity-40"
           >
             {c.active
               ? <ToggleRight className="w-5 h-5 text-emerald-400" />
@@ -360,7 +360,7 @@ function ContratCard({
             onClick={() => onDelete(c.id)}
             disabled={deleting === c.id}
             title="Supprimer"
-            className="text-slate-600 hover:text-red-400 transition-colors disabled:opacity-40"
+            className="p-2 rounded-lg text-slate-600 hover:text-red-400 hover:bg-white/5 transition-colors disabled:opacity-40"
           >
             <Trash2 className="w-4 h-4" />
           </button>
