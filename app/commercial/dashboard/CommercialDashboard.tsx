@@ -1,8 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Phone, MapPin, Briefcase, LogOut, RefreshCw, User, Clock } from "lucide-react";
+import { Phone, MapPin, Briefcase, LogOut, RefreshCw, User, Clock, Handshake, CalendarClock } from "lucide-react";
 import type { CommercialSession } from "@/lib/auth";
+
+export type RdvItem = {
+  id: string;
+  name: string;
+  phone: string;
+  project: string | null;
+  location: string | null;
+  rdvDate: string | null;
+};
 
 type Lead = {
   id: string;
@@ -52,7 +61,10 @@ function timeAgo(d: string) {
   return `il y a ${days}j`;
 }
 
-export default function CommercialDashboard({ session }: { session: CommercialSession }) {
+const rdvDay = (iso: string) => new Date(iso).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
+const rdvTime = (iso: string) => new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+
+export default function CommercialDashboard({ session, rdvs }: { session: CommercialSession; rdvs: RdvItem[] }) {
   const [leads, setLeads]       = useState<Lead[]>([]);
   const [loading, setLoading]   = useState(true);
   const [selected, setSelected] = useState<Lead | null>(null);
@@ -107,6 +119,12 @@ export default function CommercialDashboard({ session }: { session: CommercialSe
     gagne:   leads.filter(l => l.status === "gagné").length,
   };
 
+  // Mes rendez-vous à venir (aujourd'hui et après), du plus proche au plus lointain.
+  const rdvTodayStart = new Date(); rdvTodayStart.setHours(0, 0, 0, 0);
+  const upcomingRdvs = rdvs
+    .filter((r) => r.rdvDate && new Date(r.rdvDate) >= rdvTodayStart)
+    .sort((a, b) => new Date(a.rdvDate!).getTime() - new Date(b.rdvDate!).getTime());
+
   return (
     <div className="min-h-screen bg-slate-900 text-white">
       {/* Header */}
@@ -144,6 +162,41 @@ export default function CommercialDashboard({ session }: { session: CommercialSe
               <p className="text-slate-400 text-xs mt-1">{label}</p>
             </div>
           ))}
+        </div>
+
+        {/* Mes rendez-vous (RDV pris liés à ce commercial) */}
+        <div className="mb-8">
+          <h2 className="text-white font-semibold mb-4 flex items-center gap-2">
+            <Handshake className="w-4 h-4 text-fuchsia-400" /> Mes rendez-vous
+            <span className="text-fuchsia-400 text-xs font-bold bg-fuchsia-500/15 px-2 py-0.5 rounded-full">{upcomingRdvs.length}</span>
+          </h2>
+          {upcomingRdvs.length === 0 ? (
+            <div className="bg-slate-800 border border-white/10 rounded-2xl p-8 text-center">
+              <CalendarClock className="w-8 h-8 text-slate-600 mx-auto mb-3" />
+              <p className="text-slate-500 text-sm">Aucun rendez-vous à venir.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {upcomingRdvs.map((r) => (
+                <div key={r.id} className="bg-slate-800 border border-white/10 rounded-xl p-4 flex items-center gap-4">
+                  <div className="w-14 flex-shrink-0 text-center">
+                    <p className="text-fuchsia-400 text-[10px] font-bold uppercase leading-tight">{r.rdvDate ? rdvDay(r.rdvDate) : "—"}</p>
+                    <p className="text-white text-lg font-bold tabular-nums leading-none mt-0.5">{r.rdvDate ? rdvTime(r.rdvDate) : "--:--"}</p>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white text-sm font-semibold truncate">{r.name}</p>
+                    <div className="flex items-center gap-3 mt-0.5 text-[11px] text-slate-400 flex-wrap">
+                      {r.project && <span>{PROJECT_LABELS[r.project] ?? r.project}</span>}
+                      {r.location && <span className="flex items-center gap-1 truncate"><MapPin className="w-3 h-3 flex-shrink-0" />{r.location}</span>}
+                    </div>
+                  </div>
+                  <a href={`tel:${r.phone}`} className="w-11 h-11 rounded-lg bg-violet-500/15 border border-violet-500/30 text-violet-300 flex items-center justify-center flex-shrink-0 active:bg-violet-500/25 transition-colors" title="Appeler">
+                    <Phone className="w-4 h-4" />
+                  </a>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* List + Detail */}

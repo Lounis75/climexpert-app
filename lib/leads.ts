@@ -1,11 +1,42 @@
 import { db } from "@/lib/db";
-import { leads, interventions, suivis, type Lead, type NewLead } from "@/lib/db/schema";
-import { eq, desc, isNull, and, inArray, ne, isNotNull } from "drizzle-orm";
+import { leads, interventions, suivis, techniciens, type Lead, type NewLead } from "@/lib/db/schema";
+import { eq, desc, isNull, and, inArray, ne, isNotNull, asc } from "drizzle-orm";
 
 export type LeadStatus = "nouveau" | "pas_de_reponse" | "contacté" | "devis_envoyé" | "gagné" | "perdu";
 export type LeadSource = "alex" | "formulaire" | "téléphone" | "whatsapp" | "autre";
 
 export type { Lead };
+
+export type RendezVous = {
+  id: string;
+  name: string;
+  phone: string;
+  rdvDate: Date | null;
+  location: string | null;
+  address: string | null;
+  project: string | null;
+  status: string;
+  commercialId: string | null;
+  commercialName: string | null;
+};
+
+/** Rendez-vous commerciaux (« RDV pris ») = prospects avec une date de RDV.
+ *  Admin : tous (opts vide). Commercial : passer commercialId pour ne voir que les siens. */
+export async function getRendezVous(opts?: { commercialId?: string }): Promise<RendezVous[]> {
+  const conds = [isNotNull(leads.rdvDate), ne(leads.status, "perdu")];
+  if (opts?.commercialId) conds.push(eq(leads.commercialId, opts.commercialId));
+  const rows = await db
+    .select({
+      id: leads.id, name: leads.name, phone: leads.phone, rdvDate: leads.rdvDate, location: leads.location,
+      address: leads.address, project: leads.project, status: leads.status,
+      commercialId: leads.commercialId, commercialName: techniciens.name,
+    })
+    .from(leads)
+    .leftJoin(techniciens, eq(leads.commercialId, techniciens.id))
+    .where(and(...conds))
+    .orderBy(asc(leads.rdvDate));
+  return rows.map((r) => ({ ...r, commercialName: r.commercialName ?? null }));
+}
 
 // Date de la dernière activité (échange logué) par prospect → « dernière activité » sur la carte.
 export async function getLastActivityByLead(leadIds: string[]): Promise<Record<string, string>> {

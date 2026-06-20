@@ -1,9 +1,10 @@
 import AdminHeader from "@/components/AdminHeader";
 import { getInterventions, TYPE_LABELS, TYPE_COLORS, STATUS_INTERVENTION } from "@/lib/interventions";
 import Link from "next/link";
-import { Plus, Wrench, Calendar, User, MapPin, ArrowRight } from "lucide-react";
+import { Plus, Wrench, Calendar, User, MapPin, ArrowRight, Handshake } from "lucide-react";
 import ViewToggle from "./ViewToggle";
-import AgendaMobile from "./AgendaMobile";
+import AgendaMobile, { type PlanningEvent } from "./AgendaMobile";
+import { getRendezVous } from "@/lib/leads";
 
 export const dynamic = "force-dynamic";
 
@@ -15,19 +16,26 @@ function formatDate(d: Date | string | null) {
 }
 
 export default async function AdminInterventionsPage() {
-  const list = await getInterventions();
+  // Admin = tout : interventions (terrain) + rendez-vous commerciaux (RDV pris).
+  const [list, rdvs] = await Promise.all([getInterventions(), getRendezVous()]);
 
-  // Données légères et sérialisables pour l'agenda mobile (consultation).
-  const agendaItems = list.map((i) => ({
-    id: i.id,
-    scheduledAt: i.scheduledAt ? new Date(i.scheduledAt).toISOString() : null,
-    dureeEstimeeMinutes: i.dureeEstimeeMinutes ?? null,
-    type: i.type,
-    status: i.status,
-    clientName: i.clientName,
-    technicienName: i.technicienName,
-    address: i.address ?? null,
-  }));
+  // Événements unifiés pour l'agenda mobile (interventions + RDV distingués).
+  const events: PlanningEvent[] = [
+    ...list.map((i): PlanningEvent => ({
+      id: i.id, kind: "intervention", title: i.clientName,
+      start: i.scheduledAt ? new Date(i.scheduledAt).toISOString() : null,
+      durationMin: i.dureeEstimeeMinutes ?? null, category: i.type, status: i.status,
+      assignee: i.technicienName ?? null, address: i.address ?? null,
+      href: `/admin/interventions/${i.id}`,
+    })),
+    ...rdvs.map((r): PlanningEvent => ({
+      id: r.id, kind: "rdv", title: r.name,
+      start: r.rdvDate ? new Date(r.rdvDate).toISOString() : null,
+      durationMin: 120, category: "rdv", status: null,
+      assignee: r.commercialName ?? null, address: r.address ?? r.location ?? null,
+      href: `/admin/leads?lead=${r.id}`,
+    })),
+  ];
 
   // Bornes normalisées à minuit pour un découpage sans trou ni chevauchement.
   const now = new Date();
@@ -46,6 +54,9 @@ export default async function AdminInterventionsPage() {
   });
   const upcoming = active.filter((i) => i.scheduledAt && new Date(i.scheduledAt) >= nextWeekStart);
   const past = active.filter((i) => !i.scheduledAt || new Date(i.scheduledAt) < todayStart);
+
+  // Rendez-vous commerciaux à venir (pour la vue Liste desktop).
+  const rdvUpcoming = rdvs.filter((r) => r.rdvDate && new Date(r.rdvDate) >= todayStart);
 
   function Section({ title, items, accent }: { title: string; items: typeof list; accent?: string }) {
     if (items.length === 0) return null;
@@ -123,16 +134,22 @@ export default async function AdminInterventionsPage() {
           </div>
         </div>
 
-        {/* Mobile (< md) : agenda « façon Apple », consultation au pouce */}
+        {/* Mobile (< md) : agenda « façon Apple » — interventions + rendez-vous */}
         <div className="md:hidden">
-          <AgendaMobile interventions={agendaItems} />
+          <AgendaMobile
+            events={events}
+            emptyTitle="Aucun élément planifié"
+            emptySubtitle="Les interventions et rendez-vous apparaîtront ici."
+            newHref="/admin/interventions/new"
+            newLabel="Nouvelle intervention"
+          />
         </div>
 
         {/* Desktop / tablette (md+) : Liste / Calendrier avec glisser-déposer */}
         <div className="hidden md:block">
         <ViewToggle
           listContent={
-            list.length === 0 ? (
+            list.length === 0 && rdvUpcoming.length === 0 ? (
               <div className="bg-slate-800/40 border border-white/8 rounded-2xl p-12 text-center">
                 <div className="w-12 h-12 rounded-2xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center mx-auto mb-4">
                   <Wrench className="w-5 h-5 text-sky-400" />
@@ -145,6 +162,32 @@ export default async function AdminInterventionsPage() {
               </div>
             ) : (
               <div className="space-y-8">
+                {rdvUpcoming.length > 0 && (
+                  <div>
+                    <h2 className="text-xs font-semibold mb-3 text-fuchsia-400">RENDEZ-VOUS COMMERCIAUX À VENIR</h2>
+                    <div className="bg-slate-800/40 border border-white/8 rounded-2xl overflow-hidden divide-y divide-white/5">
+                      {rdvUpcoming.map((r) => (
+                        <Link key={r.id} href={`/admin/leads?lead=${r.id}`} className="flex items-center gap-4 px-5 py-4 hover:bg-white/3 transition-colors group">
+                          <div className="w-9 h-9 rounded-xl border flex items-center justify-center flex-shrink-0 bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/30">
+                            <Handshake className="w-4 h-4" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-white text-sm font-medium">{r.name}</span>
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-fuchsia-500/10 text-fuchsia-300 border-fuchsia-500/30">RDV</span>
+                            </div>
+                            <div className="flex items-center gap-3 mt-0.5 flex-wrap text-slate-500 text-xs">
+                              <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{formatDate(r.rdvDate)}</span>
+                              {r.commercialName && <span className="flex items-center gap-1"><User className="w-3 h-3" />{r.commercialName}</span>}
+                              {(r.address ?? r.location) && <span className="flex items-center gap-1 truncate max-w-[200px]"><MapPin className="w-3 h-3 flex-shrink-0" />{r.address ?? r.location}</span>}
+                            </div>
+                          </div>
+                          <ArrowRight className="w-3.5 h-3.5 text-slate-600 group-hover:text-slate-400 transition-colors flex-shrink-0" />
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <Section title="AUJOURD'HUI" items={today} accent="text-amber-400" />
                 <Section title="CETTE SEMAINE" items={week} accent="text-sky-400" />
                 <Section title="À VENIR" items={upcoming} />
