@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import { User, MapPin, ChevronDown, Wrench, Plus, CalendarClock } from "lucide-react";
-import { TYPE_LABELS, STATUS_INTERVENTION } from "@/lib/interventions";
+import { TYPE_LABELS, STATUS_INTERVENTION } from "@/lib/interventions-ui";
 
 export type AgendaItem = {
   id: string;

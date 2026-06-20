@@ -3,6 +3,8 @@ import { getRelancesDuJour } from "@/lib/actions";
 import { getAudience } from "@/lib/analytics";
 import { getDynamicArticles, isPublished } from "@/lib/dynamicArticles";
 import { getCommerciauxAssignables, getTechniciensAssignables } from "@/lib/utilisateurs";
+import { cookies } from "next/headers";
+import { verifyAdminToken, COOKIE_NAME } from "@/lib/auth";
 import AdminHeader from "@/components/AdminHeader";
 import DashboardLeadRow from "@/components/DashboardLeadRow";
 import InlineAssign from "@/components/InlineAssign";
@@ -93,6 +95,11 @@ export default async function DashboardPage() {
 
   const aujourdhui = new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
+  // Prénom de l'admin connecté pour personnaliser l'accueil.
+  const token = (await cookies()).get(COOKIE_NAME)?.value;
+  const session = token ? await verifyAdminToken(token) : null;
+  const prenom = session?.nom?.trim().split(/\s+/)[0] ?? "";
+
   return (
     <div className="min-h-screen bg-[#080d18]">
       <AdminHeader />
@@ -101,7 +108,7 @@ export default async function DashboardPage() {
         {/* ─── En-tête + actions rapides ─────────────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-white mb-1">Tableau de bord</h1>
+            <h1 className="text-2xl font-bold text-white mb-1">Tableau de bord{prenom ? ` de ${prenom}` : ""}</h1>
             <p className="text-slate-400 text-sm capitalize">{aujourdhui}</p>
           </div>
           <div className="flex items-center gap-2">

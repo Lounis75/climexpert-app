@@ -456,27 +456,25 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
   return (
     <div>
-      {/* Stats */}
-      <div className="bg-slate-800/40 border border-white/8 rounded-2xl overflow-hidden mb-6">
-        <div className="flex overflow-x-auto divide-x divide-white/8">
-          {[
-            { label: "Total",         value: leads.length,                                              dot: null },
-            { label: "Nouveau",       value: leads.filter(l => l.status === "nouveau").length,          dot: "bg-sky-400" },
-            { label: "Pas de rép.",   value: leads.filter(l => l.status === "pas_de_reponse").length,   dot: "bg-rose-400" },
-            { label: "Contact",       value: leads.filter(l => l.status === "contacté").length,         dot: "bg-amber-400" },
-            { label: "Devis",         value: leads.filter(l => l.status === "devis_envoyé").length,     dot: "bg-violet-400" },
-            { label: "Gagné",         value: leads.filter(l => l.status === "gagné").length,            dot: "bg-emerald-400" },
-            { label: "Perdu",         value: leads.filter(l => l.status === "perdu").length,            dot: "bg-slate-400" },
-          ].map(({ label, value, dot }) => (
-            <div key={label} className="flex-1 min-w-[80px] text-center py-3 px-2">
-              <p className="text-xl font-bold text-white tabular-nums leading-none">{value}</p>
-              <div className="flex items-center justify-center gap-1 mt-1.5">
-                {dot && <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dot}`} />}
-                <p className="text-slate-500 text-[10px] whitespace-nowrap">{label}</p>
-              </div>
+      {/* Stats — grille responsive (4 colonnes sur mobile, 7 sur desktop), pas de coupure */}
+      <div className="grid grid-cols-4 sm:grid-cols-7 gap-2 mb-6">
+        {[
+          { label: "Total",         value: leads.length,                                              dot: null },
+          { label: "Nouveau",       value: leads.filter(l => l.status === "nouveau").length,          dot: "bg-sky-400" },
+          { label: "Pas de rép.",   value: leads.filter(l => l.status === "pas_de_reponse").length,   dot: "bg-rose-400" },
+          { label: "Contact",       value: leads.filter(l => l.status === "contacté").length,         dot: "bg-amber-400" },
+          { label: "Devis",         value: leads.filter(l => l.status === "devis_envoyé").length,     dot: "bg-violet-400" },
+          { label: "Gagné",         value: leads.filter(l => l.status === "gagné").length,            dot: "bg-emerald-400" },
+          { label: "Perdu",         value: leads.filter(l => l.status === "perdu").length,            dot: "bg-slate-400" },
+        ].map(({ label, value, dot }) => (
+          <div key={label} className="bg-slate-800/40 border border-white/8 rounded-xl text-center py-3 px-1">
+            <p className="text-lg font-bold text-white tabular-nums leading-none">{value}</p>
+            <div className="flex items-center justify-center gap-1 mt-1.5">
+              {dot && <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dot}`} />}
+              <p className="text-slate-500 text-[10px] truncate">{label}</p>
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
 
       {/* Toolbar */}
