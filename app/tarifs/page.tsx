@@ -7,7 +7,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Tarifs Climatisation Île-de-France 2026 — Prix Installation & Entretien",
   description:
-    "Découvrez les prix d'installation climatisation en Île-de-France : monosplit à partir de 1 500 €, multisplit à partir de 2 800 €, entretien à partir de 180 €. Devis gratuit sous 24h.",
+    "Découvrez les prix d'installation climatisation en Île-de-France : monosplit à partir de 1 500 €, multisplit à partir de 2 800 €, entretien à partir de 200 €. Devis gratuit sous 24h.",
   keywords:
     "prix climatisation ile-de-france, tarif installation climatisation, coût climatisation paris, tarif entretien climatisation, prix monosplit multisplit gainable",
   alternates: { canonical: "https://climexpert.fr/tarifs" },
@@ -45,7 +45,7 @@ const faqSchema = {
       name: "Combien coûte un entretien de climatisation ?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "L'entretien annuel d'une unité climatisation est à partir de 180 € TTC pour une unité à Paris intramuros. Des majorations s'appliquent selon la distance et l'accessibilité (+60 € TTC par unité supplémentaire). Le contrat comprend nettoyage, vérification électrique, test des modes et rapport signé.",
+        text: "L'entretien annuel d'une unité climatisation est à partir de 200 € TTC pour une unité à Paris intramuros. Des majorations s'appliquent selon la distance et l'accessibilité (+60 € TTC par unité supplémentaire). Le contrat comprend nettoyage, vérification électrique, test des modes et rapport signé.",
       },
     },
     {
@@ -150,7 +150,7 @@ const TARIFS = [
 const SERVICES = [
   {
     title: "Entretien annuel",
-    price: "À partir de 180 € TTC",
+    price: "À partir de 200 € TTC",
     sub: "par unité · Paris intramuros",
     items: [
       "Nettoyage filtres, évaporateur, condenseur",

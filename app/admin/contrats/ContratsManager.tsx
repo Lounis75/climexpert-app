@@ -18,7 +18,7 @@ interface Form {
   startDate: string;
   nextVisit: string;
 }
-const emptyForm: Form = { clientId: "", units: "1", prixUnitaireEuros: "180", startDate: "", nextVisit: "" };
+const emptyForm: Form = { clientId: "", units: "1", prixUnitaireEuros: "200", startDate: "", nextVisit: "" };
 
 function fmt(d: string | Date | null | undefined) {
   if (!d) return "—";
@@ -192,7 +192,7 @@ export default function ContratsManager({
             <div>
               <label className="block text-xs text-slate-400 mb-1.5">Prix total annuel (€)</label>
               <input name="prixUnitaireEuros" type="number" min="0" step="10" value={form.prixUnitaireEuros} onChange={handleChange} className={inputCls} />
-              <p className="text-slate-600 text-[10px] mt-1">Standard : 180 € + 60 €/unité supp.</p>
+              <p className="text-slate-600 text-[10px] mt-1">Standard : 200 € + 60 €/unité supp.</p>
             </div>
             <div>
               <label className="block text-xs text-slate-400 mb-1.5">Date de début *</label>

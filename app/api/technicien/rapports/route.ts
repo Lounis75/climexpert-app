@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
         id: contratId,
         clientId: interv.clientId,
         units: 1,
-        prixUnitaireCt: contratTotalCt(1), // 180 € (total annuel)
+        prixUnitaireCt: contratTotalCt(1), // 200 € (total annuel)
         startDate: today,
         nextVisit: nextYear.toISOString().split("T")[0],
         signatureUrl,
@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
       });
       await db.insert(suivis).values({
         id: createId(), clientId: interv.clientId, interventionId,
-        type: "note", contenu: "Contrat d'entretien annuel signé sur place (180 € TTC/an).",
+        type: "note", contenu: "Contrat d'entretien annuel signé sur place (200 € TTC/an).",
       }).catch(() => {});
       await db.insert(notifications).values({
         id: createId(), type: "nouveau_contrat",

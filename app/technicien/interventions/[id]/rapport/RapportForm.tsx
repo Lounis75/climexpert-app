@@ -337,7 +337,7 @@ export default function RapportForm({
                   <p className="text-sm font-semibold text-slate-900 mb-1 flex items-center gap-1.5">
                     <PenLine className="w-4 h-4 text-emerald-600" /> Signature du client
                   </p>
-                  <p className="text-xs text-slate-500 mb-2">Contrat d&apos;entretien annuel — 180 € TTC/an. Faites signer le client ci-dessous.</p>
+                  <p className="text-xs text-slate-500 mb-2">Contrat d&apos;entretien annuel — 200 € TTC/an. Faites signer le client ci-dessous.</p>
                   <SignaturePad onChange={setSignature} />
                 </div>
               )}

@@ -116,7 +116,7 @@ export default async function VillePage({
       icon: Wrench,
       color: "amber",
       title: "Entretien",
-      body: `Contrats de maintenance annuelle à partir de 180 € TTC/unité. Nettoyage filtres, contrôle circuit frigorigène, rapport de visite.`,
+      body: `Contrats de maintenance annuelle à partir de 200 € TTC/unité. Nettoyage filtres, contrôle circuit frigorigène, rapport de visite.`,
     },
     {
       icon: ShieldCheck,

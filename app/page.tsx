@@ -118,7 +118,7 @@ export default function Home() {
                   icon: Wrench,
                   color: "amber",
                   title: "Entretien & dépannage",
-                  body: "Contrats de maintenance annuelle à partir de 180 € TTC/unité (Paris intramuros) et interventions de dépannage sous 48h, 7j/7 en IDF.",
+                  body: "Contrats de maintenance annuelle à partir de 200 € TTC/unité (Paris intramuros) et interventions de dépannage sous 48h, 7j/7 en IDF.",
                 },
                 {
                   icon: MapPin,
