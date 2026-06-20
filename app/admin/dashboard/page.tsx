@@ -1,4 +1,5 @@
 import { getDashboardStats, getTachesAFaire, getProchainesInterventions, getInterventionsAPlanifier, getInterventionsParClient, getCaSigne, getApercuCommercial } from "@/lib/dashboard";
+import { getRelancesDuJour } from "@/lib/actions";
 import { getAudience } from "@/lib/analytics";
 import { getDynamicArticles, isPublished } from "@/lib/dynamicArticles";
 import { getCommerciauxAssignables, getTechniciensAssignables } from "@/lib/utilisateurs";
@@ -11,7 +12,7 @@ import Link from "next/link";
 import {
   Users, FileText, ArrowRight, Wrench, Euro, AlertTriangle,
   ClipboardList, CalendarCheck, CalendarPlus, CheckCircle2, Clock, Plus,
-  UserCircle, Home, HeadphonesIcon, MessageSquare, TrendingUp, ScrollText,
+  UserCircle, Home, HeadphonesIcon, MessageSquare, TrendingUp, ScrollText, Phone,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -53,7 +54,7 @@ const TASK_COLORS: Record<string, string> = {
 };
 
 export default async function DashboardPage() {
-  const [stats, dynamicArticles, taches, interventionsJour, interventionsAPlanifier, commerciaux, techOptions, audience, caSigne, apercu] = await Promise.all([
+  const [stats, dynamicArticles, taches, interventionsJour, interventionsAPlanifier, commerciaux, techOptions, audience, caSigne, apercu, relances] = await Promise.all([
     getDashboardStats(),
     getDynamicArticles(),
     getTachesAFaire(),
@@ -64,6 +65,7 @@ export default async function DashboardPage() {
     getAudience(7),
     getCaSigne(),                 // CA signé semaine/mois/année (montant TTC des "gagné")
     getApercuCommercial(),        // devis envoyés / validés / contrats actifs
+    getRelancesDuJour(),          // prospects à traiter aujourd'hui (nominatif)
   ]);
 
   // Interventions par client (pour le bouton Créer/Voir sur les prospects gagnés).
@@ -142,6 +144,34 @@ export default async function DashboardPage() {
             </div>
           )}
         </div>
+
+        {/* ─── Mes relances du jour (prospects à traiter, nominatif) ──────────────── */}
+        {relances.length > 0 && (
+          <div className="bg-slate-800/40 border border-amber-500/20 rounded-2xl overflow-hidden mb-6">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
+              <h2 className="text-white font-semibold text-sm flex items-center gap-2">
+                <Phone className="w-4 h-4 text-amber-400" /> Mes relances du jour
+                <span className="text-amber-400 text-xs font-bold bg-amber-500/15 px-2 py-0.5 rounded-full">{relances.length}</span>
+              </h2>
+              <Link href="/admin/leads" className="text-sky-400 hover:text-sky-300 text-xs flex items-center gap-1 transition-colors">
+                Voir le CRM <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+            <div className="divide-y divide-white/5">
+              {relances.map((r) => (
+                <div key={r.id} className="flex items-center gap-3 px-5 py-3 hover:bg-white/3 transition-colors">
+                  <Link href={`/admin/leads?lead=${r.id}`} className="flex-1 min-w-0 group">
+                    <p className="text-white text-sm font-medium truncate group-hover:text-sky-300 transition-colors">{r.name}</p>
+                    <p className="text-red-300 text-xs flex items-center gap-1 mt-0.5"><AlertTriangle className="w-3 h-3 flex-shrink-0" /> {r.action}</p>
+                  </Link>
+                  <a href={`tel:${r.phone}`} className="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/25 text-sky-400 hover:bg-sky-500/20 flex items-center justify-center flex-shrink-0 transition-colors" title={`Appeler ${r.phone}`}>
+                    <Phone className="w-4 h-4" />
+                  </a>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ─── À planifier (interventions sans date — ex. devis gagné) ────────────── */}
         {interventionsAPlanifier.length > 0 && (

@@ -374,6 +374,10 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
     const meta = [lead.project ? (PROJECT_LABELS[lead.project] ?? lead.project) : null, lead.location || null].filter(Boolean);
     const lastAct = lastActivity[lead.id];
     const pal = (lead as Lead & { prochaineActionLe?: string | null }).prochaineActionLe;
+    // « En sommeil » : prospect actif, sans alerte ni relance planifiée, sans activité depuis 7j+.
+    const active = lead.status !== "gagné" && lead.status !== "perdu";
+    const daysSince = Math.floor((Date.now() - new Date(lastAct ?? lead.createdAt).getTime()) / 86400000);
+    const enSommeil = active && !action && !pal && daysSince >= 7;
 
     return (
       <div
@@ -413,7 +417,11 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
         {/* Ligne 3 : dernière activité (ou source) · action rouge / relance planifiée / sous-statut */}
         <div className="flex items-center justify-between gap-2 mt-1.5 flex-wrap">
-          {lastAct ? (
+          {enSommeil ? (
+            <span className="flex items-center gap-1 text-amber-300/80 text-[11px]" title={`En sommeil — ${daysSince}j sans activité`}>
+              💤 {lastAct ? `il y a ${timeAgoShort(lastAct)}` : `${daysSince}j sans activité`}
+            </span>
+          ) : lastAct ? (
             <span className="flex items-center gap-1 text-slate-500 text-[11px]" title={`Dernière activité le ${new Date(lastAct).toLocaleString("fr-FR")}`}>
               <MessageSquare className="w-3 h-3 flex-shrink-0 text-slate-500" />
               il y a {timeAgoShort(lastAct)}
