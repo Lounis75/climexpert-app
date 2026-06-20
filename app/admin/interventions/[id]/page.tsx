@@ -45,7 +45,7 @@ export default async function InterventionDetailPage({
 
         {/* Header */}
         <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <Link href="/admin/interventions" className="text-slate-400 hover:text-white transition-colors">
               <ArrowLeft className="w-4 h-4" />
             </Link>
@@ -62,16 +62,18 @@ export default async function InterventionDetailPage({
               <p className="text-slate-400 text-sm mt-0.5 capitalize">{formatDateLong(i.scheduledAt)}</p>
             </div>
           </div>
-          <InterventionActions
-            id={i.id}
-            currentStatus={i.status}
-            notes={i.notes ?? ""}
-            techniciens={techList}
-            currentTechnicienId={i.technicienId ?? ""}
-            currentScheduledAt={i.scheduledAt ? new Date(i.scheduledAt).toISOString() : ""}
-            currentType={i.type}
-            currentDuree={i.dureeEstimeeMinutes ?? 120}
-          />
+          <div className="w-full sm:w-auto">
+            <InterventionActions
+              id={i.id}
+              currentStatus={i.status}
+              notes={i.notes ?? ""}
+              techniciens={techList}
+              currentTechnicienId={i.technicienId ?? ""}
+              currentScheduledAt={i.scheduledAt ? new Date(i.scheduledAt).toISOString() : ""}
+              currentType={i.type}
+              currentDuree={i.dureeEstimeeMinutes ?? 120}
+            />
+          </div>
         </div>
 
         {/* Infos */}

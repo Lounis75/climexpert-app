@@ -620,7 +620,8 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
             return (
               <div
                 key={lead.id}
-                className={`bg-slate-800/40 border rounded-2xl p-4 transition-all ${
+                onClick={() => setSelectedLead(lead)}
+                className={`bg-slate-800/40 border rounded-2xl p-4 transition-all cursor-pointer hover:bg-slate-800/70 ${
                   lead.status === "nouveau" ? "border-sky-500/20" : "border-white/8"
                 }`}
               >
@@ -640,7 +641,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
                     {listDupes.length > 0 && (
                       <button
-                        onClick={() => setMergingPanel({ leadId: lead.id, dupes: listDupes })}
+                        onClick={(e) => { e.stopPropagation(); setMergingPanel({ leadId: lead.id, dupes: listDupes }); }}
                         className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-orange-500/40 bg-orange-500/10 text-orange-400 text-[10px] font-semibold hover:bg-orange-500/20 transition-colors"
                       >
                         <AlertTriangle className="w-2.5 h-2.5" />
@@ -650,6 +651,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
                     <select
                       value={lead.status}
+                      onClick={(e) => e.stopPropagation()}
                       onChange={(e) => updateStatus(lead.id, e.target.value)}
                       disabled={updating === lead.id}
                       className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-transparent cursor-pointer transition-opacity appearance-none ${statusCfg.color} ${
@@ -677,6 +679,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                   <span className="text-white font-semibold text-sm">{lead.name}</span>
                   <a
                     href={`tel:${lead.phone}`}
+                    onClick={(e) => e.stopPropagation()}
                     className="flex items-center gap-1 text-sky-400 hover:text-sky-300 text-sm font-medium transition-colors"
                   >
                     <Phone className="w-3.5 h-3.5" />
@@ -702,7 +705,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
                 {/* Notes */}
                 {editingNotes === lead.id ? (
-                  <div className="mb-3">
+                  <div className="mb-3" onClick={(e) => e.stopPropagation()}>
                     <textarea
                       value={notesValue}
                       onChange={(e) => setNotesValue(e.target.value)}
@@ -729,15 +732,15 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                 ) : (
                   <div
                     className="text-slate-500 text-xs bg-slate-700/20 hover:bg-slate-700/40 rounded-lg px-3 py-2 flex gap-2 mb-3 cursor-pointer transition-colors group"
-                    onClick={() => { setEditingNotes(lead.id); setNotesValue(lead.notes ?? ""); }}
+                    onClick={(e) => { e.stopPropagation(); setEditingNotes(lead.id); setNotesValue(lead.notes ?? ""); }}
                   >
                     <MessageSquare className="w-3 h-3 mt-0.5 flex-shrink-0 group-hover:text-slate-400" />
-                    <span className="group-hover:text-slate-400">{lead.notes || "Ajouter une note..."}</span>
+                    <span className="group-hover:text-slate-400 line-clamp-2">{lead.notes || "Ajouter une note..."}</span>
                   </div>
                 )}
 
                 {/* Actions */}
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
                   <a
                     href={`tel:${lead.phone}`}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-sky-500/10 border border-sky-500/30 text-sky-400 hover:bg-sky-500/20 rounded-lg text-xs font-medium transition-colors"

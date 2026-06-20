@@ -89,7 +89,7 @@ export default function MobileTabBar({ actions = 0 }: { actions?: number }) {
       )}
 
       {/* Barre du bas */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-900/95 backdrop-blur-sm border-t border-white/10 pb-[env(safe-area-inset-bottom)]">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-900/95 backdrop-blur-sm border-t border-white/10 pt-1 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
         <div className="flex items-stretch h-16">
           {TABS.map(({ href, label, icon: Icon }) => {
             const active = pathname.startsWith(href);
