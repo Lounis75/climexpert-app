@@ -156,6 +156,13 @@ export const clients = pgTable("clients", {
   city:               varchar("city", { length: 100 }),
   notes:              text("notes"),
   leadId:             text("lead_id"),                                              // ref logique → leads
+  // ─── Champs contrat (auto-remplissage du contrat d'entretien) ───────────────
+  typeClient:         varchar("type_client", { length: 20 }).default("particulier").notNull(), // "particulier" | "professionnel"
+  civilite:           varchar("civilite", { length: 20 }),                          // "M." | "Madame" (particulier)
+  siret:              varchar("siret", { length: 20 }),                             // pro
+  formeJuridique:     varchar("forme_juridique", { length: 120 }),                  // pro : "SARL au capital de…"
+  representant:       varchar("representant", { length: 255 }),                     // pro : nom du représentant
+  representantQualite: varchar("representant_qualite", { length: 80 }),             // pro : "gérant", "président"…
   equipementInstalle: text("equipement_installe"),
   marqueModele:       varchar("marque_modele", { length: 255 }),
   dateInstallation:   date("date_installation"),
@@ -319,6 +326,8 @@ export const interventions = pgTable("interventions", {
 export const contratsEntretien = pgTable("contrats_entretien", {
   id:             text("id").primaryKey().$defaultFn(() => createId()),
   clientId:       text("client_id").notNull().references(() => clients.id),
+  numero:         varchar("numero", { length: 30 }),                  // n° auto ENT-2026-0001
+  fluide:         varchar("fluide", { length: 20 }).default("R410A"), // fluide frigorigène
   units:          integer("units").default(1).notNull(),
   prixUnitaireCt: integer("prix_unitaire_ct").default(20000).notNull(), // 200 € = 20000 ct
   startDate:      date("start_date").notNull(),

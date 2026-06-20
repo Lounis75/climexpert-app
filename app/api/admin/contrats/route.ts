@@ -22,6 +22,7 @@ export async function POST(req: NextRequest) {
       prixUnitaireCt: Math.round(Number(body.prixUnitaireEuros ?? 200) * 100), // total annuel
       startDate: body.startDate,
       nextVisit: body.nextVisit ?? undefined,
+      fluide: body.fluide ?? undefined,
     });
     return NextResponse.json({ contrat: c }, { status: 201 });
   } catch {
