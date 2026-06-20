@@ -62,6 +62,10 @@ export async function PATCH(req: NextRequest) {
       // « Aucune opportunité » est terminal → le prospect passe automatiquement en "perdu".
       if (fields.prochaineEtape === "aucune_opportunite") allowed.status = "perdu";
     }
+    if (fields.prochaineActionLe !== undefined) {
+      const v = typeof fields.prochaineActionLe === "string" ? fields.prochaineActionLe.slice(0, 10) : null;
+      allowed.prochaineActionLe = v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null;
+    }
     if (fields.rdvDate !== undefined) {
       const d = fields.rdvDate ? new Date(fields.rdvDate) : null;
       allowed.rdvDate = d && !isNaN(d.getTime()) ? d : null;

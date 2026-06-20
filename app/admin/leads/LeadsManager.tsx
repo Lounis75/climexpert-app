@@ -24,6 +24,9 @@ const STATUS_CONFIG: Record<LeadStatus, { label: string; color: string; col: str
 
 const STATUSES = Object.keys(STATUS_CONFIG) as LeadStatus[];
 
+// Journal d'échanges : type → icône.
+const SUIVI_ICONS: Record<string, string> = { appel: "📞", email: "✉️", sms: "💬", visite: "📍", note: "📝" };
+
 // Sous-statut « Prochaine étape » quand le contact est établi (avant l'envoi du devis).
 // "aucune_opportunite" est une action terminale : le prospect passe en "perdu".
 const PROCHAINE_ETAPE: Record<string, { label: string; short: string; emoji: string; color: string }> = {
@@ -49,6 +52,17 @@ function formatDate(d: Date | string) {
   });
 }
 
+// Ancienneté compacte ("3j", "5h", "à l'instant") pour la dernière activité.
+function timeAgoShort(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const days = Math.floor(diff / 86400000);
+  if (days >= 1) return `${days}j`;
+  const h = Math.floor(diff / 3600000);
+  if (h >= 1) return `${h}h`;
+  const m = Math.floor(diff / 60000);
+  return m >= 1 ? `${m}min` : "à l'instant";
+}
+
 // Initiales d'un nom (max 2 lettres) pour la pastille commercial.
 function initials(name: string): string {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? "").join("");
@@ -63,9 +77,17 @@ function toLocalDT(d: string | Date | null | undefined): string {
   return `${x.getFullYear()}-${p(x.getMonth() + 1)}-${p(x.getDate())}T${p(x.getHours())}:${p(x.getMinutes())}`;
 }
 
-export default function LeadsManager({ initialLeads, initialSource }: { initialLeads: Lead[]; initialSource?: string }) {
+type Suivi = { id: string; type: string; contenu: string | null; createdAt: string; auteur: string | null };
+
+export default function LeadsManager({ initialLeads, initialSource, lastActivity = {} }: { initialLeads: Lead[]; initialSource?: string; lastActivity?: Record<string, string> }) {
   const [leads, setLeads] = useState<Lead[]>(initialLeads);
   const [sourceFilter, setSourceFilter] = useState(initialSource ?? "tous");
+  // Journal d'échanges du prospect ouvert (chargé à l'ouverture du panneau).
+  const [suivis, setSuivis] = useState<Suivi[]>([]);
+  const [loadingSuivis, setLoadingSuivis] = useState(false);
+  const [suiviContenu, setSuiviContenu] = useState("");
+  const [suiviType, setSuiviType] = useState("appel");
+  const [savingSuivi, setSavingSuivi] = useState(false);
   const [search, setSearch] = useState("");
   const [view, setView] = useState<"kanban" | "liste">("kanban");
   const [updating, setUpdating] = useState<string | null>(null);
@@ -101,6 +123,35 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
     // Liste des commerciaux affectables (inclut les administrateurs, qui ont tous les rôles).
     fetch("/api/admin/equipe").then(r => r.json()).then(d => setCommerciaux(d.commerciaux ?? [])).catch(() => {});
   }, []);
+
+  // Charge le journal d'échanges du prospect ouvert.
+  const openLeadId = selectedLead?.id;
+  useEffect(() => {
+    if (!openLeadId) { setSuivis([]); return; }
+    setLoadingSuivis(true);
+    fetch(`/api/admin/leads/${openLeadId}/suivis`)
+      .then(r => r.json())
+      .then(d => setSuivis(d.suivis ?? []))
+      .catch(() => {})
+      .finally(() => setLoadingSuivis(false));
+  }, [openLeadId]);
+
+  async function logSuivi(leadId: string) {
+    if (!suiviContenu.trim()) return;
+    setSavingSuivi(true);
+    try {
+      const res = await fetch(`/api/admin/leads/${leadId}/suivis`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: suiviType, contenu: suiviContenu.trim() }),
+      });
+      if (res.status === 401) { window.location.href = "/admin"; return; }
+      if (res.ok) {
+        const { suivi } = await res.json();
+        setSuivis(prev => [suivi, ...prev]);
+        setSuiviContenu("");
+      }
+    } finally { setSavingSuivi(false); }
+  }
 
   const filtered = leads.filter((l) => {
     if (sourceFilter === "téléphone" && l.source !== "téléphone" && l.source !== "whatsapp") return false;
@@ -321,6 +372,8 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
     const sourceColor = lead.source === "alex" ? "text-sky-400" : (lead.source === "whatsapp" || lead.source === "téléphone") ? "text-emerald-400" : "text-violet-400";
 
     const meta = [lead.project ? (PROJECT_LABELS[lead.project] ?? lead.project) : null, lead.location || null].filter(Boolean);
+    const lastAct = lastActivity[lead.id];
+    const pal = (lead as Lead & { prochaineActionLe?: string | null }).prochaineActionLe;
 
     return (
       <div
@@ -358,15 +411,26 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
           <p className="text-slate-400 text-xs mt-1 truncate">{meta.join(" · ")}</p>
         )}
 
-        {/* Ligne 3 : source + date · action (rouge) ou sous-statut */}
+        {/* Ligne 3 : dernière activité (ou source) · action rouge / relance planifiée / sous-statut */}
         <div className="flex items-center justify-between gap-2 mt-1.5 flex-wrap">
-          <span className="flex items-center gap-1 text-slate-500 text-[11px]" title={`Source : ${sourceLabel}`}>
-            <SourceIcon className={`w-3 h-3 flex-shrink-0 ${sourceColor}`} />
-            {new Date(lead.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
-          </span>
+          {lastAct ? (
+            <span className="flex items-center gap-1 text-slate-500 text-[11px]" title={`Dernière activité le ${new Date(lastAct).toLocaleString("fr-FR")}`}>
+              <MessageSquare className="w-3 h-3 flex-shrink-0 text-slate-500" />
+              il y a {timeAgoShort(lastAct)}
+            </span>
+          ) : (
+            <span className="flex items-center gap-1 text-slate-500 text-[11px]" title={`Source : ${sourceLabel}`}>
+              <SourceIcon className={`w-3 h-3 flex-shrink-0 ${sourceColor}`} />
+              {new Date(lead.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+            </span>
+          )}
           {action ? (
             <span className="flex items-center gap-1 text-[10px] font-semibold text-red-300 bg-red-500/10 border border-red-500/30 rounded-full px-1.5 py-0.5 whitespace-nowrap" title={`Action à faire : ${action}`}>
               <AlertTriangle className="w-2.5 h-2.5 flex-shrink-0" /> {action}
+            </span>
+          ) : pal ? (
+            <span className="flex items-center gap-1 text-[10px] font-medium text-amber-300/90 whitespace-nowrap" title="Relance planifiée">
+              <Clock className="w-2.5 h-2.5 flex-shrink-0" /> relance {new Date(pal).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
             </span>
           ) : peCfg ? (
             <span className={`flex items-center gap-0.5 text-[10px] font-medium ${peCfg.color}`}>
@@ -1004,6 +1068,31 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
                   </div>
                 )}
 
+                {/* Prochaine action (relance) — anti-oubli : alerte rouge si la date est dépassée */}
+                {lead.status !== "gagné" && lead.status !== "perdu" && (
+                  <div>
+                    <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide flex items-center gap-1.5">
+                      <Clock className="w-3 h-3" /> Prochaine action (relance)
+                    </p>
+                    <input
+                      type="date"
+                      value={((lead as Lead & { prochaineActionLe?: string | null }).prochaineActionLe ?? "").slice(0, 10)}
+                      onChange={async (e) => {
+                        const prochaineActionLe = e.target.value || null;
+                        setSelectedLead(prev => prev ? { ...prev, prochaineActionLe } as Lead : null);
+                        const res = await fetch("/api/admin/leads", {
+                          method: "PATCH", headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ id: lead.id, prochaineActionLe }),
+                        });
+                        if (res.status === 401) { window.location.href = "/admin"; return; }
+                        if (res.ok) setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, prochaineActionLe } as Lead : l));
+                      }}
+                      className="w-full text-sm bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2.5 text-white [color-scheme:dark] focus:outline-none focus:border-sky-500/50"
+                    />
+                    <p className="text-slate-500 text-[10px] mt-1">Passe la carte en alerte rouge si la date est dépassée.</p>
+                  </div>
+                )}
+
                 {/* Montant du devis — obligatoire dès "devis envoyé" / "gagné" */}
                 {(lead.status === "devis_envoyé" || lead.status === "gagné") && (
                   <div>
@@ -1167,6 +1256,58 @@ export default function LeadsManager({ initialLeads, initialSource }: { initialL
                       <span className="group-hover:text-slate-300 text-slate-500 whitespace-pre-wrap">{lead.notes || "Ajouter une note..."}</span>
                     </div>
                   )}
+                </div>
+
+                {/* Journal des échanges */}
+                <div>
+                  <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide flex items-center gap-1.5">
+                    <MessageSquare className="w-3 h-3" /> Échanges
+                  </p>
+                  <div className="flex gap-1.5 mb-2">
+                    {[
+                      { v: "appel", emoji: "📞", l: "Appel" },
+                      { v: "email", emoji: "✉️", l: "Email" },
+                      { v: "sms",   emoji: "💬", l: "SMS" },
+                      { v: "note",  emoji: "📝", l: "Note" },
+                    ].map(({ v, emoji, l }) => (
+                      <button key={v} type="button" onClick={() => setSuiviType(v)}
+                        className={`flex-1 px-2 py-1.5 rounded-lg border text-[11px] font-medium transition-colors ${
+                          suiviType === v ? "bg-sky-500/15 border-sky-500/40 text-sky-300" : "bg-slate-800/60 border-white/10 text-slate-400 hover:border-white/20"
+                        }`}>
+                        {emoji} {l}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      value={suiviContenu}
+                      onChange={(e) => setSuiviContenu(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); logSuivi(lead.id); } }}
+                      placeholder="Ex : pas joignable, rappeler demain…"
+                      className="flex-1 text-sm bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sky-500/50"
+                    />
+                    <button type="button" onClick={() => logSuivi(lead.id)} disabled={savingSuivi || !suiviContenu.trim()}
+                      className="px-3 py-2 bg-sky-500 hover:bg-sky-400 disabled:opacity-40 text-white rounded-xl text-xs font-semibold transition-colors flex-shrink-0">
+                      {savingSuivi ? "…" : "Logger"}
+                    </button>
+                  </div>
+                  <div className="mt-3 space-y-2.5">
+                    {loadingSuivis ? (
+                      <p className="text-slate-600 text-xs">Chargement…</p>
+                    ) : suivis.length === 0 ? (
+                      <p className="text-slate-600 text-xs">Aucun échange enregistré. Logge ton 1er appel/email ci-dessus.</p>
+                    ) : suivis.map((s) => (
+                      <div key={s.id} className="flex gap-2.5 text-xs">
+                        <span className="flex-shrink-0 leading-none mt-0.5">{SUIVI_ICONS[s.type] ?? "📝"}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-slate-300 whitespace-pre-wrap break-words">{s.contenu}</p>
+                          <p className="text-slate-600 text-[10px] mt-0.5">
+                            {s.auteur ? `${s.auteur} · ` : ""}{new Date(s.createdAt).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Doublon */}

@@ -3,12 +3,27 @@ import type { Lead } from "@/lib/db/schema";
 // Action à faire sur un prospect → repère rouge discret. null = rien à faire.
 // Logique PARTAGÉE entre la carte Kanban et le compteur global (cohérence garantie).
 export function leadAction(lead: Lead): string | null {
+  const terminal = lead.status === "gagné" || lead.status === "perdu";
+
+  // Manque le montant du devis (data gap) — toujours prioritaire.
   if ((lead.status === "devis_envoyé" || lead.status === "gagné") && !lead.montantDevisCt) return "Devis à chiffrer";
-  if (lead.status === "contacté") {
-    if (lead.prochaineEtape === "rdv_pris" && !lead.rdvDate) return "Fixer le RDV";
-    if (lead.prochaineEtape === "a_recontacter") return "À recontacter";
-    if (lead.prochaineEtape === "devis_a_faire") return "Devis à faire";
+  if (terminal) return null;
+
+  // RDV pris mais date non fixée.
+  if (lead.prochaineEtape === "rdv_pris" && !lead.rdvDate) return "Fixer le RDV";
+
+  // Prochaine action datée : pilote l'alerte anti-oubli.
+  if (lead.prochaineActionLe) {
+    const due = new Date(lead.prochaineActionLe); due.setHours(0, 0, 0, 0);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const diff = Math.round((today.getTime() - due.getTime()) / 86400000);
+    if (diff > 0) return `Relance en retard (${diff}j)`;
+    if (diff === 0) return "Relance aujourd'hui";
+    return null; // planifiée dans le futur → pas d'alerte
   }
+
+  // Intention de relance déclarée mais sans date → inviter à planifier.
+  if (lead.prochaineEtape === "a_recontacter" || lead.prochaineEtape === "devis_a_faire") return "Planifier la relance";
   return null;
 }
 

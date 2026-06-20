@@ -1,4 +1,4 @@
-import { getLeads, getEnProductionLeadIds } from "@/lib/leads";
+import { getLeads, getEnProductionLeadIds, getLastActivityByLead } from "@/lib/leads";
 import { getLeadsPageStats } from "@/lib/dashboard";
 import AdminHeader from "@/components/AdminHeader";
 import LeadsManager from "./LeadsManager";
@@ -58,6 +58,7 @@ export default async function AdminLeadsPage({
   // avec date et technicien). Leur fiche client reste accessible.
   const enProduction = await getEnProductionLeadIds(allLeads);
   const leads = allLeads.filter((l) => !enProduction.has(l.id));
+  const lastActivity = await getLastActivityByLead(leads.map((l) => l.id));
 
   const maxMois = Math.max(...stats.parMois.map((m) => m.total), 1);
   const tauxConvLeads = stats.total > 0
@@ -92,7 +93,7 @@ export default async function AdminLeadsPage({
         </div>
 
         {/* ─── Kanban / Liste leads ────────────────────────────────────────────── */}
-        <LeadsManager initialLeads={leads} initialSource={source} />
+        <LeadsManager initialLeads={leads} initialSource={source} lastActivity={lastActivity} />
 
         {/* ─── Séparateur analytics ────────────────────────────────────────────── */}
         <div className="mt-10 mb-6 flex items-center gap-3">

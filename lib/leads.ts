@@ -1,11 +1,27 @@
 import { db } from "@/lib/db";
-import { leads, interventions, type Lead, type NewLead } from "@/lib/db/schema";
+import { leads, interventions, suivis, type Lead, type NewLead } from "@/lib/db/schema";
 import { eq, desc, isNull, and, inArray, ne, isNotNull } from "drizzle-orm";
 
 export type LeadStatus = "nouveau" | "pas_de_reponse" | "contacté" | "devis_envoyé" | "gagné" | "perdu";
 export type LeadSource = "alex" | "formulaire" | "téléphone" | "whatsapp" | "autre";
 
 export type { Lead };
+
+// Date de la dernière activité (échange logué) par prospect → « dernière activité » sur la carte.
+export async function getLastActivityByLead(leadIds: string[]): Promise<Record<string, string>> {
+  if (leadIds.length === 0) return {};
+  const rows = await db
+    .select({ leadId: suivis.leadId, createdAt: suivis.createdAt })
+    .from(suivis)
+    .where(inArray(suivis.leadId, leadIds));
+  const map: Record<string, string> = {};
+  for (const r of rows) {
+    if (!r.leadId) continue;
+    const t = new Date(r.createdAt).toISOString();
+    if (!map[r.leadId] || t > map[r.leadId]) map[r.leadId] = t;
+  }
+  return map;
+}
 
 // Prospects « passés en production » : gagnés ET dont une intervention liée est planifiée
 // (date + technicien affectés). Ils sortent du Kanban CRM (le pilotage vit dans Terrain).
@@ -60,7 +76,7 @@ export async function updateLeadStatus(
 
 export async function updateLead(
   id: string,
-  data: Partial<Pick<NewLead, "status" | "notes" | "email" | "location" | "address" | "project" | "name" | "phone" | "clientId" | "commercialId" | "consentementMarketing" | "consentementLe" | "montantDevisCt" | "prochaineEtape" | "rdvDate" | "dateSouhaiteeIntervention">>
+  data: Partial<Pick<NewLead, "status" | "notes" | "email" | "location" | "address" | "project" | "name" | "phone" | "clientId" | "commercialId" | "consentementMarketing" | "consentementLe" | "montantDevisCt" | "prochaineEtape" | "rdvDate" | "dateSouhaiteeIntervention" | "prochaineActionLe">>
 ): Promise<Lead | null> {
   const [lead] = await db
     .update(leads)

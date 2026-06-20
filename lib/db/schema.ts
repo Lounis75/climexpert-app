@@ -197,6 +197,8 @@ export const leads = pgTable("leads", {
   // Sous-statut quand le contact est établi (avant l'envoi du devis) :
   // "rdv_pris" | "a_recontacter" | "devis_a_faire". Null = non précisé.
   prochaineEtape:      varchar("prochaine_etape", { length: 20 }),
+  // Date de la prochaine action à mener (relance) → alerte rouge si échue (anti-oubli).
+  prochaineActionLe:   date("prochaine_action_le"),
   // Date du rendez-vous commercial pris (sous-statut "rdv_pris") → affiché au calendrier.
   rdvDate:             timestamp("rdv_date"),
   // Date souhaitée d'intervention par le client (notée dès l'envoi du devis) →
