@@ -9,6 +9,9 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // pdfkit charge ses polices (.afm) depuis node_modules au runtime → le garder externe
+  // (non bundlé) pour que la génération PDF du contrat fonctionne en serverless.
+  serverExternalPackages: ["pdfkit"],
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },

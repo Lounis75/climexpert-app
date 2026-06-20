@@ -299,6 +299,7 @@ function ContratCard({
             <span className="flex items-center gap-1.5 text-white font-semibold text-sm">
               <User className="w-3.5 h-3.5 text-slate-500" /> {c.clientName}
             </span>
+            {c.numero && <span className="text-slate-500 text-[10px] font-mono bg-slate-900/40 border border-white/10 rounded px-1.5 py-0.5">{c.numero}</span>}
             <span className="text-slate-500 text-xs">·</span>
             <span className="text-slate-300 text-xs">{c.units} unité{c.units > 1 ? "s" : ""}</span>
             <span className="text-emerald-400 text-xs font-medium">{montant} €/an</span>
@@ -336,6 +337,15 @@ function ContratCard({
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
+          <a
+            href={`/api/admin/contrats/${c.id}/document`}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Générer le contrat (PDF)"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-sky-500/10 border border-sky-500/25 text-sky-300 text-xs font-medium hover:bg-sky-500/20 transition-colors whitespace-nowrap"
+          >
+            <FileText className="w-3.5 h-3.5" /> Contrat PDF
+          </a>
           <button
             onClick={() => onToggle(c)}
             disabled={toggling === c.id}
