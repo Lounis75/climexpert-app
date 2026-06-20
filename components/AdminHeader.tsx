@@ -1,51 +1,14 @@
 "use client";
 
 import {
-  Wind, LayoutDashboard, FileText, Users, LogOut, Contact,
-  Wrench, Bell, CheckCheck, HardHat,
-  ScrollText, HeadphonesIcon, ChevronDown, Briefcase, Megaphone, BarChart2, AlertTriangle,
-  Menu, X,
+  Wind, LayoutDashboard, LogOut, Bell, CheckCheck, ChevronDown, AlertTriangle,
 } from "lucide-react";
 import AdminChatBot from "./AdminChatBot";
+import MobileTabBar from "./MobileTabBar";
+import { groups, standalone } from "./admin-nav";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-
-const standalone = { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard };
-
-const groups = [
-  {
-    label: "CRM",
-    items: [
-      { href: "/admin/leads",        label: "Prospects",    icon: Users },
-      { href: "/admin/clients",      label: "Clients",      icon: Contact },
-      { href: "/admin/contrats",     label: "Contrats",     icon: ScrollText },
-    ],
-  },
-  {
-    label: "Terrain",
-    items: [
-      { href: "/admin/interventions", label: "Interventions", icon: Wrench },
-      { href: "/admin/sav",           label: "SAV",           icon: HeadphonesIcon },
-    ],
-  },
-  {
-    label: "Équipe",
-    items: [
-      { href: "/admin/salaries",    label: "Salariés & accès", icon: Users },
-      { href: "/admin/commerciaux", label: "Commerciaux",      icon: Briefcase },
-      { href: "/admin/techniciens", label: "Techniciens",      icon: HardHat },
-    ],
-  },
-  {
-    label: "Marketing",
-    items: [
-      { href: "/admin/marketing/statistiques", label: "Statistiques",     icon: BarChart2 },
-      { href: "/admin/articles",               label: "Articles",         icon: FileText },
-      { href: "/admin/marketing/contacts",     label: "Base de contacts", icon: Megaphone },
-    ],
-  },
-];
 
 type Notif = {
   id: string; type: string; titre: string;
@@ -130,11 +93,13 @@ export default function AdminHeader() {
   const [actions, setActions] = useState(0);
   const [notifs, setNotifs] = useState<Notif[]>([]);
   const [open, setOpen] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Ferme le menu mobile à chaque navigation.
-  useEffect(() => { setMobileOpen(false); }, [pathname]);
+  // Réserve l'espace bas pour la barre d'onglets mobile (voir globals.css).
+  useEffect(() => {
+    document.body.classList.add("has-mobile-tabbar");
+    return () => document.body.classList.remove("has-mobile-tabbar");
+  }, []);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -282,60 +247,11 @@ export default function AdminHeader() {
             <LogOut className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Déconnexion</span>
           </button>
-
-          {/* Hamburger (mobile < md) */}
-          <button
-            onClick={() => setMobileOpen((v) => !v)}
-            aria-label="Menu"
-            className="md:hidden w-8 h-8 rounded-lg flex items-center justify-center text-slate-300 hover:text-white hover:bg-white/5 transition-colors border border-transparent hover:border-white/10"
-          >
-            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
         </div>
       </div>
-
-      {/* Menu mobile déroulant (< md) */}
-      {mobileOpen && (
-        <div className="md:hidden border-t border-white/10 bg-slate-900 max-h-[80vh] overflow-y-auto">
-          <div className="px-4 py-3 space-y-4">
-            <Link
-              href={standalone.href}
-              onClick={() => setMobileOpen(false)}
-              className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                isDashboard ? "bg-sky-500/15 text-sky-400" : "text-slate-300 hover:bg-white/5"
-              }`}
-            >
-              <LayoutDashboard className="w-4 h-4" /> Dashboard
-            </Link>
-            {groups.map((g) => (
-              <div key={g.label}>
-                <p className="text-[10px] uppercase tracking-widest text-slate-500 font-semibold mb-1.5 px-1">{g.label}</p>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {g.items.map(({ href, label, icon: Icon }) => (
-                    <Link
-                      key={href}
-                      href={href}
-                      onClick={() => setMobileOpen(false)}
-                      className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm transition-colors ${
-                        pathname.startsWith(href) ? "bg-sky-500/15 text-sky-400" : "text-slate-300 hover:bg-white/5"
-                      }`}
-                    >
-                      <Icon className="w-4 h-4 flex-shrink-0" /> <span className="truncate">{label}</span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            ))}
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm text-slate-300 hover:bg-white/5 transition-colors border-t border-white/10 mt-2 pt-3"
-            >
-              <LogOut className="w-4 h-4" /> Déconnexion
-            </button>
-          </div>
-        </div>
-      )}
     </header>
+    {/* Accès rapide en bas (mobile) */}
+    <MobileTabBar actions={actions} />
     <AdminChatBot />
     </>
   );

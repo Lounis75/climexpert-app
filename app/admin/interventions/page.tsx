@@ -3,6 +3,7 @@ import { getInterventions, TYPE_LABELS, TYPE_COLORS, STATUS_INTERVENTION } from 
 import Link from "next/link";
 import { Plus, Wrench, Calendar, User, MapPin, ArrowRight } from "lucide-react";
 import ViewToggle from "./ViewToggle";
+import AgendaMobile from "./AgendaMobile";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,18 @@ function formatDate(d: Date | string | null) {
 
 export default async function AdminInterventionsPage() {
   const list = await getInterventions();
+
+  // Données légères et sérialisables pour l'agenda mobile (consultation).
+  const agendaItems = list.map((i) => ({
+    id: i.id,
+    scheduledAt: i.scheduledAt ? new Date(i.scheduledAt).toISOString() : null,
+    dureeEstimeeMinutes: i.dureeEstimeeMinutes ?? null,
+    type: i.type,
+    status: i.status,
+    clientName: i.clientName,
+    technicienName: i.technicienName,
+    address: i.address ?? null,
+  }));
 
   // Bornes normalisées à minuit pour un découpage sans trou ni chevauchement.
   const now = new Date();
@@ -110,6 +123,13 @@ export default async function AdminInterventionsPage() {
           </div>
         </div>
 
+        {/* Mobile (< md) : agenda « façon Apple », consultation au pouce */}
+        <div className="md:hidden">
+          <AgendaMobile interventions={agendaItems} />
+        </div>
+
+        {/* Desktop / tablette (md+) : Liste / Calendrier avec glisser-déposer */}
+        <div className="hidden md:block">
         <ViewToggle
           listContent={
             list.length === 0 ? (
@@ -133,6 +153,7 @@ export default async function AdminInterventionsPage() {
             )
           }
         />
+        </div>
       </main>
     </div>
   );

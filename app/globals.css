@@ -9,6 +9,14 @@
     box-sizing: border-box;
   }
 
+  /* Réserve l'espace de la barre d'onglets mobile (h-16 + safe-area) sur les
+     pages admin, pour que son contenu ne soit jamais masqué. < md seulement. */
+  @media (max-width: 767px) {
+    body.has-mobile-tabbar {
+      padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+    }
+  }
+
   html {
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
