@@ -103,12 +103,12 @@ export default function InterventionActions({
   }
 
   return (
-    <div className="flex flex-col items-end gap-3">
-      <div className="flex items-center gap-2 flex-wrap justify-end">
+    <div className="flex flex-col items-stretch sm:items-end gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:flex-wrap sm:justify-end gap-2">
         {currentStatus !== "terminée" && currentStatus !== "annulée" && (
           <button
             onClick={() => setPlanning((v) => !v)}
-            className="flex items-center gap-1.5 px-3 py-2 border border-violet-500/30 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20 text-xs font-medium rounded-xl transition-all"
+            className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3 py-2.5 border border-violet-500/30 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20 text-xs font-medium rounded-xl transition-all"
           >
             <CalendarClock className="w-3.5 h-3.5" />
             {currentScheduledAt && currentTechnicienId ? "Replanifier" : "Planifier"}
@@ -116,12 +116,12 @@ export default function InterventionActions({
         )}
         {actions.map((a) => (
           <button key={a.status} onClick={() => changeStatus(a.status)} disabled={loading}
-            className={`flex items-center gap-1.5 px-3 py-2 border text-xs font-medium rounded-xl transition-all disabled:opacity-40 ${a.cls}`}>
+            className={`w-full sm:w-auto flex items-center justify-center gap-1.5 px-3 py-2.5 border text-xs font-medium rounded-xl transition-all disabled:opacity-40 ${a.cls}`}>
             <a.icon className="w-3.5 h-3.5" /> {a.label}
           </button>
         ))}
         <button onClick={handleDelete} disabled={loading}
-          className="flex items-center gap-1.5 px-3 py-2 border border-white/10 bg-slate-700 text-slate-400 hover:text-red-400 text-xs font-medium rounded-xl transition-all disabled:opacity-40">
+          className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3 py-2.5 border border-white/10 bg-slate-700 text-slate-400 hover:text-red-400 text-xs font-medium rounded-xl transition-all disabled:opacity-40">
           <Trash2 className="w-3.5 h-3.5" /> Supprimer
         </button>
       </div>

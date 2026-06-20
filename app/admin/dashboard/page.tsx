@@ -372,8 +372,9 @@ export default async function DashboardPage() {
           <p className="text-slate-600 text-[11px] mt-3">Le suivi des visites démarre maintenant — les chiffres se rempliront au fil du trafic.</p>
         </div>
 
-        {/* ─── Calendrier semaine ────────────────────────────────────────────────── */}
-        <div className="bg-slate-800/40 border border-white/8 rounded-2xl overflow-hidden mb-6">
+        {/* ─── Calendrier semaine (masqué sur mobile : grille pensée grand écran ;
+              sur mobile, voir « Prochaines interventions » ci-dessus + onglet Planning) ── */}
+        <div className="hidden md:block bg-slate-800/40 border border-white/8 rounded-2xl overflow-hidden mb-6">
           <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
             <h2 className="text-white font-semibold text-sm flex items-center gap-2">
               <CalendarCheck className="w-4 h-4 text-sky-400" /> Planning
