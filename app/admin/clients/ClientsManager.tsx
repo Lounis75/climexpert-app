@@ -17,15 +17,24 @@ function formatDate(d: Date | string) {
 const inputCls = "w-full px-3 py-2 rounded-lg border border-white/10 bg-slate-700/50 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500/50";
 
 interface NewClientForm {
+  typeClient: string;
+  civilite: string;
   name: string;
   phone: string;
   email: string;
   address: string;
   city: string;
+  siret: string;
+  formeJuridique: string;
+  representant: string;
+  representantQualite: string;
   notes: string;
 }
 
-const emptyForm: NewClientForm = { name: "", phone: "", email: "", address: "", city: "", notes: "" };
+const emptyForm: NewClientForm = {
+  typeClient: "particulier", civilite: "", name: "", phone: "", email: "", address: "", city: "",
+  siret: "", formeJuridique: "", representant: "", representantQualite: "", notes: "",
+};
 
 export default function ClientsManager({ initialClients, actions }: { initialClients: Client[]; actions?: Record<string, string> }) {
   const [clients, setClients] = useState<Client[]>(initialClients);
@@ -42,7 +51,7 @@ export default function ClientsManager({ initialClients, actions }: { initialCli
       (c.city ?? "").toLowerCase().includes(search.toLowerCase())
   );
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
+  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
     setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
   }
 
@@ -55,11 +64,17 @@ export default function ClientsManager({ initialClients, actions }: { initialCli
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          typeClient: form.typeClient,
+          civilite: form.civilite || undefined,
           name: form.name,
           phone: form.phone,
           email: form.email || undefined,
           address: form.address || undefined,
           city: form.city || undefined,
+          siret: form.siret || undefined,
+          formeJuridique: form.formeJuridique || undefined,
+          representant: form.representant || undefined,
+          representantQualite: form.representantQualite || undefined,
           notes: form.notes || undefined,
         }),
       });
@@ -111,10 +126,36 @@ export default function ClientsManager({ initialClients, actions }: { initialCli
       {showForm && (
         <form onSubmit={handleCreate} className="bg-slate-800/60 border border-white/10 rounded-2xl p-5 mb-6 space-y-4">
           <h3 className="text-white text-sm font-semibold">Nouveau client</h3>
+
+          {/* Type de client (pilote le contrat : TVA, clauses, bloc identité) */}
+          <div>
+            <label className="block text-xs text-slate-400 mb-1.5">Type de client *</label>
+            <div className="flex gap-2">
+              {[{ v: "particulier", l: "Particulier" }, { v: "professionnel", l: "Professionnel" }].map(({ v, l }) => (
+                <button key={v} type="button" onClick={() => setForm((p) => ({ ...p, typeClient: v }))}
+                  className={`flex-1 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                    form.typeClient === v ? "border-sky-500/60 bg-sky-500/10 text-sky-300" : "border-white/10 bg-slate-700/40 text-slate-400 hover:border-white/20"
+                  }`}>
+                  {l}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="grid sm:grid-cols-2 gap-3">
+            {form.typeClient === "particulier" && (
+              <div>
+                <label className="block text-xs text-slate-400 mb-1.5">Civilité</label>
+                <select name="civilite" value={form.civilite} onChange={handleChange} className={inputCls}>
+                  <option value="">—</option>
+                  <option value="M.">M.</option>
+                  <option value="Madame">Madame</option>
+                </select>
+              </div>
+            )}
             <div>
-              <label className="block text-xs text-slate-400 mb-1.5">Nom *</label>
-              <input name="name" value={form.name} onChange={handleChange} required placeholder="Jean Dupont" className={inputCls} />
+              <label className="block text-xs text-slate-400 mb-1.5">{form.typeClient === "professionnel" ? "Raison sociale *" : "Nom *"}</label>
+              <input name="name" value={form.name} onChange={handleChange} required placeholder={form.typeClient === "professionnel" ? "Pizzeria Délice" : "Jean Dupont"} className={inputCls} />
             </div>
             <div>
               <label className="block text-xs text-slate-400 mb-1.5">Téléphone *</label>
@@ -132,6 +173,29 @@ export default function ClientsManager({ initialClients, actions }: { initialCli
               <label className="block text-xs text-slate-400 mb-1.5">Adresse</label>
               <input name="address" value={form.address} onChange={handleChange} placeholder="12 rue de la Paix, 75001 Paris" className={inputCls} />
             </div>
+
+            {/* Champs professionnels (pour le contrat) */}
+            {form.typeClient === "professionnel" && (
+              <>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1.5">SIRET</label>
+                  <input name="siret" value={form.siret} onChange={handleChange} placeholder="123 456 789 00010" className={inputCls} />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1.5">Forme juridique</label>
+                  <input name="formeJuridique" value={form.formeJuridique} onChange={handleChange} placeholder="SARL au capital de 5 000 €" className={inputCls} />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1.5">Représentant</label>
+                  <input name="representant" value={form.representant} onChange={handleChange} placeholder="Jean Dupont" className={inputCls} />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1.5">Qualité du représentant</label>
+                  <input name="representantQualite" value={form.representantQualite} onChange={handleChange} placeholder="gérant" className={inputCls} />
+                </div>
+              </>
+            )}
+
             <div className="sm:col-span-2">
               <label className="block text-xs text-slate-400 mb-1.5">Notes internes</label>
               <textarea name="notes" value={form.notes} onChange={handleChange} rows={2} placeholder="Informations utiles..." className={`${inputCls} resize-none`} />

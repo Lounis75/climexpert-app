@@ -69,6 +69,7 @@ export async function createClientFromLead(leadId: string): Promise<Client | nul
   ].filter(Boolean).join("\n");
 
   const client = await createClient({
+    typeClient: lead.typeClient, // particulier / professionnel hérité du prospect
     name: lead.name,
     phone: lead.phone,
     email: lead.email ?? undefined,
