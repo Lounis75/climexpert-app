@@ -73,9 +73,10 @@ function ensureSpace(doc: Doc, needed: number) {
 function heading(doc: Doc, text: string) {
   ensureSpace(doc, 40);
   doc.moveDown(0.6);
-  doc.font("Helvetica-Bold").fontSize(12).fillColor(NAVY).text(text, M.left, doc.y);
+  doc.font("Helvetica-Bold").fontSize(12).fillColor(NAVY).text(text, M.left, doc.y, { width: contentWidth(doc) });
   const y = doc.y + 2;
   doc.moveTo(M.left, y).lineTo(doc.page.width - M.right, y).lineWidth(0.8).strokeColor(BLUE).stroke();
+  doc.x = M.left;
   doc.moveDown(0.4);
 }
 
@@ -84,24 +85,32 @@ function para(doc: Doc, segs: Seg[] | string, opts: { size?: number; align?: "le
   const size = opts.size ?? 10;
   doc.fontSize(size);
   ensureSpace(doc, 16);
+  const align = opts.align ?? "left";
+  const w = contentWidth(doc);
   arr.forEach((s, i) => {
-    doc.font(fontFor(s)).fillColor(s.color || "black")
-      .text(s.t, { continued: i < arr.length - 1, align: opts.align ?? "justify", lineGap: 1 });
+    doc.font(fontFor(s)).fillColor(s.color || "black");
+    // Le 1er run impose la marge gauche + la largeur pleine page (évite que le curseur
+    // reste calé à droite après un tableau → colonne étroite).
+    if (i === 0) doc.text(s.t, M.left, doc.y, { continued: i < arr.length - 1, align, width: w, lineGap: 1 });
+    else doc.text(s.t, { continued: i < arr.length - 1, align, lineGap: 1 });
   });
+  doc.x = M.left;
   doc.moveDown((opts.gap ?? 0.5));
 }
 
 function bullet(doc: Doc, text: string) {
   doc.fontSize(10).font("Helvetica").fillColor("black");
   ensureSpace(doc, 14);
-  doc.text("•  " + text, { indent: 10, lineGap: 1, align: "justify" });
-  doc.moveDown(0.2);
+  doc.text("•  " + text, M.left + 6, doc.y, { width: contentWidth(doc) - 6, lineGap: 1, align: "left" });
+  doc.x = M.left;
+  doc.moveDown(0.15);
 }
 
 function note(doc: Doc, text: string) {
   doc.fontSize(8.5).font("Helvetica-Oblique").fillColor(GREY);
   ensureSpace(doc, 14);
-  doc.text(text, { align: "justify", lineGap: 1 });
+  doc.text(text, M.left, doc.y, { width: contentWidth(doc), align: "left", lineGap: 1 });
+  doc.x = M.left;
   doc.moveDown(0.5);
 }
 
@@ -143,7 +152,8 @@ function drawTable(doc: Doc, cols: Col[], rows: Seg[][][], header: Seg[][]) {
   };
   drawRow(header, true);
   rows.forEach((r) => drawRow(r, false));
-  doc.moveDown(0.5);
+  doc.x = M.left;
+  doc.moveDown(0.6);
 }
 
 /* ─── Logique métier ────────────────────────────────────────────────────────── */
@@ -164,12 +174,12 @@ function computePrice(price: { ttc?: number; ht?: number }, vatRate: number) {
 function clientBlock(doc: Doc, data: ContratData) {
   const c = data.client || {};
   const isPro = data.clientType === "professionnel";
+  const adr = addressLine(c.address, c.postalCodeCity);
   if (isPro) {
     para(doc, [
       seg(c.name, "[Raison sociale]"),
       { t: ", " }, ...(c.legalForm ? [{ t: c.legalForm }] : []),
-      { t: " dont le siège est situé " }, seg(c.address, "[adresse]"),
-      { t: ", " }, seg(c.postalCodeCity, "[CP ville]"),
+      { t: " dont le siège est situé " }, seg(adr, "[adresse]"),
       { t: ", immatriculée sous le SIRET " }, seg(c.siret, "[SIRET]"),
       { t: ", représentée par " }, seg(c.representative, "[représentant]"),
       { t: " en sa qualité de " }, { t: c.representativeRole || "gérant" },
@@ -180,8 +190,7 @@ function clientBlock(doc: Doc, data: ContratData) {
     para(doc, [
       { t: (c.title ? c.title + " " : ""), bold: true },
       { ...seg(c.name, "[Nom du client]"), bold: true },
-      { t: ", demeurant " }, seg(c.address, "[adresse]"),
-      { t: ", " }, seg(c.postalCodeCity, "[CP ville]"),
+      { t: ", demeurant " }, seg(adr, "[adresse]"),
       { t: ", téléphone " }, seg(c.phone, "[tél]"),
       { t: ", courriel " }, seg(c.email, "[email]"), { t: "." },
     ]);
@@ -200,7 +209,7 @@ function equipmentTable(doc: Doc, data: ContratData) {
       units.push({ type: indoor === 1 ? "Unité intérieure (mono-split)" : `Unité intérieure n° ${i} (split)` });
     }
   }
-  const cols: Col[] = [{ w: 105 }, { w: 99 }, { w: 62, align: "center" }, { w: 86 }, { w: 70 }, { w: 61 }];
+  const cols: Col[] = [{ w: 98 }, { w: 92 }, { w: 60, align: "center" }, { w: 78 }, { w: 70 }, { w: 87 }];
   const header: Seg[][] = [["Type d'équipement"], ["Marque et modèle"], ["Puissance (kW)"], ["Fluide et charge"], ["N° de série"], ["Emplacement"]].map((c) => [{ t: c[0] }]);
   const rows: Seg[][][] = units.map((u) => {
     const model = u.model || brand;
@@ -240,6 +249,14 @@ function financeTable(doc: Doc, data: ContratData, vatRate: number) {
   drawTable(doc, cols, rows, header);
 }
 
+// Évite le doublon quand le champ adresse contient déjà le code postal + ville.
+function addressLine(address?: string, cpVille?: string): string {
+  const a = (address || "").trim(), c = (cpVille || "").trim();
+  if (!c) return a;
+  if (a && a.toLowerCase().includes(c.toLowerCase())) return a;
+  return [a, c].filter(Boolean).join(", ");
+}
+
 function frDate(d?: string) {
   if (!d) return "";
   const dt = new Date(d);
@@ -253,22 +270,40 @@ function build(doc: Doc, data: ContratData) {
   const pr = { ...PRESTATAIRE, ...(data.prestataire || {}) };
   const contract = data.contract || {};
   const c = data.client || {};
-  const site = data.siteAddress || [c.address, c.postalCodeCity].filter(Boolean).join(", ");
+  const site = data.siteAddress || addressLine(c.address, c.postalCodeCity);
   const label = systemLabel(data);
   const vatRate = data.finance?.vatRate ?? (isPro ? 20 : 10);
 
-  // En-tête : logo texte
+  // En-tête : logo texte bicolore centré manuellement (pas de chevauchement)
   doc.font("Helvetica-Bold").fontSize(22);
-  doc.fillColor(NAVY).text("Clim", { continued: true, align: "center" }).fillColor(BLUE).text("Expert", { align: "center" });
+  const w1 = doc.widthOfString("Clim"), w2 = doc.widthOfString("Expert");
+  const lx = (doc.page.width - (w1 + w2)) / 2;
+  doc.fillColor(NAVY).text("Clim", lx, doc.y, { continued: true, lineBreak: false });
+  doc.fillColor(BLUE).text("Expert", { continued: false, lineBreak: false });
+  doc.x = M.left; doc.moveDown(0.35);
+  doc.font("Helvetica-Bold").fontSize(15).fillColor(NAVY).text("CONTRAT D'ENTRETIEN ET DE MAINTENANCE", M.left, doc.y, { width: contentWidth(doc), align: "center" });
+  doc.font("Helvetica-Bold").fontSize(11).fillColor(BLUE).text("Installations de climatisation et pompes à chaleur", M.left, doc.y, { width: contentWidth(doc), align: "center" });
   doc.moveDown(0.3);
-  doc.font("Helvetica-Bold").fontSize(15).fillColor(NAVY).text("CONTRAT D'ENTRETIEN ET DE MAINTENANCE", { align: "center" });
-  doc.font("Helvetica-Bold").fontSize(11).fillColor(BLUE).text("Installations de climatisation et pompes à chaleur", { align: "center" });
-  doc.moveDown(0.3);
-  doc.fontSize(10).fillColor("black");
-  doc.font("Helvetica").text("Contrat n° ", { continued: true, align: "center" });
-  const num = seg(contract.number, "[n°]"); doc.font("Helvetica-Bold").fillColor(num.color || "black").text(num.t, { continued: true });
-  doc.font("Helvetica").fillColor("black").text("     Date : ", { continued: true });
-  const dt = seg(frDate(contract.date), "[date]"); doc.font("Helvetica-Bold").fillColor(dt.color || "black").text(dt.t, { align: "center" });
+
+  // Ligne « Contrat n°  …  Date : … » centrée manuellement
+  doc.fontSize(10);
+  const num = seg(contract.number, "[n°]");
+  const dt = seg(frDate(contract.date), "[date]");
+  const lineSegs = [
+    { t: "Contrat n° ", f: "Helvetica", c: "black" },
+    { t: num.t, f: "Helvetica-Bold", c: num.color || "black" },
+    { t: "      Date : ", f: "Helvetica", c: "black" },
+    { t: dt.t, f: "Helvetica-Bold", c: dt.color || "black" },
+  ];
+  let totalW = 0;
+  lineSegs.forEach((p) => { doc.font(p.f); totalW += doc.widthOfString(p.t); });
+  const lx2 = (doc.page.width - totalW) / 2, ly = doc.y;
+  lineSegs.forEach((p, i) => {
+    doc.font(p.f).fillColor(p.c);
+    if (i === 0) doc.text(p.t, lx2, ly, { continued: true, lineBreak: false });
+    else doc.text(p.t, { continued: i < lineSegs.length - 1, lineBreak: false });
+  });
+  doc.x = M.left;
   const yRule = doc.y + 4;
   doc.moveTo(M.left, yRule).lineTo(doc.page.width - M.right, yRule).lineWidth(1.2).strokeColor(BLUE).stroke();
   doc.moveDown(0.6);
@@ -412,20 +447,24 @@ function build(doc: Doc, data: ContratData) {
 }
 
 function signatureBlocks(doc: Doc, leftTitle: string, rightTitle: string) {
-  const h = 120;
-  ensureSpace(doc, h);
+  const h = 185;
+  ensureSpace(doc, h + 8);
+  doc.moveDown(0.3);
   const y0 = doc.y;
-  const colW = (contentWidth(doc) - 16) / 2;
+  const colW = (contentWidth(doc) - 18) / 2;
   const draw = (x: number, title: string) => {
-    doc.rect(x, y0, colW, h).lineWidth(0.5).strokeColor("#CCCCCC").stroke();
-    doc.font("Helvetica-Bold").fontSize(10).fillColor(NAVY).text(title, x + 8, y0 + 8, { width: colW - 16 });
+    doc.rect(x, y0, colW, h).lineWidth(0.6).strokeColor("#BBBBBB").stroke();
+    doc.font("Helvetica-Bold").fontSize(10).fillColor(NAVY).text(title, x + 10, y0 + 10, { width: colW - 20 });
     doc.font("Helvetica").fontSize(9).fillColor("black");
-    doc.text("Nom et qualité :", x + 8, y0 + 30, { width: colW - 16 });
-    doc.text("Date :", x + 8, y0 + 46, { width: colW - 16 });
-    doc.font("Helvetica-Oblique").fontSize(8).fillColor(GREY).text("Signature, précédée de la mention « Lu et approuvé, bon pour accord »", x + 8, y0 + 64, { width: colW - 16 });
+    doc.text("Nom et qualité :", x + 10, y0 + 34, { width: colW - 20 });
+    doc.text("Date :", x + 10, y0 + 54, { width: colW - 20 });
+    doc.text("Signature :", x + 10, y0 + 74, { width: colW - 20 });
+    // grand espace libre sous « Signature : » pour signer
+    doc.font("Helvetica-Oblique").fontSize(7).fillColor(GREY).text("précédée de la mention « Lu et approuvé, bon pour accord »", x + 10, y0 + h - 20, { width: colW - 20 });
   };
   draw(M.left, leftTitle);
-  draw(M.left + colW + 16, rightTitle);
+  draw(M.left + colW + 18, rightTitle);
+  doc.x = M.left;
   doc.y = y0 + h;
 }
 
