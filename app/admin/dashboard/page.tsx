@@ -111,9 +111,12 @@ export default async function DashboardPage() {
             <h1 className="text-2xl font-bold text-white mb-1">Tableau de bord{prenom ? ` de ${prenom}` : ""}</h1>
             <p className="text-slate-400 text-sm capitalize">{aujourdhui}</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Link href="/admin/leads" className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-white text-sm font-semibold transition-colors">
               <Plus className="w-4 h-4" /> Prospect
+            </Link>
+            <Link href="/admin/interventions/new" className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-white text-sm font-semibold transition-colors">
+              <Plus className="w-4 h-4" /> Intervention
             </Link>
             <Link href="/admin/interventions" className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800/60 border border-white/10 text-slate-200 hover:border-white/20 text-sm font-semibold transition-colors">
               <CalendarCheck className="w-4 h-4" /> Planning
