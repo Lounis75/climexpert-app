@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Phone, Mail, MapPin, Trash2, Plus, X, Check,
   UserCircle, MessageSquare, Building2, ChevronRight, AlertTriangle,
+  ChevronLeft, Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import type { Client } from "@/lib/clients";
@@ -36,20 +37,52 @@ const emptyForm: NewClientForm = {
   siret: "", formeJuridique: "", representant: "", representantQualite: "", notes: "",
 };
 
-export default function ClientsManager({ initialClients, actions }: { initialClients: Client[]; actions?: Record<string, string> }) {
+export default function ClientsManager({
+  initialClients, initialTotal, initialActions, stats, pageSize = 50,
+}: {
+  initialClients: Client[];
+  initialTotal: number;
+  initialActions?: Record<string, string>;
+  stats: { total: number; withEmail: number; villes: number };
+  pageSize?: number;
+}) {
   const [clients, setClients] = useState<Client[]>(initialClients);
+  const [total, setTotal] = useState(initialTotal);
+  const [acts, setActs] = useState<Record<string, string>>(initialActions ?? {});
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<NewClientForm>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
-  const filtered = clients.filter(
-    (c) =>
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.phone.includes(search) ||
-      (c.city ?? "").toLowerCase().includes(search.toLowerCase())
-  );
+  // Charge une page depuis le serveur (recherche + pagination côté base).
+  const fetchPage = useCallback(async (p: number, q: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/admin/clients?page=${p}&limit=${pageSize}&q=${encodeURIComponent(q)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setClients(data.clients ?? []);
+        setTotal(data.total ?? 0);
+        setActs(data.actions ?? {});
+        setPage(p);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [pageSize]);
+
+  // Recherche serveur débouncée (300 ms). On saute le 1er rendu (données déjà fournies par le serveur).
+  const firstRender = useRef(true);
+  useEffect(() => {
+    if (firstRender.current) { firstRender.current = false; return; }
+    const t = setTimeout(() => { fetchPage(1, search); }, 300);
+    return () => clearTimeout(t);
+  }, [search, fetchPage]);
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {
     setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
@@ -79,10 +112,9 @@ export default function ClientsManager({ initialClients, actions }: { initialCli
         }),
       });
       if (res.ok) {
-        const { client } = await res.json();
-        setClients((p) => [client, ...p]);
         setForm(emptyForm);
         setShowForm(false);
+        await fetchPage(1, search); // recharge la 1ʳᵉ page (le nouveau client y figure)
       }
     } finally {
       setSaving(false);
@@ -94,7 +126,7 @@ export default function ClientsManager({ initialClients, actions }: { initialCli
     setDeleting(id);
     try {
       const res = await fetch(`/api/admin/clients?id=${encodeURIComponent(id)}`, { method: "DELETE" });
-      if (res.ok) setClients((p) => p.filter((c) => c.id !== id));
+      if (res.ok) await fetchPage(page, search); // recharge la page courante (comble le trou + total à jour)
     } finally {
       setDeleting(null);
     }
@@ -214,36 +246,36 @@ export default function ClientsManager({ initialClients, actions }: { initialCli
         </form>
       )}
 
-      {/* Stats */}
+      {/* Stats (calculées côté serveur → justes quelle que soit la page) */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
         <div className="bg-slate-800/40 border border-white/8 rounded-xl p-4">
-          <p className="text-2xl font-bold text-white">{clients.length}</p>
-          <p className="text-slate-400 text-xs mt-0.5">Clients total</p>
+          <p className="text-2xl font-bold text-white">{search ? total : stats.total}</p>
+          <p className="text-slate-400 text-xs mt-0.5">{search ? "Résultats" : "Clients total"}</p>
         </div>
         <div className="bg-slate-800/40 border border-white/8 rounded-xl p-4">
-          <p className="text-2xl font-bold text-white">{clients.filter((c) => c.email).length}</p>
+          <p className="text-2xl font-bold text-white">{stats.withEmail}</p>
           <p className="text-slate-400 text-xs mt-0.5">Avec email</p>
         </div>
         <div className="bg-slate-800/40 border border-white/8 rounded-xl p-4">
-          <p className="text-2xl font-bold text-white">{new Set(clients.map((c) => c.city).filter(Boolean)).size}</p>
+          <p className="text-2xl font-bold text-white">{stats.villes}</p>
           <p className="text-slate-400 text-xs mt-0.5">Villes</p>
         </div>
       </div>
 
       {/* Empty state */}
-      {filtered.length === 0 && (
+      {clients.length === 0 && !loading && (
         <div className="text-center py-16 text-slate-500">
           <UserCircle className="w-10 h-10 mx-auto mb-3 opacity-40" />
           <p className="text-sm">
-            {clients.length === 0 ? "Aucun client pour l'instant." : "Aucun client pour cette recherche."}
+            {search ? "Aucun client pour cette recherche." : "Aucun client pour l'instant."}
           </p>
         </div>
       )}
 
       {/* Clients list */}
-      <div className="space-y-3">
-        {filtered.map((client) => {
-          const action = actions?.[client.id];
+      <div className={`space-y-3 transition-opacity ${loading ? "opacity-50" : ""}`}>
+        {clients.map((client) => {
+          const action = acts[client.id];
           return (
           <div
             key={client.id}
@@ -312,10 +344,32 @@ export default function ClientsManager({ initialClients, actions }: { initialCli
         })}
       </div>
 
-      {clients.length > 0 && (
-        <p className="text-slate-600 text-xs text-center mt-8">
-          {clients.length} client{clients.length > 1 ? "s" : ""}
-        </p>
+      {/* Pagination */}
+      {total > 0 && (
+        <div className="flex items-center justify-between gap-3 mt-8">
+          <p className="text-slate-500 text-xs">
+            {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} sur {total}
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => fetchPage(page - 1, search)}
+              disabled={page <= 1 || loading}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/10 bg-slate-800/60 text-slate-300 text-xs font-medium hover:border-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" /> Précédent
+            </button>
+            <span className="text-slate-400 text-xs tabular-nums min-w-[64px] text-center">
+              {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin inline" /> : `Page ${page} / ${totalPages}`}
+            </span>
+            <button
+              onClick={() => fetchPage(page + 1, search)}
+              disabled={page >= totalPages || loading}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/10 bg-slate-800/60 text-slate-300 text-xs font-medium hover:border-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              Suivant <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

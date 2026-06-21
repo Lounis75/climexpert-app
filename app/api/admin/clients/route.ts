@@ -1,11 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getClients, createClient, updateClient, deleteClient } from "@/lib/clients";
+import { getClients, getClientsPaginated, getClientActions, createClient, updateClient, deleteClient } from "@/lib/clients";
+import { logError } from "@/lib/observability";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const data = await getClients();
-    return NextResponse.json({ clients: data });
-  } catch {
+    const { searchParams } = new URL(req.url);
+    // Sans paramètre "page" → liste complète (rétro-compat : menus déroulants, calendrier).
+    if (!searchParams.has("page")) {
+      const data = await getClients();
+      return NextResponse.json({ clients: data });
+    }
+    const page = Number(searchParams.get("page")) || 1;
+    const limit = Number(searchParams.get("limit")) || 50;
+    const search = searchParams.get("q") ?? "";
+    const { items, total, pageSize } = await getClientsPaginated({ search, page, limit });
+    const actions = await getClientActions(items);
+    return NextResponse.json({ clients: items, total, page, pageSize, actions });
+  } catch (e) {
+    logError("clients.GET", e);
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
   }
 }

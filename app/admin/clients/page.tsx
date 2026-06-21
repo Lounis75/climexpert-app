@@ -1,13 +1,19 @@
-import { getClients, getClientActions } from "@/lib/clients";
+import { getClientsPaginated, getClientActions, getClientsStats } from "@/lib/clients";
 import AdminHeader from "@/components/AdminHeader";
 import ClientsManager from "./ClientsManager";
 import { Download } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
+const PAGE_SIZE = 50;
+
 export default async function AdminClientsPage() {
-  const clients = await getClients();
-  const actions = await getClientActions(clients);
+  // 1ʳᵉ page seulement — la pagination + recherche se font côté serveur ensuite.
+  const [{ items, total }, stats] = await Promise.all([
+    getClientsPaginated({ page: 1, limit: PAGE_SIZE }),
+    getClientsStats(),
+  ]);
+  const actions = await getClientActions(items);
 
   return (
     <div className="min-h-screen bg-[#080d18]">
@@ -27,7 +33,7 @@ export default async function AdminClientsPage() {
             <Download className="w-3.5 h-3.5" /> Export CSV
           </a>
         </div>
-        <ClientsManager initialClients={clients} actions={actions} />
+        <ClientsManager initialClients={items} initialTotal={total} initialActions={actions} stats={stats} pageSize={PAGE_SIZE} />
       </main>
     </div>
   );

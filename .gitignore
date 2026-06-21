@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# CI : ajouter via l'UI GitHub (le token local n'a pas le scope workflow)
+.github/workflows/

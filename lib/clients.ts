@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { clients, devis, factures, interventions, savTickets, suivisPlanifies, leads, type Client, type NewClient } from "@/lib/db/schema";
 import type { InferSelectModel } from "drizzle-orm";
-import { eq, desc, and, isNull } from "drizzle-orm";
+import { eq, desc, and, isNull, ilike, or, sql, count, type SQL } from "drizzle-orm";
 import { randomBytes } from "crypto";
 
 export type ClientActivity = Client & {
@@ -16,6 +16,38 @@ export type { Client };
 
 export async function getClients(): Promise<Client[]> {
   return db.select().from(clients).where(isNull(clients.supprimeLe)).orderBy(desc(clients.createdAt));
+}
+
+export type ClientsPage = { items: Client[]; total: number; page: number; pageSize: number };
+
+/** Liste paginée + recherche serveur (nom / téléphone / ville). Évite de charger
+ *  toutes les lignes : tient à fort volume. */
+export async function getClientsPaginated(opts: { search?: string; page?: number; limit?: number } = {}): Promise<ClientsPage> {
+  const page = Math.max(1, Math.floor(opts.page ?? 1));
+  const pageSize = Math.min(100, Math.max(1, Math.floor(opts.limit ?? 50)));
+  const offset = (page - 1) * pageSize;
+  const q = (opts.search ?? "").trim();
+  const filters: SQL[] = [isNull(clients.supprimeLe)];
+  if (q) {
+    const like = `%${q}%`;
+    filters.push(or(ilike(clients.name, like), ilike(clients.phone, like), ilike(clients.city, like))!);
+  }
+  const where = and(...filters);
+  const [items, totalRows] = await Promise.all([
+    db.select().from(clients).where(where).orderBy(desc(clients.createdAt)).limit(pageSize).offset(offset),
+    db.select({ value: count() }).from(clients).where(where),
+  ]);
+  return { items, total: Number(totalRows[0]?.value ?? 0), page, pageSize };
+}
+
+/** Statistiques globales du carnet (justes quelle que soit la page affichée). */
+export async function getClientsStats(): Promise<{ total: number; withEmail: number; villes: number }> {
+  const [row] = await db.select({
+    total: sql<number>`count(*)::int`,
+    withEmail: sql<number>`count(${clients.email})::int`,
+    villes: sql<number>`count(distinct ${clients.city})::int`,
+  }).from(clients).where(isNull(clients.supprimeLe));
+  return { total: row?.total ?? 0, withEmail: row?.withEmail ?? 0, villes: row?.villes ?? 0 };
 }
 
 // Action à faire par client (repère rouge) : entretien à relancer ou facture en retard.
