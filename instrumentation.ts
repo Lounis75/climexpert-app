@@ -1,7 +1,21 @@
-// Capture centralisée des erreurs serveur non gérées (rendu de page, route handlers).
-// Next.js appelle onRequestError pour toute erreur survenue côté serveur.
-// Log structuré -> visible/cherchable dans Vercel. Prêt à brancher Sentry.
+// Observabilité serveur. Sentry est activé UNIQUEMENT si SENTRY_DSN est défini
+// (sinon : zéro effet, juste les logs structurés). Import dynamique + garde
+// NEXT_RUNTIME=nodejs → le runtime edge (proxy.ts) ne charge jamais @sentry/node.
 
+export async function register() {
+  if (process.env.NEXT_RUNTIME === "nodejs" && process.env.SENTRY_DSN) {
+    const Sentry = await import("@sentry/node");
+    Sentry.init({
+      dsn: process.env.SENTRY_DSN,
+      environment: process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? "development",
+      tracesSampleRate: 0, // pas de tracing perf pour l'instant → coût mini
+      // On ne capture pas les données du corps des requêtes (RGPD / clients).
+      sendDefaultPii: false,
+    });
+  }
+}
+
+// Next.js appelle ceci pour toute erreur serveur non gérée (rendu page / route handler).
 export async function onRequestError(
   error: unknown,
   request: { path?: string; method?: string },
@@ -19,5 +33,12 @@ export async function onRequestError(
     renderSource: context?.renderSource,
     ...err,
   }));
-  // Hook futur : if (process.env.SENTRY_DSN) Sentry.captureRequestError(error, request, context);
+
+  if (process.env.NEXT_RUNTIME === "nodejs" && process.env.SENTRY_DSN) {
+    const Sentry = await import("@sentry/node");
+    Sentry.captureException(error, {
+      tags: { route: context?.routePath, method: request?.method },
+      extra: { path: request?.path, renderSource: context?.renderSource },
+    });
+  }
 }

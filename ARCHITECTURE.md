@@ -70,10 +70,13 @@ npm run db:migrate
 ## Observabilité
 
 - `instrumentation.ts` (`onRequestError`) capture les erreurs serveur non gérées.
-- `lib/observability.ts` (`logError`/`logWarn`) pour les erreurs gérées.
+- `lib/observability.ts` (`logError`/`logWarn`) pour les erreurs gérées (SERVEUR
+  uniquement — charge `@sentry/node`).
 - `/api/health` — point de contrôle (ping DB) pour une supervision externe.
-- Logs structurés (JSON) visibles dans Vercel. **Brancher Sentry** (variable
-  `SENTRY_DSN` + forward dans les hooks) pour de l'alerting réel.
+- **Sentry est câblé** (via `@sentry/node`, pas le wrapper `@sentry/nextjs` qui casse
+  sur Next 16). Il est **inactif tant que `SENTRY_DSN` n'est pas défini** (logs Vercel
+  seulement). Pour l'activer : créer un projet Sentry → ajouter `SENTRY_DSN` dans les
+  variables d'environnement Vercel. Aucune autre modif de code nécessaire.
 
 ## Tâches planifiées (crons Vercel — `vercel.json`)
 
