@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   Plus, X, Check, Trash2, Calendar, User,
-  FileText, ToggleLeft, ToggleRight,
+  FileText, ToggleLeft, ToggleRight, Pencil, ExternalLink,
 } from "lucide-react";
 import type { ContratWithClient } from "@/lib/contrats";
 import type { Client } from "@/lib/clients";
@@ -17,8 +18,11 @@ interface Form {
   prixUnitaireEuros: string;
   startDate: string;
   nextVisit: string;
+  fluide: string;
 }
-const emptyForm: Form = { clientId: "", units: "1", prixUnitaireEuros: "200", startDate: "", nextVisit: "" };
+const emptyForm: Form = { clientId: "", units: "1", prixUnitaireEuros: "200", startDate: "", nextVisit: "", fluide: "R410A" };
+
+const isoDate = (d: string | Date | null | undefined) => (d ? new Date(d).toISOString().slice(0, 10) : "");
 
 function fmt(d: string | Date | null | undefined) {
   if (!d) return "—";
@@ -45,6 +49,54 @@ export default function ContratsManager({
   const [toggling, setToggling] = useState<string | null>(null);
   const [editingVisit, setEditingVisit] = useState<string | null>(null);
   const [visitDate, setVisitDate] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null); // contrat en cours d'édition
+
+  function startEdit(c: ContratWithClient) {
+    setEditingId(c.id);
+    setForm({
+      clientId: c.clientId,
+      units: String(c.units),
+      prixUnitaireEuros: String(c.prixUnitaireCt / 100),
+      startDate: isoDate(c.startDate),
+      nextVisit: isoDate(c.nextVisit),
+      fluide: c.fluide ?? "R410A",
+    });
+    setShowForm(true);
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function closeForm() {
+    setShowForm(false);
+    setEditingId(null);
+    setForm(emptyForm);
+  }
+
+  async function handleUpdate(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingId) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/admin/contrats", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editingId,
+          units: Number(form.units),
+          prixUnitaireEuros: Number(form.prixUnitaireEuros),
+          startDate: form.startDate,
+          nextVisit: form.nextVisit || null,
+          fluide: form.fluide,
+        }),
+      });
+      if (res.ok) {
+        const { contrat } = await res.json();
+        setContrats((p) => p.map((x) => x.id === editingId ? { ...x, ...contrat } : x));
+        closeForm();
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
 
   const actifs = contrats.filter((c) => c.active);
   const inactifs = contrats.filter((c) => !c.active);
@@ -163,7 +215,7 @@ export default function ContratsManager({
       {/* Toolbar */}
       <div className="flex justify-end mb-4">
         <button
-          onClick={() => setShowForm((v) => !v)}
+          onClick={() => (showForm ? closeForm() : setShowForm(true))}
           className="flex items-center gap-1.5 px-4 py-2 bg-sky-500 hover:bg-sky-400 text-white text-xs font-semibold rounded-xl transition-colors"
         >
           {showForm ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
@@ -171,19 +223,23 @@ export default function ContratsManager({
         </button>
       </div>
 
-      {/* Formulaire */}
+      {/* Formulaire (création ou édition) */}
       {showForm && (
-        <form onSubmit={handleCreate} className="bg-slate-800/60 border border-white/10 rounded-2xl p-5 mb-6 space-y-4">
-          <h3 className="text-white text-sm font-semibold">Nouveau contrat d&apos;entretien</h3>
+        <form onSubmit={editingId ? handleUpdate : handleCreate} className="bg-slate-800/60 border border-white/10 rounded-2xl p-5 mb-6 space-y-4">
+          <h3 className="text-white text-sm font-semibold">{editingId ? "Modifier le contrat d'entretien" : "Nouveau contrat d'entretien"}</h3>
           <div className="grid sm:grid-cols-2 gap-3">
             <div className="sm:col-span-2">
               <label className="block text-xs text-slate-400 mb-1.5">Client *</label>
-              <select name="clientId" value={form.clientId} onChange={handleChange} required className={inputCls}>
-                <option value="">Sélectionner un client...</option>
-                {clients.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name} {c.city ? `— ${c.city}` : ""}</option>
-                ))}
-              </select>
+              {editingId ? (
+                <p className={`${inputCls} !bg-slate-800 text-slate-300`}>{contrats.find((c) => c.id === editingId)?.clientName ?? "—"}</p>
+              ) : (
+                <select name="clientId" value={form.clientId} onChange={handleChange} required className={inputCls}>
+                  <option value="">Sélectionner un client...</option>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name} {c.city ? `— ${c.city}` : ""}</option>
+                  ))}
+                </select>
+              )}
             </div>
             <div>
               <label className="block text-xs text-slate-400 mb-1.5">Nb d&apos;unités</label>
@@ -193,6 +249,12 @@ export default function ContratsManager({
               <label className="block text-xs text-slate-400 mb-1.5">Prix total annuel (€)</label>
               <input name="prixUnitaireEuros" type="number" min="0" step="10" value={form.prixUnitaireEuros} onChange={handleChange} className={inputCls} />
               <p className="text-slate-600 text-[10px] mt-1">Standard : 200 € + 60 €/unité supp.</p>
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1.5">Fluide frigorigène</label>
+              <select name="fluide" value={form.fluide} onChange={handleChange} className={inputCls}>
+                {["R410A", "R32", "R290", "R454B", "R407C", "R134a"].map((f) => <option key={f} value={f}>{f}</option>)}
+              </select>
             </div>
             <div>
               <label className="block text-xs text-slate-400 mb-1.5">Date de début *</label>
@@ -210,7 +272,7 @@ export default function ContratsManager({
               className="flex items-center gap-1.5 px-4 py-2 bg-sky-500 hover:bg-sky-400 disabled:opacity-40 text-white text-xs font-semibold rounded-lg transition-colors"
             >
               <Check className="w-3.5 h-3.5" />
-              {saving ? "Enregistrement..." : "Créer le contrat"}
+              {saving ? "Enregistrement..." : editingId ? "Enregistrer les modifications" : "Créer le contrat"}
             </button>
             <p className="text-slate-500 text-xs">
               Total : {Number(form.prixUnitaireEuros).toLocaleString("fr-FR")} €/an
@@ -243,6 +305,7 @@ export default function ContratsManager({
                   setEditingVisit={(id) => { setEditingVisit(id); setVisitDate(c.nextVisit ?? ""); }}
                   setVisitDate={setVisitDate}
                   onUpdateVisit={handleUpdateVisit}
+                  onEdit={startEdit}
                 />
               ))}
             </div>
@@ -263,6 +326,7 @@ export default function ContratsManager({
                   setEditingVisit={(id) => { setEditingVisit(id); setVisitDate(c.nextVisit ?? ""); }}
                   setVisitDate={setVisitDate}
                   onUpdateVisit={handleUpdateVisit}
+                  onEdit={startEdit}
                 />
               ))}
             </div>
@@ -275,7 +339,7 @@ export default function ContratsManager({
 
 function ContratCard({
   c, onToggle, onDelete, toggling, deleting,
-  editingVisit, visitDate, setEditingVisit, setVisitDate, onUpdateVisit,
+  editingVisit, visitDate, setEditingVisit, setVisitDate, onUpdateVisit, onEdit,
 }: {
   c: ContratWithClient;
   onToggle: (c: ContratWithClient) => void;
@@ -287,6 +351,7 @@ function ContratCard({
   setEditingVisit: (id: string) => void;
   setVisitDate: (v: string) => void;
   onUpdateVisit: (id: string) => void;
+  onEdit: (c: ContratWithClient) => void;
 }) {
   const overdue = isOverdue(c.nextVisit);
   const montant = (c.prixUnitaireCt / 100).toLocaleString("fr-FR", { minimumFractionDigits: 0 });
@@ -296,9 +361,10 @@ function ContratCard({
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-2">
-            <span className="flex items-center gap-1.5 text-white font-semibold text-sm">
+            <Link href={`/admin/clients/${c.clientId}`} className="flex items-center gap-1.5 text-white font-semibold text-sm hover:text-sky-300 transition-colors group/cli">
               <User className="w-3.5 h-3.5 text-slate-500" /> {c.clientName}
-            </span>
+              <ExternalLink className="w-3 h-3 text-slate-600 group-hover/cli:text-sky-400 transition-colors" />
+            </Link>
             {c.numero && <span className="text-slate-500 text-[10px] font-mono bg-slate-900/40 border border-white/10 rounded px-1.5 py-0.5">{c.numero}</span>}
             <span className="text-slate-500 text-xs">·</span>
             <span className="text-slate-300 text-xs">{c.units} unité{c.units > 1 ? "s" : ""}</span>
@@ -346,6 +412,13 @@ function ContratCard({
           >
             <FileText className="w-3.5 h-3.5" /> Contrat PDF
           </a>
+          <button
+            onClick={() => onEdit(c)}
+            title="Modifier le contrat"
+            className="p-2 rounded-lg text-slate-500 hover:text-sky-400 hover:bg-white/5 transition-colors"
+          >
+            <Pencil className="w-4 h-4" />
+          </button>
           <button
             onClick={() => onToggle(c)}
             disabled={toggling === c.id}

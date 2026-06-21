@@ -1,16 +1,15 @@
 import AdminHeader from "@/components/AdminHeader";
 import { getClientActivity } from "@/lib/clients";
 import { db } from "@/lib/db";
-import { leads, techniciens } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
-import { centimesToEuros, STATUS_DEVIS } from "@/lib/devis";
-import { STATUS_FACTURE } from "@/lib/factures";
+import { leads, techniciens, contratsEntretien } from "@/lib/db/schema";
+import { eq, desc } from "drizzle-orm";
+import { centimesToEuros } from "@/lib/devis";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft, MapPin, Calendar,
-  ClipboardList, Receipt, Wrench, FileText,
-  HeadphonesIcon, Bell, CheckCircle2, Clock, XCircle, Shield,
+  Wrench, FileText, ScrollText,
+  HeadphonesIcon, Bell, CheckCircle2, Clock, XCircle, Shield, Euro, ExternalLink,
 } from "lucide-react";
 import RgpdButtons from "./RgpdButtons";
 import ClientContactCard from "./ClientContactCard";
@@ -50,7 +49,7 @@ function fmtFull(d: Date | string | null) {
 }
 
 type TimelineItem = {
-  date: Date; type: "devis" | "facture" | "intervention" | "sav" | "suivi";
+  date: Date; type: "intervention" | "sav" | "suivi";
   label: string; sub: string; href?: string; color: string; icon: string;
 };
 
@@ -63,32 +62,31 @@ export default async function ClientDetailPage({
   const c = await getClientActivity(id);
   if (!c) notFound();
 
-  // Commercial affecté : résolu via le prospect (lead) d'origine
+  // Commercial affecté + montant du deal : résolus via le prospect (lead) d'origine
   let commercial: string | null = null;
+  let leadMontantCt = 0;
   if (c.leadId) {
-    const [lead] = await db.select({ commercialId: leads.commercialId }).from(leads).where(eq(leads.id, c.leadId)).limit(1);
-    if (lead?.commercialId) {
-      const [tech] = await db.select({ name: techniciens.name, prenom: techniciens.prenom }).from(techniciens).where(eq(techniciens.id, lead.commercialId)).limit(1);
-      if (tech) commercial = tech.prenom ? `${tech.prenom} ${tech.name}` : tech.name;
+    const [lead] = await db.select({ commercialId: leads.commercialId, montantDevisCt: leads.montantDevisCt }).from(leads).where(eq(leads.id, c.leadId)).limit(1);
+    if (lead) {
+      leadMontantCt = lead.montantDevisCt ?? 0;
+      if (lead.commercialId) {
+        const [tech] = await db.select({ name: techniciens.name, prenom: techniciens.prenom }).from(techniciens).where(eq(techniciens.id, lead.commercialId)).limit(1);
+        if (tech) commercial = tech.prenom ? `${tech.prenom} ${tech.name}` : tech.name;
+      }
     }
   }
 
-  const caTotal = c.facturesList
-    .filter((f) => f.status === "payée")
-    .reduce((s, f) => s + (f.totalTtcCt ?? 0), 0);
+  // Contrat d'entretien du client (le plus récent)
+  const [contrat] = await db.select().from(contratsEntretien)
+    .where(eq(contratsEntretien.clientId, c.id))
+    .orderBy(desc(contratsEntretien.createdAt))
+    .limit(1);
 
-  // Build unified timeline
+  // Montant généré = deal initial + contrat annuel (le suivi facturation Pennylane vit hors CRM).
+  const montantGenere = leadMontantCt + (contrat?.prixUnitaireCt ?? 0);
+
+  // Build unified timeline (interventions / SAV / suivis — pas de devis/factures)
   const timeline: TimelineItem[] = [
-    ...c.devisList.map((d) => ({
-      date: new Date(d.createdAt), type: "devis" as const,
-      label: `Devis ${d.number}`, sub: `${centimesToEuros(d.totalTtcCt ?? 0)} · ${STATUS_DEVIS[d.status]?.label ?? d.status}`,
-      href: `/admin/devis/${d.id}`, color: "bg-sky-500/10 border-sky-500/30 text-sky-400", icon: "📋",
-    })),
-    ...c.facturesList.map((f) => ({
-      date: new Date(f.createdAt), type: "facture" as const,
-      label: `Facture ${f.number}`, sub: `${centimesToEuros(f.totalTtcCt ?? 0)} · ${STATUS_FACTURE[f.status]?.label ?? f.status}`,
-      href: `/admin/factures/${f.id}`, color: "bg-emerald-500/10 border-emerald-500/30 text-emerald-400", icon: "🧾",
-    })),
     ...c.interventionsList.map((i) => ({
       date: new Date(i.scheduledAt ?? i.createdAt), type: "intervention" as const,
       label: TYPE_LABELS[i.type] ?? i.type, sub: `${INTERV_STATUS[i.status]?.label ?? i.status}${i.address ? ` · ${i.address}` : ""}`,
@@ -169,24 +167,52 @@ export default async function ClientDetailPage({
         />
 
         {/* KPIs */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           <div className="bg-slate-800/40 border border-white/8 rounded-xl p-4">
             <p className="text-2xl font-bold text-white">{c.interventionsList.filter(i => i.status === "terminée").length}</p>
             <p className="text-slate-400 text-xs mt-0.5">Interventions</p>
-          </div>
-          <div className="bg-slate-800/40 border border-white/8 rounded-xl p-4">
-            <p className="text-2xl font-bold text-white">{c.facturesList.length}</p>
-            <p className="text-slate-400 text-xs mt-0.5">Factures</p>
           </div>
           <div className="bg-slate-800/40 border border-white/8 rounded-xl p-4">
             <p className="text-2xl font-bold text-white">{c.savList.filter(s => s.status === "ouvert" || s.status === "en_cours").length}</p>
             <p className="text-slate-400 text-xs mt-0.5">SAV ouverts</p>
           </div>
           <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4">
-            <p className="text-2xl font-bold text-emerald-400">{centimesToEuros(caTotal)}</p>
-            <p className="text-emerald-600 text-xs mt-0.5">CA encaissé</p>
+            <p className="text-2xl font-bold text-emerald-400">{centimesToEuros(montantGenere)}</p>
+            <p className="text-emerald-600/90 text-xs mt-0.5">Montant généré</p>
           </div>
         </div>
+
+        {/* Contrat d'entretien */}
+        {contrat && (
+          <div className="bg-emerald-500/[0.06] border border-emerald-500/20 rounded-2xl p-5">
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div className="min-w-0">
+                <h2 className="text-white font-semibold text-sm flex items-center gap-2 mb-2">
+                  <ScrollText className="w-4 h-4 text-emerald-400" /> Contrat d&apos;entretien
+                  {contrat.numero && <span className="text-emerald-300/80 text-[10px] font-mono bg-emerald-500/10 border border-emerald-500/20 rounded px-1.5 py-0.5">{contrat.numero}</span>}
+                  {!contrat.active && <span className="text-slate-400 text-[10px] bg-slate-500/10 border border-white/10 rounded px-1.5 py-0.5">Inactif</span>}
+                </h2>
+                <div className="flex items-center gap-4 flex-wrap text-xs text-slate-300">
+                  <span className="flex items-center gap-1.5"><Euro className="w-3 h-3 text-emerald-400" /> {centimesToEuros(contrat.prixUnitaireCt)} / an · {contrat.units} unité{contrat.units > 1 ? "s" : ""}</span>
+                  <span className="flex items-center gap-1.5"><Calendar className="w-3 h-3 text-slate-500" /> Début : {fmt(contrat.startDate)}</span>
+                  <span className="flex items-center gap-1.5">
+                    <Wrench className="w-3 h-3 text-slate-500" /> Prochaine visite : {contrat.nextVisit ? fmt(contrat.nextVisit) : "non planifiée"}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <a href={`/api/admin/contrats/${contrat.id}/document`} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-sky-500/10 border border-sky-500/25 text-sky-300 text-xs font-medium hover:bg-sky-500/20 transition-colors">
+                  <FileText className="w-3.5 h-3.5" /> Contrat PDF
+                </a>
+                <Link href="/admin/contrats"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-700/60 border border-white/10 text-slate-300 text-xs font-medium hover:text-white transition-colors">
+                  <ExternalLink className="w-3.5 h-3.5" /> Gérer
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Équipement */}
         {(c.equipementInstalle || c.marqueModele || c.dateInstallation || c.garantieExpireLe) && (
@@ -304,7 +330,7 @@ export default async function ClientDetailPage({
                     <p className="text-slate-600 text-[10px] mt-0.5">{fmtFull(item.date)}</p>
                   </div>
                   <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border flex-shrink-0 ${item.color}`}>
-                    {item.type === "devis" ? "Devis" : item.type === "facture" ? "Facture" : item.type === "intervention" ? "Intervention" : item.type === "sav" ? "SAV" : "Suivi"}
+                    {item.type === "intervention" ? "Intervention" : item.type === "sav" ? "SAV" : "Suivi"}
                   </span>
                 </div>
               ))}
@@ -344,72 +370,6 @@ export default async function ClientDetailPage({
                         <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{fmt(i.scheduledAt)}</span>
                       )}
                       {i.status === "terminée" && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Devis */}
-        <div className="bg-slate-800/40 border border-white/8 rounded-2xl overflow-hidden">
-          <div className="px-5 py-4 border-b border-white/8 flex items-center gap-2">
-            <ClipboardList className="w-4 h-4 text-slate-500" />
-            <h2 className="text-white font-semibold text-sm">Devis ({c.devisList.length})</h2>
-          </div>
-          {c.devisList.length === 0 ? (
-            <p className="text-slate-500 text-xs text-center py-8">Aucun devis</p>
-          ) : (
-            <div className="divide-y divide-white/5">
-              {c.devisList.map((d) => {
-                const st = STATUS_DEVIS[d.status] ?? STATUS_DEVIS.brouillon;
-                return (
-                  <Link
-                    key={d.id}
-                    href={`/admin/devis/${d.id}`}
-                    className="flex items-center justify-between px-5 py-3 hover:bg-white/3 transition-colors gap-3"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-white text-sm font-medium">{d.number}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full border ${st.color}`}>{st.label}</span>
-                    </div>
-                    <div className="flex items-center gap-4 text-slate-400 text-xs">
-                      {d.totalTtcCt != null && <span className="text-white tabular-nums">{centimesToEuros(d.totalTtcCt)}</span>}
-                      <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{fmt(d.createdAt)}</span>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Factures */}
-        <div className="bg-slate-800/40 border border-white/8 rounded-2xl overflow-hidden">
-          <div className="px-5 py-4 border-b border-white/8 flex items-center gap-2">
-            <Receipt className="w-4 h-4 text-slate-500" />
-            <h2 className="text-white font-semibold text-sm">Factures ({c.facturesList.length})</h2>
-          </div>
-          {c.facturesList.length === 0 ? (
-            <p className="text-slate-500 text-xs text-center py-8">Aucune facture</p>
-          ) : (
-            <div className="divide-y divide-white/5">
-              {c.facturesList.map((f) => {
-                const st = STATUS_FACTURE[f.status] ?? STATUS_FACTURE.en_attente;
-                return (
-                  <Link
-                    key={f.id}
-                    href={`/admin/factures/${f.id}`}
-                    className="flex items-center justify-between px-5 py-3 hover:bg-white/3 transition-colors gap-3"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-white text-sm font-medium">{f.number}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full border ${st.color}`}>{st.label}</span>
-                    </div>
-                    <div className="flex items-center gap-4 text-slate-400 text-xs">
-                      {f.totalTtcCt != null && <span className="text-white tabular-nums">{centimesToEuros(f.totalTtcCt)}</span>}
-                      <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{fmt(f.createdAt)}</span>
                     </div>
                   </Link>
                 );

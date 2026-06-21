@@ -39,6 +39,8 @@ export async function PATCH(req: NextRequest) {
     if (body.prixUnitaireEuros != null) patch.prixUnitaireCt = Math.round(Number(body.prixUnitaireEuros) * 100);
     if (body.nextVisit !== undefined) patch.nextVisit = body.nextVisit;
     if (body.active !== undefined) patch.active = body.active;
+    if (body.startDate) patch.startDate = body.startDate;
+    if (body.fluide) patch.fluide = body.fluide;
     const c = await updateContrat(body.id, patch);
     return NextResponse.json({ contrat: c });
   } catch {

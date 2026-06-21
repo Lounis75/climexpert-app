@@ -71,7 +71,7 @@ export async function createContrat(data: {
 
 export async function updateContrat(
   id: string,
-  data: Partial<Pick<InferInsertModel<typeof contratsEntretien>, "units" | "prixUnitaireCt" | "nextVisit" | "active">>
+  data: Partial<Pick<InferInsertModel<typeof contratsEntretien>, "units" | "prixUnitaireCt" | "nextVisit" | "active" | "startDate" | "fluide">>
 ): Promise<Contrat | null> {
   const [c] = await db
     .update(contratsEntretien)
