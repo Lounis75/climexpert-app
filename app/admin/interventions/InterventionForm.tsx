@@ -55,13 +55,15 @@ export default function InterventionForm({
 
   const isEntretien = ["entretien", "maintenance", "contrat-pro"].includes(type);
   const selectedClient = clients.find((c) => c.id === clientId);
-  const isSousTraitance = (selectedClient as (Client & { typeClient?: string }) | undefined)?.typeClient === "sous_traitance";
+  const isSousTraitance = selectedClient?.typeClient === "sous_traitance";
   const clientChantiers = chantiers.filter((ch) => ch.clientId === clientId);
 
   // Pré-remplir l'adresse depuis le client sélectionné
   function handleClientChange(id: string) {
     setClientId(id);
     setChantierId(""); // les chantiers sont propres à chaque client
+    setSiteNom("");    // les champs « site » (sous-traitance) sont propres au client
+    setSiteAdresse("");
     const c = clients.find((c) => c.id === id);
     if (c?.address) setAddress(c.address);
     else setAddress("");

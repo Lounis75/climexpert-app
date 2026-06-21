@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
       message: notesWithPhotos || undefined,
       consentementMarketing: body.consent === true,
       consentementLe: body.consent === true ? new Date() : undefined,
-      typeClient: body.typeClient === "professionnel" ? "professionnel" : "particulier",
+      typeClient: ["professionnel", "sous_traitance"].includes(body.typeClient ?? "") ? body.typeClient : "particulier",
     });
 
     await createNotification({

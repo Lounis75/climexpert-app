@@ -4,6 +4,7 @@ import type { InferSelectModel } from "drizzle-orm";
 import { eq, desc, and, isNull, ilike, or, sql, count, type SQL } from "drizzle-orm";
 import { randomBytes } from "crypto";
 import { createChantier, getChantierByLead } from "@/lib/chantiers";
+import { logError } from "@/lib/observability";
 
 const PROJECT_LABEL: Record<string, string> = {
   installation: "Installation", entretien: "Entretien", depannage: "Dépannage",
@@ -127,13 +128,16 @@ export async function createClientFromLead(leadId: string): Promise<Client | nul
   }).where(eq(leads.id, lead.id));
 
   // Chantier créé à la signature du devis (= passage en "gagné"). Idempotent (1 par prospect).
+  // NON bloquant volontairement : un échec ici ne doit pas faire échouer la conversion en
+  // client (action critique). On le remonte via logError (Sentry) pour pouvoir le rattraper
+  // au besoin avec scripts/backfill-chantiers.ts.
   try {
     if (!(await getChantierByLead(lead.id))) {
       const nom = `${PROJECT_LABEL[lead.project ?? ""] ?? "Chantier"} — ${client.name}`;
       await createChantier({ clientId: client.id, leadId: lead.id, nom, montantCt: lead.montantDevisCt ?? null });
     }
   } catch (e) {
-    console.error("[chantier] création auto:", e);
+    logError("chantier.autoCreate", e, { leadId: lead.id, clientId: client.id });
   }
 
   return client;

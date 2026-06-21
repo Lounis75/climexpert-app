@@ -86,6 +86,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
   const [loadingCol, setLoadingCol] = useState<LeadStatus | null>(null);
   const [searching, setSearching] = useState(false);
   const [sourceFilter, setSourceFilter] = useState(initialSource ?? "tous");
+  const [favorisOnly, setFavorisOnly] = useState(false);
   // Journal d'échanges du prospect ouvert (chargé à l'ouverture du panneau).
   const [suivis, setSuivis] = useState<Suivi[]>([]);
   const [loadingSuivis, setLoadingSuivis] = useState(false);
@@ -221,6 +222,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
   }, [search, cap]);
 
   const filtered = leads.filter((l) => {
+    if (favorisOnly && !l.favori) return false;
     if (sourceFilter === "téléphone" && l.source !== "téléphone" && l.source !== "whatsapp") return false;
     if (sourceFilter !== "tous" && sourceFilter !== "téléphone" && l.source !== sourceFilter) return false;
     if (search) {
@@ -268,7 +270,10 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
   // ⭐ Marquer / démarquer un prospect comme « intéressant » (optimiste + verrou version).
   async function toggleFavori(lead: Lead) {
-    const current = leads.find((l) => l.id === lead.id) ?? lead;
+    // On lit la version dans `leads` (source de vérité) juste avant l'envoi — pas de
+    // fallback sur une snapshot potentiellement périmée (sinon 409 systématique).
+    const current = leads.find((l) => l.id === lead.id);
+    if (!current) return;
     const next = !current.favori;
     setLeads((prev) => prev.map((l) => (l.id === lead.id ? { ...l, favori: next } : l)));
     setSelectedLead((prev) => (prev && prev.id === lead.id ? { ...prev, favori: next } : prev));
@@ -533,6 +538,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
           <button
             onClick={(e) => { e.stopPropagation(); toggleFavori(lead); }}
             title={lead.favori ? "Retirer des favoris" : "Marquer comme intéressant"}
+            aria-label={lead.favori ? "Retirer des favoris" : "Marquer comme intéressant"}
             className="flex-shrink-0 -ml-0.5"
           >
             <Star className={`w-4 h-4 transition-colors ${lead.favori ? "fill-amber-400 text-amber-400" : "text-slate-600 hover:text-amber-400"}`} />
@@ -647,6 +653,19 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
               {label}
             </button>
           ))}
+          {/* ⭐ Filtre favoris */}
+          <button
+            onClick={() => setFavorisOnly((v) => !v)}
+            title="N'afficher que les prospects marqués d'une étoile"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+              favorisOnly
+                ? "bg-amber-400 border-amber-400 text-slate-900"
+                : "border-white/10 text-slate-400 hover:text-white hover:border-amber-400/40"
+            }`}
+          >
+            <Star className={`w-3.5 h-3.5 ${favorisOnly ? "fill-slate-900" : ""}`} />
+            Favoris
+          </button>
         </div>
 
         {/* Search */}
@@ -729,7 +748,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                   <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border truncate min-w-0 ${cfg.color}`}>
                     {cfg.label}
                   </span>
-                  <span className="text-slate-500 text-xs font-medium flex-shrink-0">{colCounts[status] ?? col.length}</span>
+                  <span className="text-slate-500 text-xs font-medium flex-shrink-0">{favorisOnly ? col.length : (colCounts[status] ?? col.length)}</span>
                 </div>
 
                 {/* Cards */}
@@ -753,13 +772,13 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                     <LeadCard key={lead.id} lead={lead} />
                   ))}
                   {/* Charger plus (uniquement hors recherche/filtre, quand il reste des prospects) */}
-                  {!search && sourceFilter === "tous" && col.length < (colCounts[status] ?? 0) && (
+                  {!search && !favorisOnly && sourceFilter === "tous" && col.length < (colCounts[status] ?? 0) && (
                     <button
                       onClick={() => loadMore(status)}
                       disabled={loadingCol === status}
                       className="w-full text-[11px] text-slate-400 hover:text-white py-1.5 rounded-lg border border-dashed border-white/10 hover:border-white/20 transition-colors disabled:opacity-50"
                     >
-                      {loadingCol === status ? "Chargement…" : `Charger plus (${(colCounts[status] ?? 0) - col.length})`}
+                      {loadingCol === status ? "Chargement…" : `Charger plus (${Math.max(0, (colCounts[status] ?? 0) - col.length)})`}
                     </button>
                   )}
                 </div>
@@ -789,6 +808,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                     <button
                       onClick={(e) => { e.stopPropagation(); toggleFavori(lead); }}
                       title={lead.favori ? "Retirer des favoris" : "Marquer comme intéressant"}
+            aria-label={lead.favori ? "Retirer des favoris" : "Marquer comme intéressant"}
                       className="flex-shrink-0"
                     >
                       <Star className={`w-4 h-4 transition-colors ${lead.favori ? "fill-amber-400 text-amber-400" : "text-slate-600 hover:text-amber-400"}`} />
@@ -952,7 +972,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
               </div>
             );
           })}
-          {!search && leads.length < totalCount && (
+          {!search && !favorisOnly && leads.length < totalCount && (
             <button
               onClick={loadMoreListe}
               disabled={searching}
@@ -988,6 +1008,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                   <button
                     onClick={() => toggleFavori(lead)}
                     title={lead.favori ? "Retirer des favoris" : "Marquer comme intéressant"}
+            aria-label={lead.favori ? "Retirer des favoris" : "Marquer comme intéressant"}
                     className="flex-shrink-0"
                   >
                     <Star className={`w-5 h-5 transition-colors ${lead.favori ? "fill-amber-400 text-amber-400" : "text-slate-600 hover:text-amber-400"}`} />

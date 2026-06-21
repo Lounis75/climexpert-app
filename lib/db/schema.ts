@@ -157,7 +157,7 @@ export const clients = pgTable("clients", {
   notes:              text("notes"),
   leadId:             text("lead_id"),                                              // ref logique → leads
   // ─── Champs contrat (auto-remplissage du contrat d'entretien) ───────────────
-  typeClient:         varchar("type_client", { length: 20 }).default("particulier").notNull(), // "particulier" | "professionnel"
+  typeClient:         varchar("type_client", { length: 20 }).default("particulier").notNull(), // "particulier" | "professionnel" | "sous_traitance" (donneur d'ordre)
   civilite:           varchar("civilite", { length: 20 }),                          // "M." | "Madame" (particulier)
   siret:              varchar("siret", { length: 20 }),                             // pro
   formeJuridique:     varchar("forme_juridique", { length: 120 }),                  // pro : "SARL au capital de…"
@@ -189,7 +189,7 @@ export const leads = pgTable("leads", {
   location:            varchar("location", { length: 255 }),
   address:             text("address"),
   // Particulier ou professionnel (utile pour devis, TVA, démarchage B2B).
-  typeClient:          varchar("type_client", { length: 20 }).default("particulier").notNull(),
+  typeClient:          varchar("type_client", { length: 20 }).default("particulier").notNull(), // "particulier" | "professionnel" | "sous_traitance"
   project:             projectTypeEnum("project"),
   typeBatiment:        batimentTypeEnum("type_batiment"),
   surfaceM2:           integer("surface_m2"),

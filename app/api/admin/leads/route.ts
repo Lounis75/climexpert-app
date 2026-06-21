@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
       notes: notes?.trim() || undefined,
       consentementMarketing: consentementMarketing === true,
       consentementLe: consentementMarketing === true ? new Date() : undefined,
-      typeClient: typeClient === "professionnel" ? "professionnel" : "particulier",
+      typeClient: ["professionnel", "sous_traitance"].includes(typeClient) ? typeClient : "particulier",
     });
     return NextResponse.json({ lead });
   } catch (e) {
