@@ -280,7 +280,10 @@ function build(doc: Doc, data: ContratData) {
   const lx = (doc.page.width - (w1 + w2)) / 2;
   doc.fillColor(NAVY).text("Clim", lx, doc.y, { continued: true, lineBreak: false });
   doc.fillColor(BLUE).text("Expert", { continued: false, lineBreak: false });
-  doc.x = M.left; doc.moveDown(0.35);
+  // lineBreak:false n'avance PAS le curseur vertical → on le fait à la main (sinon le titre chevauche le logo).
+  doc.x = M.left;
+  doc.y += doc.currentLineHeight();
+  doc.moveDown(0.4);
   doc.font("Helvetica-Bold").fontSize(15).fillColor(NAVY).text("CONTRAT D'ENTRETIEN ET DE MAINTENANCE", M.left, doc.y, { width: contentWidth(doc), align: "center" });
   doc.font("Helvetica-Bold").fontSize(11).fillColor(BLUE).text("Installations de climatisation et pompes à chaleur", M.left, doc.y, { width: contentWidth(doc), align: "center" });
   doc.moveDown(0.3);
@@ -303,7 +306,9 @@ function build(doc: Doc, data: ContratData) {
     if (i === 0) doc.text(p.t, lx2, ly, { continued: true, lineBreak: false });
     else doc.text(p.t, { continued: i < lineSegs.length - 1, lineBreak: false });
   });
+  // Idem : on avance sous la ligne n°/date (sinon le trait bleu passe à travers le texte).
   doc.x = M.left;
+  doc.y = ly + doc.currentLineHeight();
   const yRule = doc.y + 4;
   doc.moveTo(M.left, yRule).lineTo(doc.page.width - M.right, yRule).lineWidth(1.2).strokeColor(BLUE).stroke();
   doc.moveDown(0.6);
