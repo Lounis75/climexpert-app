@@ -31,7 +31,7 @@ export async function signAdminToken(payload: AdminSession): Promise<string> {
   return new SignJWT({ ...payload, role: "admin" })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("7d")
+    .setExpirationTime("30d")
     .sign(getSecret());
 }
 
@@ -63,7 +63,7 @@ export async function signTechnicienToken(payload: TechnicienSession): Promise<s
   return new SignJWT({ ...payload, role: "technicien" })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("7d")
+    .setExpirationTime("30d")
     .sign(getSecret());
 }
 
@@ -96,7 +96,7 @@ export async function signCommercialToken(payload: CommercialSession): Promise<s
   return new SignJWT({ ...payload, role: "commercial" })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("7d")
+    .setExpirationTime("30d")
     .sign(getSecret());
 }
 

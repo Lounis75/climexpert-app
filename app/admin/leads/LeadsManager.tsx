@@ -23,6 +23,10 @@ const STATUS_CONFIG: Record<LeadStatus, { label: string; color: string; col: str
 };
 
 const STATUSES = Object.keys(STATUS_CONFIG) as LeadStatus[];
+const STATUS_DOT: Record<LeadStatus, string> = {
+  nouveau: "bg-sky-400", pas_de_reponse: "bg-rose-400", contacté: "bg-amber-400",
+  devis_envoyé: "bg-violet-400", gagné: "bg-emerald-400", perdu: "bg-slate-400",
+};
 
 // Journal d'échanges : type → icône.
 const SUIVI_ICONS: Record<string, string> = { appel: "📞", email: "✉️", sms: "💬", visite: "📍", note: "📝" };
@@ -87,6 +91,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
   const [searching, setSearching] = useState(false);
   const [sourceFilter, setSourceFilter] = useState(initialSource ?? "tous");
   const [favorisOnly, setFavorisOnly] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>("tous"); // raccourci par étape (surtout mobile)
   // Journal d'échanges du prospect ouvert (chargé à l'ouverture du panneau).
   const [suivis, setSuivis] = useState<Suivi[]>([]);
   const [loadingSuivis, setLoadingSuivis] = useState(false);
@@ -223,6 +228,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
   const filtered = leads.filter((l) => {
     if (favorisOnly && !l.favori) return false;
+    if (statusFilter !== "tous" && l.status !== statusFilter) return false;
     if (sourceFilter === "téléphone" && l.source !== "téléphone" && l.source !== "whatsapp") return false;
     if (sourceFilter !== "tous" && sourceFilter !== "téléphone" && l.source !== sourceFilter) return false;
     if (search) {
@@ -610,8 +616,8 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
   return (
     <div>
-      {/* Stats — grille responsive (4 colonnes sur mobile, 7 sur desktop), pas de coupure */}
-      <div className="grid grid-cols-4 sm:grid-cols-7 gap-2 mb-6">
+      {/* Stats — masquées sur mobile (superflu) ; sur mobile, voir les chips par étape ci-dessous */}
+      <div className="hidden sm:grid sm:grid-cols-7 gap-2 mb-6">
         {[
           { label: "Total",         value: Object.values(colCounts).reduce((a, b) => a + b, 0),        dot: null },
           { label: "Nouveau",       value: colCounts["nouveau"] ?? 0,                                 dot: "bg-sky-400" },
@@ -694,8 +700,8 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
           Ajouter un lead
         </button>
 
-        {/* View toggle */}
-        <div className="flex items-center gap-1 bg-slate-800/60 border border-white/10 rounded-xl p-1">
+        {/* View toggle (desktop seulement — le mobile est toujours en liste verticale) */}
+        <div className="hidden sm:flex items-center gap-1 bg-slate-800/60 border border-white/10 rounded-xl p-1">
           <button
             onClick={() => setView("kanban")}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
@@ -717,6 +723,29 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
         </div>
       </div>
 
+      {/* Raccourcis par étape (mobile) — remplacent le scroll horizontal du Kanban.
+          « Tous » = aperçu global ; chaque étape = vue filtrée verticale. */}
+      {leads.length > 0 && (
+        <div className="sm:hidden -mx-4 px-4 mb-5 flex gap-2 overflow-x-auto pb-1">
+          <button
+            onClick={() => setStatusFilter("tous")}
+            className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${statusFilter === "tous" ? "bg-sky-500 border-sky-500 text-white" : "border-white/10 bg-slate-800/40 text-slate-300"}`}
+          >
+            Tous <span className="tabular-nums opacity-70">{totalCount}</span>
+          </button>
+          {STATUSES.map((s) => (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${statusFilter === s ? "bg-sky-500 border-sky-500 text-white" : "border-white/10 bg-slate-800/40 text-slate-300"}`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${STATUS_DOT[s]}`} />
+              {STATUS_CONFIG[s].label} <span className="tabular-nums opacity-70">{colCounts[s] ?? 0}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Empty state */}
       {leads.length === 0 && (
         <div className="text-center py-16 text-slate-500">
@@ -727,7 +756,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
       {/* ── KANBAN VIEW ─────────────────────────────────────────────────────── */}
       {view === "kanban" && leads.length > 0 && (
-        <div className="flex lg:grid lg:grid-cols-6 gap-2 overflow-x-auto lg:overflow-visible snap-x snap-mandatory lg:snap-none pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="hidden sm:flex lg:grid lg:grid-cols-6 gap-2 overflow-x-auto lg:overflow-visible snap-x snap-mandatory lg:snap-none pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
           {STATUSES.map((status) => {
             const cfg = STATUS_CONFIG[status];
             const col = filtered.filter((l) => l.status === status);
@@ -788,9 +817,14 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
         </div>
       )}
 
-      {/* ── LISTE VIEW ──────────────────────────────────────────────────────── */}
-      {view === "liste" && leads.length > 0 && (
-        <div className="space-y-3">
+      {/* ── LISTE VIEW (toujours affichée sur mobile ; sur desktop si vue=liste) ── */}
+      {leads.length > 0 && (
+        <div className={view === "liste" ? "space-y-3" : "space-y-3 sm:hidden"}>
+          {filtered.length === 0 && (
+            <p className="text-center text-slate-500 text-sm py-12">
+              Aucun prospect{statusFilter !== "tous" ? " à cette étape" : ""}{favorisOnly ? " en favori" : ""}.
+            </p>
+          )}
           {filtered.map((lead) => {
             const statusCfg = STATUS_CONFIG[lead.status];
             const listDupes = duplicatesMap.get(lead.id) ?? [];
@@ -972,7 +1006,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
               </div>
             );
           })}
-          {!search && !favorisOnly && leads.length < totalCount && (
+          {!search && !favorisOnly && statusFilter === "tous" && leads.length < totalCount && (
             <button
               onClick={loadMoreListe}
               disabled={searching}

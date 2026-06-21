@@ -29,11 +29,11 @@ export default async function AdminLeadsPage({
         <div className="mb-8 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-2xl font-bold text-white mb-1">Leads CRM</h1>
-            <p className="text-slate-400 text-sm">
+            <p className="hidden sm:block text-slate-400 text-sm">
               Prospects qualifiés par Alex et demandes de contact. Suivez leur avancement et prenez contact directement.
             </p>
             {enProductionCount > 0 && (
-              <p className="text-slate-500 text-xs mt-1.5 flex items-start gap-1.5">
+              <p className="hidden sm:flex text-slate-500 text-xs mt-1.5 items-start gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block mt-1 flex-shrink-0" />
                 <span>
                   {enProductionCount} prospect{enProductionCount > 1 ? "s" : ""} passé{enProductionCount > 1 ? "s" : ""} en production (intervention planifiée) — masqué{enProductionCount > 1 ? "s" : ""} du Kanban, fiche conservée dans <Link href="/admin/clients" className="text-sky-400 hover:text-sky-300 underline underline-offset-2">Clients</Link>.
