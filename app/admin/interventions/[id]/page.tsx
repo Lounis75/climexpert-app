@@ -123,7 +123,7 @@ export default async function InterventionDetailPage({
             <FileText className="w-4 h-4 text-slate-500" />
             <h2 className="text-white font-semibold text-sm">Notes internes</h2>
           </div>
-          <NotesEditor id={i.id} initialNotes={i.notes ?? ""} />
+          <NotesEditor id={i.id} initialNotes={i.notes ?? ""} version={i.version} />
         </div>
 
         {/* Photos de briefing — l'admin ajoute des photos pour aider le technicien */}
@@ -141,8 +141,8 @@ export default async function InterventionDetailPage({
 }
 
 // Inline notes editor — server component wraps a client island
-function NotesEditor({ id, initialNotes }: { id: string; initialNotes: string }) {
-  return <NotesEditorClient id={id} initialNotes={initialNotes} />;
+function NotesEditor({ id, initialNotes, version }: { id: string; initialNotes: string; version: number }) {
+  return <NotesEditorClient id={id} initialNotes={initialNotes} currentVersion={version} />;
 }
 
 import NotesEditorClient from "./NotesEditorClient";

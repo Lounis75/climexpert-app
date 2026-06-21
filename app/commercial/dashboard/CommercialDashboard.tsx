@@ -24,6 +24,7 @@ type Lead = {
   message: string | null;
   notes: string | null;
   createdAt: string;
+  version: number;
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -96,12 +97,21 @@ export default function CommercialDashboard({ session, rdvs }: { session: Commer
       const res = await fetch("/api/commercial/leads", {
         method:  "PATCH",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ id: selected.id, notes }),
+        body:    JSON.stringify({ id: selected.id, notes, version: selected.version }), // verrou optimiste
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 409) {
+        // Quelqu'un a modifié la fiche entre-temps → on resynchronise + message.
+        if (data.lead) {
+          setLeads(prev => prev.map(l => l.id === selected.id ? { ...l, ...data.lead } : l));
+          setSelected(prev => prev ? { ...prev, ...data.lead } : null);
+        }
+        alert("⚠️ " + (data.error ?? "Cette fiche a été modifiée par quelqu'un d'autre."));
+        return;
+      }
       if (data.lead) {
-        setLeads(prev => prev.map(l => l.id === selected.id ? { ...l, notes } : l));
-        setSelected(prev => prev ? { ...prev, notes } : null);
+        setLeads(prev => prev.map(l => l.id === selected.id ? { ...l, ...data.lead } : l));
+        setSelected(prev => prev ? { ...prev, ...data.lead } : null);
       }
     } finally {
       setSaving(false);

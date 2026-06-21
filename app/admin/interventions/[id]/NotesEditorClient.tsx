@@ -6,9 +6,11 @@ import { Check, Pencil } from "lucide-react";
 export default function NotesEditorClient({
   id,
   initialNotes,
+  currentVersion,
 }: {
   id: string;
   initialNotes: string;
+  currentVersion: number;
 }) {
   const [editing, setEditing] = useState(false);
   const [notes, setNotes] = useState(initialNotes);
@@ -17,11 +19,17 @@ export default function NotesEditorClient({
   async function save() {
     setSaving(true);
     try {
-      await fetch(`/api/admin/interventions/${id}`, {
+      const res = await fetch(`/api/admin/interventions/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ notes }),
+        body: JSON.stringify({ notes, version: currentVersion }), // verrou optimiste
       });
+      if (res.status === 409) {
+        const d = await res.json().catch(() => ({}));
+        alert("⚠️ " + (d.error ?? "Cette intervention a été modifiée par quelqu'un d'autre."));
+        window.location.reload();
+        return;
+      }
       setEditing(false);
     } finally {
       setSaving(false);

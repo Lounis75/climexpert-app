@@ -143,7 +143,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       return NextResponse.json({ intervention: i });
     }
     if (body.notes !== undefined) {
-      await updateInterventionNotes(id, body.notes);
+      const ok = await updateInterventionNotes(id, body.notes, expectedVersion);
+      if (!ok) {
+        if (expectedVersion !== undefined && (await getInterventionById(id))) {
+          return NextResponse.json({ error: "Cette intervention vient d'être modifiée par quelqu'un d'autre. Rechargez la page.", conflict: true }, { status: 409 });
+        }
+        return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+      }
       return NextResponse.json({ success: true });
     }
     return NextResponse.json({ error: "Aucun champ à modifier" }, { status: 400 });

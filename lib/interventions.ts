@@ -143,8 +143,14 @@ async function planifierSuivis(interv: Intervention): Promise<void> {
   );
 }
 
-export async function updateInterventionNotes(id: string, notes: string): Promise<void> {
-  await db.update(interventions).set({ notes, version: sql`${interventions.version} + 1` as unknown as number, updatedAt: new Date() }).where(eq(interventions.id, id));
+export async function updateInterventionNotes(id: string, notes: string, expectedVersion?: number): Promise<boolean> {
+  const conds = [eq(interventions.id, id)];
+  if (typeof expectedVersion === "number") conds.push(eq(interventions.version, expectedVersion));
+  const res = await db.update(interventions)
+    .set({ notes, version: sql`${interventions.version} + 1` as unknown as number, updatedAt: new Date() })
+    .where(and(...conds))
+    .returning({ id: interventions.id });
+  return res.length > 0;
 }
 
 export async function deleteIntervention(id: string): Promise<void> {
