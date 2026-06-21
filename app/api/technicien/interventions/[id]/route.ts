@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { interventions, clients, rapportsIntervention } from "@/lib/db/schema";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, sql } from "drizzle-orm";
 import { verifyTechnicienToken, TECH_COOKIE_NAME } from "@/lib/auth";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -70,7 +70,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   await db
     .update(interventions)
-    .set({ status, updatedAt: new Date(), ...(status === "terminée" ? { completedAt: new Date() } : {}) })
+    .set({ status, version: sql`${interventions.version} + 1`, updatedAt: new Date(), ...(status === "terminée" ? { completedAt: new Date() } : {}) })
     .where(and(eq(interventions.id, id), eq(interventions.technicienId, session.sub)));
 
   return NextResponse.json({ ok: true });

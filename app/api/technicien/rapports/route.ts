@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { interventions, rapportsIntervention, notifications, contratsEntretien, suivis, clients } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { verifyTechnicienToken, TECH_COOKIE_NAME } from "@/lib/auth";
 import { createId } from "@paralleldrive/cuid2";
 import { contratTotalCt } from "@/lib/contrat-pricing";
@@ -114,6 +114,7 @@ export async function POST(req: NextRequest) {
       status:             "terminée",
       completedAt:        new Date(),
       dureeReelleMinutes: dureeReelleMinutes ?? null,
+      version:            sql`${interventions.version} + 1`,
       updatedAt:          new Date(),
     })
     .where(eq(interventions.id, interventionId));
