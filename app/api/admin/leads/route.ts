@@ -1,8 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createLead, updateLead, deleteLead, findActiveLeadByNamePhone } from "@/lib/leads";
+import { createLead, updateLead, deleteLead, findActiveLeadByNamePhone, getLeadsByStatusPaged, getLeadsPaginated, getLastActivityByLead } from "@/lib/leads";
 import { createClientFromLead } from "@/lib/clients";
 import { logError } from "@/lib/observability";
 import type { LeadStatus } from "@/lib/leads";
+
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const status = searchParams.get("status");
+    // « Charger plus » d'une colonne du Kanban
+    if (status) {
+      const offset = Number(searchParams.get("offset")) || 0;
+      const limit = Number(searchParams.get("limit")) || 50;
+      const items = await getLeadsByStatusPaged({ status: status as LeadStatus, offset, limit });
+      const lastActivity = await getLastActivityByLead(items.map((l) => l.id));
+      return NextResponse.json({ leads: items, lastActivity });
+    }
+    // Vue Liste paginée + recherche serveur
+    const page = Number(searchParams.get("page")) || 1;
+    const limit = Number(searchParams.get("limit")) || 50;
+    const search = searchParams.get("q") ?? "";
+    const { items, total, pageSize } = await getLeadsPaginated({ search, page, limit });
+    const lastActivity = await getLastActivityByLead(items.map((l) => l.id));
+    return NextResponse.json({ leads: items, total, page, pageSize, lastActivity });
+  } catch (e) {
+    logError("leads.GET", e);
+    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {

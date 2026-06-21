@@ -79,8 +79,12 @@ function toLocalDT(d: string | Date | null | undefined): string {
 
 type Suivi = { id: string; type: string; contenu: string | null; createdAt: string; auteur: string | null };
 
-export default function LeadsManager({ initialLeads, initialSource, lastActivity = {} }: { initialLeads: Lead[]; initialSource?: string; lastActivity?: Record<string, string> }) {
+export default function LeadsManager({ initialLeads, initialSource, lastActivity = {}, counts = {}, cap = 50 }: { initialLeads: Lead[]; initialSource?: string; lastActivity?: Record<string, string>; counts?: Record<string, number>; cap?: number }) {
   const [leads, setLeads] = useState<Lead[]>(initialLeads);
+  const [colCounts, setColCounts] = useState<Record<string, number>>(counts);   // total réel par colonne
+  const [activityMap, setActivityMap] = useState<Record<string, string>>(lastActivity);
+  const [loadingCol, setLoadingCol] = useState<LeadStatus | null>(null);
+  const [searching, setSearching] = useState(false);
   const [sourceFilter, setSourceFilter] = useState(initialSource ?? "tous");
   // Journal d'échanges du prospect ouvert (chargé à l'ouverture du panneau).
   const [suivis, setSuivis] = useState<Suivi[]>([]);
@@ -153,6 +157,69 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
     } finally { setSavingSuivi(false); }
   }
 
+  const [listePage, setListePage] = useState(1);
+
+  // « Charger plus » de la vue Liste : page globale suivante (fusionnée, dédoublonnée).
+  async function loadMoreListe() {
+    setSearching(true);
+    try {
+      const res = await fetch(`/api/admin/leads?page=${listePage + 1}&limit=50`);
+      if (res.ok) {
+        const d = await res.json();
+        const more: Lead[] = d.leads ?? [];
+        setLeads((prev) => {
+          const ids = new Set(prev.map((l) => l.id));
+          return [...prev, ...more.filter((l) => !ids.has(l.id))];
+        });
+        setActivityMap((prev) => ({ ...prev, ...(d.lastActivity ?? {}) }));
+        setListePage((p) => p + 1);
+      }
+    } finally { setSearching(false); }
+  }
+
+  // « Charger plus » d'une colonne : récupère les prospects suivants de ce statut.
+  async function loadMore(status: LeadStatus) {
+    setLoadingCol(status);
+    try {
+      const loaded = leads.filter((l) => l.status === status).length;
+      const res = await fetch(`/api/admin/leads?status=${status}&offset=${loaded}&limit=${cap}`);
+      if (res.ok) {
+        const d = await res.json();
+        const more: Lead[] = d.leads ?? [];
+        setLeads((prev) => {
+          const ids = new Set(prev.map((l) => l.id));
+          return [...prev, ...more.filter((l) => !ids.has(l.id))];
+        });
+        setActivityMap((prev) => ({ ...prev, ...(d.lastActivity ?? {}) }));
+      }
+    } finally { setLoadingCol(null); }
+  }
+
+  // Recherche serveur (débouncée) : on fusionne les prospects trouvés dans la liste
+  // chargée → ils apparaissent dans le Kanban ET la Liste, même hors des pages cappées.
+  const firstSearch = useRef(true);
+  useEffect(() => {
+    if (firstSearch.current) { firstSearch.current = false; return; }
+    const q = search.trim();
+    if (!q) return;
+    const t = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await fetch(`/api/admin/leads?page=1&limit=100&q=${encodeURIComponent(q)}`);
+        if (res.ok) {
+          const d = await res.json();
+          const found: Lead[] = d.leads ?? [];
+          setLeads((prev) => {
+            const ids = new Set(prev.map((l) => l.id));
+            return [...prev, ...found.filter((l) => !ids.has(l.id))];
+          });
+          setActivityMap((prev) => ({ ...prev, ...(d.lastActivity ?? {}) }));
+        }
+      } finally { setSearching(false); }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [search, cap]);
+
   const filtered = leads.filter((l) => {
     if (sourceFilter === "téléphone" && l.source !== "téléphone" && l.source !== "whatsapp") return false;
     if (sourceFilter !== "tous" && sourceFilter !== "téléphone" && l.source !== sourceFilter) return false;
@@ -191,6 +258,10 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
         const newClientId: string | null = data.lead?.clientId ?? null;
         setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status: status as LeadStatus, clientId: newClientId ?? l.clientId } as Lead : l)));
         setSelectedLead((prev) => prev && prev.id === id ? { ...prev, status: status as LeadStatus, clientId: newClientId ?? prev.clientId } as Lead : prev);
+        // Compteurs de colonne : -1 à l'ancien statut, +1 au nouveau.
+        if (previous && previous !== status) {
+          setColCounts((c) => ({ ...c, [previous]: Math.max(0, (c[previous] ?? 0) - 1), [status]: (c[status] ?? 0) + 1 }));
+        }
         if (newClientId) setConvertDone((prev) => new Set(prev).add(id));
         // Conversion en client échouée → on prévient (sinon CA compté sans fiche client).
         if (data.warning) alert("⚠️ " + data.warning);
@@ -374,7 +445,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
     const sourceColor = lead.source === "alex" ? "text-sky-400" : (lead.source === "whatsapp" || lead.source === "téléphone") ? "text-emerald-400" : "text-violet-400";
 
     const meta = [lead.project ? (PROJECT_LABELS[lead.project] ?? lead.project) : null, lead.location || null].filter(Boolean);
-    const lastAct = lastActivity[lead.id];
+    const lastAct = activityMap[lead.id];
     const pal = (lead as Lead & { prochaineActionLe?: string | null }).prochaineActionLe;
     // « En sommeil » : prospect actif, sans alerte ni relance planifiée, sans activité depuis 7j+.
     const active = lead.status !== "gagné" && lead.status !== "perdu";
@@ -454,20 +525,21 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
   // ─── Render ─────────────────────────────────────────────────────────────────
 
-  const newCount = leads.filter((l) => l.status === "nouveau").length;
+  const totalCount = Object.values(colCounts).reduce((a, b) => a + b, 0);
+  const newCount = colCounts["nouveau"] ?? 0;
 
   return (
     <div>
       {/* Stats — grille responsive (4 colonnes sur mobile, 7 sur desktop), pas de coupure */}
       <div className="grid grid-cols-4 sm:grid-cols-7 gap-2 mb-6">
         {[
-          { label: "Total",         value: leads.length,                                              dot: null },
-          { label: "Nouveau",       value: leads.filter(l => l.status === "nouveau").length,          dot: "bg-sky-400" },
-          { label: "Pas de rép.",   value: leads.filter(l => l.status === "pas_de_reponse").length,   dot: "bg-rose-400" },
-          { label: "Contact",       value: leads.filter(l => l.status === "contacté").length,         dot: "bg-amber-400" },
-          { label: "Devis",         value: leads.filter(l => l.status === "devis_envoyé").length,     dot: "bg-violet-400" },
-          { label: "Gagné",         value: leads.filter(l => l.status === "gagné").length,            dot: "bg-emerald-400" },
-          { label: "Perdu",         value: leads.filter(l => l.status === "perdu").length,            dot: "bg-slate-400" },
+          { label: "Total",         value: Object.values(colCounts).reduce((a, b) => a + b, 0),        dot: null },
+          { label: "Nouveau",       value: colCounts["nouveau"] ?? 0,                                 dot: "bg-sky-400" },
+          { label: "Pas de rép.",   value: colCounts["pas_de_reponse"] ?? 0,                          dot: "bg-rose-400" },
+          { label: "Contact",       value: colCounts["contacté"] ?? 0,                                dot: "bg-amber-400" },
+          { label: "Devis",         value: colCounts["devis_envoyé"] ?? 0,                            dot: "bg-violet-400" },
+          { label: "Gagné",         value: colCounts["gagné"] ?? 0,                                   dot: "bg-emerald-400" },
+          { label: "Perdu",         value: colCounts["perdu"] ?? 0,                                   dot: "bg-slate-400" },
         ].map(({ label, value, dot }) => (
           <div key={label} className="bg-slate-800/40 border border-white/8 rounded-xl text-center py-3 px-1">
             <p className="text-lg font-bold text-white tabular-nums leading-none">{value}</p>
@@ -505,7 +577,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
         {/* Search */}
         <div className="relative flex-1 min-w-[180px] max-w-xs">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 pointer-events-none" />
+          <Search className={`absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none ${searching ? "text-sky-400 animate-pulse" : "text-slate-500"}`} />
           <input
             type="text"
             value={search}
@@ -583,7 +655,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                   <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border truncate min-w-0 ${cfg.color}`}>
                     {cfg.label}
                   </span>
-                  <span className="text-slate-500 text-xs font-medium flex-shrink-0">{col.length}</span>
+                  <span className="text-slate-500 text-xs font-medium flex-shrink-0">{colCounts[status] ?? col.length}</span>
                 </div>
 
                 {/* Cards */}
@@ -606,6 +678,16 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                   {col.map((lead) => (
                     <LeadCard key={lead.id} lead={lead} />
                   ))}
+                  {/* Charger plus (uniquement hors recherche/filtre, quand il reste des prospects) */}
+                  {!search && sourceFilter === "tous" && col.length < (colCounts[status] ?? 0) && (
+                    <button
+                      onClick={() => loadMore(status)}
+                      disabled={loadingCol === status}
+                      className="w-full text-[11px] text-slate-400 hover:text-white py-1.5 rounded-lg border border-dashed border-white/10 hover:border-white/20 transition-colors disabled:opacity-50"
+                    >
+                      {loadingCol === status ? "Chargement…" : `Charger plus (${(colCounts[status] ?? 0) - col.length})`}
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -789,12 +871,21 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
               </div>
             );
           })}
+          {!search && leads.length < totalCount && (
+            <button
+              onClick={loadMoreListe}
+              disabled={searching}
+              className="w-full text-xs text-slate-400 hover:text-white py-2.5 rounded-xl border border-dashed border-white/10 hover:border-white/20 transition-colors disabled:opacity-50"
+            >
+              {searching ? "Chargement…" : `Charger plus (${totalCount - leads.length} restants)`}
+            </button>
+          )}
         </div>
       )}
 
-      {leads.length > 0 && (
+      {totalCount > 0 && (
         <p className="text-slate-600 text-xs text-center mt-8">
-          {leads.length} lead{leads.length > 1 ? "s" : ""} · {newCount} nouveau{newCount > 1 ? "x" : ""}
+          {totalCount} lead{totalCount > 1 ? "s" : ""} · {newCount} nouveau{newCount > 1 ? "x" : ""}
         </p>
       )}
 

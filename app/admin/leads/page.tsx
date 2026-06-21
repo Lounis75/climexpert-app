@@ -1,4 +1,4 @@
-import { getLeads, getEnProductionLeadIds, getLastActivityByLead } from "@/lib/leads";
+import { getLeadsBoard, getLastActivityByLead } from "@/lib/leads";
 import { getLeadsPageStats } from "@/lib/dashboard";
 import AdminHeader from "@/components/AdminHeader";
 import LeadsManager from "./LeadsManager";
@@ -53,11 +53,12 @@ export default async function AdminLeadsPage({
 }) {
   const { period = "all", source } = await searchParams;
   const since = getSince(period);
-  const [allLeads, stats] = await Promise.all([getLeads(), getLeadsPageStats(since)]);
-  // Sortir du Kanban les prospects passés en production (gagnés + intervention planifiée
-  // avec date et technicien). Leur fiche client reste accessible.
-  const enProduction = await getEnProductionLeadIds(allLeads);
-  const leads = allLeads.filter((l) => !enProduction.has(l.id));
+  const CAP = 50; // prospects chargés par colonne (le reste via « charger plus »)
+  // Kanban paginé : on ne charge plus toute la table, mais les plus récents par colonne
+  // + les totaux réels. Les « en production » (gagnés + intervention planifiée) sont exclus.
+  const [board, stats] = await Promise.all([getLeadsBoard(CAP), getLeadsPageStats(since)]);
+  const leads = board.leads;
+  const enProductionCount = board.enProductionCount;
   const lastActivity = await getLastActivityByLead(leads.map((l) => l.id));
 
   const maxMois = Math.max(...stats.parMois.map((m) => m.total), 1);
@@ -77,11 +78,11 @@ export default async function AdminLeadsPage({
             <p className="text-slate-400 text-sm">
               Prospects qualifiés par Alex et demandes de contact. Suivez leur avancement et prenez contact directement.
             </p>
-            {enProduction.size > 0 && (
+            {enProductionCount > 0 && (
               <p className="text-slate-500 text-xs mt-1.5 flex items-start gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block mt-1 flex-shrink-0" />
                 <span>
-                  {enProduction.size} prospect{enProduction.size > 1 ? "s" : ""} passé{enProduction.size > 1 ? "s" : ""} en production (intervention planifiée) — masqué{enProduction.size > 1 ? "s" : ""} du Kanban, fiche conservée dans <Link href="/admin/clients" className="text-sky-400 hover:text-sky-300 underline underline-offset-2">Clients</Link>.
+                  {enProductionCount} prospect{enProductionCount > 1 ? "s" : ""} passé{enProductionCount > 1 ? "s" : ""} en production (intervention planifiée) — masqué{enProductionCount > 1 ? "s" : ""} du Kanban, fiche conservée dans <Link href="/admin/clients" className="text-sky-400 hover:text-sky-300 underline underline-offset-2">Clients</Link>.
                 </span>
               </p>
             )}
@@ -95,7 +96,7 @@ export default async function AdminLeadsPage({
         </div>
 
         {/* ─── Kanban / Liste leads ────────────────────────────────────────────── */}
-        <LeadsManager initialLeads={leads} initialSource={source} lastActivity={lastActivity} />
+        <LeadsManager initialLeads={leads} initialSource={source} lastActivity={lastActivity} counts={board.counts} cap={CAP} />
 
         {/* ─── Séparateur analytics ────────────────────────────────────────────── */}
         <div className="mt-10 mb-6 flex items-center gap-3">
