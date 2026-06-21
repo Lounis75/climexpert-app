@@ -35,6 +35,19 @@ export default function RapportForm({
   const [contraintesElec, setContraintesElec] = useState("");
   const [equipReco, setEquipReco]         = useState("");
   const [difficulte, setDifficulte]       = useState("standard");
+  // Attestation CERFA (fiche d'intervention fluides frigorigènes)
+  const [cerfaActif, setCerfaActif]       = useState(false);
+  const [cerfaSig, setCerfaSig]           = useState<string | null>(null);
+  const [cEquipId, setCEquipId]           = useState("");
+  const [cFluide, setCFluide]             = useState("");
+  const [cCharge, setCCharge]             = useState("");
+  const [cTonnage, setCTonnage]           = useState("");
+  const [cNatMaint, setCNatMaint]         = useState(true);
+  const [cNatCtrl, setCNatCtrl]           = useState(true);
+  const [cDetecteur, setCDetecteur]       = useState("");
+  const [cSysteme, setCSysteme]           = useState<"oui" | "non">("non");
+  const [cFuites, setCFuites]             = useState<"oui" | "non">("non");
+  const [cFuiteLoca, setCFuiteLoca]       = useState("");
 
   async function addPhotos(files: FileList) {
     const newPhotos = Array.from(files).slice(0, 5 - photos.length);
@@ -78,6 +91,10 @@ export default function RapportForm({
       setError("Le client doit signer le contrat d'entretien.");
       return;
     }
+    if (cerfaActif && !cerfaSig) {
+      setError("Signez l'attestation CERFA (signature de l'opérateur).");
+      return;
+    }
     setSubmitting(true);
     try {
       setUploading(true);
@@ -118,6 +135,19 @@ export default function RapportForm({
           contraintesElec,
           equipementRecommande: equipReco,
           difficulte,
+        }),
+        // Attestation CERFA (générée + envoyée au client + posée sur sa fiche à la clôture)
+        ...(cerfaActif && {
+          cerfaSignature: cerfaSig,
+          cerfa: {
+            equipement: { identification: cEquipId, fluide: cFluide, chargeKg: cCharge, tonnageCO2: cTonnage },
+            nature: { maintenance: cNatMaint, controleEtanchPeriodique: cNatCtrl },
+            detecteurManuel: cDetecteur,
+            systemePermanent: cSysteme,
+            fuitesConstatees: cFuites,
+            fuites: cFuites === "oui" ? [{ localisation: cFuiteLoca, reparation: "a_faire" }] : [],
+            observations: notes,
+          },
         }),
       };
 
@@ -341,6 +371,76 @@ export default function RapportForm({
                   <SignaturePad onChange={setSignature} />
                 </div>
               )}
+            </div>
+          )}
+        </div>
+
+        {/* Attestation CERFA */}
+        <div className="bg-white border border-slate-100 rounded-2xl p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-slate-900">Attestation d&apos;entretien (CERFA)</p>
+              <p className="text-xs text-slate-500 mt-0.5">Fiche officielle fluides frigorigènes — envoyée au client à la clôture.</p>
+            </div>
+            <button type="button" onClick={() => setCerfaActif((v) => !v)}
+              className={`px-3 py-2 rounded-xl border text-xs font-semibold flex-shrink-0 transition-colors ${cerfaActif ? "bg-sky-50 border-sky-300 text-sky-700" : "bg-white border-slate-200 text-slate-500"}`}>
+              {cerfaActif ? "✓ Activée" : "Établir"}
+            </button>
+          </div>
+
+          {cerfaActif && (
+            <div className="mt-4 pt-4 border-t border-slate-100 space-y-4">
+              <p className="text-[11px] text-slate-400">Opérateur (ClimExpert), client et date sont remplis automatiquement.</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <label className="text-xs text-slate-500 block mb-1">Équipement (marque, modèle, n° série)</label>
+                  <input value={cEquipId} onChange={(e) => setCEquipId(e.target.value)} placeholder="DAIKIN 3MXM68A2V1B9 — N° série…" className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm" />
+                </div>
+                <div><label className="text-xs text-slate-500 block mb-1">Fluide (R-)</label><input value={cFluide} onChange={(e) => setCFluide(e.target.value)} placeholder="32" className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm" /></div>
+                <div><label className="text-xs text-slate-500 block mb-1">Charge (kg)</label><input value={cCharge} onChange={(e) => setCCharge(e.target.value)} placeholder="9" className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm" /></div>
+                <div><label className="text-xs text-slate-500 block mb-1">Tonnage éq. CO2 (t)</label><input value={cTonnage} onChange={(e) => setCTonnage(e.target.value)} placeholder="1.35" className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm" /></div>
+              </div>
+
+              <div>
+                <p className="text-xs text-slate-500 mb-2">Nature de l&apos;intervention</p>
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" onClick={() => setCNatMaint((v) => !v)} className={`px-3 py-2 rounded-xl border text-xs font-medium ${cNatMaint ? "bg-sky-50 border-sky-300 text-sky-700" : "bg-white border-slate-200 text-slate-500"}`}>Maintenance</button>
+                  <button type="button" onClick={() => setCNatCtrl((v) => !v)} className={`px-3 py-2 rounded-xl border text-xs font-medium ${cNatCtrl ? "bg-sky-50 border-sky-300 text-sky-700" : "bg-white border-slate-200 text-slate-500"}`}>Contrôle d&apos;étanchéité périodique</button>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-500 block mb-1">Détecteur manuel de fuite</label>
+                <input value={cDetecteur} onChange={(e) => setCDetecteur(e.target.value)} placeholder="ex : Détecteur Value" className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-slate-500 mb-1.5">Système permanent de détection ?</p>
+                  <div className="flex gap-2">
+                    {(["oui", "non"] as const).map((o) => (
+                      <button key={o} type="button" onClick={() => setCSysteme(o)} className={`flex-1 py-2 rounded-lg border text-xs font-semibold uppercase ${cSysteme === o ? "bg-slate-900 border-slate-900 text-white" : "bg-white border-slate-200 text-slate-500"}`}>{o}</button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 mb-1.5">Fuites constatées ?</p>
+                  <div className="flex gap-2">
+                    {(["oui", "non"] as const).map((o) => (
+                      <button key={o} type="button" onClick={() => setCFuites(o)} className={`flex-1 py-2 rounded-lg border text-xs font-semibold uppercase ${cFuites === o ? "bg-slate-900 border-slate-900 text-white" : "bg-white border-slate-200 text-slate-500"}`}>{o}</button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              {cFuites === "oui" && (
+                <div><label className="text-xs text-slate-500 block mb-1">Localisation de la fuite</label><input value={cFuiteLoca} onChange={(e) => setCFuiteLoca(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm" /></div>
+              )}
+
+              <div>
+                <p className="text-sm font-semibold text-slate-900 mb-1 flex items-center gap-1.5"><PenLine className="w-4 h-4 text-sky-600" /> Signature de l&apos;opérateur (vous)</p>
+                <p className="text-xs text-slate-500 mb-2">Signez au stylet pour certifier l&apos;intervention.</p>
+                <SignaturePad onChange={setCerfaSig} />
+              </div>
             </div>
           )}
         </div>

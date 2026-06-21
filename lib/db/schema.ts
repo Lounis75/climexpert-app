@@ -530,6 +530,20 @@ export const disponibilitesBloquees = pgTable("disponibilites_bloquees", {
   createdAt:    timestamp("created_at").defaultNow().notNull(),
 });
 
+// ─── Documents client (CERFA, attestations…) ─────────────────────────────────
+export const documents = pgTable("documents", {
+  id:             text("id").primaryKey().$defaultFn(() => createId()),
+  clientId:       text("client_id").references(() => clients.id),
+  interventionId: text("intervention_id").references(() => interventions.id),
+  type:           varchar("type", { length: 30 }).notNull(), // "cerfa" | "contrat" | …
+  label:          varchar("label", { length: 255 }),
+  url:            text("url").notNull(),
+  createdAt:      timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  clientIdx:       index("documents_client_id_idx").on(t.clientId),
+  interventionIdx: index("documents_intervention_id_idx").on(t.interventionId),
+}));
+
 // ─── Relations ────────────────────────────────────────────────────────────────
 
 export const clientsRelations = relations(clients, ({ one, many }) => ({
@@ -649,3 +663,4 @@ export type PeriodeCapacite        = typeof periodesCapacite.$inferSelect;
 export type SuiviPlanifie          = typeof suivisPlanifies.$inferSelect;
 export type AuditLog               = typeof auditLog.$inferSelect;
 export type DynamicArticleRow      = typeof dynamicArticles.$inferSelect;
+export type Document               = typeof documents.$inferSelect;

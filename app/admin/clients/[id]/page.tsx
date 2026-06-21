@@ -1,7 +1,7 @@
 import AdminHeader from "@/components/AdminHeader";
 import { getClientActivity } from "@/lib/clients";
 import { db } from "@/lib/db";
-import { leads, techniciens, contratsEntretien } from "@/lib/db/schema";
+import { leads, techniciens, contratsEntretien, documents } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { centimesToEuros } from "@/lib/devis";
 import { notFound } from "next/navigation";
@@ -84,6 +84,11 @@ export default async function ClientDetailPage({
 
   // Montant généré = deal initial + contrat annuel (le suivi facturation Pennylane vit hors CRM).
   const montantGenere = leadMontantCt + (contrat?.prixUnitaireCt ?? 0);
+
+  // Documents du client (attestations CERFA, etc.)
+  const docs = await db.select().from(documents)
+    .where(eq(documents.clientId, c.id))
+    .orderBy(desc(documents.createdAt));
 
   // Build unified timeline (interventions / SAV / suivis — pas de devis/factures)
   const timeline: TimelineItem[] = [
@@ -377,6 +382,30 @@ export default async function ClientDetailPage({
             </div>
           )}
         </div>
+
+        {/* Documents (attestations CERFA…) */}
+        {docs.length > 0 && (
+          <div className="bg-slate-800/40 border border-white/8 rounded-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-white/8 flex items-center gap-2">
+              <FileText className="w-4 h-4 text-slate-500" />
+              <h2 className="text-white font-semibold text-sm">Documents ({docs.length})</h2>
+            </div>
+            <div className="divide-y divide-white/5">
+              {docs.map((d) => (
+                <a key={d.id} href={d.url} target="_blank" rel="noopener noreferrer"
+                  className="flex items-center justify-between px-5 py-3 hover:bg-white/3 transition-colors gap-3 group">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center flex-shrink-0">
+                      <FileText className="w-4 h-4 text-sky-400" />
+                    </span>
+                    <span className="text-white text-sm truncate group-hover:text-sky-300 transition-colors">{d.label ?? "Document"}</span>
+                  </div>
+                  <span className="text-slate-500 text-xs flex-shrink-0">{fmt(d.createdAt)}</span>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Notes internes */}
         {c.notes && (

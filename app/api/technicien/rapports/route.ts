@@ -5,6 +5,8 @@ import { eq, and, sql } from "drizzle-orm";
 import { verifyTechnicienToken, TECH_COOKIE_NAME } from "@/lib/auth";
 import { createId } from "@paralleldrive/cuid2";
 import { contratTotalCt } from "@/lib/contrat-pricing";
+import { finalizeCerfa } from "@/lib/cerfa";
+import type { CerfaData } from "@/lib/cerfa-pdf";
 
 export async function POST(req: NextRequest) {
   const token = req.cookies.get(TECH_COOKIE_NAME)?.value;
@@ -29,6 +31,9 @@ export async function POST(req: NextRequest) {
     entretienAnnuelPropose,
     entretienAnnuelAccepte,
     signatureUrl,
+    // Attestation CERFA (fiche d'intervention fluides) : données saisies + signature technicien
+    cerfa,            // objet partiel CerfaData (nature, équipement, fuites, observations…)
+    cerfaSignature,   // data URL PNG de la signature au stylet
   } = body;
 
   if (!interventionId) return NextResponse.json({ error: "interventionId requis" }, { status: 400 });
@@ -129,6 +134,36 @@ export async function POST(req: NextRequest) {
       version: sql`${clients.version} + 1`,
       updatedAt: new Date(),
     }).where(eq(clients.id, interv.clientId)).catch((e) => console.error("[rapport] relance entretien:", e));
+  }
+
+  // Attestation CERFA : génère le PDF officiel rempli → R2 + fiche client + e-mail au client.
+  // N'échoue jamais la clôture (try/catch).
+  if (cerfa) {
+    try {
+      const [client] = await db.select().from(clients).where(eq(clients.id, interv.clientId)).limit(1);
+      const t = new Date();
+      const todayFr = `${String(t.getDate()).padStart(2, "0")}/${String(t.getMonth() + 1).padStart(2, "0")}/${t.getFullYear()}`;
+      const cerfaData: CerfaData = {
+        ...(cerfa as CerfaData),
+        detenteur: (cerfa as CerfaData).detenteur ?? { nom: client?.name ?? "", adresse: [client?.address, client?.city].filter(Boolean).join(", ") },
+        controleLe: (cerfa as CerfaData).controleLe || todayFr,
+        signataireOperateur: {
+          nom: (cerfa as CerfaData).signataireOperateur?.nom || session.name,
+          qualite: (cerfa as CerfaData).signataireOperateur?.qualite || "Technicien",
+          date: (cerfa as CerfaData).signataireOperateur?.date || todayFr,
+          signatureDataUrl: cerfaSignature,
+        },
+      };
+      await finalizeCerfa({
+        clientId: interv.clientId,
+        interventionId,
+        clientName: client?.name ?? "Client",
+        clientEmail: client?.email,
+        cerfa: cerfaData,
+      });
+    } catch (e) {
+      console.error("[rapport] CERFA:", e);
+    }
   }
 
   // Notif admin
