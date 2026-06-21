@@ -192,6 +192,8 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
         setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status: status as LeadStatus, clientId: newClientId ?? l.clientId } as Lead : l)));
         setSelectedLead((prev) => prev && prev.id === id ? { ...prev, status: status as LeadStatus, clientId: newClientId ?? prev.clientId } as Lead : prev);
         if (newClientId) setConvertDone((prev) => new Set(prev).add(id));
+        // Conversion en client échouée → on prévient (sinon CA compté sans fiche client).
+        if (data.warning) alert("⚠️ " + data.warning);
       } else {
         if (previous) setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status: previous } : l)));
       }

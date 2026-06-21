@@ -20,6 +20,15 @@ export type RendezVous = {
   commercialName: string | null;
 };
 
+/** Détecte un prospect actif (non supprimé) avec le même téléphone + nom (insensible
+ *  à la casse) — pour empêcher les doublons saisis manuellement. */
+export async function findActiveLeadByNamePhone(name: string, phone: string): Promise<Lead | null> {
+  const rows = await db.select().from(leads)
+    .where(and(eq(leads.phone, phone.trim()), isNull(leads.supprimeLe)));
+  const target = name.trim().toLowerCase();
+  return rows.find((r) => r.name.trim().toLowerCase() === target) ?? null;
+}
+
 /** Rendez-vous commerciaux (« RDV pris ») = prospects avec une date de RDV.
  *  Admin : tous (opts vide). Commercial : passer commercialId pour ne voir que les siens. */
 export async function getRendezVous(opts?: { commercialId?: string }): Promise<RendezVous[]> {

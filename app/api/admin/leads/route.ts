@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createLead, updateLead, deleteLead } from "@/lib/leads";
+import { createLead, updateLead, deleteLead, findActiveLeadByNamePhone } from "@/lib/leads";
 import { createClientFromLead } from "@/lib/clients";
+import { logError } from "@/lib/observability";
 import type { LeadStatus } from "@/lib/leads";
 
 export async function POST(req: NextRequest) {
@@ -9,6 +10,14 @@ export async function POST(req: NextRequest) {
     const { name, phone, source, project, location, address, email, notes, consentementMarketing, typeClient } = body;
     if (!name?.trim() || !phone?.trim()) {
       return NextResponse.json({ error: "Nom et téléphone requis" }, { status: 400 });
+    }
+    // Garde anti-doublon : refuse un prospect identique (nom + téléphone) déjà présent.
+    const existing = await findActiveLeadByNamePhone(name, phone);
+    if (existing) {
+      return NextResponse.json(
+        { error: "Un prospect avec ce nom et ce téléphone existe déjà.", duplicateId: existing.id },
+        { status: 409 },
+      );
     }
     const lead = await createLead({
       name: name.trim(),
@@ -24,7 +33,8 @@ export async function POST(req: NextRequest) {
       typeClient: typeClient === "professionnel" ? "professionnel" : "particulier",
     });
     return NextResponse.json({ lead });
-  } catch {
+  } catch (e) {
+    logError("leads.POST", e);
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
   }
 }
@@ -77,8 +87,16 @@ export async function PATCH(req: NextRequest) {
 
     // Passage en "gagné" → conversion auto en client (idempotent : copie l'adresse/
     // notes, lie le lead). Couvre TOUS les chemins (panneau, glisser-déposer Kanban…).
+    // On NE l'avale plus en silence : si elle échoue, on remonte un avertissement.
+    let conversionWarning: string | undefined;
     if (fields.status === "gagné") {
-      await createClientFromLead(id).catch((e) => console.error("[leads PATCH] conversion auto:", e));
+      try {
+        const client = await createClientFromLead(id);
+        if (!client) conversionWarning = "Prospect introuvable lors de la création de la fiche client.";
+      } catch (e) {
+        logError("leads.conversionAuto", e, { leadId: id });
+        conversionWarning = "Le prospect est passé en « gagné » mais la fiche client n'a pas pu être créée. À vérifier (les relances d'entretien risquent de ne pas être planifiées).";
+      }
     }
 
     if (Object.keys(allowed).length === 0) {
@@ -87,8 +105,9 @@ export async function PATCH(req: NextRequest) {
 
     const lead = await updateLead(id, allowed);
     if (!lead) return NextResponse.json({ error: "Lead introuvable" }, { status: 404 });
-    return NextResponse.json({ lead });
-  } catch {
+    return NextResponse.json({ lead, ...(conversionWarning ? { warning: conversionWarning } : {}) });
+  } catch (e) {
+    logError("leads.PATCH", e);
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
   }
 }

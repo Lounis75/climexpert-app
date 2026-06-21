@@ -223,10 +223,14 @@ export const leads = pgTable("leads", {
   updatedAt:           timestamp("updated_at").defaultNow().notNull(),
   supprimeLe:          timestamp("supprime_le"),
 }, (t) => ({
-  statusIdx:     index("leads_status_idx").on(t.status),
-  sourceIdx:     index("leads_source_idx").on(t.source),
-  createdAtIdx:  index("leads_created_at_idx").on(t.createdAt),
-  suprimeLeIdx:  index("leads_supprime_le_idx").on(t.supprimeLe),
+  statusIdx:        index("leads_status_idx").on(t.status),
+  sourceIdx:        index("leads_source_idx").on(t.source),
+  createdAtIdx:     index("leads_created_at_idx").on(t.createdAt),
+  suprimeLeIdx:     index("leads_supprime_le_idx").on(t.supprimeLe),
+  // Index composés pour les requêtes réelles (liste filtrée+triée, RDV, cloisonnement commercial).
+  statusCreatedIdx: index("leads_status_created_at_idx").on(t.status, t.createdAt),
+  commercialIdx:    index("leads_commercial_id_idx").on(t.commercialId),
+  rdvDateIdx:       index("leads_rdv_date_idx").on(t.rdvDate),
 }));
 
 // ─── Devis ────────────────────────────────────────────────────────────────────
@@ -317,8 +321,12 @@ export const interventions = pgTable("interventions", {
   updatedAt:            timestamp("updated_at").defaultNow().notNull(),
   supprimeLe:           timestamp("supprime_le"),
 }, (t) => ({
-  scheduledAtIdx: index("interventions_scheduled_at_idx").on(t.scheduledAt),
-  statusIdx:      index("interventions_status_idx").on(t.status),
+  scheduledAtIdx:      index("interventions_scheduled_at_idx").on(t.scheduledAt),
+  statusIdx:           index("interventions_status_idx").on(t.status),
+  // Index composés : agenda (statut+date), cloisonnement technicien, jointure client.
+  statusScheduledIdx:  index("interventions_status_scheduled_at_idx").on(t.status, t.scheduledAt),
+  technicienIdx:       index("interventions_technicien_id_idx").on(t.technicienId),
+  clientIdx:           index("interventions_client_id_idx").on(t.clientId),
 }));
 
 // ─── Contrats entretien ───────────────────────────────────────────────────────
