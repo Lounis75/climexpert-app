@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { interventions, clients } from "@/lib/db/schema";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, sql } from "drizzle-orm";
 import { trouverCreneaux } from "@/lib/creneaux";
 import { Resend } from "resend";
 import { randomBytes } from "crypto";
@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
       label:         c.label,
       technicienId:  c.technicienId,
     }))),
+    version: sql`${interventions.version} + 1`,
     updatedAt: new Date(),
   }).where(eq(interventions.id, interventionId));
 

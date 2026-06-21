@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { interventions } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { r2PutFile } from "@/lib/r2";
 
 const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const photos = await getPhotos(id);
   photos.push(url);
   await db.update(interventions)
-    .set({ photosBriefing: JSON.stringify(photos), updatedAt: new Date() })
+    .set({ photosBriefing: JSON.stringify(photos), version: sql`${interventions.version} + 1`, updatedAt: new Date() })
     .where(eq(interventions.id, id));
   return NextResponse.json({ photos });
 }
@@ -45,7 +45,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   if (!url) return NextResponse.json({ error: "url manquante" }, { status: 400 });
   const photos = (await getPhotos(id)).filter((p) => p !== url);
   await db.update(interventions)
-    .set({ photosBriefing: JSON.stringify(photos), updatedAt: new Date() })
+    .set({ photosBriefing: JSON.stringify(photos), version: sql`${interventions.version} + 1`, updatedAt: new Date() })
     .where(eq(interventions.id, id));
   return NextResponse.json({ photos });
 }

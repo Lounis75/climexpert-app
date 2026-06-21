@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { contratsEntretien, clients } from "@/lib/db/schema";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
-import { eq, desc, isNull, like, count } from "drizzle-orm";
+import { eq, desc, isNull, like, count, sql } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 
 export type Contrat = InferSelectModel<typeof contratsEntretien>;
@@ -61,6 +61,7 @@ export async function createContrat(data: {
       contratEntretienId: c.id,
       prochainEntretienLe: relance.toISOString().split("T")[0],
       relanceEntretienNotifiee: false,
+      version: sql`${clients.version} + 1`,
       updatedAt: new Date(),
     }).where(eq(clients.id, data.clientId)).catch((e) => console.error("[createContrat] rappel 330j:", e));
   }

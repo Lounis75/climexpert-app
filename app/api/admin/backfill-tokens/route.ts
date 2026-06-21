@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { verifyAdminToken } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { clients } from "@/lib/db/schema";
-import { isNull, eq } from "drizzle-orm";
+import { isNull, eq, sql } from "drizzle-orm";
 import { randomBytes } from "crypto";
 
 export async function POST() {
@@ -17,7 +17,7 @@ export async function POST() {
   let updated = 0;
   for (const c of noToken) {
     const clientToken = randomBytes(24).toString("hex");
-    await db.update(clients).set({ clientToken }).where(eq(clients.id, c.id));
+    await db.update(clients).set({ clientToken, version: sql`${clients.version} + 1` }).where(eq(clients.id, c.id));
     updated++;
   }
 

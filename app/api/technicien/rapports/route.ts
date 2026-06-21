@@ -126,6 +126,7 @@ export async function POST(req: NextRequest) {
     await db.update(clients).set({
       prochainEntretienLe: relance.toISOString().split("T")[0],
       relanceEntretienNotifiee: false,
+      version: sql`${clients.version} + 1`,
       updatedAt: new Date(),
     }).where(eq(clients.id, interv.clientId)).catch((e) => console.error("[rapport] relance entretien:", e));
   }

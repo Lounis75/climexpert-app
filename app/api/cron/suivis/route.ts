@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { suivisPlanifies, clients, interventions, notifications } from "@/lib/db/schema";
-import { eq, and, lte, isNull } from "drizzle-orm";
+import { eq, and, lte, isNull, sql } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 import { Resend } from "resend";
 
@@ -119,7 +119,7 @@ export async function GET(req: NextRequest) {
         refType: "client",
         refId: c.id,
       });
-      await db.update(clients).set({ relanceEntretienNotifiee: true }).where(eq(clients.id, c.id));
+      await db.update(clients).set({ relanceEntretienNotifiee: true, version: sql`${clients.version} + 1` }).where(eq(clients.id, c.id));
       relancesNotifiees++;
     } catch (err) {
       errors.push(`relance ${c.id}: ${String(err)}`);

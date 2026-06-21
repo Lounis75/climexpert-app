@@ -116,6 +116,7 @@ export async function createClientFromLead(leadId: string): Promise<Client | nul
     clientId: client.id,
     status: "gagné",
     gagneLe: lead.gagneLe ?? new Date(),
+    version: sql`${leads.version} + 1`,
     updatedAt: new Date(),
   }).where(eq(leads.id, lead.id));
 
@@ -128,7 +129,7 @@ export async function updateClient(
 ): Promise<Client | null> {
   const [client] = await db
     .update(clients)
-    .set({ ...data, updatedAt: new Date() })
+    .set({ ...data, version: sql`${clients.version} + 1` as unknown as number, updatedAt: new Date() })
     .where(eq(clients.id, id))
     .returning();
   return client ?? null;
@@ -137,7 +138,7 @@ export async function updateClient(
 export async function deleteClient(id: string): Promise<void> {
   // Soft delete (cohérent avec leads/techniciens/contrats + évite les violations de
   // clés étrangères depuis factures/interventions/devis qui référencent le client).
-  await db.update(clients).set({ supprimeLe: new Date() }).where(eq(clients.id, id));
+  await db.update(clients).set({ supprimeLe: new Date(), version: sql`${clients.version} + 1` }).where(eq(clients.id, id));
 }
 
 export async function getClientActivity(id: string): Promise<ClientActivity | null> {

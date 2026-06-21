@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { leads } from "@/lib/db/schema";
-import { eq, isNull, desc } from "drizzle-orm";
+import { eq, isNull, desc, sql } from "drizzle-orm";
 import { verifyCommercialToken, COMMERCIAL_COOKIE_NAME } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
@@ -33,7 +33,7 @@ export async function PATCH(req: NextRequest) {
 
   const [updated] = await db
     .update(leads)
-    .set({ notes, updatedAt: new Date() })
+    .set({ notes, version: sql`${leads.version} + 1`, updatedAt: new Date() })
     .where(eq(leads.id, id))
     .returning();
   return NextResponse.json({ lead: updated });

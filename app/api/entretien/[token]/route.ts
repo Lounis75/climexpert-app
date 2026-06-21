@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { clients, contratsEntretien, notifications, admins } from "@/lib/db/schema";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, sql } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 import { contratTotalCt } from "@/lib/contrat-pricing";
 
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
     })
     .returning();
 
-  await db.update(clients).set({ contratEntretienId: contratId }).where(eq(clients.id, client.id));
+  await db.update(clients).set({ contratEntretienId: contratId, version: sql`${clients.version} + 1` }).where(eq(clients.id, client.id));
 
   const [admin] = await db.select({ id: admins.id }).from(admins).limit(1);
   if (admin) {

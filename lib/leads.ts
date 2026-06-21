@@ -176,18 +176,6 @@ export async function getLeadById(id: string): Promise<Lead | null> {
   return lead ?? null;
 }
 
-export async function updateLeadStatus(
-  id: string,
-  status: LeadStatus
-): Promise<Lead | null> {
-  const [lead] = await db
-    .update(leads)
-    .set({ status, updatedAt: new Date() })
-    .where(eq(leads.id, id))
-    .returning();
-  return lead ?? null;
-}
-
 export async function updateLead(
   id: string,
   data: Partial<Pick<NewLead, "status" | "notes" | "email" | "location" | "address" | "project" | "name" | "phone" | "clientId" | "commercialId" | "consentementMarketing" | "consentementLe" | "montantDevisCt" | "prochaineEtape" | "rdvDate" | "dateSouhaiteeIntervention" | "prochaineActionLe">>,
@@ -206,7 +194,7 @@ export async function updateLead(
 }
 
 export async function deleteLead(id: string): Promise<void> {
-  await db.update(leads).set({ supprimeLe: new Date() }).where(eq(leads.id, id));
+  await db.update(leads).set({ supprimeLe: new Date(), version: sql`${leads.version} + 1` }).where(eq(leads.id, id));
 }
 
 // Fusionne `duplicateId` dans `masterId` : garde les champs du master, complète
@@ -231,11 +219,11 @@ export async function mergeLeads(masterId: string, duplicateId: string): Promise
 
   const [updated] = await db
     .update(leads)
-    .set({ ...merged, updatedAt: new Date() })
+    .set({ ...merged, version: sql`${leads.version} + 1` as unknown as number, updatedAt: new Date() })
     .where(eq(leads.id, masterId))
     .returning();
 
-  await db.update(leads).set({ supprimeLe: new Date() }).where(eq(leads.id, duplicateId));
+  await db.update(leads).set({ supprimeLe: new Date(), version: sql`${leads.version} + 1` }).where(eq(leads.id, duplicateId));
 
   return updated ?? null;
 }

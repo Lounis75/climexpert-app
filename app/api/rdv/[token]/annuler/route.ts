@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { interventions, clients, notifications, admins } from "@/lib/db/schema";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, sql } from "drizzle-orm";
 import { Resend } from "resend";
 import { createId } from "@paralleldrive/cuid2";
 
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
 
   await db
     .update(interventions)
-    .set({ status: "annulée", annulePar: "client", motifAnnulation: motif || null, updatedAt: new Date() })
+    .set({ status: "annulée", annulePar: "client", motifAnnulation: motif || null, version: sql`${interventions.version} + 1`, updatedAt: new Date() })
     .where(eq(interventions.id, interv.id));
 
   const [client] = await db.select().from(clients).where(eq(clients.id, interv.clientId)).limit(1);

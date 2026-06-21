@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { interventions, clients, notifications, admins, techniciens } from "@/lib/db/schema";
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, sql } from "drizzle-orm";
 import { Resend } from "resend";
 import { createId } from "@paralleldrive/cuid2";
 
@@ -63,6 +63,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       scheduledAt:    new Date(chosen.debut),
       technicienId:   chosen.technicienId,
       rdvTokenChoix:  choix,
+      version:        sql`${interventions.version} + 1`,
       updatedAt:      new Date(),
     })
     .where(eq(interventions.id, interv.id));
