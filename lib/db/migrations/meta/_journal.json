@@ -155,6 +155,13 @@
       "when": 1782053319106,
       "tag": "0021_chantiers_soustraitance",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1782054759546,
+      "tag": "0022_lead_favori",
+      "breakpoints": true
     }
   ]
 }

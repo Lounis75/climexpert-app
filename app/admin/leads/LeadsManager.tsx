@@ -7,7 +7,7 @@ import {
   Phone, Bot, FileText, MapPin, Wrench,
   MessageSquare, Clock, LayoutList, Columns3, UserPlus, CheckCircle2,
   AlertTriangle, GitMerge, X, Search, Mail, ChevronRight, Briefcase, Plus,
-  Pencil, Check, ShieldCheck, CalendarPlus,
+  Pencil, Check, ShieldCheck, CalendarPlus, Star,
 } from "lucide-react";
 import type { Lead, LeadStatus } from "@/lib/leads";
 import { detectDuplicates, leadAction } from "@/lib/leads-utils";
@@ -266,6 +266,27 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
     return true;
   }
 
+  // ⭐ Marquer / démarquer un prospect comme « intéressant » (optimiste + verrou version).
+  async function toggleFavori(lead: Lead) {
+    const current = leads.find((l) => l.id === lead.id) ?? lead;
+    const next = !current.favori;
+    setLeads((prev) => prev.map((l) => (l.id === lead.id ? { ...l, favori: next } : l)));
+    setSelectedLead((prev) => (prev && prev.id === lead.id ? { ...prev, favori: next } : prev));
+    try {
+      const res = await fetch("/api/admin/leads", {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: lead.id, favori: next, version: current.version }),
+      });
+      if (res.status === 401) { window.location.href = "/admin"; return; }
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 409) { if (data.lead) applyServerLead(data.lead); else setLeads((prev) => prev.map((l) => (l.id === lead.id ? { ...l, favori: !next } : l))); return; }
+      if (!res.ok) { setLeads((prev) => prev.map((l) => (l.id === lead.id ? { ...l, favori: !next } : l))); return; }
+      if (data.lead) applyServerLead(data.lead);
+    } catch {
+      setLeads((prev) => prev.map((l) => (l.id === lead.id ? { ...l, favori: !next } : l)));
+    }
+  }
+
   async function updateStatus(id: string, status: string) {
     const current = leads.find((l) => l.id === id);
     const previous = current?.status;
@@ -505,10 +526,17 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
         onClick={() => setSelectedLead(lead)}
         className={`bg-slate-800/40 border rounded-xl px-3 py-2.5 transition-colors cursor-pointer hover:bg-slate-800/70 select-none ${
           action ? "border-red-500/40 hover:border-red-500/60" : lead.status === "nouveau" ? "border-sky-500/20 hover:border-white/15" : "border-white/[0.06] hover:border-white/15"
-        }`}
+        } ${lead.favori ? "ring-1 ring-amber-400/40" : ""}`}
       >
-        {/* Ligne 1 : nom (héros) + doublon + pastille commercial */}
+        {/* Ligne 1 : étoile + nom (héros) + doublon + pastille commercial */}
         <div className="flex items-center gap-2">
+          <button
+            onClick={(e) => { e.stopPropagation(); toggleFavori(lead); }}
+            title={lead.favori ? "Retirer des favoris" : "Marquer comme intéressant"}
+            className="flex-shrink-0 -ml-0.5"
+          >
+            <Star className={`w-4 h-4 transition-colors ${lead.favori ? "fill-amber-400 text-amber-400" : "text-slate-600 hover:text-amber-400"}`} />
+          </button>
           <p className="text-white font-semibold text-sm truncate flex-1">{lead.name}</p>
           {dupes.length > 0 && (
             <button
@@ -753,11 +781,18 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                 onClick={() => setSelectedLead(lead)}
                 className={`bg-slate-800/40 border rounded-2xl p-4 transition-all cursor-pointer hover:bg-slate-800/70 ${
                   lead.status === "nouveau" ? "border-sky-500/20" : "border-white/8"
-                }`}
+                } ${lead.favori ? "ring-1 ring-amber-400/40" : ""}`}
               >
                 {/* Top row */}
                 <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
                   <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleFavori(lead); }}
+                      title={lead.favori ? "Retirer des favoris" : "Marquer comme intéressant"}
+                      className="flex-shrink-0"
+                    >
+                      <Star className={`w-4 h-4 transition-colors ${lead.favori ? "fill-amber-400 text-amber-400" : "text-slate-600 hover:text-amber-400"}`} />
+                    </button>
                     <span
                       className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-semibold ${
                         lead.source === "alex"
@@ -944,12 +979,19 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
         return (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-end" onClick={() => { setSelectedLead(null); setEditingLead(false); }}>
             <div
-              className="bg-slate-900 border-l border-white/10 w-full max-w-md h-full overflow-y-auto shadow-2xl"
+              className="bg-slate-900 border-l border-white/10 w-full max-w-2xl lg:max-w-3xl h-full overflow-y-auto shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-white/8 sticky top-0 bg-slate-900 z-10">
                 <div className="flex items-center gap-2 min-w-0">
+                  <button
+                    onClick={() => toggleFavori(lead)}
+                    title={lead.favori ? "Retirer des favoris" : "Marquer comme intéressant"}
+                    className="flex-shrink-0"
+                  >
+                    <Star className={`w-5 h-5 transition-colors ${lead.favori ? "fill-amber-400 text-amber-400" : "text-slate-600 hover:text-amber-400"}`} />
+                  </button>
                   <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-semibold flex-shrink-0 ${
                     lead.source === "alex" ? "bg-sky-500/10 text-sky-400 border-sky-500/20" : "bg-violet-500/10 text-violet-400 border-violet-500/20"
                   }`}>

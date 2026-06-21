@@ -1,0 +1,1 @@
+ALTER TABLE "leads" ADD COLUMN "favori" boolean DEFAULT false NOT NULL;

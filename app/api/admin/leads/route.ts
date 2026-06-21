@@ -73,6 +73,7 @@ export async function PATCH(req: NextRequest) {
     // Accepte n'importe quelle combinaison de champs : notes, status, clientId, coordonnées...
     const allowed: Record<string, unknown> = {};
     if (fields.notes !== undefined)        allowed.notes = fields.notes;
+    if (fields.favori !== undefined)       allowed.favori = !!fields.favori;
     if (fields.status)                     allowed.status = fields.status as LeadStatus;
     if (fields.clientId)                   allowed.clientId = fields.clientId;
     if (fields.commercialId !== undefined) allowed.commercialId = fields.commercialId || null;

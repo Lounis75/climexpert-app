@@ -224,6 +224,7 @@ export const leads = pgTable("leads", {
   updatedAt:           timestamp("updated_at").defaultNow().notNull(),
   supprimeLe:          timestamp("supprime_le"),
   version:             integer("version").default(0).notNull(), // verrou de concurrence optimiste
+  favori:              boolean("favori").default(false).notNull(), // ⭐ prospect marqué « intéressant »
 }, (t) => ({
   statusIdx:        index("leads_status_idx").on(t.status),
   sourceIdx:        index("leads_source_idx").on(t.source),
