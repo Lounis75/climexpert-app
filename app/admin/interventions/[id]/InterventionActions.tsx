@@ -44,10 +44,11 @@ interface Props {
   currentScheduledAt: string;
   currentType: string;
   currentDuree: number;
+  currentVersion: number;
 }
 
 export default function InterventionActions({
-  id, currentStatus, techniciens, currentTechnicienId, currentScheduledAt, currentType, currentDuree,
+  id, currentStatus, techniciens, currentTechnicienId, currentScheduledAt, currentType, currentDuree, currentVersion,
 }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -72,10 +73,14 @@ export default function InterventionActions({
   async function changeStatus(status: string) {
     setLoading(true);
     try {
-      await fetch(`/api/admin/interventions/${id}`, {
+      const res = await fetch(`/api/admin/interventions/${id}`, {
         method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, version: currentVersion }), // verrou optimiste
       });
+      if (res.status === 409) {
+        const d = await res.json().catch(() => ({}));
+        alert("⚠️ " + (d.error ?? "Cette intervention a été modifiée par quelqu'un d'autre."));
+      }
       router.refresh();
     } finally { setLoading(false); }
   }
@@ -83,14 +88,19 @@ export default function InterventionActions({
   async function savePlanning() {
     setLoading(true);
     try {
-      await fetch(`/api/admin/interventions/${id}`, {
+      const res = await fetch(`/api/admin/interventions/${id}`, {
         method: "PATCH", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "planifier",
           scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null,
           technicienId, type, dureeEstimeeMinutes: dureeFromCreneau(),
+          version: currentVersion, // verrou optimiste
         }),
       });
+      if (res.status === 409) {
+        const d = await res.json().catch(() => ({}));
+        alert("⚠️ " + (d.error ?? "Cette intervention a été modifiée par quelqu'un d'autre."));
+      }
       setPlanning(false);
       router.refresh();
     } finally { setLoading(false); }

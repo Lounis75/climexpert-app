@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updateInterventionStatus, updateInterventionNotes, deleteIntervention } from "@/lib/interventions";
+import { updateInterventionStatus, updateInterventionNotes, deleteIntervention, getInterventionById } from "@/lib/interventions";
 import type { Intervention } from "@/lib/interventions";
 import { db } from "@/lib/db";
 import { interventions, clients, notifications, admins } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { Resend } from "resend";
 import { createId } from "@paralleldrive/cuid2";
 import { randomBytes } from "crypto";
@@ -15,6 +15,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   try {
     const { id } = await params;
     const body = await req.json();
+    // Verrou optimiste : version attendue envoyée par le client (si fournie).
+    const expectedVersion = typeof body.version === "number" ? body.version : undefined;
 
     // Annulation admin
     if (body.action === "annuler") {
@@ -22,7 +24,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       if (!interv) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
 
       await db.update(interventions).set({
-        status: "annulée", annulePar: "admin", motifAnnulation: body.motif || null, updatedAt: new Date(),
+        status: "annulée", annulePar: "admin", motifAnnulation: body.motif || null, version: sql`${interventions.version} + 1`, updatedAt: new Date(),
       }).where(eq(interventions.id, id));
 
       const [client] = await db.select().from(clients).where(eq(clients.id, interv.clientId)).limit(1);
@@ -63,7 +65,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       if (!interv) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
 
       await db.update(interventions).set({
-        status: "annulée", annulePar: "admin", motifAnnulation: "Report", updatedAt: new Date(),
+        status: "annulée", annulePar: "admin", motifAnnulation: "Report", version: sql`${interventions.version} + 1`, updatedAt: new Date(),
       }).where(eq(interventions.id, id));
 
       const newId = createId();
@@ -100,7 +102,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       const [interv] = await db.select().from(interventions).where(eq(interventions.id, id)).limit(1);
       if (!interv) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
 
-      const patch: Record<string, unknown> = { status: "planifiée", updatedAt: new Date() };
+      const patch: Record<string, unknown> = { status: "planifiée", version: sql`${interventions.version} + 1`, updatedAt: new Date() };
       if (body.scheduledAt) patch.scheduledAt = new Date(body.scheduledAt);
       if (body.technicienId !== undefined) patch.technicienId = body.technicienId || null;
       if (body.type) patch.type = body.type;
@@ -109,7 +111,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         const d = Number(body.dureeEstimeeMinutes);
         if (Number.isFinite(d) && d > 0) patch.dureeEstimeeMinutes = Math.round(d);
       }
-      await db.update(interventions).set(patch).where(eq(interventions.id, id));
+      const conds = [eq(interventions.id, id)];
+      if (expectedVersion !== undefined) conds.push(eq(interventions.version, expectedVersion));
+      const updated = await db.update(interventions).set(patch).where(and(...conds)).returning();
+      if (updated.length === 0 && expectedVersion !== undefined) {
+        return NextResponse.json({ error: "Cette intervention vient d'être modifiée par quelqu'un d'autre. La page a été rechargée.", conflict: true }, { status: 409 });
+      }
 
       // Notifie le technicien affecté (table notifications polymorphe : adminId = technicienId)
       if (body.technicienId) {
@@ -126,8 +133,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
 
     if (body.status) {
-      const i = await updateInterventionStatus(id, body.status as Intervention["status"]);
-      if (!i) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+      const i = await updateInterventionStatus(id, body.status as Intervention["status"], expectedVersion);
+      if (!i) {
+        if (expectedVersion !== undefined && (await getInterventionById(id))) {
+          return NextResponse.json({ error: "Cette intervention vient d'être modifiée par quelqu'un d'autre. La page a été rechargée.", conflict: true }, { status: 409 });
+        }
+        return NextResponse.json({ error: "Introuvable" }, { status: 404 });
+      }
       return NextResponse.json({ intervention: i });
     }
     if (body.notes !== undefined) {

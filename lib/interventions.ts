@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { interventions, clients, techniciens, suivisPlanifies, rapportsIntervention, savTickets, suivis } from "@/lib/db/schema";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
-import { eq, desc, gte, asc, and, isNull } from "drizzle-orm";
+import { eq, desc, gte, asc, and, isNull, sql } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 
 export type Intervention = InferSelectModel<typeof interventions>;
@@ -104,15 +104,19 @@ export async function createIntervention(
 
 export async function updateInterventionStatus(
   id: string,
-  status: Intervention["status"]
+  status: Intervention["status"],
+  expectedVersion?: number,
 ): Promise<Intervention | null> {
   const patch: Partial<InferInsertModel<typeof interventions>> = {
     status,
+    version: sql`${interventions.version} + 1` as unknown as number, // verrou optimiste
     updatedAt: new Date(),
   };
   if (status === "terminée") patch.completedAt = new Date();
 
-  const [i] = await db.update(interventions).set(patch).where(eq(interventions.id, id)).returning();
+  const conds = [eq(interventions.id, id)];
+  if (typeof expectedVersion === "number") conds.push(eq(interventions.version, expectedVersion));
+  const [i] = await db.update(interventions).set(patch).where(and(...conds)).returning();
 
   if (i && status === "terminée") {
     await planifierSuivis(i);
@@ -140,7 +144,7 @@ async function planifierSuivis(interv: Intervention): Promise<void> {
 }
 
 export async function updateInterventionNotes(id: string, notes: string): Promise<void> {
-  await db.update(interventions).set({ notes, updatedAt: new Date() }).where(eq(interventions.id, id));
+  await db.update(interventions).set({ notes, version: sql`${interventions.version} + 1` as unknown as number, updatedAt: new Date() }).where(eq(interventions.id, id));
 }
 
 export async function deleteIntervention(id: string): Promise<void> {

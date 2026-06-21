@@ -72,6 +72,7 @@ export default async function InterventionDetailPage({
               currentScheduledAt={i.scheduledAt ? new Date(i.scheduledAt).toISOString() : ""}
               currentType={i.type}
               currentDuree={i.dureeEstimeeMinutes ?? 120}
+              currentVersion={i.version}
             />
           </div>
         </div>
