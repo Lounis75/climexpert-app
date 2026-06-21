@@ -1,8 +1,9 @@
 import AdminHeader from "@/components/AdminHeader";
 import { getInterventionById, getTechniciens, TYPE_LABELS, TYPE_COLORS, STATUS_INTERVENTION } from "@/lib/interventions";
+import { getChantierById } from "@/lib/chantiers";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, User, MapPin, Wrench, FileText, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, User, MapPin, Wrench, FileText, Image as ImageIcon, Briefcase, HardHat } from "lucide-react";
 import InterventionActions from "./InterventionActions";
 import CopyableContact from "@/components/CopyableContact";
 import BriefingPhotos from "./BriefingPhotos";
@@ -37,6 +38,7 @@ export default async function InterventionDetailPage({
 
   const status = STATUS_INTERVENTION[i.status] ?? STATUS_INTERVENTION.planifiée;
   const typeColor = TYPE_COLORS[i.type] ?? TYPE_COLORS.autre;
+  const chantier = i.chantierId ? await getChantierById(i.chantierId) : null;
 
   return (
     <div className="min-h-screen bg-[#080d18]">
@@ -94,6 +96,24 @@ export default async function InterventionDetailPage({
               <div className="min-w-0">
                 <p className="text-xs text-slate-500">Adresse d&apos;intervention</p>
                 <p className="text-white text-sm">{i.address || i.clientAddress}</p>
+              </div>
+            </div>
+          )}
+          {chantier && (
+            <Link href={`/admin/clients/${i.clientId}`} className="bg-slate-800/40 border border-white/8 rounded-xl px-4 py-3 flex items-center gap-3 hover:border-amber-500/30 transition-colors">
+              <HardHat className="w-4 h-4 text-amber-400 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs text-slate-500">Chantier</p>
+                <p className="text-white text-sm font-medium truncate">{chantier.nom}</p>
+              </div>
+            </Link>
+          )}
+          {(i.siteNom || i.siteAdresse) && (
+            <div className="bg-amber-500/[0.06] border border-amber-500/20 rounded-xl px-4 py-3 flex items-center gap-3 sm:col-span-2">
+              <Briefcase className="w-4 h-4 text-amber-400 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs text-amber-300">Sous-traitance — site du client final</p>
+                <p className="text-white text-sm">{[i.siteNom, i.siteAdresse].filter(Boolean).join(" · ")}</p>
               </div>
             </div>
           )}

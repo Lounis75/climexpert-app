@@ -4,11 +4,12 @@ import { db } from "@/lib/db";
 import { leads, techniciens, contratsEntretien, documents } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { centimesToEuros } from "@/lib/devis";
+import { getChantiersByClient } from "@/lib/chantiers";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft, MapPin, Calendar,
-  Wrench, FileText, ScrollText,
+  Wrench, FileText, ScrollText, HardHat,
   HeadphonesIcon, Bell, CheckCircle2, Clock, XCircle, Shield, Euro, ExternalLink,
 } from "lucide-react";
 import RgpdButtons from "./RgpdButtons";
@@ -89,6 +90,9 @@ export default async function ClientDetailPage({
   const docs = await db.select().from(documents)
     .where(eq(documents.clientId, c.id))
     .orderBy(desc(documents.createdAt));
+
+  // Chantiers du client (projets multi-interventions)
+  const chantiersList = await getChantiersByClient(c.id);
 
   // Build unified timeline (interventions / SAV / suivis — pas de devis/factures)
   const timeline: TimelineItem[] = [
@@ -343,17 +347,63 @@ export default async function ClientDetailPage({
           </div>
         )}
 
-        {/* Interventions detail */}
+        {/* Chantiers (projets multi-interventions) */}
+        {chantiersList.length > 0 && (
+          <div className="bg-slate-800/40 border border-white/8 rounded-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-white/8 flex items-center gap-2">
+              <HardHat className="w-4 h-4 text-amber-400" />
+              <h2 className="text-white font-semibold text-sm">Chantiers ({chantiersList.length})</h2>
+            </div>
+            <div className="divide-y divide-white/5">
+              {chantiersList.map((ch) => {
+                const chInterv = c.interventionsList.filter((i) => i.chantierId === ch.id);
+                return (
+                  <div key={ch.id} className="px-5 py-4">
+                    <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
+                      <span className="text-white font-medium text-sm flex items-center gap-2">
+                        {ch.nom}
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${ch.statut === "termine" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" : "bg-sky-500/10 text-sky-400 border-sky-500/30"}`}>
+                          {ch.statut === "termine" ? "Terminé" : "En cours"}
+                        </span>
+                      </span>
+                      {ch.montantCt != null && ch.montantCt > 0 && <span className="text-emerald-400 text-sm font-semibold">{centimesToEuros(ch.montantCt)}</span>}
+                    </div>
+                    {chInterv.length > 0 ? (
+                      <div className="space-y-1">
+                        {chInterv.map((i) => {
+                          const st = INTERV_STATUS[i.status] ?? INTERV_STATUS.planifiée;
+                          return (
+                            <Link key={i.id} href={`/admin/interventions/${i.id}`} className="flex items-center justify-between gap-3 text-xs hover:bg-white/3 rounded-lg px-2 py-1.5 -mx-2 transition-colors">
+                              <span className="text-slate-300 flex items-center gap-2">
+                                {TYPE_LABELS[i.type] ?? i.type}
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${st.color}`}>{st.label}</span>
+                              </span>
+                              <span className="text-slate-500">{fmt(i.scheduledAt)}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-slate-600 text-xs">Aucune intervention rattachée pour l&apos;instant.</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Interventions detail (hors chantier) */}
         <div className="bg-slate-800/40 border border-white/8 rounded-2xl overflow-hidden">
           <div className="px-5 py-4 border-b border-white/8 flex items-center gap-2">
             <Wrench className="w-4 h-4 text-slate-500" />
-            <h2 className="text-white font-semibold text-sm">Interventions ({c.interventionsList.length})</h2>
+            <h2 className="text-white font-semibold text-sm">Interventions {chantiersList.length > 0 ? "(hors chantier)" : ""} ({c.interventionsList.filter((i) => !i.chantierId).length})</h2>
           </div>
-          {c.interventionsList.length === 0 ? (
-            <p className="text-slate-500 text-xs text-center py-8">Aucune intervention</p>
+          {c.interventionsList.filter((i) => !i.chantierId).length === 0 ? (
+            <p className="text-slate-500 text-xs text-center py-8">Aucune intervention{chantiersList.length > 0 ? " hors chantier" : ""}</p>
           ) : (
             <div className="divide-y divide-white/5">
-              {c.interventionsList.map((i) => {
+              {c.interventionsList.filter((i) => !i.chantierId).map((i) => {
                 const st = INTERV_STATUS[i.status] ?? INTERV_STATUS.planifiée;
                 return (
                   <Link

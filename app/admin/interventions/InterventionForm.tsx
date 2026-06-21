@@ -18,9 +18,11 @@ const TYPES = [
 export default function InterventionForm({
   clients,
   techniciens,
+  chantiers = [],
 }: {
   clients: Client[];
   techniciens: Technicien[];
+  chantiers?: { id: string; clientId: string; nom: string }[];
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -45,14 +47,21 @@ export default function InterventionForm({
   const [technicienId, setTechnicienId] = useState("");
   const [address, setAddress] = useState(preClient?.address ?? "");
   const [notes, setNotes] = useState("");
+  const [chantierId, setChantierId] = useState("");
+  const [siteNom, setSiteNom] = useState("");
+  const [siteAdresse, setSiteAdresse] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const isEntretien = ["entretien", "maintenance", "contrat-pro"].includes(type);
+  const selectedClient = clients.find((c) => c.id === clientId);
+  const isSousTraitance = (selectedClient as (Client & { typeClient?: string }) | undefined)?.typeClient === "sous_traitance";
+  const clientChantiers = chantiers.filter((ch) => ch.clientId === clientId);
 
   // Pré-remplir l'adresse depuis le client sélectionné
   function handleClientChange(id: string) {
     setClientId(id);
+    setChantierId(""); // les chantiers sont propres à chaque client
     const c = clients.find((c) => c.id === id);
     if (c?.address) setAddress(c.address);
     else setAddress("");
@@ -79,9 +88,12 @@ export default function InterventionForm({
           scheduledAt,
           dureeEstimeeMinutes,
           technicienId: technicienId || undefined,
-          address: address || undefined,
+          address: (isSousTraitance && siteAdresse ? siteAdresse : address) || undefined,
           notes: notes || undefined,
           sousContrat: isEntretien ? sousContrat : undefined,
+          chantierId: chantierId || undefined,
+          siteNom: isSousTraitance ? (siteNom || undefined) : undefined,
+          siteAdresse: isSousTraitance ? (siteAdresse || undefined) : undefined,
         }),
       });
       if (!res.ok) {
@@ -136,6 +148,44 @@ export default function InterventionForm({
             ))}
           </select>
         </div>
+
+        {/* Rattachement à un chantier (si le client en a) */}
+        {clientChantiers.length > 0 && (
+          <div className="sm:col-span-2">
+            <label className="block text-xs text-slate-400 mb-1.5 font-medium">Rattacher à un chantier</label>
+            <select
+              value={chantierId}
+              onChange={(e) => setChantierId(e.target.value)}
+              className="w-full h-11 px-3 rounded-xl bg-slate-900 border border-white/10 text-white text-sm focus:outline-none focus:border-sky-500 transition-all"
+            >
+              <option value="">— Aucun (intervention isolée)</option>
+              {clientChantiers.map((ch) => (
+                <option key={ch.id} value={ch.id}>{ch.nom}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Sous-traitance : site / client final */}
+        {isSousTraitance && (
+          <div className="sm:col-span-2 grid sm:grid-cols-2 gap-4 p-4 rounded-xl bg-amber-500/[0.06] border border-amber-500/20">
+            <p className="sm:col-span-2 text-xs text-amber-300 font-medium">Sous-traitance — site du client final (le client CRM est le donneur d&apos;ordre)</p>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1.5 font-medium">Nom du site / client final</label>
+              <input
+                value={siteNom} onChange={(e) => setSiteNom(e.target.value)} placeholder="ex : M. Dupont"
+                className="w-full h-11 px-3 rounded-xl bg-slate-900 border border-white/10 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-sky-500 transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1.5 font-medium">Adresse du site</label>
+              <input
+                value={siteAdresse} onChange={(e) => setSiteAdresse(e.target.value)} placeholder="Adresse de l'intervention"
+                className="w-full h-11 px-3 rounded-xl bg-slate-900 border border-white/10 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-sky-500 transition-all"
+              />
+            </div>
+          </div>
+        )}
 
         <div>
           <label className="block text-xs text-slate-400 mb-1.5 font-medium">Début *</label>

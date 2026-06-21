@@ -319,6 +319,10 @@ export const interventions = pgTable("interventions", {
   annulePar:              varchar("annule_par", { length: 20 }),   // "client"|"admin"|"technicien"
   motifAnnulation:        text("motif_annulation"),
   interventionOrigineId:  text("intervention_origine_id"),         // si report
+  chantierId:             text("chantier_id"),                     // rattachement à un chantier (ref logique)
+  // Sous-traitance : site/client final (distinct du client CRM = donneur d'ordre)
+  siteNom:                varchar("site_nom", { length: 255 }),
+  siteAdresse:            text("site_adresse"),
   createdAt:            timestamp("created_at").defaultNow().notNull(),
   updatedAt:            timestamp("updated_at").defaultNow().notNull(),
   supprimeLe:           timestamp("supprime_le"),
@@ -330,6 +334,7 @@ export const interventions = pgTable("interventions", {
   statusScheduledIdx:  index("interventions_status_scheduled_at_idx").on(t.status, t.scheduledAt),
   technicienIdx:       index("interventions_technicien_id_idx").on(t.technicienId),
   clientIdx:           index("interventions_client_id_idx").on(t.clientId),
+  chantierIdx:         index("interventions_chantier_id_idx").on(t.chantierId),
 }));
 
 // ─── Contrats entretien ───────────────────────────────────────────────────────
@@ -543,6 +548,27 @@ export const documents = pgTable("documents", {
   clientIdx:       index("documents_client_id_idx").on(t.clientId),
   interventionIdx: index("documents_intervention_id_idx").on(t.interventionId),
 }));
+
+// ─── Chantiers (projets multi-interventions) ─────────────────────────────────
+// Créé à la signature du devis (passage du prospect en "gagné"). Regroupe les
+// interventions de réalisation (installation, puis entretiens).
+export const chantiers = pgTable("chantiers", {
+  id:         text("id").primaryKey().$defaultFn(() => createId()),
+  clientId:   text("client_id").notNull().references(() => clients.id),
+  leadId:     text("lead_id").references(() => leads.id),               // prospect d'origine
+  nom:        varchar("nom", { length: 255 }).notNull(),
+  statut:     varchar("statut", { length: 20 }).default("en_cours").notNull(), // en_cours | termine
+  montantCt:  integer("montant_ct"),                                    // montant du devis signé
+  notes:      text("notes"),
+  createdAt:  timestamp("created_at").defaultNow().notNull(),
+  updatedAt:  timestamp("updated_at").defaultNow().notNull(),
+  version:    integer("version").default(0).notNull(),
+}, (t) => ({
+  clientIdx: index("chantiers_client_id_idx").on(t.clientId),
+  statutIdx: index("chantiers_statut_idx").on(t.statut),
+}));
+
+export type Chantier = typeof chantiers.$inferSelect;
 
 // ─── Relations ────────────────────────────────────────────────────────────────
 

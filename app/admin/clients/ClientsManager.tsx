@@ -163,7 +163,7 @@ export default function ClientsManager({
           <div>
             <label className="block text-xs text-slate-400 mb-1.5">Type de client *</label>
             <div className="flex gap-2">
-              {[{ v: "particulier", l: "Particulier" }, { v: "professionnel", l: "Professionnel" }].map(({ v, l }) => (
+              {[{ v: "particulier", l: "Particulier" }, { v: "professionnel", l: "Professionnel" }, { v: "sous_traitance", l: "Sous-traitance" }].map(({ v, l }) => (
                 <button key={v} type="button" onClick={() => setForm((p) => ({ ...p, typeClient: v }))}
                   className={`flex-1 px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
                     form.typeClient === v ? "border-sky-500/60 bg-sky-500/10 text-sky-300" : "border-white/10 bg-slate-700/40 text-slate-400 hover:border-white/20"
@@ -186,8 +186,8 @@ export default function ClientsManager({
               </div>
             )}
             <div>
-              <label className="block text-xs text-slate-400 mb-1.5">{form.typeClient === "professionnel" ? "Raison sociale *" : "Nom *"}</label>
-              <input name="name" value={form.name} onChange={handleChange} required placeholder={form.typeClient === "professionnel" ? "Pizzeria Délice" : "Jean Dupont"} className={inputCls} />
+              <label className="block text-xs text-slate-400 mb-1.5">{form.typeClient !== "particulier" ? "Raison sociale *" : "Nom *"}</label>
+              <input name="name" value={form.name} onChange={handleChange} required placeholder={form.typeClient !== "particulier" ? "Pizzeria Délice" : "Jean Dupont"} className={inputCls} />
             </div>
             <div>
               <label className="block text-xs text-slate-400 mb-1.5">Téléphone *</label>
@@ -206,8 +206,8 @@ export default function ClientsManager({
               <input name="address" value={form.address} onChange={handleChange} placeholder="12 rue de la Paix, 75001 Paris" className={inputCls} />
             </div>
 
-            {/* Champs professionnels (pour le contrat) */}
-            {form.typeClient === "professionnel" && (
+            {/* Champs professionnels (pour le contrat) — pros et donneurs d'ordre */}
+            {form.typeClient !== "particulier" && (
               <>
                 <div>
                   <label className="block text-xs text-slate-400 mb-1.5">SIRET</label>

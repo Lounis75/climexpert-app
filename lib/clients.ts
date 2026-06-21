@@ -3,6 +3,12 @@ import { clients, devis, factures, interventions, savTickets, suivisPlanifies, l
 import type { InferSelectModel } from "drizzle-orm";
 import { eq, desc, and, isNull, ilike, or, sql, count, type SQL } from "drizzle-orm";
 import { randomBytes } from "crypto";
+import { createChantier, getChantierByLead } from "@/lib/chantiers";
+
+const PROJECT_LABEL: Record<string, string> = {
+  installation: "Installation", entretien: "Entretien", depannage: "Dépannage",
+  "contrat-pro": "Contrat pro", autre: "Chantier",
+};
 
 export type ClientActivity = Client & {
   devisList: (InferSelectModel<typeof devis>)[];
@@ -119,6 +125,16 @@ export async function createClientFromLead(leadId: string): Promise<Client | nul
     version: sql`${leads.version} + 1`,
     updatedAt: new Date(),
   }).where(eq(leads.id, lead.id));
+
+  // Chantier créé à la signature du devis (= passage en "gagné"). Idempotent (1 par prospect).
+  try {
+    if (!(await getChantierByLead(lead.id))) {
+      const nom = `${PROJECT_LABEL[lead.project ?? ""] ?? "Chantier"} — ${client.name}`;
+      await createChantier({ clientId: client.id, leadId: lead.id, nom, montantCt: lead.montantDevisCt ?? null });
+    }
+  } catch (e) {
+    console.error("[chantier] création auto:", e);
+  }
 
   return client;
 }
