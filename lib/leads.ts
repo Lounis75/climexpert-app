@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { leads, interventions, suivis, techniciens, type Lead, type NewLead } from "@/lib/db/schema";
-import { eq, desc, isNull, and, inArray, notInArray, ne, isNotNull, asc, ilike, or, count, type SQL } from "drizzle-orm";
+import { eq, desc, isNull, and, inArray, notInArray, ne, isNotNull, asc, ilike, or, count, sql, type SQL } from "drizzle-orm";
 
 export type LeadStatus = "nouveau" | "pas_de_reponse" | "contacté" | "devis_envoyé" | "gagné" | "perdu";
 export type LeadSource = "alex" | "formulaire" | "téléphone" | "whatsapp" | "autre";
@@ -190,12 +190,17 @@ export async function updateLeadStatus(
 
 export async function updateLead(
   id: string,
-  data: Partial<Pick<NewLead, "status" | "notes" | "email" | "location" | "address" | "project" | "name" | "phone" | "clientId" | "commercialId" | "consentementMarketing" | "consentementLe" | "montantDevisCt" | "prochaineEtape" | "rdvDate" | "dateSouhaiteeIntervention" | "prochaineActionLe">>
+  data: Partial<Pick<NewLead, "status" | "notes" | "email" | "location" | "address" | "project" | "name" | "phone" | "clientId" | "commercialId" | "consentementMarketing" | "consentementLe" | "montantDevisCt" | "prochaineEtape" | "rdvDate" | "dateSouhaiteeIntervention" | "prochaineActionLe">>,
+  expectedVersion?: number,
 ): Promise<Lead | null> {
+  // Verrou optimiste : si expectedVersion est fourni, la mise à jour n'a lieu que si
+  // la version en base correspond (sinon quelqu'un a modifié entre-temps → 0 ligne).
+  const conds = [eq(leads.id, id)];
+  if (typeof expectedVersion === "number") conds.push(eq(leads.version, expectedVersion));
   const [lead] = await db
     .update(leads)
-    .set({ ...data, updatedAt: new Date() })
-    .where(eq(leads.id, id))
+    .set({ ...data, version: sql`${leads.version} + 1`, updatedAt: new Date() })
+    .where(and(...conds))
     .returning();
   return lead ?? null;
 }

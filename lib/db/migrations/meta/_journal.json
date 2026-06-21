@@ -134,6 +134,13 @@
       "when": 1782027841907,
       "tag": "0018_composite_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1782035374937,
+      "tag": "0019_version_concurrency",
+      "breakpoints": true
     }
   ]
 }

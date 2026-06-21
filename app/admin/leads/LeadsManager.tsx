@@ -238,32 +238,46 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
   // ─── API helpers ────────────────────────────────────────────────────────────
 
+  // Applique la version serveur d'un prospect (synchronise version/clientId localement).
+  function applyServerLead(sv: Lead) {
+    setLeads((prev) => prev.map((l) => (l.id === sv.id ? { ...l, ...sv } : l)));
+    setSelectedLead((prev) => (prev && prev.id === sv.id ? ({ ...prev, ...sv } as Lead) : prev));
+  }
+
   async function updateStatus(id: string, status: string) {
-    const previous = leads.find((l) => l.id === id)?.status;
+    const current = leads.find((l) => l.id === id);
+    const previous = current?.status;
     setUpdating(id);
     try {
       const res = await fetch("/api/admin/leads", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, status }),
+        body: JSON.stringify({ id, status, version: current?.version }), // verrou optimiste
       });
       if (res.status === 401) {
         if (previous) setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status: previous } : l)));
         window.location.href = "/admin";
         return;
       }
+      if (res.status === 409) {
+        // Conflit : un autre utilisateur a modifié ce prospect → on remet l'état serveur.
+        const d = await res.json().catch(() => ({}));
+        if (previous) setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status: previous } : l)));
+        if (d.lead) applyServerLead(d.lead);
+        alert("⚠️ " + (d.error ?? "Ce prospect a été modifié par quelqu'un d'autre."));
+        return;
+      }
       if (res.ok) {
-        // Le serveur peut avoir converti le lead en client (statut "gagné") → on récupère le clientId.
         const data = await res.json().catch(() => ({}));
         const newClientId: string | null = data.lead?.clientId ?? null;
-        setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status: status as LeadStatus, clientId: newClientId ?? l.clientId } as Lead : l)));
-        setSelectedLead((prev) => prev && prev.id === id ? { ...prev, status: status as LeadStatus, clientId: newClientId ?? prev.clientId } as Lead : prev);
+        // Synchronise version + statut + clientId depuis le serveur.
+        if (data.lead) applyServerLead(data.lead);
+        else setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status: status as LeadStatus } as Lead : l)));
         // Compteurs de colonne : -1 à l'ancien statut, +1 au nouveau.
         if (previous && previous !== status) {
           setColCounts((c) => ({ ...c, [previous]: Math.max(0, (c[previous] ?? 0) - 1), [status]: (c[status] ?? 0) + 1 }));
         }
         if (newClientId) setConvertDone((prev) => new Set(prev).add(id));
-        // Conversion en client échouée → on prévient (sinon CA compté sans fiche client).
         if (data.warning) alert("⚠️ " + data.warning);
       } else {
         if (previous) setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status: previous } : l)));
@@ -282,7 +296,9 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
         body: JSON.stringify({ id, notes: notesValue }),
       });
       if (res.ok) {
-        setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, notes: notesValue } : l)));
+        const data = await res.json().catch(() => ({}));
+        if (data.lead) applyServerLead(data.lead); // garde la version locale à jour
+        else setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, notes: notesValue } : l)));
         setEditingNotes(null);
       }
     } finally {
@@ -378,13 +394,21 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
   async function saveLeadEdit(id: string) {
     if (!editForm.name.trim() || !editForm.phone.trim()) return;
+    const current = leads.find((l) => l.id === id);
     setSavingEdit(true);
     try {
       const res = await fetch("/api/admin/leads", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, ...editForm }),
+        body: JSON.stringify({ id, ...editForm, version: current?.version }), // verrou optimiste
       });
+      if (res.status === 409) {
+        const d = await res.json().catch(() => ({}));
+        if (d.lead) applyServerLead(d.lead);
+        alert("⚠️ " + (d.error ?? "Ce prospect a été modifié par quelqu'un d'autre."));
+        setEditingLead(false);
+        return;
+      }
       if (res.ok) {
         const { lead: updated } = await res.json();
         setLeads((prev) => prev.map((l) => (l.id === id ? updated : l)));

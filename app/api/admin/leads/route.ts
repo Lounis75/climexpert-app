@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createLead, updateLead, deleteLead, findActiveLeadByNamePhone, getLeadsByStatusPaged, getLeadsPaginated, getLastActivityByLead } from "@/lib/leads";
+import { createLead, updateLead, deleteLead, findActiveLeadByNamePhone, getLeadsByStatusPaged, getLeadsPaginated, getLastActivityByLead, getLeadById } from "@/lib/leads";
 import { createClientFromLead } from "@/lib/clients";
 import { logError } from "@/lib/observability";
 import type { LeadStatus } from "@/lib/leads";
@@ -128,8 +128,21 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Aucun champ à mettre à jour" }, { status: 400 });
     }
 
-    const lead = await updateLead(id, allowed);
-    if (!lead) return NextResponse.json({ error: "Lead introuvable" }, { status: 404 });
+    // Verrou optimiste : le client envoie la version qu'il a sous les yeux.
+    const expectedVersion = typeof fields.version === "number" ? fields.version : undefined;
+    const lead = await updateLead(id, allowed, expectedVersion);
+    if (!lead) {
+      if (expectedVersion !== undefined) {
+        const current = await getLeadById(id);
+        if (current) {
+          return NextResponse.json(
+            { error: "Ce prospect vient d'être modifié par quelqu'un d'autre. Vos changements n'ont pas été appliqués — la fiche a été rechargée.", conflict: true, lead: current },
+            { status: 409 },
+          );
+        }
+      }
+      return NextResponse.json({ error: "Lead introuvable" }, { status: 404 });
+    }
     return NextResponse.json({ lead, ...(conversionWarning ? { warning: conversionWarning } : {}) });
   } catch (e) {
     logError("leads.PATCH", e);

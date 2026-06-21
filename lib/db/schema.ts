@@ -176,6 +176,7 @@ export const clients = pgTable("clients", {
   createdAt:          timestamp("created_at").defaultNow().notNull(),
   updatedAt:          timestamp("updated_at").defaultNow().notNull(),
   supprimeLe:         timestamp("supprime_le"),
+  version:            integer("version").default(0).notNull(), // verrou de concurrence optimiste
 });
 
 // ─── Leads ────────────────────────────────────────────────────────────────────
@@ -222,6 +223,7 @@ export const leads = pgTable("leads", {
   createdAt:           timestamp("created_at").defaultNow().notNull(),
   updatedAt:           timestamp("updated_at").defaultNow().notNull(),
   supprimeLe:          timestamp("supprime_le"),
+  version:             integer("version").default(0).notNull(), // verrou de concurrence optimiste
 }, (t) => ({
   statusIdx:        index("leads_status_idx").on(t.status),
   sourceIdx:        index("leads_source_idx").on(t.source),
@@ -320,6 +322,7 @@ export const interventions = pgTable("interventions", {
   createdAt:            timestamp("created_at").defaultNow().notNull(),
   updatedAt:            timestamp("updated_at").defaultNow().notNull(),
   supprimeLe:           timestamp("supprime_le"),
+  version:              integer("version").default(0).notNull(), // verrou de concurrence optimiste
 }, (t) => ({
   scheduledAtIdx:      index("interventions_scheduled_at_idx").on(t.scheduledAt),
   statusIdx:           index("interventions_status_idx").on(t.status),
