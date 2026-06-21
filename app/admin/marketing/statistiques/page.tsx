@@ -1,5 +1,7 @@
 import AdminHeader from "@/components/AdminHeader";
 import { getMarketingStats } from "@/lib/analytics";
+import { getLeadsPageStats } from "@/lib/dashboard";
+import LeadsAnalytics from "@/components/LeadsAnalytics";
 import Link from "next/link";
 import {
   BarChart2, TrendingUp, Users, Bot, ClipboardList, FileText,
@@ -7,6 +9,17 @@ import {
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
+
+function getSince(period: string): Date | undefined {
+  const now = new Date();
+  switch (period) {
+    case "1d": return new Date(now.getTime() - 86400000);
+    case "7d": return new Date(now.getTime() - 7 * 86400000);
+    case "1m": { const d = new Date(now); d.setMonth(d.getMonth() - 1); return d; }
+    case "1y": { const d = new Date(now); d.setFullYear(d.getFullYear() - 1); return d; }
+    default: return undefined;
+  }
+}
 
 const SOURCE_LABELS: Record<string, string> = {
   alex: "Alex (chatbot)", formulaire: "Formulaire", téléphone: "Téléphone",
@@ -18,8 +31,13 @@ function pageLabel(path: string): string {
   return path;
 }
 
-export default async function StatistiquesPage() {
-  const s = await getMarketingStats(30);
+export default async function StatistiquesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ period?: string }>;
+}) {
+  const { period = "all" } = await searchParams;
+  const [s, leadStats] = await Promise.all([getMarketingStats(30), getLeadsPageStats(getSince(period))]);
   const maxVisites = Math.max(...s.visitesParJour.map((d) => d.n), 1);
   const maxLeadsJour = Math.max(...s.leadsParJour.map((d) => d.n), 1);
   const maxTopPage = Math.max(...s.topPages.map((p) => p.n), 1);
@@ -52,7 +70,7 @@ export default async function StatistiquesPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white">Statistiques</h1>
-            <p className="text-slate-400 text-sm">30 derniers jours · acquisition, engagement et conversion</p>
+            <p className="text-slate-400 text-sm">Trafic &amp; acquisition (30 j) · pipeline commercial &amp; prospects</p>
           </div>
         </div>
 
@@ -217,6 +235,9 @@ export default async function StatistiquesPage() {
             Pour les positions Google, impressions et mots-clés, il faudra connecter <span className="text-slate-300">Google Search Console</span> (intégration à part). Dis-le-moi si tu veux l&apos;ajouter.
           </p>
         </div>
+
+        {/* ─── Analytiques CRM / Prospects (déplacé depuis la page Prospect) ───── */}
+        <LeadsAnalytics stats={leadStats} period={period} />
 
       </main>
     </div>
