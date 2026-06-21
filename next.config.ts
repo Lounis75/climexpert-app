@@ -12,6 +12,11 @@ const nextConfig: NextConfig = {
   // pdfkit charge ses polices (.afm) depuis node_modules au runtime → le garder externe
   // (non bundlé) pour que la génération PDF du contrat fonctionne en serverless.
   serverExternalPackages: ["pdfkit"],
+  // Embarque le PDF officiel du CERFA dans les fonctions qui le remplissent (pdf-lib).
+  outputFileTracingIncludes: {
+    "/api/admin/cerfa-preview": ["./lib/cerfa-template-15497-04.pdf"],
+    "/api/technicien/rapports": ["./lib/cerfa-template-15497-04.pdf"],
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },
