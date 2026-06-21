@@ -244,6 +244,28 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
     setSelectedLead((prev) => (prev && prev.id === sv.id ? ({ ...prev, ...sv } as Lead) : prev));
   }
 
+  // Enregistre un champ du prospect OUVERT avec verrou de version + gestion du 409.
+  // Renvoie true si OK. En cas de conflit/échec, resynchronise la fiche serveur.
+  async function patchLeadField(fields: Record<string, unknown>): Promise<boolean> {
+    const id = selectedLead?.id;
+    if (!id) return false;
+    const current = leads.find((l) => l.id === id) ?? selectedLead;
+    const res = await fetch("/api/admin/leads", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, ...fields, version: current?.version }),
+    });
+    if (res.status === 401) { window.location.href = "/admin"; return false; }
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 409) {
+      if (data.lead) applyServerLead(data.lead);
+      alert("⚠️ " + (data.error ?? "Ce prospect a été modifié par quelqu'un d'autre."));
+      return false;
+    }
+    if (!res.ok) { alert("Échec de l'enregistrement. Réessayez."); return false; }
+    if (data.lead) applyServerLead(data.lead);
+    return true;
+  }
+
   async function updateStatus(id: string, status: string) {
     const current = leads.find((l) => l.id === id);
     const previous = current?.status;
@@ -1146,17 +1168,10 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                       value={(lead as Lead & { prochaineEtape?: string | null }).prochaineEtape ?? ""}
                       onChange={async (e) => {
                         const prochaineEtape = e.target.value || null;
-                        // « Aucune opportunité » → le prospect passe automatiquement en "perdu".
+                        // « Aucune opportunité » → le serveur passe le prospect en "perdu".
                         const perdu = prochaineEtape === "aucune_opportunite";
-                        const patch = perdu ? { prochaineEtape, status: "perdu" as LeadStatus } : { prochaineEtape };
-                        setSelectedLead(prev => prev ? { ...prev, ...patch } as Lead : null);
-                        const res = await fetch("/api/admin/leads", {
-                          method: "PATCH", headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ id: lead.id, prochaineEtape }),
-                        });
-                        if (res.status === 401) { window.location.href = "/admin"; return; }
-                        if (!res.ok) { alert("Échec de l'enregistrement. Réessayez."); return; }
-                        setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, ...patch } as Lead : l));
+                        setSelectedLead(prev => prev ? { ...prev, prochaineEtape, ...(perdu ? { status: "perdu" as LeadStatus } : {}) } as Lead : null);
+                        await patchLeadField({ prochaineEtape });
                       }}
                       className="w-full text-sm bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2.5 text-slate-200 appearance-none focus:outline-none focus:border-sky-500/50 cursor-pointer"
                     >
@@ -1180,12 +1195,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                           onChange={async (e) => {
                             const rdvDate = e.target.value ? new Date(e.target.value).toISOString() : null;
                             setSelectedLead(prev => prev ? { ...prev, rdvDate } as Lead : null);
-                            const res = await fetch("/api/admin/leads", {
-                              method: "PATCH", headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ id: lead.id, rdvDate }),
-                            });
-                            if (res.status === 401) { window.location.href = "/admin"; return; }
-                            if (res.ok) setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, rdvDate } as Lead : l));
+                            await patchLeadField({ rdvDate });
                           }}
                           className="w-full text-sm bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2.5 text-white [color-scheme:dark] focus:outline-none focus:border-sky-500/50"
                         />
@@ -1206,12 +1216,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                       onChange={async (e) => {
                         const prochaineActionLe = e.target.value || null;
                         setSelectedLead(prev => prev ? { ...prev, prochaineActionLe } as Lead : null);
-                        const res = await fetch("/api/admin/leads", {
-                          method: "PATCH", headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ id: lead.id, prochaineActionLe }),
-                        });
-                        if (res.status === 401) { window.location.href = "/admin"; return; }
-                        if (res.ok) setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, prochaineActionLe } as Lead : l));
+                        await patchLeadField({ prochaineActionLe });
                       }}
                       className="w-full text-sm bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2.5 text-white [color-scheme:dark] focus:outline-none focus:border-sky-500/50"
                     />
@@ -1233,15 +1238,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                         const euros = parseFloat(e.target.value);
                         const ct = Number.isFinite(euros) && euros > 0 ? Math.round(euros * 100) : null;
                         if (ct === (lead.montantDevisCt ?? null)) return;
-                        const res = await fetch("/api/admin/leads", {
-                          method: "PATCH", headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ id: lead.id, montantDevisCt: ct }),
-                        });
-                        if (res.status === 401) { window.location.href = "/admin"; return; }
-                        if (res.ok) {
-                          setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, montantDevisCt: ct } as Lead : l));
-                          setSelectedLead(prev => prev ? { ...prev, montantDevisCt: ct } as Lead : null);
-                        }
+                        await patchLeadField({ montantDevisCt: ct });
                       }}
                       className={`w-full bg-slate-800/60 border rounded-xl px-3 py-2 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-sky-500/50 ${lead.montantDevisCt ? "border-white/10" : "border-amber-500/40"}`}
                     />
@@ -1265,12 +1262,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                       onChange={async (e) => {
                         const dateSouhaiteeIntervention = e.target.value ? new Date(e.target.value).toISOString() : null;
                         setSelectedLead(prev => prev ? { ...prev, dateSouhaiteeIntervention } as Lead : null);
-                        const res = await fetch("/api/admin/leads", {
-                          method: "PATCH", headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ id: lead.id, dateSouhaiteeIntervention }),
-                        });
-                        if (res.status === 401) { window.location.href = "/admin"; return; }
-                        if (res.ok) setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, dateSouhaiteeIntervention } as Lead : l));
+                        await patchLeadField({ dateSouhaiteeIntervention });
                       }}
                       className="w-full bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2 text-white text-sm [color-scheme:dark] focus:outline-none focus:border-sky-500/50"
                     />
@@ -1288,15 +1280,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                       value={(lead as Lead & { commercialId?: string | null }).commercialId ?? ""}
                       onChange={async (e) => {
                         const commercialId = e.target.value || null;
-                        const res = await fetch("/api/admin/leads", {
-                          method: "PATCH",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ id: lead.id, commercialId }),
-                        });
-                        if (res.status === 401) { window.location.href = "/admin"; return; }
-                        if (!res.ok) { alert("Échec de l'affectation du commercial. Réessayez."); return; }
-                        setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, commercialId } as Lead : l));
-                        setSelectedLead(prev => prev ? { ...prev, commercialId } as Lead : null);
+                        await patchLeadField({ commercialId });
                       }}
                       className="w-full text-sm bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2.5 text-slate-200 appearance-none focus:outline-none focus:border-violet-500/50 cursor-pointer"
                     >
@@ -1319,16 +1303,9 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                     type="button"
                     onClick={async () => {
                       const next = !(lead as Lead).consentementMarketing;
-                      const res = await fetch("/api/admin/leads", {
-                        method: "PATCH",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ id: lead.id, consentementMarketing: next }),
-                      });
-                      // Champ RGPD opposable : ne JAMAIS afficher un consentement non persisté.
-                      if (res.status === 401) { window.location.href = "/admin"; return; }
-                      if (!res.ok) { alert("Échec de l'enregistrement du consentement. Réessayez."); return; }
-                      setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, consentementMarketing: next } as Lead : l));
-                      setSelectedLead(prev => prev ? { ...prev, consentementMarketing: next } as Lead : null);
+                      // Champ RGPD opposable : on n'affiche le consentement qu'une fois persisté
+                      // (patchLeadField resynchronise depuis le serveur en cas de conflit/échec).
+                      await patchLeadField({ consentementMarketing: next });
                     }}
                     className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border text-sm transition-colors ${
                       (lead as Lead).consentementMarketing
