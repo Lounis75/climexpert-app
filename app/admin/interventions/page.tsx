@@ -3,7 +3,8 @@ import { getInterventions, TYPE_LABELS, TYPE_COLORS, STATUS_INTERVENTION } from 
 import Link from "next/link";
 import { Plus, Wrench, Calendar, User, MapPin, ArrowRight, Handshake } from "lucide-react";
 import ViewToggle from "./ViewToggle";
-import AgendaMobile, { type PlanningEvent } from "./AgendaMobile";
+import { type PlanningEvent } from "./AgendaMobile";
+import PlanningMobile from "./PlanningMobile";
 import { getRendezVous } from "@/lib/leads";
 
 export const dynamic = "force-dynamic";
@@ -136,7 +137,7 @@ export default async function AdminInterventionsPage() {
 
         {/* Mobile (< md) : agenda « façon Apple » — interventions + rendez-vous */}
         <div className="md:hidden">
-          <AgendaMobile
+          <PlanningMobile
             events={events}
             emptyTitle="Aucun élément planifié"
             emptySubtitle="Les interventions et rendez-vous apparaîtront ici."

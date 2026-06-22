@@ -35,7 +35,7 @@ const dayKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 const fmtTime = (d: Date) => d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 const fmtDay = (d: Date) => d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
 
-function EventCard({ e }: { e: PlanningEvent }) {
+export function EventCard({ e }: { e: PlanningEvent }) {
   const d = e.start ? new Date(e.start) : null;
   const isRdv = e.kind === "rdv";
   const bar = isRdv ? RDV_BAR : (TYPE_BAR[e.category] ?? TYPE_BAR.autre);
