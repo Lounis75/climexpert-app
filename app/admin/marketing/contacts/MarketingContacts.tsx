@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, type ReactNode } from "react";
 import { Search, Download, Users, Contact, ShieldCheck, Mail, Megaphone } from "lucide-react";
 import type { MarketingContact } from "@/lib/marketing";
 
@@ -18,6 +18,20 @@ export default function MarketingContacts({ contacts }: { contacts: MarketingCon
   const [typeFilter, setTypeFilter] = useState<"tous" | "prospect" | "client">("tous");
   const [consentOnly, setConsentOnly] = useState(false);
   const [emailOnly, setEmailOnly] = useState(false);
+  const [arrFilter, setArrFilter] = useState("tous");
+  const [villeFilter, setVilleFilter] = useState("toutes");
+  const [contratFilter, setContratFilter] = useState(false);
+  const [installFilter, setInstallFilter] = useState(false);
+  const [sansSuiteFilter, setSansSuiteFilter] = useState(false);
+
+  const villes = useMemo(
+    () => [...new Set(contacts.map((c) => c.city).filter(Boolean) as string[])].sort((a, b) => a.localeCompare(b)),
+    [contacts],
+  );
+  const arrondissements = useMemo(
+    () => [...new Set(contacts.map((c) => c.arrondissement).filter((a): a is number => a != null))].sort((a, b) => a - b),
+    [contacts],
+  );
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -25,13 +39,18 @@ export default function MarketingContacts({ contacts }: { contacts: MarketingCon
       if (typeFilter !== "tous" && c.type !== typeFilter) return false;
       if (consentOnly && !c.consentement) return false;
       if (emailOnly && !c.email) return false;
+      if (arrFilter !== "tous" && String(c.arrondissement ?? "") !== arrFilter) return false;
+      if (villeFilter !== "toutes" && (c.city ?? "") !== villeFilter) return false;
+      if (contratFilter && !c.aContrat) return false;
+      if (installFilter && !c.aInstallation) return false;
+      if (sansSuiteFilter && !c.pasDeSuite) return false;
       if (q) {
         const hay = `${c.name} ${c.email ?? ""} ${c.phone} ${c.city ?? ""}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
-  }, [contacts, search, typeFilter, consentOnly, emailOnly]);
+  }, [contacts, search, typeFilter, consentOnly, emailOnly, arrFilter, villeFilter, contratFilter, installFilter, sansSuiteFilter]);
 
   const stats = useMemo(() => ({
     total: contacts.length,
@@ -42,9 +61,12 @@ export default function MarketingContacts({ contacts }: { contacts: MarketingCon
   }), [contacts]);
 
   function exportCsv() {
-    const header = ["Type", "Nom", "Telephone", "Email", "Ville", "Consentement", "Date"];
+    const header = ["Type", "Nom", "Telephone", "Email", "Ville", "Arrondissement", "Contrat", "Installation", "Statut", "Consentement", "Date"];
     const lines = filtered.map((c) => [
       c.type, c.name, c.phone, c.email ?? "", c.city ?? "",
+      c.arrondissement != null ? String(c.arrondissement) : "",
+      c.aContrat ? "oui" : "non", c.aInstallation ? "oui" : "non",
+      c.pasDeSuite ? "sans suite" : (c.statut ?? ""),
       c.consentement ? "oui" : "non", fmtDate(c.createdAt),
     ].map(csvEscape).join(";"));
     const csv = "﻿" + [header.join(";"), ...lines].join("\n");
@@ -119,6 +141,34 @@ export default function MarketingContacts({ contacts }: { contacts: MarketingCon
         </div>
       </div>
 
+      {/* Filtres de ciblage : géo + relation */}
+      <div className="flex flex-wrap items-center gap-2">
+        {arrondissements.length > 0 && (
+          <select value={arrFilter} onChange={(e) => setArrFilter(e.target.value)}
+            className="bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-sky-500/50">
+            <option value="tous">Tous arrondissements</option>
+            {arrondissements.map((a) => <option key={a} value={String(a)}>{a === 1 ? "1er" : `${a}e`} arr. (Paris)</option>)}
+          </select>
+        )}
+        {villes.length > 0 && (
+          <select value={villeFilter} onChange={(e) => setVilleFilter(e.target.value)}
+            className="bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-200 max-w-[180px] focus:outline-none focus:border-sky-500/50">
+            <option value="toutes">Toutes villes / CP</option>
+            {villes.map((v) => <option key={v} value={v}>{v}</option>)}
+          </select>
+        )}
+        <FilterToggle active={contratFilter} onClick={() => setContratFilter((v) => !v)} color="emerald">Contrat d&apos;entretien</FilterToggle>
+        <FilterToggle active={installFilter} onClick={() => setInstallFilter((v) => !v)} color="sky">A eu une installation</FilterToggle>
+        <FilterToggle active={sansSuiteFilter} onClick={() => setSansSuiteFilter((v) => !v)} color="rose">Sans suite</FilterToggle>
+        {(arrFilter !== "tous" || villeFilter !== "toutes" || contratFilter || installFilter || sansSuiteFilter || consentOnly || emailOnly || typeFilter !== "tous" || search) && (
+          <button
+            onClick={() => { setArrFilter("tous"); setVilleFilter("toutes"); setContratFilter(false); setInstallFilter(false); setSansSuiteFilter(false); setConsentOnly(false); setEmailOnly(false); setTypeFilter("tous"); setSearch(""); }}
+            className="text-xs text-slate-500 hover:text-white px-2 py-2 transition-colors">
+            Réinitialiser
+          </button>
+        )}
+      </div>
+
       {/* Liste */}
       <div className="bg-slate-800/30 border border-white/8 rounded-2xl overflow-hidden">
         <div className="hidden sm:grid grid-cols-[1.4fr_0.7fr_1.4fr_1fr_0.9fr_0.8fr] gap-3 px-4 py-2.5 border-b border-white/8 text-[11px] uppercase tracking-wide text-slate-500 font-medium">
@@ -130,7 +180,16 @@ export default function MarketingContacts({ contacts }: { contacts: MarketingCon
           <div className="divide-y divide-white/5">
             {filtered.map((c) => (
               <div key={`${c.type}-${c.id}`} className="grid grid-cols-2 sm:grid-cols-[1.4fr_0.7fr_1.4fr_1fr_0.9fr_0.8fr] gap-x-3 gap-y-1 px-4 py-3 text-sm hover:bg-white/[0.02]">
-                <span className="text-white font-medium truncate">{c.name}</span>
+                <div className="min-w-0">
+                  <span className="text-white font-medium truncate block">{c.name}</span>
+                  {(c.aContrat || c.aInstallation || c.pasDeSuite) && (
+                    <div className="flex flex-wrap gap-1 mt-0.5">
+                      {c.aContrat && <span className="text-[9px] font-semibold px-1.5 py-px rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">Contrat</span>}
+                      {c.aInstallation && <span className="text-[9px] font-semibold px-1.5 py-px rounded bg-sky-500/10 text-sky-400 border border-sky-500/25">Install</span>}
+                      {c.pasDeSuite && <span className="text-[9px] font-semibold px-1.5 py-px rounded bg-rose-500/10 text-rose-400 border border-rose-500/25">Sans suite</span>}
+                    </div>
+                  )}
+                </div>
                 <span>
                   <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
                     c.type === "client" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" : "bg-violet-500/10 text-violet-400 border-violet-500/30"
@@ -155,5 +214,21 @@ export default function MarketingContacts({ contacts }: { contacts: MarketingCon
         Les clients existants peuvent être recontactés pour des services similaires.
       </p>
     </div>
+  );
+}
+
+function FilterToggle({ active, onClick, color, children }: {
+  active: boolean; onClick: () => void; color: "emerald" | "sky" | "rose"; children: ReactNode;
+}) {
+  const on = {
+    emerald: "bg-emerald-500/15 border-emerald-500/30 text-emerald-300",
+    sky: "bg-sky-500/15 border-sky-500/30 text-sky-300",
+    rose: "bg-rose-500/15 border-rose-500/30 text-rose-300",
+  }[color];
+  return (
+    <button onClick={onClick}
+      className={`px-3 py-2 rounded-xl text-xs font-medium border transition-colors ${active ? on : "bg-slate-800/60 border-white/10 text-slate-400 hover:text-white"}`}>
+      {children}
+    </button>
   );
 }
