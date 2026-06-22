@@ -90,21 +90,43 @@ export default async function StatistiquesPage({
 
         {/* Trafic — 30 jours */}
         <div className="bg-slate-800/40 border border-white/8 rounded-2xl p-5">
-          <h2 className="text-white font-semibold text-sm flex items-center gap-2 mb-5">
-            <TrendingUp className="w-4 h-4 text-sky-400" /> Trafic du site — 30 jours
-          </h2>
+          <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
+            <h2 className="text-white font-semibold text-sm flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-sky-400" /> Trafic du site — 30 jours
+            </h2>
+            {s.visites > 0 && (
+              <div className="flex items-center gap-3 text-xs">
+                <span className="text-slate-400">Pic <span className="text-white font-semibold tabular-nums">{maxVisites}</span>/j</span>
+                <span className="text-slate-400">Moy. <span className="text-white font-semibold tabular-nums">{Math.round(s.visites / s.visitesParJour.length)}</span>/j</span>
+              </div>
+            )}
+          </div>
           {s.visites === 0 ? (
             <p className="text-slate-500 text-sm text-center py-6">Le suivi des visites vient de démarrer. Les données apparaîtront au fil du trafic.</p>
           ) : (
-            <div className="flex items-end gap-1 h-32">
-              {s.visitesParJour.map((d) => (
-                <div key={d.jour} className="flex-1 flex flex-col items-center gap-1 group" title={`${d.jour} : ${d.n} visites`}>
-                  <div className="w-full flex items-end" style={{ height: "100px" }}>
-                    <div className={`w-full rounded-t transition-all ${d.n > 0 ? "bg-sky-500/40 border border-sky-500/30 group-hover:bg-sky-500/60" : "bg-slate-700/30"}`}
-                      style={{ height: `${Math.max(Math.round((d.n / maxVisites) * 100), d.n > 0 ? 6 : 2)}%` }} />
-                  </div>
+            <div className="flex gap-2">
+              {/* Axe Y (visites/jour) */}
+              <div className="flex flex-col justify-between items-end h-[100px] w-6 flex-shrink-0 text-[10px] text-slate-500 tabular-nums">
+                <span>{maxVisites}</span>
+                <span>{Math.round(maxVisites / 2)}</span>
+                <span>0</span>
+              </div>
+              {/* Barres + lignes de repère */}
+              <div className="relative flex-1">
+                <div className="absolute inset-0 h-[100px] flex flex-col justify-between pointer-events-none">
+                  <div className="border-t border-white/[0.07]" />
+                  <div className="border-t border-white/[0.05]" />
+                  <div className="border-t border-white/[0.07]" />
                 </div>
-              ))}
+                <div className="relative flex items-end gap-1 h-[100px]">
+                  {s.visitesParJour.map((d) => (
+                    <div key={d.jour} className="flex-1 h-full flex items-end group" title={`${d.jour} : ${d.n} visites`}>
+                      <div className={`w-full rounded-t transition-all ${d.n > 0 ? "bg-sky-500/40 border border-sky-500/30 group-hover:bg-sky-500/60" : "bg-slate-700/30"}`}
+                        style={{ height: `${Math.max(Math.round((d.n / maxVisites) * 100), d.n > 0 ? 6 : 2)}%` }} />
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -200,18 +222,39 @@ export default async function StatistiquesPage({
           </div>
 
           <div className="bg-slate-800/40 border border-white/8 rounded-2xl p-5">
-            <h2 className="text-white font-semibold text-sm flex items-center gap-2 mb-4">
-              <Users className="w-4 h-4 text-amber-400" /> Leads par jour (30 j)
-            </h2>
-            <div className="flex items-end gap-1 h-24">
-              {s.leadsParJour.map((d) => (
-                <div key={d.jour} className="flex-1 flex flex-col items-center group" title={`${d.jour} : ${d.n} leads`}>
-                  <div className="w-full flex items-end" style={{ height: "80px" }}>
-                    <div className={`w-full rounded-t ${d.n > 0 ? "bg-amber-500/40 border border-amber-500/30" : "bg-slate-700/30"}`}
-                      style={{ height: `${Math.max(Math.round((d.n / maxLeadsJour) * 100), d.n > 0 ? 8 : 2)}%` }} />
-                  </div>
+            <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+              <h2 className="text-white font-semibold text-sm flex items-center gap-2">
+                <Users className="w-4 h-4 text-amber-400" /> Leads par jour (30 j)
+              </h2>
+              {s.leadsTotalPeriode > 0 && (
+                <div className="flex items-center gap-3 text-xs">
+                  <span className="text-slate-400">Pic <span className="text-white font-semibold tabular-nums">{maxLeadsJour}</span>/j</span>
+                  <span className="text-slate-400">Moy. <span className="text-white font-semibold tabular-nums">{Math.round(s.leadsTotalPeriode / s.leadsParJour.length)}</span>/j</span>
                 </div>
-              ))}
+              )}
+            </div>
+            <div className="flex gap-2">
+              {/* Axe Y (leads/jour) */}
+              <div className="flex flex-col justify-between items-end h-20 w-6 flex-shrink-0 text-[10px] text-slate-500 tabular-nums">
+                <span>{maxLeadsJour}</span>
+                <span>{Math.round(maxLeadsJour / 2)}</span>
+                <span>0</span>
+              </div>
+              <div className="relative flex-1">
+                <div className="absolute inset-0 h-20 flex flex-col justify-between pointer-events-none">
+                  <div className="border-t border-white/[0.07]" />
+                  <div className="border-t border-white/[0.05]" />
+                  <div className="border-t border-white/[0.07]" />
+                </div>
+                <div className="relative flex items-end gap-1 h-20">
+                  {s.leadsParJour.map((d) => (
+                    <div key={d.jour} className="flex-1 h-full flex items-end group" title={`${d.jour} : ${d.n} leads`}>
+                      <div className={`w-full rounded-t ${d.n > 0 ? "bg-amber-500/40 border border-amber-500/30" : "bg-slate-700/30"}`}
+                        style={{ height: `${Math.max(Math.round((d.n / maxLeadsJour) * 100), d.n > 0 ? 8 : 2)}%` }} />
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
