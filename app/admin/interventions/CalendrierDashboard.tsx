@@ -7,7 +7,7 @@ import { X, Plus, Check, ChevronLeft, ChevronRight } from "lucide-react";
 const HOUR_START   = 7;
 const HOUR_END     = 20;
 const TOTAL_HOURS  = HOUR_END - HOUR_START;
-const PX_PER_HOUR  = 56;
+const PX_PER_HOUR  = 40;   // compact : toute la journée (7h-20h) visible d'un coup, sans scroll
 const TOTAL_HEIGHT = TOTAL_HOURS * PX_PER_HOUR;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -532,7 +532,7 @@ export default function CalendrierDashboard() {
           </p>
 
           {/* ── Time grid ────────────────────────────────────────────────── */}
-          <div ref={gridRef} className="overflow-y-auto max-h-[500px]">
+          <div ref={gridRef} className="overflow-y-auto max-h-[560px]">
             <div className="relative flex min-w-[600px]" style={{ height: TOTAL_HEIGHT }}>
 
               {/* Hour labels */}
