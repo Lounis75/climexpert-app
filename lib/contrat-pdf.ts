@@ -23,10 +23,10 @@ const PRESTATAIRE = {
   police: "SV75018041T42457",
 };
 
-/* ─── Médiateur de la consommation (particuliers) — SMP. À confirmer. ───────── */
+/* ─── Médiateur de la consommation (particuliers) — SMP (adhésion ClimExpert). ── */
 const MEDIATEUR = {
   name: "Société de la Médiation Professionnelle (SMP)",
-  contact: "24 rue Albert de Mun, 33000 Bordeaux — www.mediation-consommation-smp.fr",
+  contact: "Rue Marc Sangnier, 33130 Bègles — www.mediation-consommation-smp.fr",
 };
 
 /* ─── Charte ────────────────────────────────────────────────────────────────── */
