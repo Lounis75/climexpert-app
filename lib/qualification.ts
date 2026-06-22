@@ -7,6 +7,8 @@ export type Qualification = {
   typeBien?: string; surfaceM2?: string; nbPieces?: string; etageAcces?: string; copropriete?: string;
   // 🔧 Le projet
   natureProjet?: string; equipementExistant?: string; chauffageActuel?: string;
+  // 🛠️ Spécifique entretien (si natureProjet === "Entretien")
+  entretienNbUnites?: string; entretienModele?: string; entretienHauteur?: string;
   // ❄️ L'équipement souhaité
   typeEquipement?: string; nbUnites?: string; emplacementUE?: string;
   // 💶 Commercial
@@ -25,6 +27,7 @@ export type QualifField = {
   options?: string[];
   placeholder?: string;
   full?: boolean; // occupe toute la largeur
+  showIf?: (q: Qualification) => boolean; // champ conditionnel
 };
 
 export type QualifGroup = { titre: string; emoji: string; champs: QualifField[] };
@@ -44,6 +47,10 @@ export const QUALIF_GROUPS: QualifGroup[] = [
       { key: "natureProjet", label: "Nature du projet", type: "select", options: ["Installation neuve", "Remplacement", "Ajout d'unité", "Entretien", "Dépannage"] },
       { key: "chauffageActuel", label: "Chauffage actuel", type: "select", options: ["Électrique", "Gaz", "Fioul", "Pompe à chaleur", "Autre"] },
       { key: "equipementExistant", label: "Équipement existant (marque, âge, en panne ?)", type: "text", placeholder: "ex : Daikin 8 ans, en panne", full: true },
+      // Champs spécifiques à l'entretien (n'apparaissent que si « Entretien »)
+      { key: "entretienNbUnites", label: "Nombre d'unités à entretenir", type: "number", placeholder: "ex : 3", showIf: (q) => q.natureProjet === "Entretien" },
+      { key: "entretienModele", label: "Modèle(s) de l'équipement", type: "text", placeholder: "ex : Daikin FTXM35", showIf: (q) => q.natureProjet === "Entretien" },
+      { key: "entretienHauteur", label: "Hauteur d'installation / accès", type: "text", placeholder: "ex : 3 m, accès échelle", full: true, showIf: (q) => q.natureProjet === "Entretien" },
     ],
   },
   {
@@ -80,7 +87,7 @@ export function formatQualification(q: Qualification | null | undefined): string
   const lines: string[] = ["QUALIFICATION DES BESOINS"];
   for (const g of QUALIF_GROUPS) {
     const parts = g.champs
-      .filter((c) => c.key !== "note")
+      .filter((c) => c.key !== "note" && (!c.showIf || c.showIf(q as Qualification)))
       .map((c) => ({ c, v: (q as Qualification)[c.key] }))
       .filter((x) => typeof x.v === "string" && x.v!.trim() !== "")
       .map((x) => `${x.c.label} : ${x.v}`);

@@ -67,7 +67,7 @@ export default function LeadQualification({
             <div key={g.titre}>
               <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-2">{g.emoji} {g.titre}</p>
               <div className="grid grid-cols-2 gap-2">
-                {g.champs.map((c) => (
+                {g.champs.filter((c) => !c.showIf || c.showIf(form)).map((c) => (
                   <div key={c.key} className={c.full || c.type === "textarea" ? "col-span-2" : ""}>
                     <label className="block text-[11px] text-slate-400 mb-1">{c.label}</label>
                     {c.type === "select" ? (
@@ -95,7 +95,7 @@ export default function LeadQualification({
       {!open && alreadyQualified && (
         <div className="px-4 pb-3 -mt-1 text-xs text-slate-400 space-y-0.5">
           {QUALIF_GROUPS.flatMap((g) => g.champs)
-            .filter((c) => c.key !== "note" && (form[c.key] ?? "").trim() !== "")
+            .filter((c) => c.key !== "note" && (!c.showIf || c.showIf(form)) && (form[c.key] ?? "").trim() !== "")
             .slice(0, 6)
             .map((c) => (
               <p key={c.key} className="truncate"><span className="text-slate-500">{c.label} :</span> {form[c.key]}</p>
