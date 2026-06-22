@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
   const roles = u.roles ?? [];
   const fullName = u.prenom ? `${u.prenom} ${u.nom}` : u.nom;
   const cookieOpts = {
-    httpOnly: true, sameSite: "strict" as const, maxAge: 60 * 60 * 24 * 30,
+    httpOnly: true, sameSite: "lax" as const, maxAge: 60 * 60 * 24 * 30,
     path: "/", secure: process.env.NODE_ENV === "production",
   };
 

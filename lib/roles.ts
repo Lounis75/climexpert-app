@@ -47,7 +47,7 @@ export function hasRole(roles: string[] | null | undefined, role: Role): boolean
 
 /** Espace d'accueil prioritaire selon les rôles (admin > commercial > technicien). */
 export function homeSpace(roles: string[]): string {
-  if (hasRole(roles, "administrateur")) return "/admin";
+  if (hasRole(roles, "administrateur")) return "/admin/interventions";
   if (hasRole(roles, "commercial")) return "/commercial";
   if (hasRole(roles, "technicien")) return "/technicien";
   return "/";

@@ -22,7 +22,7 @@ export default function AdminLogin() {
         body: JSON.stringify({ email, code }),
       });
       if (res.ok) {
-        router.push("/admin/dashboard");
+        router.push("/admin/interventions");
       } else {
         const data = await res.json();
         setError(data.error ?? "Erreur");

@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
   const res = NextResponse.json({ ok: true });
   res.cookies.set(COOKIE_NAME, jwt, {
     httpOnly: true,
-    sameSite: "strict",
+    sameSite: "lax",
     maxAge: 60 * 60 * 24 * 30,
     path: "/",
     secure: process.env.NODE_ENV === "production",
