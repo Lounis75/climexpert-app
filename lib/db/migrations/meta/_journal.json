@@ -162,6 +162,13 @@
       "when": 1782054759546,
       "tag": "0022_lead_favori",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1782108439136,
+      "tag": "0023_lead_qualification",
+      "breakpoints": true
     }
   ]
 }

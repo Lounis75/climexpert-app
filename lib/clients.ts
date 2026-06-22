@@ -5,6 +5,7 @@ import { eq, desc, and, isNull, ilike, or, sql, count, type SQL } from "drizzle-
 import { randomBytes } from "crypto";
 import { createChantier, getChantierByLead } from "@/lib/chantiers";
 import { logError } from "@/lib/observability";
+import { formatQualification } from "@/lib/qualification";
 
 const PROJECT_LABEL: Record<string, string> = {
   installation: "Installation", entretien: "Entretien", depannage: "Dépannage",
@@ -105,6 +106,7 @@ export async function createClientFromLead(leadId: string): Promise<Client | nul
     lead.equipementInteresse ? `Équipement : ${lead.equipementInteresse}` : "",
     lead.surfaceM2 ? `Surface : ${lead.surfaceM2} m²` : "",
     lead.message ? `Message : ${lead.message}` : "",
+    formatQualification(lead.qualification), // guide de qualification (vide si non rempli)
   ].filter(Boolean).join("\n");
 
   const client = await createClient({

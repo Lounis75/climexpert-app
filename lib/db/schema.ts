@@ -9,9 +9,11 @@ import {
   numeric,
   date,
   index,
+  jsonb,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
+import type { Qualification } from "@/lib/qualification";
 
 export const technicienRoleEnum = pgEnum("technicien_role", [
   "technicien",
@@ -225,6 +227,7 @@ export const leads = pgTable("leads", {
   supprimeLe:          timestamp("supprime_le"),
   version:             integer("version").default(0).notNull(), // verrou de concurrence optimiste
   favori:              boolean("favori").default(false).notNull(), // ⭐ prospect marqué « intéressant »
+  qualification:       jsonb("qualification").$type<Qualification>(), // 📋 guide de qualification des besoins
 }, (t) => ({
   statusIdx:        index("leads_status_idx").on(t.status),
   sourceIdx:        index("leads_source_idx").on(t.source),

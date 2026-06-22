@@ -12,6 +12,7 @@ import {
 import type { Lead, LeadStatus } from "@/lib/leads";
 import { detectDuplicates, leadAction } from "@/lib/leads-utils";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
+import LeadQualification from "./LeadQualification";
 
 const STATUS_CONFIG: Record<LeadStatus, { label: string; color: string; col: string }> = {
   nouveau:          { label: "Nouveau",          color: "bg-sky-500/10 text-sky-400 border-sky-500/30",       col: "border-t-sky-500" },
@@ -1254,6 +1255,14 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                     ))}
                   </select>
                 </div>
+
+                {/* Qualification des besoins — guide d'appel (mis en avant au Contact établi) */}
+                <LeadQualification
+                  key={lead.id}
+                  value={lead.qualification ?? null}
+                  status={lead.status}
+                  onSave={async (q) => { await patchLeadField({ qualification: q }); }}
+                />
 
                 {/* Prochaine étape — quand le contact est établi, avant l'envoi du devis */}
                 {lead.status === "contacté" && (
