@@ -33,7 +33,13 @@ export default function LeadQualification({
     }
   }
 
-  const inputCls = "w-full px-3 py-2 rounded-lg bg-slate-900/60 border border-white/10 text-white text-sm placeholder-slate-600 focus:outline-none focus:border-sky-500/50 transition-colors";
+  // Hauteur fixe (h-11) sur tous les champs -> cellules homogènes quel que soit le
+  // type de contrôle (select/input se rendent différemment selon le navigateur).
+  const inputCls = "w-full h-11 px-3 rounded-lg bg-slate-900/60 border border-white/10 text-white text-sm placeholder-slate-600 focus:outline-none focus:border-sky-500/50 transition-colors";
+  // Champs numériques : on masque les flèches natives pour un rendu identique aux autres.
+  const numCls = `${inputCls} [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`;
+  // Zone de texte : hauteur libre (multi-lignes), même style.
+  const taCls = "w-full px-3 py-2 rounded-lg bg-slate-900/60 border border-white/10 text-white text-sm placeholder-slate-600 focus:outline-none focus:border-sky-500/50 transition-colors resize-none";
 
   return (
     <div className="rounded-xl border border-white/10 bg-slate-900/30 overflow-hidden">
@@ -70,9 +76,9 @@ export default function LeadQualification({
                         {c.options!.map((o) => <option key={o} value={o}>{o}</option>)}
                       </select>
                     ) : c.type === "textarea" ? (
-                      <textarea value={form[c.key] ?? ""} onChange={(e) => set(c.key, e.target.value)} rows={2} placeholder={c.placeholder} className={`${inputCls} resize-none`} />
+                      <textarea value={form[c.key] ?? ""} onChange={(e) => set(c.key, e.target.value)} rows={2} placeholder={c.placeholder} className={taCls} />
                     ) : (
-                      <input type={c.type === "number" ? "number" : "text"} inputMode={c.type === "number" ? "numeric" : undefined} value={form[c.key] ?? ""} onChange={(e) => set(c.key, e.target.value)} placeholder={c.placeholder} className={inputCls} />
+                      <input type={c.type === "number" ? "number" : "text"} inputMode={c.type === "number" ? "numeric" : undefined} value={form[c.key] ?? ""} onChange={(e) => set(c.key, e.target.value)} placeholder={c.placeholder} className={c.type === "number" ? numCls : inputCls} />
                     )}
                   </div>
                 ))}
