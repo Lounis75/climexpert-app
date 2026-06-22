@@ -221,16 +221,28 @@ export default function InterventionForm({
         </div>
 
         <div>
-          <label className="block text-xs text-slate-400 mb-1.5 font-medium">Technicien</label>
+          <label className="block text-xs text-slate-400 mb-1.5 font-medium">Technicien / sous-traitant</label>
           <select
             value={technicienId}
             onChange={(e) => setTechnicienId(e.target.value)}
             className="w-full h-11 px-3 rounded-xl bg-slate-900 border border-white/10 text-white text-sm focus:outline-none focus:border-sky-500 transition-all"
           >
             <option value="">— Non assigné</option>
-            {techniciens.map((t) => (
-              <option key={t.id} value={t.id}>{t.name}</option>
-            ))}
+            {techniciens.some((t) => !(t as Technicien & { externe?: boolean }).externe) && (
+              <optgroup label="Techniciens">
+                {techniciens.filter((t) => !(t as Technicien & { externe?: boolean }).externe).map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </optgroup>
+            )}
+            {techniciens.some((t) => (t as Technicien & { externe?: boolean }).externe) && (
+              <optgroup label="Sous-traitants">
+                {techniciens.filter((t) => (t as Technicien & { externe?: boolean }).externe).map((t) => {
+                  const ent = (t as Technicien & { entreprise?: string | null }).entreprise;
+                  return <option key={t.id} value={t.id}>{t.name}{ent ? ` — ${ent}` : ""}</option>;
+                })}
+              </optgroup>
+            )}
           </select>
         </div>
 

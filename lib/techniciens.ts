@@ -20,7 +20,7 @@ export async function getTechnicienById(id: string): Promise<Technicien | null> 
 }
 
 export async function createTechnicien(
-  data: Pick<InferInsertModel<typeof techniciens>, "name" | "email" | "phone" | "color">
+  data: Pick<InferInsertModel<typeof techniciens>, "name" | "email" | "phone" | "color" | "externe" | "entreprise" | "specialite">
 ): Promise<Technicien> {
   const [t] = await db
     .insert(techniciens)
@@ -31,7 +31,7 @@ export async function createTechnicien(
 
 export async function updateTechnicien(
   id: string,
-  data: Partial<Pick<InferInsertModel<typeof techniciens>, "name" | "email" | "phone" | "color" | "active">>
+  data: Partial<Pick<InferInsertModel<typeof techniciens>, "name" | "email" | "phone" | "color" | "active" | "externe" | "entreprise" | "specialite">>
 ): Promise<Technicien | null> {
   const [t] = await db
     .update(techniciens)

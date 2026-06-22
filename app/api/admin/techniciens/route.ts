@@ -23,6 +23,9 @@ export async function POST(req: NextRequest) {
       email: body.email,
       phone: body.phone ?? null,
       color: body.color ?? "#3b82f6",
+      externe: body.externe === true,
+      entreprise: body.entreprise?.trim() || null,
+      specialite: body.specialite?.trim() || null,
     });
     return NextResponse.json({ technicien: t }, { status: 201 });
   } catch {

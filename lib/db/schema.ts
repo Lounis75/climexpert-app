@@ -98,6 +98,9 @@ export const techniciens = pgTable("techniciens", {
   zonesGeo:   text("zones_geo").array(),
   active:     boolean("active").default(true).notNull(),
   actif:      boolean("actif").default(false).notNull(),  // true une fois onboarding terminé
+  externe:    boolean("externe").default(false).notNull(), // true = sous-traitant (prestataire externe, pas d'accès portail)
+  entreprise: varchar("entreprise", { length: 255 }),      // société du sous-traitant
+  specialite: varchar("specialite", { length: 255 }),      // ex : frigoriste, électricité
   createdAt:  timestamp("created_at").defaultNow().notNull(),
   supprimeLe: timestamp("supprime_le"),
 });

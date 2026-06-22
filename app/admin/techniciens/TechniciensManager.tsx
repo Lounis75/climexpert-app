@@ -11,8 +11,8 @@ const COLORS = [
 
 const inputCls = "w-full px-3 py-2 rounded-lg border border-white/10 bg-slate-700/50 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500/50";
 
-interface Form { name: string; email: string; phone: string; color: string }
-const emptyForm: Form = { name: "", email: "", phone: "", color: "#3b82f6" };
+interface Form { name: string; email: string; phone: string; color: string; externe: boolean; entreprise: string; specialite: string }
+const emptyForm: Form = { name: "", email: "", phone: "", color: "#3b82f6", externe: false, entreprise: "", specialite: "" };
 
 export default function TechniciensManager({ initialTechniciens }: { initialTechniciens: Technicien[] }) {
   const [list, setList] = useState<Technicien[]>(initialTechniciens);
@@ -75,6 +75,8 @@ export default function TechniciensManager({ initialTechniciens }: { initialTech
   }
 
   const actifs = list.filter((t) => t.active);
+  const internes = actifs.filter((t) => !t.externe);
+  const externes = actifs.filter((t) => t.externe);
   const inactifs = list.filter((t) => !t.active);
 
   return (
@@ -103,11 +105,27 @@ export default function TechniciensManager({ initialTechniciens }: { initialTech
       {/* Formulaire création */}
       {showForm && (
         <form onSubmit={handleCreate} className="bg-slate-800/60 border border-white/10 rounded-2xl p-5 mb-6 space-y-4">
-          <h3 className="text-white text-sm font-semibold">Nouveau technicien</h3>
+          <h3 className="text-white text-sm font-semibold">{form.externe ? "Nouveau sous-traitant" : "Nouveau technicien"}</h3>
+          {/* Type : interne ou sous-traitant (externe) */}
+          <div className="flex gap-2">
+            {[{ v: false, l: "Technicien interne" }, { v: true, l: "Sous-traitant (externe)" }].map(({ v, l }) => (
+              <button key={String(v)} type="button" onClick={() => setForm((p) => ({ ...p, externe: v }))}
+                className={`flex-1 h-10 px-3 rounded-lg border text-xs font-medium transition-all ${
+                  form.externe === v ? "border-sky-500/60 bg-sky-500/10 text-sky-300" : "border-white/10 bg-slate-700/40 text-slate-400 hover:border-white/20"
+                }`}>
+                {l}
+              </button>
+            ))}
+          </div>
+          {form.externe && (
+            <p className="text-[11px] text-amber-300/80 bg-amber-500/[0.06] border border-amber-500/20 rounded-lg px-3 py-2">
+              Pas d&apos;accès au portail. Le sous-traitant sera assignable aux interventions (pour le suivi) et tu pourras lui exporter un « Ordre de mission » PDF.
+            </p>
+          )}
           <div className="grid sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-slate-400 mb-1.5">Nom *</label>
-              <input name="name" value={form.name} onChange={handleChange} required placeholder="Jean Martin" className={inputCls} />
+              <input name="name" value={form.name} onChange={handleChange} required placeholder={form.externe ? "Contact / responsable" : "Jean Martin"} className={inputCls} />
             </div>
             <div>
               <label className="block text-xs text-slate-400 mb-1.5">Email *</label>
@@ -132,6 +150,18 @@ export default function TechniciensManager({ initialTechniciens }: { initialTech
               </div>
             </div>
           </div>
+          {form.externe && (
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-slate-400 mb-1.5">Entreprise</label>
+                <input name="entreprise" value={form.entreprise} onChange={handleChange} placeholder="ex : Froid Services SARL" className={inputCls} />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400 mb-1.5">Spécialité</label>
+                <input name="specialite" value={form.specialite} onChange={handleChange} placeholder="ex : frigoriste, électricité" className={inputCls} />
+              </div>
+            </div>
+          )}
           <div className="flex gap-2">
             <button
               type="submit"
@@ -153,10 +183,16 @@ export default function TechniciensManager({ initialTechniciens }: { initialTech
         </div>
       ) : (
         <div className="space-y-6">
-          {actifs.length > 0 && (
+          {internes.length > 0 && (
             <div className="space-y-3">
-              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Actifs</h2>
-              {actifs.map((t) => <TechnicienCard key={t.id} t={t} onToggle={handleToggle} onDelete={handleDelete} toggling={toggling} deleting={deleting} />)}
+              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Techniciens</h2>
+              {internes.map((t) => <TechnicienCard key={t.id} t={t} onToggle={handleToggle} onDelete={handleDelete} toggling={toggling} deleting={deleting} />)}
+            </div>
+          )}
+          {externes.length > 0 && (
+            <div className="space-y-3">
+              <h2 className="text-xs font-semibold text-amber-400/80 uppercase tracking-wider">Sous-traitants (externes)</h2>
+              {externes.map((t) => <TechnicienCard key={t.id} t={t} onToggle={handleToggle} onDelete={handleDelete} toggling={toggling} deleting={deleting} />)}
             </div>
           )}
           {inactifs.length > 0 && (
@@ -189,7 +225,13 @@ function TechnicienCard({
 
       {/* Infos */}
       <div className="flex-1 min-w-0">
-        <p className="text-white font-semibold text-sm">{t.name}</p>
+        <p className="text-white font-semibold text-sm flex items-center gap-2">
+          {t.name}
+          {t.externe && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 flex-shrink-0">Sous-traitant</span>}
+        </p>
+        {t.externe && (t.entreprise || t.specialite) && (
+          <p className="text-xs text-slate-400 mt-0.5 truncate">{[t.entreprise, t.specialite].filter(Boolean).join(" · ")}</p>
+        )}
         <div className="flex flex-wrap gap-3 mt-1 text-xs text-slate-400">
           <a href={`mailto:${t.email}`} className="flex items-center gap-1 hover:text-white transition-colors">
             <Mail className="w-3 h-3" /> {t.email}

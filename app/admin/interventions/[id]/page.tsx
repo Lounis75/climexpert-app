@@ -79,6 +79,14 @@ export default async function InterventionDetailPage({
           </div>
         </div>
 
+        {/* Ordre de mission — PDF à transmettre à un sous-traitant (qui n'a pas le portail) */}
+        <a
+          href={`/api/admin/interventions/${i.id}/ordre-mission`}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800/60 border border-white/10 text-slate-200 hover:border-sky-500/40 hover:text-white text-sm font-semibold transition-colors"
+        >
+          <FileText className="w-4 h-4 text-sky-400" /> Ordre de mission (PDF)
+        </a>
+
         {/* Infos */}
         <div className="grid sm:grid-cols-2 gap-4">
           {i.technicienName && (
