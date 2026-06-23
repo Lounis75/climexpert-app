@@ -30,6 +30,11 @@ const TYPE_COLORS: Record<string, string> = {
   depannage:    "bg-red-500/10 text-red-400 border-red-500/20",
   autre:        "bg-slate-500/10 text-slate-400 border-slate-500/20",
 };
+const STATUT_BADGE: Record<string, { label: string; cls: string }> = {
+  planifiée: { label: "Planifiée", cls: "bg-sky-500/15 text-sky-300 border-sky-500/25" },
+  en_cours:  { label: "En cours",  cls: "bg-amber-500/15 text-amber-300 border-amber-500/25" },
+  terminée:  { label: "Terminée",  cls: "bg-emerald-500/15 text-emerald-300 border-emerald-500/25" },
+};
 
 function euros(ct: number) {
   return (ct / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
@@ -92,6 +97,9 @@ export default async function DashboardPage() {
     { n: stats.savOuverts,                   label: "SAV ouvert(s)",                    href: "/admin/sav",           color: "red",    icon: HeadphonesIcon },
   ].filter((t) => t.n > 0);
   const totalTaches = tachesList.reduce((s, t) => s + t.n, 0);
+  // Optimisation espaces : si des relances ou des interventions à planifier existent, on met
+  // « À faire » et ces listes côte à côte (2 colonnes) au lieu de pleine largeur empilée.
+  const hasRightCol = relances.length > 0 || interventionsAPlanifier.length > 0;
 
   const aujourdhui = new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
@@ -124,8 +132,11 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {/* ─── À FAIRE (héros) ───────────────────────────────────────────────────── */}
-        <div className={`rounded-2xl p-4 mb-6 border ${totalTaches > 0 ? "bg-amber-500/[0.06] border-amber-500/20" : "bg-emerald-500/[0.05] border-emerald-500/20"}`}>
+        {/* ─── Zone d'action : « À faire » | relances + à planifier (2 colonnes) ──── */}
+        <div className={hasRightCol ? "grid lg:grid-cols-2 gap-6 mb-6 items-start" : "mb-6"}>
+
+        {/* À FAIRE (héros) */}
+        <div className={`rounded-2xl p-4 border ${totalTaches > 0 ? "bg-amber-500/[0.06] border-amber-500/20" : "bg-emerald-500/[0.05] border-emerald-500/20"}`}>
           <div className="flex items-center gap-2 mb-3">
             <div className={`w-7 h-7 rounded-lg border flex items-center justify-center ${totalTaches > 0 ? "bg-amber-500/15 border-amber-500/25 text-amber-400" : "bg-emerald-500/15 border-emerald-500/25 text-emerald-400"}`}>
               <ClipboardList className="w-4 h-4" />
@@ -155,9 +166,11 @@ export default async function DashboardPage() {
           )}
         </div>
 
+        {hasRightCol && (
+        <div className="space-y-6">
         {/* ─── Mes relances du jour (prospects à traiter, nominatif) ──────────────── */}
         {relances.length > 0 && (
-          <div className="bg-slate-800/40 border border-amber-500/20 rounded-2xl overflow-hidden mb-6">
+          <div className="bg-slate-800/40 border border-amber-500/20 rounded-2xl overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
               <h2 className="text-white font-semibold text-sm flex items-center gap-2">
                 <Phone className="w-4 h-4 text-amber-400" /> Mes relances du jour
@@ -185,7 +198,7 @@ export default async function DashboardPage() {
 
         {/* ─── À planifier (interventions sans date, ex. devis gagné) ────────────── */}
         {interventionsAPlanifier.length > 0 && (
-          <div className="bg-slate-800/40 border border-sky-500/20 rounded-2xl overflow-hidden mb-6">
+          <div className="bg-slate-800/40 border border-sky-500/20 rounded-2xl overflow-hidden">
             <div className="px-5 py-4 border-b border-white/8 flex items-center gap-2 flex-wrap">
               <CalendarPlus className="w-4 h-4 text-sky-400" />
               <h2 className="text-white font-semibold text-sm">À planifier</h2>
@@ -205,6 +218,9 @@ export default async function DashboardPage() {
             </div>
           </div>
         )}
+        </div>
+        )}
+        </div>
 
         {/* ─── Aujourd'hui  |  Argent du mois ────────────────────────────────────── */}
         <div className="grid lg:grid-cols-3 gap-6 mb-6">
@@ -237,7 +253,10 @@ export default async function DashboardPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-white text-sm font-medium truncate group-hover:text-sky-300 transition-colors">{i.clientName ?? "-"}</p>
-                        <p className="text-slate-500 text-xs truncate">{TYPE_LABELS[i.type] ?? i.type}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-slate-500 text-xs truncate">{TYPE_LABELS[i.type] ?? i.type}</span>
+                          {STATUT_BADGE[i.status] && <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full border flex-shrink-0 ${STATUT_BADGE[i.status].cls}`}>{STATUT_BADGE[i.status].label}</span>}
+                        </div>
                       </div>
                     </Link>
                     {/* Affecter un technicien directement */}
