@@ -24,7 +24,7 @@ export type RendezVous = {
  *  à la casse), pour empêcher les doublons saisis manuellement. */
 export async function findActiveLeadByNamePhone(name: string, phone: string): Promise<Lead | null> {
   const rows = await db.select().from(leads)
-    .where(and(eq(leads.phone, phone.trim()), isNull(leads.supprimeLe)));
+    .where(and(eq(leads.phone, phone.trim()), isNull(leads.supprimeLe), isNull(leads.archiveLe)));
   const target = name.trim().toLowerCase();
   return rows.find((r) => r.name.trim().toLowerCase() === target) ?? null;
 }
@@ -89,7 +89,7 @@ export async function getEnProductionLeadIds(leadList: Lead[]): Promise<Set<stri
 export async function createLead(
   data: Omit<NewLead, "id" | "createdAt" | "updatedAt" | "status">
 ): Promise<Lead> {
-  const [lead] = await db.insert(leads).values(data).returning();
+  const [lead] = await db.insert(leads).values({ ...data, statutChangeLe: new Date() }).returning();
   return lead;
 }
 
@@ -124,13 +124,13 @@ export async function getLeadsBoard(cap = 50): Promise<{ leads: Lead[]; counts: 
   const enProdArr = [...enProd];
 
   const countRows = await db.select({ status: leads.status, value: count() })
-    .from(leads).where(isNull(leads.supprimeLe)).groupBy(leads.status);
+    .from(leads).where(and(isNull(leads.supprimeLe), isNull(leads.archiveLe))).groupBy(leads.status);
   const counts: Record<string, number> = {};
   for (const r of countRows) counts[r.status] = Number(r.value);
   counts["gagné"] = Math.max(0, (counts["gagné"] ?? 0) - enProd.size); // les "en production" sont masqués
 
   const perStatus = await Promise.all(STATUS_LIST.map((st) => {
-    const conds: SQL[] = [isNull(leads.supprimeLe), eq(leads.status, st)];
+    const conds: SQL[] = [isNull(leads.supprimeLe), isNull(leads.archiveLe), eq(leads.status, st)];
     if (st === "gagné" && enProdArr.length) conds.push(notInArray(leads.id, enProdArr));
     return db.select().from(leads).where(and(...conds)).orderBy(desc(leads.createdAt)).limit(cap);
   }));
@@ -139,7 +139,7 @@ export async function getLeadsBoard(cap = 50): Promise<{ leads: Lead[]; counts: 
 
 /** « Charger plus » d'une colonne : prospects suivants d'un statut donné. */
 export async function getLeadsByStatusPaged(opts: { status: LeadStatus; offset: number; limit: number }): Promise<Lead[]> {
-  const conds: SQL[] = [isNull(leads.supprimeLe), eq(leads.status, opts.status)];
+  const conds: SQL[] = [isNull(leads.supprimeLe), isNull(leads.archiveLe), eq(leads.status, opts.status)];
   if (opts.status === "gagné") {
     const enProd = [...await getEnProductionLeadIdSet()];
     if (enProd.length) conds.push(notInArray(leads.id, enProd));
@@ -154,7 +154,7 @@ export async function getLeadsPaginated(opts: { search?: string; page?: number; 
   const pageSize = Math.min(100, Math.max(1, Math.floor(opts.limit ?? 50)));
   const offset = (page - 1) * pageSize;
   const q = (opts.search ?? "").trim();
-  const filters: SQL[] = [isNull(leads.supprimeLe)];
+  const filters: SQL[] = [isNull(leads.supprimeLe), isNull(leads.archiveLe)];
   // Exclut les « en production » (gagnés + intervention planifiée) → cohérent avec le
   // Kanban : la recherche/charger-plus ne doit pas les réinjecter dans les colonnes.
   const enProd = [...await getEnProductionLeadIdSet()];
@@ -185,9 +185,12 @@ export async function updateLead(
   // la version en base correspond (sinon quelqu'un a modifié entre-temps → 0 ligne).
   const conds = [eq(leads.id, id)];
   if (typeof expectedVersion === "number") conds.push(eq(leads.version, expectedVersion));
+  // Au changement de statut : on date le passage (cycle de vie) et on remet à zéro le
+  // verrou anti-doublon des rappels (un nouveau statut = un nouveau compteur).
+  const statusChange = data.status !== undefined ? { statutChangeLe: new Date(), relanceNotifieeLe: null } : {};
   const [lead] = await db
     .update(leads)
-    .set({ ...data, version: sql`${leads.version} + 1`, updatedAt: new Date() })
+    .set({ ...data, ...statusChange, version: sql`${leads.version} + 1`, updatedAt: new Date() })
     .where(and(...conds))
     .returning();
   return lead ?? null;
