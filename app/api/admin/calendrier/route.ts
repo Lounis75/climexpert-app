@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { interventions, clients, techniciens, periodesCapacite, leads } from "@/lib/db/schema";
-import { eq, and, gte, lte, isNull } from "drizzle-orm";
+import { eq, and, gte, lte, isNull, ne } from "drizzle-orm";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -57,6 +57,8 @@ export async function GET(req: NextRequest) {
         gte(leads.rdvDate, startDate),
         lte(leads.rdvDate, endDate),
         isNull(leads.supprimeLe),
+        isNull(leads.archiveLe),
+        ne(leads.status, "perdu"),  // un RDV annulé / prospect perdu ne reste pas au planning
       ),
     );
 

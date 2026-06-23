@@ -7,6 +7,9 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// Lien d'avis Google ClimExpert (booste le référencement local). Modifiable ici.
+const GOOGLE_REVIEW_URL = "https://g.page/r/CWbvuCaYXZbkEAE/review";
+
 const TYPE_LABELS: Record<string, string> = {
   installation: "Installation", entretien: "Entretien",
   depannage: "Dépannage", "contrat-pro": "Contrat pro", autre: "Intervention",
@@ -64,6 +67,8 @@ export async function GET(req: NextRequest) {
           <h2 style="color:#0f172a;">Bonjour ${clientName ?? ""},</h2>
           <p>Votre ${typeLabel} a été réalisée il y a une semaine. Tout fonctionne bien ?</p>
           <p>Si vous avez la moindre question ou constatez un problème, nous sommes disponibles.</p>
+          <p style="margin-top:18px;">Si tout vous convient, un avis nous aiderait énormément (ça prend 30 secondes) :</p>
+          <p><a href="${GOOGLE_REVIEW_URL}" style="background:#0ea5e9;color:white;padding:10px 20px;border-radius:8px;text-decoration:none;display:inline-block;">Laisser un avis Google</a></p>
           ${portalLink ? `<p><a href="${portalLink}" style="color:#0ea5e9;">Accéder à votre espace client</a></p>` : ""}
           <p style="color:#94a3b8;font-size:12px;">L'équipe Clim Expert</p>
         </div>
