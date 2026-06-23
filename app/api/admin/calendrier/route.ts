@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { interventions, clients, techniciens, periodesCapacite, leads } from "@/lib/db/schema";
+import { interventions, clients, techniciens, periodesCapacite, leads, disponibilitesBloquees } from "@/lib/db/schema";
 import { eq, and, gte, lte, isNull, ne } from "drizzle-orm";
 
 export async function GET(req: NextRequest) {
@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
   const endDate   = new Date(end);
   endDate.setHours(23, 59, 59, 999);
 
-  const [rows, techRows, periodes] = await Promise.all([
+  const [rows, techRows, periodes, indispoRows] = await Promise.all([
     db
       .select({
         id:            interventions.id,
@@ -39,19 +39,27 @@ export async function GET(req: NextRequest) {
           isNull(interventions.supprimeLe),
         ),
       ),
-    db.select({ id: techniciens.id, name: techniciens.name, color: techniciens.color }).from(techniciens),
+    db.select({ id: techniciens.id, name: techniciens.name, color: techniciens.color, role: techniciens.role })
+      .from(techniciens).where(isNull(techniciens.supprimeLe)),
     db.select().from(periodesCapacite),
+    // Indisponibilités (congés, créneaux off) chevauchant la fenêtre affichée.
+    db.select().from(disponibilitesBloquees).where(and(
+      gte(disponibilitesBloquees.dateFin, startDate),
+      lte(disponibilitesBloquees.dateDebut, endDate),
+    )),
   ]);
 
   // Rendez-vous commerciaux pris (prospects "rdv_pris" avec une date) dans la plage.
   const rdvRows = await db
     .select({
-      id:           leads.id,
-      clientName:   leads.name,
-      rdvDate:      leads.rdvDate,
-      commercialId: leads.commercialId,
+      id:             leads.id,
+      clientName:     leads.name,
+      rdvDate:        leads.rdvDate,
+      commercialId:   leads.commercialId,
+      commercialName: techniciens.name,
     })
     .from(leads)
+    .leftJoin(techniciens, eq(leads.commercialId, techniciens.id))
     .where(
       and(
         gte(leads.rdvDate, startDate),
@@ -62,5 +70,5 @@ export async function GET(req: NextRequest) {
       ),
     );
 
-  return NextResponse.json({ interventions: rows, techniciens: techRows, periodes, rdvs: rdvRows });
+  return NextResponse.json({ interventions: rows, techniciens: techRows, periodes, rdvs: rdvRows, indispos: indispoRows });
 }
