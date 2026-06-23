@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { X, Plus, Check, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
+import { X, Plus, Check, ChevronLeft, ChevronRight, ChevronDown, Ban } from "lucide-react";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 const HOUR_START   = 7;
@@ -287,6 +287,91 @@ function QuickAddModal({
   );
 }
 
+// ─── Modal "Bloquer un créneau" (indisponibilité) ──────────────────────────────
+function IndispoModal({ techniciens, onClose, onCreated }: { techniciens: CalTechnicien[]; onClose: () => void; onCreated: () => void }) {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const [technicienId, setTechnicienId] = useState(techniciens[0]?.id ?? "");
+  const [fullDay, setFullDay]   = useState(true);
+  const [du, setDu]             = useState(todayStr);
+  const [au, setAu]             = useState(todayStr);
+  const [heureFrom, setHeureFrom] = useState("08:00");
+  const [heureTo, setHeureTo]   = useState("12:00");
+  const [motif, setMotif]       = useState("");
+  const [saving, setSaving]     = useState(false);
+  const [error, setError]       = useState("");
+
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [onClose]);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!technicienId) { setError("Choisissez un membre de l'équipe"); return; }
+    // Construit depuis l'heure LOCALE puis envoie en ISO (UTC) → round-trip correct côté grille.
+    const debut = fullDay ? new Date(`${du}T00:00:00`) : new Date(`${du}T${heureFrom}:00`);
+    const fin   = fullDay ? new Date(`${au || du}T23:59:59`) : new Date(`${du}T${heureTo}:00`);
+    if (isNaN(debut.getTime()) || isNaN(fin.getTime()) || fin < debut) { setError("Plage invalide"); return; }
+    setSaving(true); setError("");
+    try {
+      const res = await fetch("/api/admin/disponibilites", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ technicienId, dateDebut: debut.toISOString(), dateFin: fin.toISOString(), motif }),
+      });
+      if (!res.ok) { setError("Erreur lors de l'enregistrement"); setSaving(false); return; }
+      onCreated(); onClose();
+    } catch { setError("Erreur réseau"); setSaving(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div className="relative bg-[#0f1623] border border-white/10 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
+          <h2 className="text-white font-semibold text-sm flex items-center gap-2"><Ban className="w-4 h-4 text-amber-400" /> Bloquer un créneau</h2>
+          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-500 hover:text-white hover:bg-white/5"><X className="w-4 h-4" /></button>
+        </div>
+        <form onSubmit={submit} className="p-5 space-y-4">
+          <div>
+            <label className="text-xs text-slate-400 block mb-1.5">Membre de l&apos;équipe *</label>
+            <select value={technicienId} onChange={(e) => setTechnicienId(e.target.value)} className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-sky-500">
+              {techniciens.length === 0 && <option value="">Aucun membre</option>}
+              {techniciens.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          </div>
+          <div className="flex items-center rounded-xl bg-slate-800 border border-white/8 p-0.5">
+            {([["Journée(s) entière(s)", true], ["Créneau horaire", false]] as const).map(([label, v]) => (
+              <button key={label} type="button" onClick={() => setFullDay(v)} className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${fullDay === v ? "bg-sky-500 text-white" : "text-slate-400 hover:text-white"}`}>{label}</button>
+            ))}
+          </div>
+          {fullDay ? (
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className="text-xs text-slate-400 block mb-1.5">Du *</label><input type="date" value={du} onChange={(e) => { setDu(e.target.value); if (au < e.target.value) setAu(e.target.value); }} className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none [color-scheme:dark]" /></div>
+              <div><label className="text-xs text-slate-400 block mb-1.5">Au</label><input type="date" value={au} onChange={(e) => setAu(e.target.value)} className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none [color-scheme:dark]" /></div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-3">
+              <div><label className="text-xs text-slate-400 block mb-1.5">Date *</label><input type="date" value={du} onChange={(e) => setDu(e.target.value)} className="w-full bg-slate-800 border border-white/10 rounded-xl px-2 py-2 text-sm text-white focus:outline-none [color-scheme:dark]" /></div>
+              <div><label className="text-xs text-slate-400 block mb-1.5">De</label><input type="time" value={heureFrom} onChange={(e) => setHeureFrom(e.target.value)} className="w-full bg-slate-800 border border-white/10 rounded-xl px-2 py-2 text-sm text-white focus:outline-none [color-scheme:dark]" /></div>
+              <div><label className="text-xs text-slate-400 block mb-1.5">À</label><input type="time" value={heureTo} onChange={(e) => setHeureTo(e.target.value)} className="w-full bg-slate-800 border border-white/10 rounded-xl px-2 py-2 text-sm text-white focus:outline-none [color-scheme:dark]" /></div>
+            </div>
+          )}
+          <div>
+            <label className="text-xs text-slate-400 block mb-1.5">Motif (optionnel)</label>
+            <input value={motif} onChange={(e) => setMotif(e.target.value)} placeholder="Congés, formation…" className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none" />
+          </div>
+          {error && <p className="text-red-400 text-xs bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">{error}</p>}
+          <div className="flex gap-2 pt-1">
+            <button type="submit" disabled={saving} className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-all">{saving ? "Enregistrement…" : "Bloquer"}</button>
+            <button type="button" onClick={onClose} className="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white text-sm font-semibold rounded-xl transition-all">Annuler</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main calendar ────────────────────────────────────────────────────────────
 export default function CalendrierDashboard() {
   const todayBase = new Date();
@@ -306,6 +391,7 @@ export default function CalendrierDashboard() {
   const dragRef = useRef<{ id: string; kind: "int" | "rdv"; grabPx: number; duree: number; origStart: number } | null>(null);
   const [nowY, setNowY]                   = useState<number | null>(null);
   const [modal, setModal]                 = useState<{ date: Date } | null>(null);
+  const [indispoModal, setIndispoModal]   = useState(false);
   const nowRef  = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
 
@@ -490,6 +576,10 @@ export default function CalendrierDashboard() {
         />
       )}
 
+      {indispoModal && (
+        <IndispoModal techniciens={techniciens} onClose={() => setIndispoModal(false)} onCreated={load} />
+      )}
+
       {/* Bascule Semaine / Mois (+ navigation mois) */}
       <div className="flex items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-2">
@@ -554,6 +644,9 @@ export default function CalendrierDashboard() {
             </div>
           )}
         </div>
+        <button onClick={() => setIndispoModal(true)} className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 transition-colors">
+          <Ban className="w-3 h-3" /> Bloquer
+        </button>
       </div>
 
       {loading ? (
