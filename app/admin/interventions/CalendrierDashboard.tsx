@@ -458,7 +458,10 @@ export default function CalendrierDashboard() {
   }
 
   // Filtres : type (intervention / rdv) + personne. selectedPersons null = toute l'équipe.
-  const personMatch = (id: string | null) => selectedPersons === null || selectedPersons.has(id ?? "__none__");
+  const knownIds = new Set(techniciens.map((t) => t.id));
+  // Toute personne inconnue (ex. membre supprimé encore référencé) est rattachée à "Non assigné".
+  const personKey = (id: string | null) => (id && knownIds.has(id) ? id : "__none__");
+  const personMatch = (id: string | null) => selectedPersons === null || selectedPersons.has(personKey(id));
   const forDay = (d: Date) =>
     interventions.filter((i) => i.scheduledAt && isSameDay(new Date(i.scheduledAt), d) && i.status !== "annulée" && typeFilter.interventions && personMatch(i.technicienId));
   const forDayRdv = (d: Date) =>
@@ -474,9 +477,9 @@ export default function CalendrierDashboard() {
   // ── Sous-colonnes par personne (vue semaine) ──────────────────────────────
   // Personnes présentes (intervention, RDV ou indispo) dans la semaine visible.
   const weekPersons = new Set<string>();
-  for (const i of interventions) if (i.status !== "annulée" && typeFilter.interventions && personMatch(i.technicienId)) weekPersons.add(i.technicienId ?? "__none__");
-  for (const r of rdvs) if (typeFilter.rdv && personMatch(r.commercialId)) weekPersons.add(r.commercialId ?? "__none__");
-  for (const x of indispos) if (personMatch(x.technicienId)) weekPersons.add(x.technicienId);
+  for (const i of interventions) if (i.status !== "annulée" && typeFilter.interventions && personMatch(i.technicienId)) weekPersons.add(personKey(i.technicienId));
+  for (const r of rdvs) if (typeFilter.rdv && personMatch(r.commercialId)) weekPersons.add(personKey(r.commercialId));
+  for (const x of indispos) if (personMatch(x.technicienId)) weekPersons.add(personKey(x.technicienId));
   let lanes: { id: string; name: string; color: string | null }[];
   if (selectedPersons !== null) {
     // Sélection explicite : une sous-colonne par personne choisie (même sans activité → on voit ses congés).
@@ -488,13 +491,14 @@ export default function CalendrierDashboard() {
     if (weekPersons.has("__none__")) lanes.push({ id: "__none__", name: "Non assigné", color: null });
   }
   const multiLane = lanes.length > 1;
-  const laneIndexOf = (pid: string | null) => { const i = lanes.findIndex((p) => p.id === (pid ?? "__none__")); return i < 0 ? 0 : i; };
-  const laneBox = (pid: string | null) => {
+  const laneIndexOf = (pid: string | null) => { const i = lanes.findIndex((p) => p.id === personKey(pid)); return i < 0 ? 0 : i; };
+  const laneBoxIdx = (i: number) => {
     if (!multiLane) return { left: 4, right: 4 };
-    const i = laneIndexOf(pid); const w = 100 / lanes.length;
+    const w = 100 / lanes.length;
     return { left: `calc(${i * w}% + 2px)`, width: `calc(${w}% - 4px)` };
   };
-  const laneColor = (pid: string | null) => lanes.find((p) => p.id === (pid ?? "__none__"))?.color ?? null;
+  const laneBox = (pid: string | null) => laneBoxIdx(laneIndexOf(pid));
+  const laneColor = (pid: string | null) => lanes.find((p) => p.id === personKey(pid))?.color ?? null;
   // Blocs d'indisponibilité (top/height) d'une personne un jour donné, bornés à la fenêtre horaire.
   function indispoBlocksFor(personId: string, day: Date): { top: number; height: number; motif: string | null }[] {
     const dayStart = new Date(day); dayStart.setHours(0, 0, 0, 0);
@@ -522,18 +526,19 @@ export default function CalendrierDashboard() {
     try { e.dataTransfer.setData("text/plain", id); } catch { /* ignore */ }
   }
 
-  async function applyMove(drag: NonNullable<typeof dragRef.current>, iso: string) {
+  // personId : undefined = ne pas réassigner ; null = "Non assigné" ; sinon = nouvelle personne.
+  async function applyMove(drag: NonNullable<typeof dragRef.current>, iso: string, personId?: string | null) {
     if (drag.kind === "int") {
-      setInterventions((prev) => prev.map((i) => (i.id === drag.id ? { ...i, scheduledAt: iso } : i)));
+      setInterventions((prev) => prev.map((i) => (i.id === drag.id ? { ...i, scheduledAt: iso, ...(personId !== undefined ? { technicienId: personId } : {}) } : i)));
       await fetch(`/api/admin/interventions/${drag.id}`, {
         method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "planifier", scheduledAt: iso, dureeEstimeeMinutes: drag.duree }),
+        body: JSON.stringify({ action: "planifier", scheduledAt: iso, dureeEstimeeMinutes: drag.duree, ...(personId !== undefined ? { technicienId: personId } : {}) }),
       }).catch(() => {});
     } else {
-      setRdvs((prev) => prev.map((r) => (r.id === drag.id ? { ...r, rdvDate: iso } : r)));
+      setRdvs((prev) => prev.map((r) => (r.id === drag.id ? { ...r, rdvDate: iso, ...(personId !== undefined ? { commercialId: personId } : {}) } : r)));
       await fetch(`/api/admin/leads`, {
         method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: drag.id, rdvDate: iso }),
+        body: JSON.stringify({ id: drag.id, rdvDate: iso, ...(personId !== undefined ? { commercialId: personId } : {}) }),
       }).catch(() => {});
     }
     load();
@@ -550,7 +555,13 @@ export default function CalendrierDashboard() {
     const snapped = Math.max(0, snapMinutes(minFromStart));
     const newStart = new Date(day);
     newStart.setHours(HOUR_START + Math.floor(snapped / 60), snapped % 60, 0, 0);
-    await applyMove(drag, newStart.toISOString());
+    // En multi-colonnes, la position horizontale du drop = la personne cible (réassignation).
+    let personId: string | null | undefined;
+    if (multiLane && lanes.length > 0) {
+      const li = Math.max(0, Math.min(lanes.length - 1, Math.floor(((e.clientX - rect.left) / rect.width) * lanes.length)));
+      personId = lanes[li].id === "__none__" ? null : lanes[li].id;
+    }
+    await applyMove(drag, newStart.toISOString(), personId);
   }
 
   // Vue mois : drop = nouveau jour, on garde l'heure d'origine.
@@ -781,9 +792,7 @@ export default function CalendrierDashboard() {
 
                         {/* Grisage des indisponibilités (par sous-colonne = personne) */}
                         {lanes.map((p, li) => indispoBlocksFor(p.id, d).map((b, bi) => {
-                          const box = multiLane
-                            ? { left: `${li * (100 / lanes.length)}%`, width: `${100 / lanes.length}%` }
-                            : { left: 0, right: 0 };
+                          const box = laneBoxIdx(li); // même géométrie que les events de la lane
                           return (
                             <div key={`g-${p.id}-${bi}`} className="absolute z-0 pointer-events-none border-y border-white/5"
                               style={{ top: b.top, height: b.height, ...box, backgroundColor: "rgba(15,23,42,0.55)", backgroundImage: "repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255,255,255,0.05) 5px, rgba(255,255,255,0.05) 10px)" }}>

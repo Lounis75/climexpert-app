@@ -9,6 +9,12 @@ async function getSession(req: NextRequest) {
   return token ? verifyTechnicienToken(token) : null;
 }
 
+// Le portail envoie des dates sans heure ("2026-06-22"). new Date() les parse en UTC minuit,
+// ce qui décale l'indispo et la rend invisible sur la grille (heure locale). On borne donc
+// en journée LOCALE pleine : début 00:00, fin 23:59:59 (cohérent avec le modal admin).
+function toLocalStart(s: string) { return new Date(/^\d{4}-\d{2}-\d{2}$/.test(s) ? `${s}T00:00:00` : s); }
+function toLocalEnd(s: string)   { return new Date(/^\d{4}-\d{2}-\d{2}$/.test(s) ? `${s}T23:59:59` : s); }
+
 export async function GET(req: NextRequest) {
   const session = await getSession(req);
   if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
@@ -38,8 +44,8 @@ export async function POST(req: NextRequest) {
     .insert(disponibilitesBloquees)
     .values({
       technicienId: session.sub,
-      dateDebut:    new Date(dateDebut),
-      dateFin:      new Date(dateFin),
+      dateDebut:    toLocalStart(dateDebut),
+      dateFin:      toLocalEnd(dateFin),
       motif:        motif ?? null,
     })
     .returning();
