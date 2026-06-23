@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { X, Plus, Check, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, Plus, Check, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 const HOUR_START   = 7;
@@ -16,9 +16,10 @@ type CalIntervention = {
   address: string | null; technicienId: string | null; duree: number | null;
   clientName: string; technicienName: string | null;
 };
-type CalTechnicien = { id: string; name: string; color: string | null };
+type CalTechnicien = { id: string; name: string; color: string | null; role?: string | null };
 type SimpleClient   = { id: string; name: string; phone: string };
-type CalRdv         = { id: string; clientName: string; rdvDate: string | null };
+type CalRdv         = { id: string; clientName: string; rdvDate: string | null; commercialId: string | null; commercialName: string | null };
+type CalIndispo     = { id: string; technicienId: string; dateDebut: string; dateFin: string; motif: string | null };
 
 // ─── Lookup tables ────────────────────────────────────────────────────────────
 const TYPE_COLORS: Record<string, { bg: string; border: string; text: string; dot: string }> = {
@@ -296,6 +297,10 @@ export default function CalendrierDashboard() {
   const [interventions, setInterventions] = useState<CalIntervention[]>([]);
   const [techniciens, setTechniciens]     = useState<CalTechnicien[]>([]);
   const [rdvs, setRdvs]                   = useState<CalRdv[]>([]);
+  const [indispos, setIndispos]           = useState<CalIndispo[]>([]);
+  const [typeFilter, setTypeFilter]       = useState({ interventions: true, rdv: true });
+  const [selectedPersons, setSelectedPersons] = useState<Set<string> | null>(null); // null = toute l'équipe
+  const [personMenu, setPersonMenu]       = useState(false);
   const [loading, setLoading]             = useState(true);
   const [dragId, setDragId]               = useState<string | null>(null);
   const dragRef = useRef<{ id: string; kind: "int" | "rdv"; grabPx: number; duree: number; origStart: number } | null>(null);
@@ -325,6 +330,7 @@ export default function CalendrierDashboard() {
       setInterventions(d.interventions ?? []);
       setTechniciens(d.techniciens ?? []);
       setRdvs(d.rdvs ?? []);
+      setIndispos(d.indispos ?? []);
     }
     setLoading(false);
   }, [viewMode, monthAnchor]);
@@ -365,11 +371,61 @@ export default function CalendrierDashboard() {
     setModal({ date });
   }
 
+  // Filtres : type (intervention / rdv) + personne. selectedPersons null = toute l'équipe.
+  const personMatch = (id: string | null) => selectedPersons === null || selectedPersons.has(id ?? "__none__");
   const forDay = (d: Date) =>
-    interventions.filter((i) => i.scheduledAt && isSameDay(new Date(i.scheduledAt), d) && i.status !== "annulée");
-
+    interventions.filter((i) => i.scheduledAt && isSameDay(new Date(i.scheduledAt), d) && i.status !== "annulée" && typeFilter.interventions && personMatch(i.technicienId));
   const forDayRdv = (d: Date) =>
-    rdvs.filter((r) => r.rdvDate && isSameDay(new Date(r.rdvDate), d));
+    rdvs.filter((r) => r.rdvDate && isSameDay(new Date(r.rdvDate), d) && typeFilter.rdv && personMatch(r.commercialId));
+
+  function togglePerson(id: string) {
+    const allIds = [...techniciens.map((t) => t.id), "__none__"];
+    const base = selectedPersons === null ? new Set(allIds) : new Set(selectedPersons);
+    if (base.has(id)) base.delete(id); else base.add(id);
+    setSelectedPersons(base.size === allIds.length ? null : base);
+  }
+
+  // ── Sous-colonnes par personne (vue semaine) ──────────────────────────────
+  // Personnes présentes (intervention, RDV ou indispo) dans la semaine visible.
+  const weekPersons = new Set<string>();
+  for (const i of interventions) if (i.status !== "annulée" && typeFilter.interventions && personMatch(i.technicienId)) weekPersons.add(i.technicienId ?? "__none__");
+  for (const r of rdvs) if (typeFilter.rdv && personMatch(r.commercialId)) weekPersons.add(r.commercialId ?? "__none__");
+  for (const x of indispos) if (personMatch(x.technicienId)) weekPersons.add(x.technicienId);
+  let lanes: { id: string; name: string; color: string | null }[];
+  if (selectedPersons !== null) {
+    // Sélection explicite : une sous-colonne par personne choisie (même sans activité → on voit ses congés).
+    lanes = techniciens.filter((t) => selectedPersons.has(t.id)).map((t) => ({ id: t.id, name: t.name, color: t.color }));
+    if (selectedPersons.has("__none__")) lanes.push({ id: "__none__", name: "Non assigné", color: null });
+  } else {
+    // Toute l'équipe : une sous-colonne par personne ayant de l'activité cette semaine.
+    lanes = techniciens.filter((t) => weekPersons.has(t.id)).map((t) => ({ id: t.id, name: t.name, color: t.color }));
+    if (weekPersons.has("__none__")) lanes.push({ id: "__none__", name: "Non assigné", color: null });
+  }
+  const multiLane = lanes.length > 1;
+  const laneIndexOf = (pid: string | null) => { const i = lanes.findIndex((p) => p.id === (pid ?? "__none__")); return i < 0 ? 0 : i; };
+  const laneBox = (pid: string | null) => {
+    if (!multiLane) return { left: 4, right: 4 };
+    const i = laneIndexOf(pid); const w = 100 / lanes.length;
+    return { left: `calc(${i * w}% + 2px)`, width: `calc(${w}% - 4px)` };
+  };
+  const laneColor = (pid: string | null) => lanes.find((p) => p.id === (pid ?? "__none__"))?.color ?? null;
+  // Blocs d'indisponibilité (top/height) d'une personne un jour donné, bornés à la fenêtre horaire.
+  function indispoBlocksFor(personId: string, day: Date): { top: number; height: number; motif: string | null }[] {
+    const dayStart = new Date(day); dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(day); dayEnd.setHours(23, 59, 59, 999);
+    return indispos
+      .filter((x) => x.technicienId === personId)
+      .map((x) => ({ s: new Date(x.dateDebut), e: new Date(x.dateFin), motif: x.motif }))
+      .filter((x) => x.s <= dayEnd && x.e >= dayStart)
+      .map((x) => {
+        const startH = x.s <= dayStart ? HOUR_START : x.s.getHours() + x.s.getMinutes() / 60;
+        const endH   = x.e >= dayEnd   ? HOUR_END   : x.e.getHours() + x.e.getMinutes() / 60;
+        const top    = Math.max(0, (Math.max(startH, HOUR_START) - HOUR_START) * PX_PER_HOUR);
+        const bottom = Math.min((Math.min(endH, HOUR_END) - HOUR_START) * PX_PER_HOUR, TOTAL_HEIGHT);
+        return { top, height: Math.max(0, bottom - top), motif: x.motif };
+      })
+      .filter((b) => b.height > 0);
+  }
 
   // ── Glisser-déposer pour déplacer un rendez-vous (comme le calendrier Apple) ──
   function onEventDragStart(e: React.DragEvent, id: string, kind: "int" | "rdv", duree: number, origStart: number) {
@@ -450,6 +506,53 @@ export default function CalendrierDashboard() {
           {(["semaine", "mois"] as const).map((m) => (
             <button key={m} onClick={() => setViewMode(m)} className={`px-3 py-1 text-xs font-medium rounded-lg capitalize transition-colors ${viewMode === m ? "bg-sky-500 text-white" : "text-slate-400 hover:text-white"}`}>{m}</button>
           ))}
+        </div>
+      </div>
+
+      {/* Filtres : type + personnes */}
+      <div className="flex items-center flex-wrap gap-2 mb-3">
+        <button onClick={() => setTypeFilter((t) => ({ ...t, interventions: !t.interventions }))}
+          className={`px-2.5 py-1 text-[11px] font-medium rounded-lg border transition-colors ${typeFilter.interventions ? "bg-sky-500/15 border-sky-500/40 text-sky-300" : "bg-slate-800 border-white/8 text-slate-500"}`}>
+          Interventions
+        </button>
+        <button onClick={() => setTypeFilter((t) => ({ ...t, rdv: !t.rdv }))}
+          className={`px-2.5 py-1 text-[11px] font-medium rounded-lg border transition-colors ${typeFilter.rdv ? "bg-amber-500/15 border-amber-500/40 text-amber-300" : "bg-slate-800 border-white/8 text-slate-500"}`}>
+          RDV commerciaux
+        </button>
+        <div className="w-px h-5 bg-white/10 mx-1" />
+        <div className="relative">
+          <button onClick={() => setPersonMenu((v) => !v)}
+            className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium rounded-lg border bg-slate-800 border-white/8 text-slate-300 hover:text-white transition-colors">
+            {selectedPersons === null ? "Toute l'équipe" : `${selectedPersons.size} personne${selectedPersons.size > 1 ? "s" : ""}`}
+            <ChevronDown className="w-3 h-3" />
+          </button>
+          {personMenu && (
+            <div className="absolute z-30 left-0 mt-1 w-56 bg-[#0f1623] border border-white/10 rounded-xl shadow-xl p-2 max-h-72 overflow-y-auto">
+              <div className="flex gap-1 mb-1.5">
+                <button onClick={() => setSelectedPersons(null)} className="flex-1 text-[10px] py-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white">Tous</button>
+                <button onClick={() => setSelectedPersons(new Set())} className="flex-1 text-[10px] py-1 rounded-lg bg-slate-800 text-slate-300 hover:text-white">Aucun</button>
+              </div>
+              {techniciens.map((t) => {
+                const checked = selectedPersons === null || selectedPersons.has(t.id);
+                return (
+                  <button key={t.id} onClick={() => togglePerson(t.id)} className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 text-left">
+                    <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 ${checked ? "bg-sky-500 border-sky-500" : "border-white/20"}`}>
+                      {checked && <Check className="w-2.5 h-2.5 text-white" />}
+                    </span>
+                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: t.color ?? "#64748b" }} />
+                    <span className="text-[11px] text-slate-200 flex-1 truncate">{t.name}</span>
+                  </button>
+                );
+              })}
+              <button onClick={() => togglePerson("__none__")} className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/5 text-left">
+                <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 ${(selectedPersons === null || selectedPersons.has("__none__")) ? "bg-sky-500 border-sky-500" : "border-white/20"}`}>
+                  {(selectedPersons === null || selectedPersons.has("__none__")) && <Check className="w-2.5 h-2.5 text-white" />}
+                </span>
+                <span className="w-2 h-2 rounded-full bg-slate-500 flex-shrink-0" />
+                <span className="text-[11px] text-slate-400 flex-1 truncate">Non assigné</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -583,6 +686,19 @@ export default function CalendrierDashboard() {
                           </div>
                         </div>
 
+                        {/* Grisage des indisponibilités (par sous-colonne = personne) */}
+                        {lanes.map((p, li) => indispoBlocksFor(p.id, d).map((b, bi) => {
+                          const box = multiLane
+                            ? { left: `${li * (100 / lanes.length)}%`, width: `${100 / lanes.length}%` }
+                            : { left: 0, right: 0 };
+                          return (
+                            <div key={`g-${p.id}-${bi}`} className="absolute z-0 pointer-events-none border-y border-white/5"
+                              style={{ top: b.top, height: b.height, ...box, backgroundColor: "rgba(15,23,42,0.55)", backgroundImage: "repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255,255,255,0.05) 5px, rgba(255,255,255,0.05) 10px)" }}>
+                              {b.height > 22 && <span className="absolute top-0.5 left-1 text-[8px] font-medium text-slate-400 truncate pr-1">{b.motif || "Indispo"}</span>}
+                            </div>
+                          );
+                        }))}
+
                         {/* Events */}
                         {events.map((ev) => {
                           const start = new Date(ev.scheduledAt!);
@@ -601,8 +717,8 @@ export default function CalendrierDashboard() {
                               draggable
                               onDragStart={(e) => onEventDragStart(e, ev.id, "int", dur, start.getTime())}
                               onDragEnd={() => { dragRef.current = null; setDragId(null); }}
-                              className={`absolute left-1 right-1 rounded-lg border px-2 py-1 overflow-hidden z-10 transition-opacity hover:opacity-80 cursor-grab active:cursor-grabbing ${c.bg} ${c.border} ${dragId === ev.id ? "opacity-40" : ""}`}
-                              style={{ top, height: h }}
+                              className={`absolute rounded-lg border px-2 py-1 overflow-hidden z-10 transition-opacity hover:opacity-80 cursor-grab active:cursor-grabbing ${c.bg} ${c.border} ${dragId === ev.id ? "opacity-40" : ""}`}
+                              style={{ top, height: h, ...laneBox(ev.technicienId), ...(multiLane && laneColor(ev.technicienId) ? { borderLeftColor: laneColor(ev.technicienId)!, borderLeftWidth: 3 } : {}) }}
                             >
                               <div className="flex items-start gap-1.5 h-full overflow-hidden">
                                 <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 mt-[3px] ${c.dot}`} />
@@ -644,8 +760,8 @@ export default function CalendrierDashboard() {
                               draggable
                               onDragStart={(e) => onEventDragStart(e, r.id, "rdv", 120, start.getTime())}
                               onDragEnd={() => { dragRef.current = null; setDragId(null); }}
-                              className={`absolute left-1 right-1 rounded-lg border px-2 py-1 overflow-hidden z-10 transition-opacity hover:opacity-80 cursor-grab active:cursor-grabbing bg-amber-500/15 border-amber-500/40 ${dragId === r.id ? "opacity-40" : ""}`}
-                              style={{ top, height: h }}
+                              className={`absolute rounded-lg border px-2 py-1 overflow-hidden z-10 transition-opacity hover:opacity-80 cursor-grab active:cursor-grabbing bg-amber-500/15 border-amber-500/40 ${dragId === r.id ? "opacity-40" : ""}`}
+                              style={{ top, height: h, ...laneBox(r.commercialId), ...(multiLane && laneColor(r.commercialId) ? { borderLeftColor: laneColor(r.commercialId)!, borderLeftWidth: 3 } : {}) }}
                             >
                               <div className="flex items-start gap-1.5 h-full overflow-hidden">
                                 <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-[3px] bg-amber-400" />
