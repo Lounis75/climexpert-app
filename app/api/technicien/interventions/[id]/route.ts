@@ -64,13 +64,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const body = await req.json();
   const { status } = body;
 
-  if (!["en_cours", "terminée"].includes(status)) {
-    return NextResponse.json({ error: "Statut invalide" }, { status: 400 });
+  // Ce bouton ne fait que DÉMARRER (en_cours). La clôture (terminée) passe uniquement
+  // par le rapport de clôture (/api/technicien/rapports) : photos + CERFA signé client.
+  if (status !== "en_cours") {
+    return NextResponse.json({ error: "La clôture se fait via le rapport (photos + CERFA signé)." }, { status: 400 });
   }
 
   await db
     .update(interventions)
-    .set({ status, version: sql`${interventions.version} + 1`, updatedAt: new Date(), ...(status === "terminée" ? { completedAt: new Date() } : {}) })
+    .set({ status: "en_cours", version: sql`${interventions.version} + 1`, updatedAt: new Date() })
     .where(and(eq(interventions.id, id), eq(interventions.technicienId, session.sub)));
 
   return NextResponse.json({ ok: true });

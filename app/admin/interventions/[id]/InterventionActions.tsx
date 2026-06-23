@@ -2,15 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Play, CheckCircle, XCircle, Trash2, CalendarClock, Check } from "lucide-react";
+import { Play, XCircle, Trash2, CalendarClock, Check } from "lucide-react";
 
 const ACTIONS: Record<string, { label: string; status: string; icon: React.ElementType; cls: string }[]> = {
   planifiée: [
     { label: "Démarrer",  status: "en_cours", icon: Play,        cls: "bg-sky-500/10 border-sky-500/30 text-sky-400 hover:bg-sky-500/20" },
     { label: "Annuler",   status: "annulée",  icon: XCircle,     cls: "bg-slate-700 border-white/10 text-slate-400 hover:text-white" },
   ],
+  // Plus de "Terminer" ici : la clôture passe OBLIGATOIREMENT par le rapport du
+  // technicien (photos + CERFA signé par le client). On ne termine pas en un clic.
   en_cours: [
-    { label: "Terminer",  status: "terminée", icon: CheckCircle, cls: "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20" },
     { label: "Annuler",   status: "annulée",  icon: XCircle,     cls: "bg-slate-700 border-white/10 text-slate-400 hover:text-white" },
   ],
 };
@@ -135,6 +136,12 @@ export default function InterventionActions({
           <Trash2 className="w-3.5 h-3.5" /> Supprimer
         </button>
       </div>
+
+      {currentStatus === "en_cours" && (
+        <p className="w-full sm:w-96 text-[11px] text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2 leading-relaxed">
+          La clôture (rapport, photos obligatoires, CERFA signé par le client) se fait depuis le <strong>portail technicien</strong>. L&apos;intervention passe « Terminée » uniquement à l&apos;envoi du rapport.
+        </p>
+      )}
 
       {planning && (
         <div className="w-full sm:w-96 bg-slate-800/60 border border-violet-500/20 rounded-2xl p-4 space-y-3">

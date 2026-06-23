@@ -133,6 +133,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
 
     if (body.status) {
+      // La clôture (terminée) n'est JAMAIS un simple flip de statut : elle passe par le
+      // rapport du technicien (photos obligatoires + CERFA signé par le client + contrat).
+      if (body.status === "terminée") {
+        return NextResponse.json({ error: "La clôture se fait via le rapport du technicien (photos + CERFA signé). Impossible de terminer manuellement." }, { status: 400 });
+      }
       const i = await updateInterventionStatus(id, body.status as Intervention["status"], expectedVersion);
       if (!i) {
         if (expectedVersion !== undefined && (await getInterventionById(id))) {
