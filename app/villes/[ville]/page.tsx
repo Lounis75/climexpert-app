@@ -5,6 +5,7 @@ import Footer from "@/components/Footer";
 import { CheckCircle2, ArrowRight, MapPin, Wrench, Thermometer, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { VILLES, getVilleBySlug } from "@/lib/villes";
+import { DEPARTEMENTS } from "@/lib/departements";
 
 export async function generateStaticParams() {
   return VILLES.map((v) => ({ ville: v.slug }));
@@ -44,6 +45,10 @@ export default async function VillePage({
   const { ville: slug } = await params;
   const ville = getVilleBySlug(slug);
   if (!ville) notFound();
+
+  // Maillage interne : zones du même département (mesh complet) + lien vers le département.
+  const nearby = VILLES.filter((v) => v.dept === ville.dept && v.slug !== ville.slug);
+  const deptSlug = DEPARTEMENTS.find((d) => d.code === ville.dept)?.slug;
 
   const breadcrumbSchema = {
     "@context": "https://schema.org",
@@ -306,6 +311,39 @@ export default async function VillePage({
             </div>
           </div>
         </section>
+
+        {/* Maillage interne : zones d'intervention proches */}
+        {nearby.length > 0 && (
+          <section className="py-16 bg-white border-t border-slate-100">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <h2 className="text-2xl font-bold text-slate-900 mb-2">Climatisation dans les environs</h2>
+              <p className="text-slate-500 mb-6">
+                Nous intervenons aussi à proximité de {ville.name}, dans tout le {ville.depName} ({ville.dept}).
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {nearby.map((v) => (
+                  <Link
+                    key={v.slug}
+                    href={`/villes/${v.slug}`}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-50 hover:bg-sky-50 border border-slate-200 hover:border-sky-200 text-slate-700 hover:text-sky-700 text-sm font-medium transition-colors"
+                  >
+                    <MapPin className="w-3.5 h-3.5 text-slate-400" /> {v.name}
+                  </Link>
+                ))}
+              </div>
+              <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+                {deptSlug && (
+                  <Link href={`/departements/${deptSlug}`} className="text-sky-600 hover:text-sky-700 font-medium inline-flex items-center gap-1">
+                    Climatisation {ville.depName} <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                )}
+                <Link href="/villes" className="text-sky-600 hover:text-sky-700 font-medium inline-flex items-center gap-1">
+                  Toutes nos zones d&apos;intervention <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* CTA final */}
         <section className="py-16 bg-slate-50">
