@@ -25,15 +25,28 @@ export default function ChatBot() {
   const [leadComplete, setLeadComplete] = useState(false);
   const [leadName, setLeadName] = useState("");
   const sessionId = useRef(genSessionId());
+  const [besoinMode, setBesoinMode] = useState(false); // aide à la description du besoin (formulaire contact)
+  const besoinModeRef = useRef(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const handler = (e: Event) => {
-      const topic = (e as CustomEvent<{ topic?: string }>).detail?.topic;
+      const detail = (e as CustomEvent<{ topic?: string; besoin?: Record<string, string> }>).detail;
       setOpen(true);
-      if (topic) {
-        setTimeout(() => sendMessage(topic), 400);
+      // Mode « contact » : Alex aide à décrire le besoin (coordonnées déjà dans le formulaire).
+      if (detail?.besoin) {
+        besoinModeRef.current = true;
+        setBesoinMode(true);
+        const ctx = Object.values(detail.besoin).map((v) => (v ?? "").trim()).filter(Boolean);
+        const seed = ctx.length
+          ? `Bonjour ! J'ai commencé le formulaire de contact (${ctx.join(" · ")}). Aidez-moi à décrire mon besoin de climatisation.`
+          : "Bonjour ! Aidez-moi à décrire mon besoin de climatisation.";
+        setTimeout(() => sendMessage(seed), 400);
+        return;
+      }
+      if (detail?.topic) {
+        setTimeout(() => sendMessage(detail.topic!), 400);
       }
     };
     window.addEventListener("open-chat", handler);
@@ -64,7 +77,7 @@ export default function ChatBot() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: newMessages, sessionId: sessionId.current }),
+        body: JSON.stringify({ messages: newMessages, sessionId: sessionId.current, mode: besoinModeRef.current ? "contact" : undefined }),
       });
       const data = await res.json();
       setMessages([...newMessages, { role: "assistant", content: data.message || data.error }]);
@@ -100,7 +113,7 @@ export default function ChatBot() {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             transition={{ type: "spring", stiffness: 400, damping: 20 }}
-            onClick={() => setOpen(true)}
+            onClick={() => { besoinModeRef.current = false; setBesoinMode(false); setOpen(true); }}
             className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-sky-500 hover:bg-sky-400 text-white shadow-xl shadow-sky-500/40 flex items-center justify-center"
             aria-label="Ouvrir le chat"
             whileHover={{ scale: 1.1 }}
@@ -246,15 +259,32 @@ export default function ChatBot() {
               )}
             </AnimatePresence>
 
-            {/* CTA devis */}
+            {/* CTA : reprendre dans le formulaire (mode besoin) OU devis */}
             <div className="px-4 pb-2">
-              <a
-                href="/devis"
-                className="flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-sky-50 border border-sky-100 text-sky-600 text-xs font-medium hover:bg-sky-100 transition-colors"
-              >
-                <ArrowRight className="w-3.5 h-3.5" />
-                Demander un devis gratuit
-              </a>
+              {besoinMode ? (
+                <button
+                  onClick={() => {
+                    const last = [...messages].reverse().find((m) => m.role === "assistant");
+                    const text = (last?.content ?? "").replace(/^\s*voici votre demande\s*:?\s*/i, "").trim();
+                    window.dispatchEvent(new CustomEvent("alex-besoin", { detail: { text } }));
+                    besoinModeRef.current = false;
+                    setBesoinMode(false);
+                    setOpen(false);
+                  }}
+                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-sky-500 text-white text-sm font-semibold hover:bg-sky-400 transition-colors"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  Reprendre ma demande dans le formulaire
+                </button>
+              ) : (
+                <a
+                  href="/devis"
+                  className="flex items-center justify-center gap-2 w-full py-2 rounded-xl bg-sky-50 border border-sky-100 text-sky-600 text-xs font-medium hover:bg-sky-100 transition-colors"
+                >
+                  <ArrowRight className="w-3.5 h-3.5" />
+                  Demander un devis gratuit
+                </a>
+              )}
             </div>
 
             {/* Input */}

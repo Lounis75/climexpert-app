@@ -296,6 +296,18 @@ async function sendLeadEmails(lead: LeadData, messages: ChatMessage[]) {
   });
 }
 
+// Mode « contact » : Alex aide le visiteur à DÉCRIRE SON BESOIN depuis le formulaire de
+// contact (les coordonnées sont déjà saisies). Il ne crée AUCUN lead / créneau / SAV —
+// c'est le formulaire qui crée le lead à l'envoi. Prompt isolé + court-circuit.
+const CONTACT_SYSTEM_PROMPT = `Tu es Alex, l'assistant de ClimExpert (climatisation en Île-de-France). Le visiteur remplit le formulaire de contact du site et a DÉJÀ saisi ses coordonnées (nom, téléphone, email, adresse). Ta seule mission : l'aider à DÉCRIRE SON BESOIN clairement, pour que l'équipe le rappelle avec les bonnes informations.
+
+RÈGLES :
+- Ne redemande JAMAIS le nom, le téléphone, l'email ni l'adresse : ils sont déjà dans le formulaire.
+- Pose des questions courtes, une à la fois, uniquement sur le PROJET : prestation (installation, entretien, dépannage), type de bien, surface ou nombre de pièces à climatiser, équipement existant ou souhaité (monosplit, multisplit, gainable, PAC), emplacement possible de l'unité extérieure, délai/urgence, budget éventuel.
+- Reste chaleureux, simple et professionnel. Vouvoiement.
+- Dès que tu as assez d'éléments (3-4 réponses suffisent), termine par un RÉCAPITULATIF clair du besoin en 3 à 5 phrases, à la première personne du client, SANS aucune coordonnée, prêt à être collé dans le formulaire. Commence ce récapitulatif par "Voici votre demande :".
+- Ne propose pas de rendez-vous ni de créneaux, ne demande pas de confirmation d'envoi : c'est le formulaire qui s'en charge.`;
+
 export async function POST(req: NextRequest) {
   try {
     // Rate-limit : 20 requêtes / minute / IP (borne le coût Anthropic et le spam)
@@ -303,8 +315,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Trop de messages, patientez quelques instants." }, { status: 429 });
     }
 
-    const body: { messages: ChatMessage[]; sessionId?: string } = await req.json();
+    const body: { messages: ChatMessage[]; sessionId?: string; mode?: string } = await req.json();
     const sid = body.sessionId ?? "unknown";
+    const mode = body.mode;
 
     if (!Array.isArray(body.messages) || body.messages.length === 0) {
       return NextResponse.json({ error: "Messages invalides" }, { status: 400 });
@@ -316,7 +329,7 @@ export async function POST(req: NextRequest) {
     const response = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 400,
-      system: SYSTEM_PROMPT,
+      system: mode === "contact" ? CONTACT_SYSTEM_PROMPT : SYSTEM_PROMPT,
       messages,
     });
 
@@ -327,10 +340,15 @@ export async function POST(req: NextRequest) {
     db.insert(logsAlex).values({
       id: createId(),
       sessionId: sid,
-      action: "message",
+      action: mode === "contact" ? "message_contact" : "message",
       input: lastUserMsg?.content ?? "",
       output: raw.slice(0, 500),
     }).catch(() => {});
+
+    // Mode contact : on renvoie juste la réponse, sans aucune logique lead/créneaux/SAV.
+    if (mode === "contact") {
+      return NextResponse.json({ message: raw });
+    }
 
     // Détecter proposition de créneaux
     if (raw.startsWith("CRENEAUX_READY")) {

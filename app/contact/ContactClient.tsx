@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { MessageCircle, Phone, Mail, MapPin, Zap, CheckCircle2, ArrowRight, Send, Clock, Shield, ChevronRight, Home } from "lucide-react";
 import Link from "next/link";
@@ -73,6 +73,19 @@ function PillGroup({ options, name, value, onChange }: {
 export default function ContactClient() {
   const [form, setForm] = useState<FormState>(initialForm);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+
+  // Alex (mode contact) renvoie le récapitulatif du besoin -> on remplit le champ Message.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const text = (e as CustomEvent<{ text?: string }>).detail?.text;
+      if (text) {
+        setForm((p) => ({ ...p, message: text }));
+        document.getElementById("message")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    };
+    window.addEventListener("alex-besoin", handler);
+    return () => window.removeEventListener("alex-besoin", handler);
+  }, []);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -251,6 +264,21 @@ export default function ContactClient() {
                       Message <span className="text-slate-400 font-normal text-xs">(optionnel)</span>
                     </label>
                     <textarea id="message" name="message" value={form.message} onChange={handleChange} rows={3} placeholder="Précisez votre demande, le nombre de pièces, la marque de votre appareil..." className={`${inputBase} resize-none`} />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const ctx: Record<string, string> = {};
+                        if (form.nom) ctx.nom = form.nom.split(" ")[0];
+                        if (form.type) ctx.type = demandeOptions.find((o) => o.value === form.type)?.label ?? form.type;
+                        if (form.bien) ctx.bien = bienOptions.find((o) => o.value === form.bien)?.label ?? form.bien;
+                        if (form.ville) ctx.ville = form.ville;
+                        window.dispatchEvent(new CustomEvent("open-chat", { detail: { besoin: ctx } }));
+                      }}
+                      className="mt-2.5 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-sky-50 border border-sky-100 text-sky-700 text-sm font-medium hover:bg-sky-100 transition-colors"
+                    >
+                      <MessageCircle className="w-4 h-4 text-sky-500" />
+                      Pas sûr de quoi écrire ? Décrire mon besoin avec Alex
+                    </button>
                   </div>
 
                   {/* Consentement RGPD (démarchage) — facultatif */}
@@ -273,7 +301,7 @@ export default function ContactClient() {
 
                   <button
                     type="submit"
-                    disabled={status === "loading" || !form.nom || !form.telephone || !form.type || !form.bien}
+                    disabled={status === "loading" || !form.nom || !form.telephone || !form.type || !form.bien || !form.email || !form.ville}
                     className="w-full flex items-center justify-center gap-2 py-4 bg-sky-500 hover:bg-sky-400 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-all shadow-lg shadow-sky-500/25 hover:shadow-sky-500/40 text-sm"
                   >
                     {status === "loading" ? (
