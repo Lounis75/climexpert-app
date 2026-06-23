@@ -19,8 +19,15 @@ interface Form {
   startDate: string;
   nextVisit: string;
   fluide: string;
+  marque: string;        // valeur de la liste OU "Autre"
+  marqueAutre: string;   // saisie libre si marque === "Autre"
+  puissanceKw: string;
+  numeroSerie: string;
 }
-const emptyForm: Form = { clientId: "", units: "1", prixUnitaireEuros: "200", startDate: "", nextVisit: "", fluide: "R410A" };
+const emptyForm: Form = { clientId: "", units: "1", prixUnitaireEuros: "200", startDate: "", nextVisit: "", fluide: "R410A", marque: "", marqueAutre: "", puissanceKw: "", numeroSerie: "" };
+
+// Principales marques de climatisation (unité extérieure).
+const MARQUES = ["Daikin", "Mitsubishi Electric", "Atlantic", "Toshiba", "Panasonic", "LG", "Fujitsu", "Samsung", "Hitachi", "Gree"];
 
 const isoDate = (d: string | Date | null | undefined) => (d ? new Date(d).toISOString().slice(0, 10) : "");
 
@@ -60,6 +67,10 @@ export default function ContratsManager({
       startDate: isoDate(c.startDate),
       nextVisit: isoDate(c.nextVisit),
       fluide: c.fluide ?? "R410A",
+      marque: c.marque ? (MARQUES.includes(c.marque) ? c.marque : "Autre") : "",
+      marqueAutre: c.marque && !MARQUES.includes(c.marque) ? c.marque : "",
+      puissanceKw: c.puissanceKw ?? "",
+      numeroSerie: c.numeroSerie ?? "",
     });
     setShowForm(true);
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
@@ -86,6 +97,9 @@ export default function ContratsManager({
           startDate: form.startDate,
           nextVisit: form.nextVisit || null,
           fluide: form.fluide,
+          marque: form.marque === "Autre" ? form.marqueAutre.trim() : form.marque,
+          puissanceKw: form.puissanceKw,
+          numeroSerie: form.numeroSerie,
         }),
       });
       if (res.ok) {
@@ -128,6 +142,10 @@ export default function ContratsManager({
           prixUnitaireEuros: Number(form.prixUnitaireEuros),
           startDate: form.startDate,
           nextVisit: form.nextVisit || undefined,
+          fluide: form.fluide,
+          marque: form.marque === "Autre" ? form.marqueAutre.trim() : form.marque,
+          puissanceKw: form.puissanceKw,
+          numeroSerie: form.numeroSerie,
         }),
       });
       if (res.ok) {
@@ -242,7 +260,29 @@ export default function ContratsManager({
               )}
             </div>
             <div>
-              <label className="block text-xs text-slate-400 mb-1.5">Nb d&apos;unités</label>
+              <label className="block text-xs text-slate-400 mb-1.5">Marque (unité extérieure)</label>
+              <select name="marque" value={form.marque} onChange={handleChange} className={inputCls}>
+                <option value="">- Choisir -</option>
+                {MARQUES.map((m) => <option key={m} value={m}>{m}</option>)}
+                <option value="Autre">Autre…</option>
+              </select>
+            </div>
+            {form.marque === "Autre" && (
+              <div>
+                <label className="block text-xs text-slate-400 mb-1.5">Marque (à préciser)</label>
+                <input name="marqueAutre" value={form.marqueAutre} onChange={handleChange} placeholder="Marque / modèle" className={inputCls} />
+              </div>
+            )}
+            <div>
+              <label className="block text-xs text-slate-400 mb-1.5">Puissance (kW)</label>
+              <input name="puissanceKw" value={form.puissanceKw} onChange={handleChange} placeholder="ex : 5,2" className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1.5">N° de série (unité extérieure)</label>
+              <input name="numeroSerie" value={form.numeroSerie} onChange={handleChange} placeholder="ex : 1234567890" className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-400 mb-1.5">Nb d&apos;unités intérieures</label>
               <input name="units" type="number" min="1" value={form.units} onChange={handleChange} className={inputCls} />
             </div>
             <div>

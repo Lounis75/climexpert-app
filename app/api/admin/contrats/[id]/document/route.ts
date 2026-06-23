@@ -44,9 +44,26 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       representativeRole: client.representantQualite ?? undefined,
     },
     equipment: {
-      brand: client.marqueModele ?? undefined,
+      brand: contrat.marque ?? client.marqueModele ?? undefined,
       fluid: contrat.fluide ?? undefined,
       indoorCount: contrat.units,
+      // Unité extérieure détaillée + résumé des unités intérieures (même marque).
+      units: [
+        {
+          type: "Unité extérieure (groupe)",
+          model: contrat.marque ?? undefined,
+          powerKw: contrat.puissanceKw ?? undefined,
+          serial: contrat.numeroSerie ?? undefined,
+          location: "Extérieur",
+          fluid: contrat.fluide ?? undefined,
+        },
+        {
+          type: contrat.units > 1 ? `${contrat.units} unités intérieures` : "Unité intérieure",
+          model: contrat.marque ?? undefined,
+          location: "Intérieur",
+          fluid: contrat.fluide ?? undefined,
+        },
+      ],
     },
     finance: {
       ttc: contrat.prixUnitaireCt / 100,

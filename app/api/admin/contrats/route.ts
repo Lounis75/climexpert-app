@@ -23,6 +23,9 @@ export async function POST(req: NextRequest) {
       startDate: body.startDate,
       nextVisit: body.nextVisit ?? undefined,
       fluide: body.fluide ?? undefined,
+      marque: body.marque ?? null,
+      puissanceKw: body.puissanceKw ?? null,
+      numeroSerie: body.numeroSerie ?? null,
     });
     return NextResponse.json({ contrat: c }, { status: 201 });
   } catch {
@@ -41,6 +44,9 @@ export async function PATCH(req: NextRequest) {
     if (body.active !== undefined) patch.active = body.active;
     if (body.startDate) patch.startDate = body.startDate;
     if (body.fluide) patch.fluide = body.fluide;
+    if (body.marque !== undefined) patch.marque = body.marque || null;
+    if (body.puissanceKw !== undefined) patch.puissanceKw = body.puissanceKw || null;
+    if (body.numeroSerie !== undefined) patch.numeroSerie = body.numeroSerie || null;
     const c = await updateContrat(body.id, patch);
     return NextResponse.json({ contrat: c });
   } catch {

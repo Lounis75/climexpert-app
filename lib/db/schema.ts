@@ -354,7 +354,10 @@ export const contratsEntretien = pgTable("contrats_entretien", {
   clientId:       text("client_id").notNull().references(() => clients.id),
   numero:         varchar("numero", { length: 30 }),                  // n° auto ENT-2026-0001
   fluide:         varchar("fluide", { length: 20 }).default("R410A"), // fluide frigorigène
-  units:          integer("units").default(1).notNull(),
+  marque:         varchar("marque", { length: 100 }),      // marque/modèle de l'unité extérieure
+  puissanceKw:    varchar("puissance_kw", { length: 20 }), // puissance (kW)
+  numeroSerie:    varchar("numero_serie", { length: 100 }),// n° de série de l'unité extérieure
+  units:          integer("units").default(1).notNull(),   // nombre d'unités intérieures (même marque)
   prixUnitaireCt: integer("prix_unitaire_ct").default(20000).notNull(), // 200 € = 20000 ct
   startDate:      date("start_date").notNull(),
   nextVisit:      date("next_visit"),

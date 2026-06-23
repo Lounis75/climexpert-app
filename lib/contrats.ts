@@ -35,6 +35,9 @@ export async function createContrat(data: {
   startDate: string;
   nextVisit?: string;
   fluide?: string;
+  marque?: string | null;
+  puissanceKw?: string | null;
+  numeroSerie?: string | null;
 }): Promise<Contrat> {
   const numero = await nextContratNumero();
   const [c] = await db
@@ -47,6 +50,9 @@ export async function createContrat(data: {
       startDate: data.startDate,
       nextVisit: data.nextVisit,
       fluide: data.fluide || "R410A",
+      marque: data.marque ?? null,
+      puissanceKw: data.puissanceKw ?? null,
+      numeroSerie: data.numeroSerie ?? null,
       numero,
       active: true,
     })
@@ -71,7 +77,7 @@ export async function createContrat(data: {
 
 export async function updateContrat(
   id: string,
-  data: Partial<Pick<InferInsertModel<typeof contratsEntretien>, "units" | "prixUnitaireCt" | "nextVisit" | "active" | "startDate" | "fluide">>
+  data: Partial<Pick<InferInsertModel<typeof contratsEntretien>, "units" | "prixUnitaireCt" | "nextVisit" | "active" | "startDate" | "fluide" | "marque" | "puissanceKw" | "numeroSerie">>
 ): Promise<Contrat | null> {
   const [c] = await db
     .update(contratsEntretien)

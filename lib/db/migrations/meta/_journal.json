@@ -183,6 +183,13 @@
       "when": 1782232988032,
       "tag": "0025_lead_lifecycle",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1782242149671,
+      "tag": "0026_contrat_equipement",
+      "breakpoints": true
     }
   ]
 }
