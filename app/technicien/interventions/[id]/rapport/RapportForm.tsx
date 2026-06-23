@@ -25,6 +25,8 @@ export default function RapportForm({
   const [dureeH, setDureeH]               = useState(""); // heures
   const [dureeM, setDureeM]               = useState(""); // minutes
   const [photos, setPhotos]               = useState<{ file: File; preview: string; url?: string }[]>([]);
+  const [nbExt, setNbExt]                 = useState("1"); // nb d'unités extérieures
+  const [nbInt, setNbInt]                 = useState("1"); // nb d'unités intérieures
   const [uploading, setUploading]         = useState(false);
   const [submitting, setSubmitting]       = useState(false);
   const [error, setError]                 = useState("");
@@ -35,9 +37,11 @@ export default function RapportForm({
   const [contraintesElec, setContraintesElec] = useState("");
   const [equipReco, setEquipReco]         = useState("");
   const [difficulte, setDifficulte]       = useState("standard");
-  // Attestation CERFA (fiche d'intervention fluides frigorigènes)
-  const [cerfaActif, setCerfaActif]       = useState(false);
+  // Attestation CERFA (fiche d'intervention fluides frigorigènes) : TOUJOURS obligatoire.
+  const cerfaActif = true;
   const [cerfaSig, setCerfaSig]           = useState<string | null>(null);
+  // Photos obligatoires : au moins 1 par unité (ext. + int.).
+  const minPhotos = Math.max(1, (parseInt(nbExt || "0") || 0) + (parseInt(nbInt || "0") || 0));
   const [cEquipId, setCEquipId]           = useState("");
   const [cFluide, setCFluide]             = useState("");
   const [cCharge, setCCharge]             = useState("");
@@ -50,7 +54,7 @@ export default function RapportForm({
   const [cFuiteLoca, setCFuiteLoca]       = useState("");
 
   async function addPhotos(files: FileList) {
-    const newPhotos = Array.from(files).slice(0, 5 - photos.length);
+    const newPhotos = Array.from(files).slice(0, 12 - photos.length);
     for (const f of newPhotos) {
       const preview = URL.createObjectURL(f);
       setPhotos((prev) => [...prev, { file: f, preview }]);
@@ -82,6 +86,11 @@ export default function RapportForm({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    // Photos obligatoires : au moins 1 par unité déclarée (extérieure(s) + intérieure(s)).
+    if (photos.length < minPhotos) {
+      setError(`Photos obligatoires : au moins ${minPhotos} (1 par unité : ${nbExt} ext. + ${nbInt} int.). ${photos.length} ajoutée(s).`);
+      return;
+    }
     // Validation obligatoire : entretien annuel proposé ?
     if (entretienPropose === null) {
       setError("Indiquez si vous avez proposé l'entretien annuel.");
@@ -91,8 +100,8 @@ export default function RapportForm({
       setError("Le client doit signer le contrat d'entretien.");
       return;
     }
-    if (cerfaActif && !cerfaSig) {
-      setError("Faites signer le client sur l'attestation CERFA.");
+    if (!cerfaSig) {
+      setError("Le CERFA est obligatoire : faites signer le client.");
       return;
     }
     setSubmitting(true);
@@ -128,6 +137,10 @@ export default function RapportForm({
         entretienAnnuelPropose: entretienPropose,
         entretienAnnuelAccepte: entretienPropose ? !!entretienAccepte : false,
         signatureUrl,
+        // Signature contrat en data URL → apposée sur le PDF du contrat signé.
+        contratClientSignature: (entretienPropose && entretienAccepte && signature) ? signature : undefined,
+        nbUnitesExt: Number(nbExt) || 1,
+        nbUnitesInt: Number(nbInt) || 1,
         ...(isVisiteTechnique && {
           dimensionsPiece: dimensions,
           typeMur,
@@ -285,11 +298,31 @@ export default function RapportForm({
           </div>
         )}
 
-        {/* Photos */}
+        {/* Unités de l'installation (déterminent le nombre de photos obligatoires) */}
+        <div className="bg-white border border-slate-100 rounded-2xl p-5">
+          <p className="text-sm font-semibold text-slate-900 mb-1">Unités de l&apos;installation</p>
+          <p className="text-xs text-slate-500 mb-3">1 photo obligatoire par unité (ex. 1 extérieure + 2 intérieures = 3 photos).</p>
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <label className="text-xs text-slate-500 mb-1 block">Unités extérieures</label>
+              <input type="number" min="0" max="10" value={nbExt} onChange={(e) => setNbExt(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm" />
+            </div>
+            <div className="flex-1">
+              <label className="text-xs text-slate-500 mb-1 block">Unités intérieures</label>
+              <input type="number" min="0" max="20" value={nbInt} onChange={(e) => setNbInt(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm" />
+            </div>
+          </div>
+        </div>
+
+        {/* Photos, OBLIGATOIRES (1 par unité) */}
         <div className="bg-white border border-slate-100 rounded-2xl p-5">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-semibold text-slate-900">Photos ({photos.length}/5)</p>
-            {photos.length < 5 && (
+            <p className="text-sm font-semibold text-slate-900">
+              Photos <span className={photos.length >= minPhotos ? "text-emerald-600" : "text-red-500"}>({photos.length}/{minPhotos} min)</span>
+            </p>
+            {photos.length < 12 && (
               <div className="flex items-center gap-3">
                 <button type="button" onClick={() => cameraRef.current?.click()}
                   className="flex items-center gap-1.5 text-xs text-sky-600 font-semibold">
@@ -382,10 +415,7 @@ export default function RapportForm({
               <p className="text-sm font-semibold text-slate-900">Attestation d&apos;entretien (CERFA)</p>
               <p className="text-xs text-slate-500 mt-0.5">Fiche officielle fluides frigorigènes, envoyée au client à la clôture.</p>
             </div>
-            <button type="button" onClick={() => setCerfaActif((v) => !v)}
-              className={`px-3 py-2 rounded-xl border text-xs font-semibold flex-shrink-0 transition-colors ${cerfaActif ? "bg-sky-50 border-sky-300 text-sky-700" : "bg-white border-slate-200 text-slate-500"}`}>
-              {cerfaActif ? "✓ Activée" : "Établir"}
-            </button>
+            <span className="px-3 py-2 rounded-xl border border-red-200 bg-red-50 text-red-600 text-xs font-semibold flex-shrink-0">Obligatoire</span>
           </div>
 
           {cerfaActif && (
@@ -452,7 +482,7 @@ export default function RapportForm({
           disabled={submitting}
           className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white font-bold rounded-2xl transition-colors text-base"
         >
-          {uploading ? "Upload des photos…" : submitting ? "Envoi…" : "Soumettre le rapport"}
+          {uploading ? "Upload des photos…" : submitting ? "Envoi…" : "Terminer et envoyer"}
         </button>
       </form>
     </div>

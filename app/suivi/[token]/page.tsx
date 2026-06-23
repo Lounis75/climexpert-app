@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { clients, interventions, factures, savTickets, techniciens } from "@/lib/db/schema";
+import { clients, interventions, factures, savTickets, techniciens, documents, rapportsIntervention } from "@/lib/db/schema";
 import { eq, and, isNull, desc } from "drizzle-orm";
-import { Wind, Wrench, FileText, HeadphonesIcon, CalendarDays, CheckCircle2, Clock, AlertTriangle, Shield } from "lucide-react";
+import { Wind, Wrench, FileText, HeadphonesIcon, CalendarDays, CheckCircle2, Clock, AlertTriangle, Shield, Download, Camera } from "lucide-react";
 import Link from "next/link";
 
 const TYPE_LABELS: Record<string, string> = {
@@ -45,7 +45,7 @@ export default async function SuiviPage({ params }: { params: Promise<{ token: s
 
   if (!client) notFound();
 
-  const [clientInterventions, clientFactures, clientTickets] = await Promise.all([
+  const [clientInterventions, clientFactures, clientTickets, clientDocs, clientPhotosRows] = await Promise.all([
     db
       .select({
         id:          interventions.id,
@@ -81,9 +81,27 @@ export default async function SuiviPage({ params }: { params: Promise<{ token: s
       .where(eq(savTickets.clientId, client.id))
       .orderBy(desc(savTickets.createdAt))
       .limit(5),
+
+    // Documents officiels (CERFA, contrats) déposés sur la fiche client.
+    db
+      .select({ id: documents.id, type: documents.type, label: documents.label, url: documents.url, createdAt: documents.createdAt })
+      .from(documents)
+      .where(eq(documents.clientId, client.id))
+      .orderBy(desc(documents.createdAt))
+      .limit(20),
+
+    // Photos d'intervention (rapports de clôture) liées au client.
+    db
+      .select({ photosUrls: rapportsIntervention.photosUrls, dateSoumission: rapportsIntervention.dateSoumission })
+      .from(rapportsIntervention)
+      .innerJoin(interventions, eq(rapportsIntervention.interventionId, interventions.id))
+      .where(and(eq(interventions.clientId, client.id), isNull(interventions.supprimeLe)))
+      .orderBy(desc(rapportsIntervention.dateSoumission))
+      .limit(10),
   ]);
 
   const garantieExpired = client.garantieExpireLe ? new Date(client.garantieExpireLe) < new Date() : null;
+  const clientPhotos = clientPhotosRows.flatMap((r) => r.photosUrls ?? []).slice(0, 12);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -171,6 +189,44 @@ export default async function SuiviPage({ params }: { params: Promise<{ token: s
             </div>
           )}
         </section>
+
+        {/* Documents (CERFA, contrats) */}
+        {clientDocs.length > 0 && (
+          <section>
+            <h2 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+              <FileText className="w-4 h-4 text-slate-400" /> Mes documents
+            </h2>
+            <div className="space-y-2">
+              {clientDocs.map((d) => (
+                <a key={d.id} href={d.url ?? "#"} target="_blank" rel="noopener noreferrer"
+                  className="bg-white border border-slate-100 rounded-2xl p-4 flex items-center gap-3 hover:border-sky-200 transition-colors">
+                  <FileText className="w-4 h-4 text-sky-500 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-slate-900 truncate">{d.label ?? (d.type === "cerfa" ? "Attestation CERFA" : "Document")}</p>
+                    <p className="text-xs text-slate-500">{fmtDate(d.createdAt)}</p>
+                  </div>
+                  <Download className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Photos de l'installation (rapports de clôture) */}
+        {clientPhotos.length > 0 && (
+          <section>
+            <h2 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+              <Camera className="w-4 h-4 text-slate-400" /> Photos de l&apos;installation
+            </h2>
+            <div className="grid grid-cols-3 gap-2">
+              {clientPhotos.map((url, i) => (
+                <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-xl overflow-hidden bg-slate-100 block">
+                  <img src={url} alt={`Photo intervention ${i + 1}`} className="w-full h-full object-cover" />
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Factures */}
         <section>

@@ -6,6 +6,7 @@ import { verifyTechnicienToken, TECH_COOKIE_NAME } from "@/lib/auth";
 import { createId } from "@paralleldrive/cuid2";
 import { contratTotalCt } from "@/lib/contrat-pricing";
 import { finalizeCerfa } from "@/lib/cerfa";
+import { finalizeContrat } from "@/lib/contrat-finalize";
 import type { CerfaData } from "@/lib/cerfa-pdf";
 import { SIGNATURE_GERANT_DATAURL, GERANT_NOM, GERANT_QUALITE } from "@/lib/signature-gerant";
 
@@ -31,7 +32,8 @@ export async function POST(req: NextRequest) {
     // Entretien annuel (obligatoire) + signature du contrat
     entretienAnnuelPropose,
     entretienAnnuelAccepte,
-    signatureUrl,
+    signatureUrl,             // signature contrat uploadée (R2) -> stockée sur le contrat
+    contratClientSignature,   // data URL PNG : signature client à apposer sur le PDF du contrat
     // Attestation CERFA (fiche d'intervention fluides) : données saisies + signature DU CLIENT
     cerfa,                  // objet partiel CerfaData (nature, équipement, fuites, observations…)
     cerfaClientSignature,   // data URL PNG : signature du client (détenteur) au stylet
@@ -90,16 +92,21 @@ export async function POST(req: NextRequest) {
       const nextYear = new Date();
       nextYear.setFullYear(nextYear.getFullYear() + 1);
       const contratId = createId();
-      await db.insert(contratsEntretien).values({
+      // Reprend l'équipement saisi sur le CERFA pour pré-remplir le contrat.
+      const ce = cerfa as CerfaData | undefined;
+      const fluideC = ce?.equipement?.fluide ? `R${String(ce.equipement.fluide).replace(/^R/i, "")}` : "R410A";
+      const [contrat] = await db.insert(contratsEntretien).values({
         id: contratId,
         clientId: interv.clientId,
         units: 1,
         prixUnitaireCt: contratTotalCt(1), // 200 € (total annuel)
+        fluide: fluideC,
+        marque: ce?.equipement?.identification ?? null,
         startDate: today,
         nextVisit: nextYear.toISOString().split("T")[0],
         signatureUrl,
         signeLe: new Date(),
-      });
+      }).returning();
       await db.insert(suivis).values({
         id: createId(), clientId: interv.clientId, interventionId,
         type: "note", contenu: "Contrat d'entretien annuel signé sur place (200 € TTC/an).",
@@ -110,6 +117,11 @@ export async function POST(req: NextRequest) {
         contenu: `Le technicien ${session.name} a fait signer un contrat d'entretien annuel.`,
         refType: "contrat", refId: contratId,
       });
+      // PDF du contrat signé (gérant pré-signé + signature client) -> R2 + fiche client + e-mail.
+      const [cli] = await db.select().from(clients).where(eq(clients.id, interv.clientId)).limit(1);
+      if (contrat && cli) {
+        await finalizeContrat({ contrat, client: cli, clientSignatureDataUrl: contratClientSignature });
+      }
     } catch (e) { console.error("[rapport] création contrat:", e); }
   }
 
