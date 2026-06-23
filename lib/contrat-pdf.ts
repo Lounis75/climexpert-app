@@ -5,6 +5,7 @@
 // l'attestation fluides est omise proprement tant que le n° n'est pas fourni.
 
 import PDFDocument from "pdfkit";
+import { SIGNATURE_GERANT_DATAURL, GERANT_NOM, GERANT_QUALITE } from "@/lib/signature-gerant";
 
 /* ─── Prestataire (ClimExpert), à ajuster en un seul endroit ───────────────── */
 const PRESTATAIRE = {
@@ -45,7 +46,16 @@ export type ContratData = {
   finance?: { ttc?: number; ht?: number; vatRate?: number; depannage?: { ttc?: number; ht?: number } };
   mediator?: { name?: string; contact?: string };
   prestataire?: Partial<typeof PRESTATAIRE>;
+  clientSignatureDataUrl?: string; // signature manuscrite du client (contrat signé sur place)
 };
+
+// data URL PNG → Buffer (pour pdfkit doc.image). Renvoie null si vide/invalide.
+function dataUrlToBuf(d?: string): Buffer | null {
+  if (!d || typeof d !== "string") return null;
+  const i = d.indexOf("base64,");
+  if (i === -1) return null;
+  try { return Buffer.from(d.slice(i + 7), "base64"); } catch { return null; }
+}
 
 type Seg = { t: string; bold?: boolean; italic?: boolean; color?: string };
 type Doc = PDFKit.PDFDocument;
@@ -448,27 +458,36 @@ function build(doc: Doc, data: ContratData) {
     { t: ", le " }, { ...seg(frDate(contract.date), "[date]"), bold: true },
     { t: ", en deux exemplaires originaux, chaque partie reconnaissant en avoir reçu un." },
   ]);
-  signatureBlocks(doc, `Le Prestataire (${pr.raisonSociale})`, c.name ? `Le Client (${c.name})` : "Le Client");
+  // Prestataire pré-signé par le gérant (Kamel AISSAOUI, Président) ; le client signe sa case.
+  signatureBlocks(
+    doc,
+    { title: `Le Prestataire (${pr.raisonSociale})`, name: `${GERANT_NOM}, ${GERANT_QUALITE}`, date: frDate(contract.date), img: dataUrlToBuf(SIGNATURE_GERANT_DATAURL) },
+    { title: c.name ? `Le Client (${c.name})` : "Le Client", name: c.name, img: dataUrlToBuf(data.clientSignatureDataUrl) },
+  );
 }
 
-function signatureBlocks(doc: Doc, leftTitle: string, rightTitle: string) {
+type SigParty = { title: string; name?: string; date?: string; img?: Buffer | null };
+function signatureBlocks(doc: Doc, left: SigParty, right: SigParty) {
   const h = 185;
   ensureSpace(doc, h + 8);
   doc.moveDown(0.3);
   const y0 = doc.y;
   const colW = (contentWidth(doc) - 18) / 2;
-  const draw = (x: number, title: string) => {
+  const draw = (x: number, p: SigParty) => {
     doc.rect(x, y0, colW, h).lineWidth(0.6).strokeColor("#BBBBBB").stroke();
-    doc.font("Helvetica-Bold").fontSize(10).fillColor(NAVY).text(title, x + 10, y0 + 10, { width: colW - 20 });
+    doc.font("Helvetica-Bold").fontSize(10).fillColor(NAVY).text(p.title, x + 10, y0 + 10, { width: colW - 20 });
     doc.font("Helvetica").fontSize(9).fillColor("black");
-    doc.text("Nom et qualité :", x + 10, y0 + 34, { width: colW - 20 });
-    doc.text("Date :", x + 10, y0 + 54, { width: colW - 20 });
+    doc.text(`Nom et qualité : ${p.name ?? ""}`, x + 10, y0 + 34, { width: colW - 20 });
+    doc.text(`Date : ${p.date ?? ""}`, x + 10, y0 + 54, { width: colW - 20 });
     doc.text("Signature :", x + 10, y0 + 74, { width: colW - 20 });
-    // grand espace libre sous « Signature : » pour signer
+    // Signature manuscrite (pré-signée gérant à gauche, signée client à droite) si fournie.
+    if (p.img) {
+      try { doc.image(p.img, x + 14, y0 + 90, { fit: [colW - 40, 64], align: "center" }); } catch { /* image invalide → ignorée */ }
+    }
     doc.font("Helvetica-Oblique").fontSize(7).fillColor(GREY).text("précédée de la mention « Lu et approuvé, bon pour accord »", x + 10, y0 + h - 20, { width: colW - 20 });
   };
-  draw(M.left, leftTitle);
-  draw(M.left + colW + 18, rightTitle);
+  draw(M.left, left);
+  draw(M.left + colW + 18, right);
   doc.x = M.left;
   doc.y = y0 + h;
 }

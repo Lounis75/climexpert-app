@@ -7,6 +7,7 @@ import { createId } from "@paralleldrive/cuid2";
 import { contratTotalCt } from "@/lib/contrat-pricing";
 import { finalizeCerfa } from "@/lib/cerfa";
 import type { CerfaData } from "@/lib/cerfa-pdf";
+import { SIGNATURE_GERANT_DATAURL, GERANT_NOM, GERANT_QUALITE } from "@/lib/signature-gerant";
 
 export async function POST(req: NextRequest) {
   const token = req.cookies.get(TECH_COOKIE_NAME)?.value;
@@ -31,9 +32,9 @@ export async function POST(req: NextRequest) {
     entretienAnnuelPropose,
     entretienAnnuelAccepte,
     signatureUrl,
-    // Attestation CERFA (fiche d'intervention fluides) : données saisies + signature technicien
-    cerfa,            // objet partiel CerfaData (nature, équipement, fuites, observations…)
-    cerfaSignature,   // data URL PNG de la signature au stylet
+    // Attestation CERFA (fiche d'intervention fluides) : données saisies + signature DU CLIENT
+    cerfa,                  // objet partiel CerfaData (nature, équipement, fuites, observations…)
+    cerfaClientSignature,   // data URL PNG : signature du client (détenteur) au stylet
   } = body;
 
   if (!interventionId) return NextResponse.json({ error: "interventionId requis" }, { status: 400 });
@@ -147,11 +148,18 @@ export async function POST(req: NextRequest) {
         ...(cerfa as CerfaData),
         detenteur: (cerfa as CerfaData).detenteur ?? { nom: client?.name ?? "", adresse: [client?.address, client?.city].filter(Boolean).join(", ") },
         controleLe: (cerfa as CerfaData).controleLe || todayFr,
+        // Opérateur = le gérant, pré-signé (engage ClimExpert). Le client (détenteur) signe sur place.
         signataireOperateur: {
-          nom: (cerfa as CerfaData).signataireOperateur?.nom || session.name,
-          qualite: (cerfa as CerfaData).signataireOperateur?.qualite || "Technicien",
-          date: (cerfa as CerfaData).signataireOperateur?.date || todayFr,
-          signatureDataUrl: cerfaSignature,
+          nom: GERANT_NOM,
+          qualite: GERANT_QUALITE,
+          date: todayFr,
+          signatureDataUrl: SIGNATURE_GERANT_DATAURL || undefined,
+        },
+        signataireDetenteur: {
+          nom: client?.name ?? "",
+          qualite: "Client",
+          date: todayFr,
+          signatureDataUrl: cerfaClientSignature,
         },
       };
       await finalizeCerfa({

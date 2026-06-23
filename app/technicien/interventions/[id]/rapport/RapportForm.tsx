@@ -92,7 +92,7 @@ export default function RapportForm({
       return;
     }
     if (cerfaActif && !cerfaSig) {
-      setError("Signez l'attestation CERFA (signature de l'opérateur).");
+      setError("Faites signer le client sur l'attestation CERFA.");
       return;
     }
     setSubmitting(true);
@@ -138,7 +138,7 @@ export default function RapportForm({
         }),
         // Attestation CERFA (générée + envoyée au client + posée sur sa fiche à la clôture)
         ...(cerfaActif && {
-          cerfaSignature: cerfaSig,
+          cerfaClientSignature: cerfaSig,
           cerfa: {
             equipement: { identification: cEquipId, fluide: cFluide, chargeKg: cCharge, tonnageCO2: cTonnage },
             nature: { maintenance: cNatMaint, controleEtanchPeriodique: cNatCtrl },
@@ -437,8 +437,8 @@ export default function RapportForm({
               )}
 
               <div>
-                <p className="text-sm font-semibold text-slate-900 mb-1 flex items-center gap-1.5"><PenLine className="w-4 h-4 text-sky-600" /> Signature de l&apos;opérateur (vous)</p>
-                <p className="text-xs text-slate-500 mb-2">Signez au stylet pour certifier l&apos;intervention.</p>
+                <p className="text-sm font-semibold text-slate-900 mb-1 flex items-center gap-1.5"><PenLine className="w-4 h-4 text-sky-600" /> Signature du client</p>
+                <p className="text-xs text-slate-500 mb-2">Faites signer le client au stylet : il atteste l&apos;entretien de son installation. (ClimExpert est déjà signataire.)</p>
                 <SignaturePad onChange={setCerfaSig} />
               </div>
             </div>
