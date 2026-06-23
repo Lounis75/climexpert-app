@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   Plus, X, Check, Trash2, Calendar, User,
-  FileText, ToggleLeft, ToggleRight, Pencil, ExternalLink,
+  FileText, ToggleLeft, ToggleRight, Pencil, ExternalLink, PenLine,
 } from "lucide-react";
 import type { ContratWithClient } from "@/lib/contrats";
 import type { Client } from "@/lib/clients";
@@ -403,6 +403,18 @@ function ContratCard({
 }) {
   const overdue = isOverdue(c.nextVisit);
   const montant = (c.prixUnitaireCt / 100).toLocaleString("fr-FR", { minimumFractionDigits: 0 });
+  const [sendingSig, setSendingSig] = useState(false);
+  const [sigSent, setSigSent]       = useState(false);
+
+  async function envoyerSignature() {
+    setSendingSig(true);
+    try {
+      const res = await fetch(`/api/admin/contrats/${c.id}/envoyer-signature`, { method: "POST" });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) setSigSent(true);
+      else alert("⚠️ " + (d.error ?? "Échec de l'envoi"));
+    } finally { setSendingSig(false); }
+  }
 
   return (
     <div className={`bg-slate-800/40 border rounded-2xl p-4 ${!c.active ? "opacity-50 border-white/5" : overdue ? "border-red-500/30" : "border-white/8"}`}>
@@ -417,6 +429,9 @@ function ContratCard({
             <span className="text-slate-500 text-xs">·</span>
             <span className="text-slate-300 text-xs">{c.units} unité{c.units > 1 ? "s" : ""}</span>
             <span className="text-emerald-400 text-xs font-medium">{montant} €/an</span>
+            {c.signeLe
+              ? <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">✓ Signé</span>
+              : (c.signatureDemandeeLe || sigSent) && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/25">Signature en attente</span>}
           </div>
           <div className="flex flex-wrap gap-3 text-xs text-slate-400">
             <span className="flex items-center gap-1">
@@ -451,6 +466,16 @@ function ContratCard({
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
+          {!c.signeLe && (
+            <button
+              onClick={envoyerSignature}
+              disabled={sendingSig}
+              title="Envoyer le contrat au client pour signature électronique à distance"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs font-medium hover:bg-emerald-500/20 transition-colors whitespace-nowrap disabled:opacity-50"
+            >
+              <PenLine className="w-3.5 h-3.5" /> {sendingSig ? "Envoi…" : (c.signatureDemandeeLe || sigSent) ? "Relancer" : "Envoyer signature"}
+            </button>
+          )}
           <a
             href={`/api/admin/contrats/${c.id}/document`}
             target="_blank"

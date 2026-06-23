@@ -364,6 +364,9 @@ export const contratsEntretien = pgTable("contrats_entretien", {
   active:         boolean("active").default(true).notNull(),
   signatureUrl:   text("signature_url"),       // signature client (contrat signé sur l'écran technicien)
   signeLe:        timestamp("signe_le"),        // date de signature
+  signatureToken: varchar("signature_token", { length: 64 }),  // lien de signature à distance (e-signature)
+  signatureDemandeeLe: timestamp("signature_demandee_le"),      // date d'envoi de la demande de signature
+  signatureIp:    varchar("signature_ip", { length: 64 }),      // IP du signataire (piste d'audit, signature simple)
   createdAt:      timestamp("created_at").defaultNow().notNull(),
   supprimeLe:     timestamp("supprime_le"),
 });
