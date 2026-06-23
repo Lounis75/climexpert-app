@@ -1,8 +1,9 @@
 import { getLeadsBoard, getLastActivityByLead } from "@/lib/leads";
 import AdminHeader from "@/components/AdminHeader";
 import LeadsManager from "./LeadsManager";
+import CalendrierDashboardWrapper from "@/components/CalendrierDashboardWrapper";
 import Link from "next/link";
-import { Download, BarChart2 } from "lucide-react";
+import { Download, BarChart2, Calendar } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +62,14 @@ export default async function AdminLeadsPage({
         {/* Les analytiques (KPIs, pipeline, sources, Alex…) ont été centralisées dans
             Marketing → Statistiques. */}
         <LeadsManager initialLeads={leads} initialSource={source} lastActivity={lastActivity} counts={board.counts} cap={CAP} />
+
+        {/* Planning (doublon du Dashboard) : vérifier qu'un RDV s'est bien posé sans changer de page */}
+        <div className="mt-12 pt-8 border-t border-white/8">
+          <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-sky-400" /> Planning
+          </h2>
+          <CalendrierDashboardWrapper />
+        </div>
 
       </main>
     </div>

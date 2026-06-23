@@ -7,7 +7,7 @@ import {
   Phone, Bot, FileText, MapPin, Wrench,
   MessageSquare, Clock, LayoutList, Columns3, UserPlus, CheckCircle2,
   AlertTriangle, GitMerge, X, Search, Mail, ChevronRight, Briefcase, Plus,
-  Pencil, Check, ShieldCheck, CalendarPlus, Star,
+  Pencil, Check, ShieldCheck, CalendarPlus, Star, Maximize2, Minimize2,
 } from "lucide-react";
 import type { Lead, LeadStatus } from "@/lib/leads";
 import { detectDuplicates, leadAction } from "@/lib/leads-utils";
@@ -93,6 +93,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
   const [sourceFilter, setSourceFilter] = useState(initialSource ?? "tous");
   const [favorisOnly, setFavorisOnly] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("tous"); // raccourci par étape (surtout mobile)
+  const [focusedStatus, setFocusedStatus] = useState<string | null>(null); // focus sur une colonne (desktop)
   // Journal d'échanges du prospect ouvert (chargé à l'ouverture du panneau).
   const [suivis, setSuivis] = useState<Suivi[]>([]);
   const [loadingSuivis, setLoadingSuivis] = useState(false);
@@ -757,7 +758,10 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
       {/* ── KANBAN VIEW ─────────────────────────────────────────────────────── */}
       {view === "kanban" && leads.length > 0 && (
-        <div className="hidden sm:flex lg:grid lg:grid-cols-6 gap-2 overflow-x-auto lg:overflow-visible snap-x snap-mandatory lg:snap-none pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div
+          className="hidden sm:flex lg:grid lg:grid-cols-6 gap-2 overflow-x-auto lg:overflow-visible snap-x snap-mandatory lg:snap-none pb-2 -mx-4 px-4 sm:mx-0 sm:px-0"
+          style={focusedStatus ? { gridTemplateColumns: STATUSES.map((s) => (s === focusedStatus ? "minmax(0,3fr)" : "minmax(0,0.6fr)")).join(" ") } : undefined}
+        >
           {STATUSES.map((status) => {
             const cfg = STATUS_CONFIG[status];
             const col = filtered.filter((l) => l.status === status);
@@ -773,13 +777,23 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                   isOver ? "ring-2 ring-sky-500/40 bg-slate-800/60" : "border-white/5"
                 }`}
               >
-                {/* Column header */}
-                <div className="px-2.5 py-2 flex items-center justify-between border-b border-white/5 gap-1">
+                {/* Column header, cliquable : agrandit la colonne et rétrécit les autres */}
+                <button
+                  type="button"
+                  onClick={() => setFocusedStatus((f) => (f === status ? null : status))}
+                  title={focusedStatus === status ? "Réduire" : "Agrandir cette colonne"}
+                  className={`w-full px-2.5 py-2 flex items-center justify-between border-b border-white/5 gap-1 cursor-pointer hover:bg-white/[0.04] transition-colors ${focusedStatus === status ? "bg-white/[0.05]" : ""}`}
+                >
                   <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border truncate min-w-0 ${cfg.color}`}>
                     {cfg.label}
                   </span>
-                  <span className="text-slate-500 text-xs font-medium flex-shrink-0">{favorisOnly ? col.length : (colCounts[status] ?? col.length)}</span>
-                </div>
+                  <span className="flex items-center gap-1 flex-shrink-0">
+                    <span className="text-slate-500 text-xs font-medium">{favorisOnly ? col.length : (colCounts[status] ?? col.length)}</span>
+                    {focusedStatus === status
+                      ? <Minimize2 className="w-3 h-3 text-sky-400" />
+                      : <Maximize2 className="w-3 h-3 text-slate-600" />}
+                  </span>
+                </button>
 
                 {/* Cards */}
                 <div
