@@ -474,31 +474,11 @@ export default function CalendrierDashboard() {
     setSelectedPersons(base.size === allIds.length ? null : base);
   }
 
-  // ── Sous-colonnes par personne (vue semaine) ──────────────────────────────
-  // Personnes présentes (intervention, RDV ou indispo) dans la semaine visible.
-  const weekPersons = new Set<string>();
-  for (const i of interventions) if (i.status !== "annulée" && typeFilter.interventions && personMatch(i.technicienId)) weekPersons.add(personKey(i.technicienId));
-  for (const r of rdvs) if (typeFilter.rdv && personMatch(r.commercialId)) weekPersons.add(personKey(r.commercialId));
-  for (const x of indispos) if (personMatch(x.technicienId)) weekPersons.add(personKey(x.technicienId));
-  let lanes: { id: string; name: string; color: string | null }[];
-  if (selectedPersons !== null) {
-    // Sélection explicite : une sous-colonne par personne choisie (même sans activité → on voit ses congés).
-    lanes = techniciens.filter((t) => selectedPersons.has(t.id)).map((t) => ({ id: t.id, name: t.name, color: t.color }));
-    if (selectedPersons.has("__none__")) lanes.push({ id: "__none__", name: "Non assigné", color: null });
-  } else {
-    // Toute l'équipe : une sous-colonne par personne ayant de l'activité cette semaine.
-    lanes = techniciens.filter((t) => weekPersons.has(t.id)).map((t) => ({ id: t.id, name: t.name, color: t.color }));
-    if (weekPersons.has("__none__")) lanes.push({ id: "__none__", name: "Non assigné", color: null });
-  }
-  const multiLane = lanes.length > 1;
-  const laneIndexOf = (pid: string | null) => { const i = lanes.findIndex((p) => p.id === personKey(pid)); return i < 0 ? 0 : i; };
-  const laneBoxIdx = (i: number) => {
-    if (!multiLane) return { left: 4, right: 4 };
-    const w = 100 / lanes.length;
-    return { left: `calc(${i * w}% + 2px)`, width: `calc(${w}% - 4px)` };
-  };
-  const laneBox = (pid: string | null) => laneBoxIdx(laneIndexOf(pid));
-  const laneColor = (pid: string | null) => lanes.find((p) => p.id === personKey(pid))?.color ?? null;
+  // ── Colonnes par chevauchement (façon agenda) ──────────────────────────────
+  // On ne divise un créneau en sous-colonnes QUE si des évènements se chevauchent vraiment
+  // dans le temps. Sinon, pleine largeur (plus lisible). La couleur de la personne sert de repère.
+  const colorOf = (pid: string | null) => techniciens.find((t) => t.id === personKey(pid))?.color ?? null;
+  const showPersonColor = selectedPersons === null || selectedPersons.size > 1;
   // Blocs d'indisponibilité (top/height) d'une personne un jour donné, bornés à la fenêtre horaire.
   function indispoBlocksFor(personId: string, day: Date): { top: number; height: number; motif: string | null }[] {
     const dayStart = new Date(day); dayStart.setHours(0, 0, 0, 0);
@@ -515,6 +495,57 @@ export default function CalendrierDashboard() {
         return { top, height: Math.max(0, bottom - top), motif: x.motif };
       })
       .filter((b) => b.height > 0);
+  }
+
+  // Bloc d'évènement positionné dans une colonne-jour.
+  type DayBlock =
+    | { k: "int"; key: string; top: number; height: number; ev: CalIntervention }
+    | { k: "rdv"; key: string; top: number; height: number; rdv: CalRdv };
+  type Placed = DayBlock & { col: number; cols: number };
+
+  // Collision : les blocs qui se chevauchent dans le temps forment un groupe et se partagent
+  // la largeur (col / cols). Les blocs isolés gardent toute la largeur (cols = 1).
+  function layoutDay(blocks: DayBlock[]): Placed[] {
+    const sorted = [...blocks].sort((a, b) => a.top - b.top || (a.top + a.height) - (b.top + b.height));
+    const out: Placed[] = [];
+    let cluster: Placed[] = [];
+    let clusterEnd = -Infinity;
+    const flush = () => {
+      const cols = cluster.reduce((m, b) => Math.max(m, b.col + 1), 0);
+      for (const b of cluster) { b.cols = cols; out.push(b); }
+      cluster = [];
+    };
+    for (const b of sorted) {
+      if (b.top >= clusterEnd) flush();
+      const occupied = new Set(cluster.filter((x) => x.top + x.height > b.top).map((x) => x.col));
+      let col = 0; while (occupied.has(col)) col++;
+      cluster.push({ ...b, col, cols: 1 });
+      clusterEnd = Math.max(clusterEnd, b.top + b.height);
+    }
+    flush();
+    return out;
+  }
+
+  function dayBlocks(d: Date): Placed[] {
+    const blocks: DayBlock[] = [];
+    for (const ev of forDay(d)) {
+      if (!ev.scheduledAt) continue;
+      const top = topPx(new Date(ev.scheduledAt)); if (top > TOTAL_HEIGHT) continue;
+      blocks.push({ k: "int", key: `i-${ev.id}`, top, height: heightPx(ev.duree ?? 60), ev });
+    }
+    for (const r of forDayRdv(d)) {
+      if (!r.rdvDate) continue;
+      const top = topPx(new Date(r.rdvDate)); if (top > TOTAL_HEIGHT) continue;
+      blocks.push({ k: "rdv", key: `r-${r.id}`, top, height: heightPx(120), rdv: r });
+    }
+    return layoutDay(blocks);
+  }
+
+  // Position gauche/largeur selon la colonne de collision (pleine largeur si seul).
+  function blockBox(col: number, cols: number) {
+    if (cols <= 1) return { left: 4, right: 4 };
+    const w = 100 / cols;
+    return { left: `calc(${col * w}% + 2px)`, width: `calc(${w}% - 4px)` };
   }
 
   // ── Glisser-déposer pour déplacer un rendez-vous (comme le calendrier Apple) ──
@@ -555,13 +586,7 @@ export default function CalendrierDashboard() {
     const snapped = Math.max(0, snapMinutes(minFromStart));
     const newStart = new Date(day);
     newStart.setHours(HOUR_START + Math.floor(snapped / 60), snapped % 60, 0, 0);
-    // En multi-colonnes, la position horizontale du drop = la personne cible (réassignation).
-    let personId: string | null | undefined;
-    if (multiLane && lanes.length > 0) {
-      const li = Math.max(0, Math.min(lanes.length - 1, Math.floor(((e.clientX - rect.left) / rect.width) * lanes.length)));
-      personId = lanes[li].id === "__none__" ? null : lanes[li].id;
-    }
-    await applyMove(drag, newStart.toISOString(), personId);
+    await applyMove(drag, newStart.toISOString());
   }
 
   // Vue mois : drop = nouveau jour, on garde l'heure d'origine.
@@ -766,8 +791,6 @@ export default function CalendrierDashboard() {
                 <div className="absolute inset-0 flex">
                   {days.map((d, idx) => {
                     const isToday = isSameDay(d, now);
-                    const events  = forDay(d);
-                    const dayRdvs = forDayRdv(d);
                     return (
                       <div
                         key={idx}
@@ -790,89 +813,73 @@ export default function CalendrierDashboard() {
                           </div>
                         </div>
 
-                        {/* Grisage des indisponibilités (par sous-colonne = personne) */}
-                        {lanes.map((p, li) => indispoBlocksFor(p.id, d).map((b, bi) => {
-                          const box = laneBoxIdx(li); // même géométrie que les events de la lane
-                          return (
-                            <div key={`g-${p.id}-${bi}`} className="absolute z-0 pointer-events-none border-y border-white/5"
-                              style={{ top: b.top, height: b.height, ...box, backgroundColor: "rgba(15,23,42,0.55)", backgroundImage: "repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255,255,255,0.05) 5px, rgba(255,255,255,0.05) 10px)" }}>
+                        {/* Indisponibilités : fond grisé pleine largeur (n'impacte pas le découpage des évènements) */}
+                        {indispos.filter((x) => personMatch(x.technicienId)).flatMap((x) =>
+                          indispoBlocksFor(x.technicienId, d).map((b, bi) => (
+                            <div key={`g-${x.technicienId}-${bi}`} className="absolute left-0 right-0 z-0 pointer-events-none border-y border-white/5"
+                              style={{ top: b.top, height: b.height, backgroundColor: "rgba(15,23,42,0.55)", backgroundImage: "repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255,255,255,0.05) 5px, rgba(255,255,255,0.05) 10px)" }}>
                               {b.height > 22 && <span className="absolute top-0.5 left-1 text-[8px] font-medium text-slate-400 truncate pr-1">{b.motif || "Indispo"}</span>}
                             </div>
-                          );
-                        }))}
+                          ))
+                        )}
 
-                        {/* Events */}
-                        {events.map((ev) => {
+                        {/* Interventions + RDV : divisés en colonnes UNIQUEMENT en cas de chevauchement réel */}
+                        {dayBlocks(d).map((b) => {
+                          const box = blockBox(b.col, b.cols);
+                          if (b.k === "rdv") {
+                            const r = b.rdv;
+                            const start = new Date(r.rdvDate!);
+                            const isShort = b.height < 44;
+                            const pc = showPersonColor ? colorOf(r.commercialId) : null;
+                            return (
+                              <Link
+                                key={b.key}
+                                href={`/admin/leads?lead=${r.id}`}
+                                onClick={(e) => e.stopPropagation()}
+                                draggable
+                                onDragStart={(e) => onEventDragStart(e, r.id, "rdv", 120, start.getTime())}
+                                onDragEnd={() => { dragRef.current = null; setDragId(null); }}
+                                className={`absolute rounded-lg border px-2 py-1 overflow-hidden z-10 transition-opacity hover:opacity-80 cursor-grab active:cursor-grabbing bg-amber-500/15 border-amber-500/40 ${dragId === r.id ? "opacity-40" : ""}`}
+                                style={{ top: b.top, height: b.height, ...box, ...(pc ? { borderLeftColor: pc, borderLeftWidth: 3 } : {}) }}
+                              >
+                                <div className="flex items-start gap-1.5 h-full overflow-hidden">
+                                  <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-[3px] bg-amber-400" />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-[10px] font-semibold leading-tight text-amber-300">{fmtHM(start)} · RDV</p>
+                                    {!isShort && <p className="text-white/85 text-[11px] font-medium leading-tight truncate mt-0.5">{r.clientName}</p>}
+                                  </div>
+                                </div>
+                              </Link>
+                            );
+                          }
+                          const ev = b.ev;
                           const start = new Date(ev.scheduledAt!);
-                          const dur   = ev.duree ?? 60;
-                          const top   = topPx(start);
-                          const h     = heightPx(dur);
-                          const c     = TYPE_COLORS[ev.type] ?? TYPE_COLORS.autre;
-                          if (top > TOTAL_HEIGHT) return null;
-                          const isShort = h < 44;
-
+                          const dur = ev.duree ?? 60;
+                          const c = TYPE_COLORS[ev.type] ?? TYPE_COLORS.autre;
+                          const isShort = b.height < 44;
+                          const pc = showPersonColor ? colorOf(ev.technicienId) : null;
                           return (
                             <Link
-                              key={ev.id}
+                              key={b.key}
                               href={`/admin/interventions/${ev.id}`}
                               onClick={(e) => e.stopPropagation()}
                               draggable
                               onDragStart={(e) => onEventDragStart(e, ev.id, "int", dur, start.getTime())}
                               onDragEnd={() => { dragRef.current = null; setDragId(null); }}
                               className={`absolute rounded-lg border px-2 py-1 overflow-hidden z-10 transition-opacity hover:opacity-80 cursor-grab active:cursor-grabbing ${c.bg} ${c.border} ${dragId === ev.id ? "opacity-40" : ""}`}
-                              style={{ top, height: h, ...laneBox(ev.technicienId), ...(multiLane && laneColor(ev.technicienId) ? { borderLeftColor: laneColor(ev.technicienId)!, borderLeftWidth: 3 } : {}) }}
+                              style={{ top: b.top, height: b.height, ...box, ...(pc ? { borderLeftColor: pc, borderLeftWidth: 3 } : {}) }}
                             >
                               <div className="flex items-start gap-1.5 h-full overflow-hidden">
                                 <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 mt-[3px] ${c.dot}`} />
                                 <div className="flex-1 min-w-0">
                                   {isShort ? (
-                                    <p className={`text-[10px] font-semibold leading-tight truncate ${c.text}`}>
-                                      {fmtHM(start)} · {ev.clientName}
-                                    </p>
+                                    <p className={`text-[10px] font-semibold leading-tight truncate ${c.text}`}>{fmtHM(start)} · {ev.clientName}</p>
                                   ) : (
                                     <>
-                                      <p className={`text-[10px] font-semibold leading-tight ${c.text}`}>
-                                        {fmtHM(start)}{dur !== 60 ? ` · ${dur < 60 ? dur + "min" : dur / 60 + "h"}` : ""}
-                                      </p>
+                                      <p className={`text-[10px] font-semibold leading-tight ${c.text}`}>{fmtHM(start)}{dur !== 60 ? ` · ${dur < 60 ? dur + "min" : dur / 60 + "h"}` : ""}</p>
                                       <p className="text-white/85 text-[11px] font-medium leading-tight truncate mt-0.5">{ev.clientName}</p>
-                                      <p className={`text-[10px] leading-tight truncate opacity-70 ${c.text}`}>
-                                        {TYPE_LABELS[ev.type] ?? ev.type}{ev.technicienName ? ` · ${ev.technicienName}` : ""}
-                                      </p>
+                                      <p className={`text-[10px] leading-tight truncate opacity-70 ${c.text}`}>{TYPE_LABELS[ev.type] ?? ev.type}{ev.technicienName ? ` · ${ev.technicienName}` : ""}</p>
                                     </>
-                                  )}
-                                </div>
-                              </div>
-                            </Link>
-                          );
-                        })}
-
-                        {/* RDV commerciaux (prospects), créneau 2h */}
-                        {dayRdvs.map((r) => {
-                          if (!r.rdvDate) return null;
-                          const start = new Date(r.rdvDate);
-                          const top = topPx(start);
-                          const h = heightPx(120);
-                          if (top > TOTAL_HEIGHT) return null;
-                          const isShort = h < 44;
-                          return (
-                            <Link
-                              key={r.id}
-                              href={`/admin/leads?lead=${r.id}`}
-                              onClick={(e) => e.stopPropagation()}
-                              draggable
-                              onDragStart={(e) => onEventDragStart(e, r.id, "rdv", 120, start.getTime())}
-                              onDragEnd={() => { dragRef.current = null; setDragId(null); }}
-                              className={`absolute rounded-lg border px-2 py-1 overflow-hidden z-10 transition-opacity hover:opacity-80 cursor-grab active:cursor-grabbing bg-amber-500/15 border-amber-500/40 ${dragId === r.id ? "opacity-40" : ""}`}
-                              style={{ top, height: h, ...laneBox(r.commercialId), ...(multiLane && laneColor(r.commercialId) ? { borderLeftColor: laneColor(r.commercialId)!, borderLeftWidth: 3 } : {}) }}
-                            >
-                              <div className="flex items-start gap-1.5 h-full overflow-hidden">
-                                <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-[3px] bg-amber-400" />
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-[10px] font-semibold leading-tight text-amber-300">
-                                    {fmtHM(start)} · RDV
-                                  </p>
-                                  {!isShort && (
-                                    <p className="text-white/85 text-[11px] font-medium leading-tight truncate mt-0.5">{r.clientName}</p>
                                   )}
                                 </div>
                               </div>
