@@ -125,6 +125,12 @@ export default function ContratsManager({
       setForm((p) => ({ ...p, units: value, prixUnitaireEuros: String(contratTotalEuros(Number(value) || 1)) }));
       return;
     }
+    // La prochaine visite est par défaut un an après le début (l'admin peut l'ajuster).
+    if (name === "startDate") {
+      const ny = value ? (() => { const d = new Date(value); d.setFullYear(d.getFullYear() + 1); return d.toISOString().slice(0, 10); })() : "";
+      setForm((p) => ({ ...p, startDate: value, nextVisit: ny || p.nextVisit }));
+      return;
+    }
     setForm((p) => ({ ...p, [name]: value }));
   }
 
@@ -211,23 +217,25 @@ export default function ContratsManager({
           <p className="text-2xl font-bold text-white">{actifs.reduce((s, c) => s + c.units, 0)}</p>
           <p className="text-slate-400 text-xs mt-0.5">Unités sous contrat</p>
         </div>
-        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4">
+        <div className="bg-slate-800/40 border border-white/8 rounded-xl p-4">
           <p className="text-2xl font-bold text-emerald-400">
             {(caAnnuel / 100).toLocaleString("fr-FR", { minimumFractionDigits: 0 })} €
           </p>
-          <p className="text-emerald-600 text-xs mt-0.5">CA annuel estimé</p>
+          <p className="text-slate-400 text-xs mt-0.5">CA annuel estimé</p>
         </div>
-        {overdue > 0 ? (
-          <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
-            <p className="text-2xl font-bold text-red-400">{overdue}</p>
-            <p className="text-red-500 text-xs mt-0.5">Visites en retard</p>
-          </div>
-        ) : (
-          <div className="bg-slate-800/40 border border-white/8 rounded-xl p-4">
-            <p className="text-2xl font-bold text-white">{inactifs.length}</p>
-            <p className="text-slate-400 text-xs mt-0.5">Inactifs</p>
-          </div>
-        )}
+        <div className="bg-slate-800/40 border border-white/8 rounded-xl p-4">
+          {overdue > 0 ? (
+            <>
+              <p className="text-2xl font-bold text-red-400">{overdue}</p>
+              <p className="text-slate-400 text-xs mt-0.5">Visites en retard</p>
+            </>
+          ) : (
+            <>
+              <p className="text-2xl font-bold text-white">{inactifs.length}</p>
+              <p className="text-slate-400 text-xs mt-0.5">Inactifs</p>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Toolbar */}

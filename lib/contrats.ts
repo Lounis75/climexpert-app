@@ -48,7 +48,8 @@ export async function createContrat(data: {
       units: data.units,
       prixUnitaireCt: data.prixUnitaireCt,
       startDate: data.startDate,
-      nextVisit: data.nextVisit,
+      // Prochaine visite = +1 an après le début par défaut (entretien annuel).
+      nextVisit: data.nextVisit ?? (() => { const d = new Date(data.startDate); d.setFullYear(d.getFullYear() + 1); return d.toISOString().slice(0, 10); })(),
       fluide: data.fluide || "R410A",
       marque: data.marque ?? null,
       puissanceKw: data.puissanceKw ?? null,
