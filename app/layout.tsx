@@ -15,7 +15,7 @@ const BASE = "https://climexpert.fr";
 export const metadata: Metadata = {
   metadataBase: new URL(BASE),
   title: {
-    default: "ClimExpert — Climatisation Île-de-France | Installation & Entretien",
+    default: "ClimExpert, Climatisation Île-de-France | Installation & Entretien",
     template: "%s | ClimExpert",
   },
   description:
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     canonical: BASE,
   },
   openGraph: {
-    title: "ClimExpert — Climatisation Île-de-France",
+    title: "ClimExpert, Climatisation Île-de-France",
     description:
       "Installation, entretien et dépannage climatisation. Techniciens RGE certifiés. Devis gratuit.",
     url: BASE,
@@ -38,13 +38,13 @@ export const metadata: Metadata = {
         url: "/opengraph-image",
         width: 1200,
         height: 630,
-        alt: "ClimExpert — Climatisation Île-de-France",
+        alt: "ClimExpert, Climatisation Île-de-France",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "ClimExpert — Climatisation Île-de-France",
+    title: "ClimExpert, Climatisation Île-de-France",
     description: "Installation, entretien et dépannage climatisation. Techniciens RGE certifiés.",
     images: ["/opengraph-image"],
   },

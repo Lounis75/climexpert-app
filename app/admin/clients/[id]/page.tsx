@@ -40,12 +40,12 @@ const SUIVI_LABELS: Record<string, string> = { j7: "J+7", j30: "J+30", j365: "J+
 const SUIVI_CANAL: Record<string, string>  = { email: "Email", sms: "SMS" };
 
 function fmt(d: Date | string | null) {
-  if (!d) return "—";
+  if (!d) return "-";
   return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
 }
 
 function fmtFull(d: Date | string | null) {
-  if (!d) return "—";
+  if (!d) return "-";
   return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
 }
 
@@ -94,7 +94,7 @@ export default async function ClientDetailPage({
   // Chantiers du client (projets multi-interventions)
   const chantiersList = await getChantiersByClient(c.id);
 
-  // Build unified timeline (interventions / SAV / suivis — pas de devis/factures)
+  // Build unified timeline (interventions / SAV / suivis, pas de devis/factures)
   const timeline: TimelineItem[] = [
     ...c.interventionsList.map((i) => ({
       date: new Date(i.scheduledAt ?? i.createdAt), type: "intervention" as const,

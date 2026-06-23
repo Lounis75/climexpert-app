@@ -281,7 +281,7 @@ export default function ContactClient() {
                     </button>
                   </div>
 
-                  {/* Consentement RGPD (démarchage) — facultatif */}
+                  {/* Consentement RGPD (démarchage), facultatif */}
                   <label className="flex items-start gap-2.5 cursor-pointer">
                     <input
                       type="checkbox"
@@ -291,7 +291,7 @@ export default function ContactClient() {
                     />
                     <span className="text-slate-400 text-xs leading-relaxed">
                       J&apos;accepte que ClimExpert me recontacte pour des offres commerciales et conseils.
-                      Facultatif — vous pouvez vous désinscrire à tout moment. Vos données ne sont jamais revendues.
+                      Facultatif, vous pouvez vous désinscrire à tout moment. Vos données ne sont jamais revendues.
                     </span>
                   </label>
 

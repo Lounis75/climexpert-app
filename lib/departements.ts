@@ -120,7 +120,7 @@ export const DEPARTEMENTS: Departement[] = [
       },
       {
         q: "Intervenez-vous dans les tours d'appartements à Créteil ?",
-        a: "Oui, nous avons une solide expérience dans les grands ensembles de Créteil (Lac, Mont-Mesly, Palais). Les contraintes techniques — hauteur, accès toiture, passage de gaines en cage — sont maîtrisées par nos équipes. L'accord du syndic est requis pour les interventions en parties communes.",
+        a: "Oui, nous avons une solide expérience dans les grands ensembles de Créteil (Lac, Mont-Mesly, Palais). Les contraintes techniques, hauteur, accès toiture, passage de gaines en cage, sont maîtrisées par nos équipes. L'accord du syndic est requis pour les interventions en parties communes.",
       },
       {
         q: "Y a-t-il des aides locales dans le Val-de-Marne pour la climatisation ?",
@@ -197,7 +197,7 @@ export const DEPARTEMENTS: Departement[] = [
     highlights: [
       "Couverture complète des 196 communes du 91",
       "Installation, entretien et nettoyage climatisation Essonne",
-      "Dépannage sous 48h — Évry, Massy, Corbeil, Palaiseau",
+      "Dépannage sous 48h, Évry, Massy, Corbeil, Palaiseau",
       "Techniciens RGE, aides CEE et MaPrimeRénov'",
     ],
     faqItems: [
@@ -207,7 +207,7 @@ export const DEPARTEMENTS: Departement[] = [
       },
       {
         q: "Proposez-vous des solutions climatisation pour les entreprises de l'Essonne ?",
-        a: "Oui, l'Essonne — et notamment la zone Massy-Palaiseau — est l'une de nos zones principales pour la climatisation professionnelle. Bureaux, salles de réunion, salles serveurs, laboratoires : nous installons des systèmes adaptés à chaque usage. Contrats de maintenance annuelle disponibles avec intervention prioritaire sous 48h.",
+        a: "Oui, l'Essonne, et notamment la zone Massy-Palaiseau, est l'une de nos zones principales pour la climatisation professionnelle. Bureaux, salles de réunion, salles serveurs, laboratoires : nous installons des systèmes adaptés à chaque usage. Contrats de maintenance annuelle disponibles avec intervention prioritaire sous 48h.",
       },
       {
         q: "Intervenez-vous pour le dépannage climatisation en Essonne ?",

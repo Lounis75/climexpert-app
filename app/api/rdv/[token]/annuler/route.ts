@@ -27,14 +27,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
 
   const [client] = await db.select().from(clients).where(eq(clients.id, interv.clientId)).limit(1);
 
-  // Notifications (admin + technicien) — non bloquantes : l'annulation est
+  // Notifications (admin + technicien), non bloquantes : l'annulation est
   // déjà enregistrée en base à ce stade.
   try {
     const [admin] = await db.select({ id: admins.id }).from(admins).limit(1);
     if (admin) {
       await db.insert(notifications).values({
         id: createId(), adminId: admin.id, type: "annulation",
-        titre: `Annulation client — ${client?.name ?? "inconnu"}`,
+        titre: `Annulation client, ${client?.name ?? "inconnu"}`,
         contenu: motif || "Aucun motif fourni",
         refType: "intervention", refId: interv.id,
       });

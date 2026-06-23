@@ -1,4 +1,4 @@
-// Journalisation structurée des erreurs (SERVEUR uniquement — n'importez pas ce
+// Journalisation structurée des erreurs (SERVEUR uniquement, n'importez pas ce
 // module depuis un composant client : il charge @sentry/node).
 // - Toujours : log JSON visible dans les logs Vercel (cherchable).
 // - Si SENTRY_DSN défini : l'erreur est aussi envoyée à Sentry (alerting réel).

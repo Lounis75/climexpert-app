@@ -69,7 +69,7 @@ export async function acceptDevis(devisId: string): Promise<{ interventionId?: s
         id: createId(),
         adminId: admin.id,
         type: "devis_signe",
-        titre: `Devis ${d.number} signé — intervention à planifier`,
+        titre: `Devis ${d.number} signé, intervention à planifier`,
         contenu: "Définissez une date et affectez un technicien.",
         refType: "intervention",
         refId: interventionId,

@@ -25,12 +25,12 @@ const SAV_STATUS: Record<string, string> = {
 };
 
 function fmtDate(d: string | Date | null | undefined) {
-  if (!d) return "—";
+  if (!d) return "-";
   return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
 }
 
 function fmtDateTime(d: Date | string | null | undefined) {
-  if (!d) return "—";
+  if (!d) return "-";
   return new Date(d).toLocaleString("fr-FR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
 }
 
@@ -108,7 +108,7 @@ export default async function SuiviPage({ params }: { params: Promise<{ token: s
           {client.equipementInstalle && (
             <div className="mt-3 flex items-center gap-2 bg-white/15 rounded-xl px-3 py-2">
               <Wrench className="w-4 h-4 flex-shrink-0" />
-              <p className="text-sm">{[client.equipementInstalle, client.marqueModele].filter(Boolean).join(" — ")}</p>
+              <p className="text-sm">{[client.equipementInstalle, client.marqueModele].filter(Boolean).join(", ")}</p>
             </div>
           )}
         </div>
@@ -162,7 +162,7 @@ export default async function SuiviPage({ params }: { params: Promise<{ token: s
                     <Wrench className="w-4 h-4 text-slate-400 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-slate-900">{TYPE_LABELS[i.type] ?? i.type}</p>
-                      <p className="text-xs text-slate-500">{fmtDateTime(i.scheduledAt)}{i.techName ? ` — ${i.techName}` : ""}</p>
+                      <p className="text-xs text-slate-500">{fmtDateTime(i.scheduledAt)}{i.techName ? `, ${i.techName}` : ""}</p>
                     </div>
                     <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${s.color}`}>{s.label}</span>
                   </div>
@@ -189,7 +189,7 @@ export default async function SuiviPage({ params }: { params: Promise<{ token: s
                     <p className="text-xs text-slate-500">{fmtDate(f.createdAt)}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-bold text-slate-900">{f.totalTtcCt ? `${(f.totalTtcCt / 100).toFixed(2)} €` : "—"}</p>
+                    <p className="text-sm font-bold text-slate-900">{f.totalTtcCt ? `${(f.totalTtcCt / 100).toFixed(2)} €` : "-"}</p>
                     <span className={`text-[10px] font-semibold ${f.status === "payée" ? "text-emerald-600" : "text-amber-600"}`}>
                       {f.status === "payée" ? "Payée" : "En attente"}
                     </span>

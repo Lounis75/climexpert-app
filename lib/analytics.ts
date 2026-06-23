@@ -118,7 +118,7 @@ export async function getMarketingStats(days = 30): Promise<MarketingStats> {
     visites: Number(visitesRow[0]?.n ?? 0),
     visiteurs: Number(visiteursRow[0]?.n ?? 0),
     visitesParJour,
-    topPages: topPagesRows.map((r) => ({ path: r.path ?? "—", n: Number(r.n) })),
+    topPages: topPagesRows.map((r) => ({ path: r.path ?? "-", n: Number(r.n) })),
     sources: sourcesRows.map((r) => ({ source: r.source ?? "Direct / inconnu", n: Number(r.n) })),
     calculateurUsages: Number(calcRow[0]?.n ?? 0),
     alexConversations,

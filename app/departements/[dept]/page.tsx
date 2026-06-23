@@ -22,15 +22,15 @@ export async function generateMetadata({
   const dept = getDepartementBySlug(slug);
   if (!dept) return {};
 
-  const title = `Climatisation ${dept.name} (${dept.code}) — Installation & Entretien`;
-  const description = `Installateur climatisation dans le ${dept.code} — ${dept.name}. Techniciens RGE certifiés, devis gratuit sous 24h. Monosplit, multisplit, gainable — intervention rapide dans tout le département.`;
+  const title = `Climatisation ${dept.name} (${dept.code}), Installation & Entretien`;
+  const description = `Installateur climatisation dans le ${dept.code}, ${dept.name}. Techniciens RGE certifiés, devis gratuit sous 24h. Monosplit, multisplit, gainable, intervention rapide dans tout le département.`;
 
   return {
     title,
     description,
     alternates: { canonical: `${BASE}/departements/${dept.slug}` },
     openGraph: {
-      title: `Climatisation ${dept.name} (${dept.code}) — ClimExpert`,
+      title: `Climatisation ${dept.name} (${dept.code}), ClimExpert`,
       description,
       url: `${BASE}/departements/${dept.slug}`,
       images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
@@ -140,7 +140,7 @@ export default async function DepartementPage({
               </h1>
               <p className="text-slate-400 text-lg leading-relaxed mb-6">
                 Installation, entretien et dépannage par des techniciens RGE certifiés.
-                Devis gratuit sous 24h — intervention rapide dans tout le département.
+                Devis gratuit sous 24h, intervention rapide dans tout le département.
               </p>
 
               <div className="grid grid-cols-2 gap-3 mb-8">
@@ -330,7 +330,7 @@ export default async function DepartementPage({
         <section className="py-16 bg-white border-t border-slate-100">
           <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
             <h2 className="text-2xl font-bold text-slate-900 mb-8 text-center">
-              Questions fréquentes — {dept.name}
+              Questions fréquentes, {dept.name}
             </h2>
             <div className="space-y-4">
               {dept.faqItems.map(({ q, a }) => (

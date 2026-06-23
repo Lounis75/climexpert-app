@@ -49,7 +49,7 @@ export function EventCard({ e }: { e: PlanningEvent }) {
       <div className="flex-1 min-w-0 pr-3 py-3">
         <div className="flex items-center justify-between gap-2">
           <span className="text-white text-sm font-bold tabular-nums">
-            {d ? fmtTime(d) : "—"}
+            {d ? fmtTime(d) : "-"}
             {e.durationMin ? <span className="text-slate-500 font-normal text-xs ml-1.5">· {e.durationMin} min</span> : null}
           </span>
           {isRdv ? (
@@ -196,7 +196,7 @@ export default function AgendaMobile({
           <div key={dayKey(g.date)} ref={isToday ? todayRef : undefined} className="scroll-mt-16">
             <div className="sticky top-14 z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2 bg-[#080d18]/95 backdrop-blur-sm border-b border-white/8 flex items-center justify-between">
               <span className={`text-xs font-semibold capitalize ${isToday ? "text-amber-400" : "text-slate-200"}`}>
-                {isToday ? "Aujourd'hui — " : ""}{fmtDay(g.date)}
+                {isToday ? "Aujourd'hui, " : ""}{fmtDay(g.date)}
               </span>
               <span className="text-[10px] text-slate-500 flex-shrink-0">{g.items.length} élément{g.items.length > 1 ? "s" : ""}</span>
             </div>

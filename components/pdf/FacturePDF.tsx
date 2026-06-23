@@ -159,7 +159,7 @@ export default function FacturePDF({
           <View style={styles.metaBox}>
             <Text style={styles.metaLabel}>Date d&apos;échéance</Text>
             <Text style={isOverdue ? styles.metaValueAlert : styles.metaValue}>
-              {dueDate ? new Date(dueDate).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : "—"}
+              {dueDate ? new Date(dueDate).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : "-"}
               {isOverdue ? "  (EN RETARD)" : ""}
             </Text>
           </View>
@@ -253,8 +253,8 @@ export default function FacturePDF({
         {/* Mentions légales */}
         <View style={styles.mentions}>
           <Text style={styles.mentionText}>
-            CLIM EXPERT SAS — SIRET {COMPANY.siret} — TVA {COMPANY.tva}{"\n"}
-            {COMPANY.address}, {COMPANY.city} — {COMPANY.phone} — {COMPANY.email}{"\n"}
+            CLIM EXPERT SAS, SIRET {COMPANY.siret}, TVA {COMPANY.tva}{"\n"}
+            {COMPANY.address}, {COMPANY.city}, {COMPANY.phone}, {COMPANY.email}{"\n"}
             Conformément à l&apos;article L441-10 du Code de Commerce.
           </Text>
         </View>

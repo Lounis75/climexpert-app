@@ -55,8 +55,8 @@ export async function GET(req: NextRequest) {
     const isJ30  = suivi.typeSuivi === "j30";
 
     const subject = isJ7
-      ? `Comment s'est passée votre ${typeLabel} ? — Clim Expert`
-      : `Pensez à l'entretien annuel — Clim Expert`;
+      ? `Comment s'est passée votre ${typeLabel} ?, Clim Expert`
+      : `Pensez à l'entretien annuel, Clim Expert`;
 
     const html = isJ7
       ? `

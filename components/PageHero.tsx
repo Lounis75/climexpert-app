@@ -76,7 +76,7 @@ export default function PageHero({
             </div>
           </motion.div>
 
-          {/* Right — Photo */}
+          {/* Right, Photo */}
           <motion.div
             initial={{ opacity: 0, x: 32 }}
             animate={{ opacity: 1, x: 0 }}

@@ -11,7 +11,7 @@ export function calculerTVA(
   }
 
   if (typeEquipement === "clim_simple" || typeEquipement === "pac_air_air" || typeEquipement === "multi_split") {
-    if (residentielAncien) return 10; // pose, 20% matériel — simplified to 10 for display
+    if (residentielAncien) return 10; // pose, 20% matériel, simplified to 10 for display
     return 20;
   }
 

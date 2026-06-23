@@ -131,9 +131,9 @@ export default function InterventionForm({
             required
             className="w-full h-11 px-3 rounded-xl bg-slate-900 border border-white/10 text-white text-sm focus:outline-none focus:border-sky-500 transition-all"
           >
-            {!clientId && <option value="">— Choisir un client —</option>}
+            {!clientId && <option value="">- Choisir un client -</option>}
             {clients.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}{c.city ? ` — ${c.city}` : ""}</option>
+              <option key={c.id} value={c.id}>{c.name}{c.city ? `, ${c.city}` : ""}</option>
             ))}
           </select>
         </div>
@@ -160,7 +160,7 @@ export default function InterventionForm({
               onChange={(e) => setChantierId(e.target.value)}
               className="w-full h-11 px-3 rounded-xl bg-slate-900 border border-white/10 text-white text-sm focus:outline-none focus:border-sky-500 transition-all"
             >
-              <option value="">— Aucun (intervention isolée)</option>
+              <option value="">- Aucun (intervention isolée)</option>
               {clientChantiers.map((ch) => (
                 <option key={ch.id} value={ch.id}>{ch.nom}</option>
               ))}
@@ -171,7 +171,7 @@ export default function InterventionForm({
         {/* Sous-traitance : site / client final */}
         {isSousTraitance && (
           <div className="sm:col-span-2 grid sm:grid-cols-2 gap-4 p-4 rounded-xl bg-amber-500/[0.06] border border-amber-500/20">
-            <p className="sm:col-span-2 text-xs text-amber-300 font-medium">Sous-traitance — site du client final (le client CRM est le donneur d&apos;ordre)</p>
+            <p className="sm:col-span-2 text-xs text-amber-300 font-medium">Sous-traitance, site du client final (le client CRM est le donneur d&apos;ordre)</p>
             <div>
               <label className="block text-xs text-slate-400 mb-1.5 font-medium">Nom du site / client final</label>
               <input
@@ -227,7 +227,7 @@ export default function InterventionForm({
             onChange={(e) => setTechnicienId(e.target.value)}
             className="w-full h-11 px-3 rounded-xl bg-slate-900 border border-white/10 text-white text-sm focus:outline-none focus:border-sky-500 transition-all"
           >
-            <option value="">— Non assigné</option>
+            <option value="">- Non assigné</option>
             {techniciens.some((t) => !(t as Technicien & { externe?: boolean }).externe) && (
               <optgroup label="Techniciens">
                 {techniciens.filter((t) => !(t as Technicien & { externe?: boolean }).externe).map((t) => (
@@ -239,7 +239,7 @@ export default function InterventionForm({
               <optgroup label="Sous-traitants">
                 {techniciens.filter((t) => (t as Technicien & { externe?: boolean }).externe).map((t) => {
                   const ent = (t as Technicien & { entreprise?: string | null }).entreprise;
-                  return <option key={t.id} value={t.id}>{t.name}{ent ? ` — ${ent}` : ""}</option>;
+                  return <option key={t.id} value={t.id}>{t.name}{ent ? `, ${ent}` : ""}</option>;
                 })}
               </optgroup>
             )}

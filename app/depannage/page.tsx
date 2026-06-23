@@ -9,16 +9,16 @@ import FAQAccordion from "@/components/FAQAccordion";
 import PageCTA from "@/components/PageCTA";
 
 export const metadata: Metadata = {
-  title: "Dépannage Climatisation Paris & Île-de-France — Intervention 48h",
+  title: "Dépannage Climatisation Paris & Île-de-France, Intervention 48h",
   description:
-    "Dépannage climatisation Paris et Île-de-France — intervention sous 48h, 7j/7. Techniciens certifiés RGE, diagnostic toutes marques, devis gratuit. Appelez le 06 67 43 27 67.",
+    "Dépannage climatisation Paris et Île-de-France, intervention sous 48h, 7j/7. Techniciens certifiés RGE, diagnostic toutes marques, devis gratuit. Appelez le 06 67 43 27 67.",
   keywords:
     "dépannage climatisation paris, réparation climatisation paris, dépannage clim ile-de-france, urgence clim paris, technicien climatisation paris, panne climatisation",
   alternates: {
     canonical: "https://climexpert.fr/depannage",
   },
   openGraph: {
-    title: "Dépannage Climatisation Urgent — ClimExpert",
+    title: "Dépannage Climatisation Urgent, ClimExpert",
     description:
       "Intervention sous 48h, toutes marques, 7j/7 en Île-de-France. Appelez le 06 67 43 27 67.",
     url: "https://climexpert.fr/depannage",
@@ -127,7 +127,7 @@ const faqSchema = {
 const serviceSchema = {
   "@context": "https://schema.org",
   "@type": "Service",
-  name: "Dépannage climatisation Île-de-France — Intervention sous 48h",
+  name: "Dépannage climatisation Île-de-France, Intervention sous 48h",
   serviceType: "Dépannage et réparation climatisation",
   description: "Dépannage de climatisation toutes marques en Île-de-France. Intervention sous 48h, 7j/7. Diagnostic et devis remis avant toute intervention.",
   provider: { "@type": "HVACBusiness", "@id": "https://climexpert.fr", name: "ClimExpert" },
@@ -167,7 +167,7 @@ export default function DepannagePage() {
               <div className="flex flex-col gap-6">
                 <div className="inline-flex items-center gap-2 self-start px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-sm font-medium">
                   <Zap className="w-4 h-4" />
-                  Intervention rapide — 7j/7 Île-de-France
+                  Intervention rapide, 7j/7 Île-de-France
                 </div>
                 <h1 className="text-4xl sm:text-5xl font-bold text-white leading-[1.1] tracking-tight">
                   Dépannage climatisation

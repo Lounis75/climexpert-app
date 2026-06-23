@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { Calendar, Users, Contact, HeadphonesIcon, Menu, X, LogOut } from "lucide-react";
 import { groups, standalone } from "./admin-nav";
 
-// Barre d'accès rapide en bas, style iOS — affichée sur mobile (< md) uniquement.
+// Barre d'accès rapide en bas, style iOS, affichée sur mobile (< md) uniquement.
 // Consultation au pouce : 4 destinations clés + "Plus" (tiroir avec tout le reste).
 const TABS = [
   { href: "/admin/interventions", label: "Planning",  icon: Calendar },

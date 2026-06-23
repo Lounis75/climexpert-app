@@ -195,13 +195,13 @@ export default function MarketingContacts({ contacts }: { contacts: MarketingCon
                     c.type === "client" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" : "bg-violet-500/10 text-violet-400 border-violet-500/30"
                   }`}>{c.type === "client" ? "Client" : "Prospect"}</span>
                 </span>
-                <span className="text-slate-300 truncate">{c.email ?? <span className="text-slate-600">—</span>}</span>
+                <span className="text-slate-300 truncate">{c.email ?? <span className="text-slate-600">-</span>}</span>
                 <span className="text-slate-400 truncate">{c.phone}</span>
-                <span className="text-slate-400 truncate">{c.city ?? <span className="text-slate-600">—</span>}</span>
+                <span className="text-slate-400 truncate">{c.city ?? <span className="text-slate-600">-</span>}</span>
                 <span>
                   {c.consentement
                     ? <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30">Autorisé</span>
-                    : <span className="text-[10px] text-slate-500">—</span>}
+                    : <span className="text-[10px] text-slate-500">-</span>}
                 </span>
               </div>
             ))}

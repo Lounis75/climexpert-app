@@ -8,21 +8,21 @@ import StatsCounter, { type Stat } from "@/components/StatsCounter";
 import { Award, ShieldCheck, Scale, BadgeCheck, Wrench, MapPin } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Qui sommes-nous — ClimExpert, entreprise familiale de climatisation en Île-de-France",
+  title: "Qui sommes-nous, ClimExpert, entreprise familiale de climatisation en Île-de-France",
   description:
     "ClimExpert : entreprise familiale et indépendante de climatisation en Île-de-France. Techniciens RGE Qualibat, attestation fluides frigorigènes cat. I, médiateur de la consommation. Installation, entretien et dépannage.",
   keywords:
     "qui sommes nous climexpert, entreprise climatisation ile-de-france, installateur climatisation rge paris, climaticien familial paris, entreprise clim independante",
   alternates: { canonical: "https://climexpert.fr/qui-sommes-nous" },
   openGraph: {
-    title: "Qui sommes-nous — ClimExpert",
+    title: "Qui sommes-nous, ClimExpert",
     description: "Entreprise familiale et indépendante de climatisation en Île-de-France. Techniciens RGE certifiés.",
     url: "https://climexpert.fr/qui-sommes-nous",
-    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "ClimExpert — Qui sommes-nous" }],
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "ClimExpert, Qui sommes-nous" }],
   },
 };
 
-// ⚙️ Chiffres animés — à ajuster librement quand tu auras les vrais.
+// ⚙️ Chiffres animés, à ajuster librement quand tu auras les vrais.
 const STATS: Stat[] = [
   { value: 50, suffix: "+", label: "Installations", sub: "réalisées cette année" },
   { value: 10, suffix: "+", label: "Ans d'expérience", sub: "cumulée des fondateurs" },
@@ -49,7 +49,7 @@ const ENGAGEMENTS = [
   },
   {
     icon: Wrench, title: "Toutes les grandes marques",
-    text: "Daikin, Mitsubishi Electric, Fujitsu, Panasonic, LG — monosplit, multisplit, gainable et pompe à chaleur air-eau.",
+    text: "Daikin, Mitsubishi Electric, Fujitsu, Panasonic, LG, monosplit, multisplit, gainable et pompe à chaleur air-eau.",
   },
   {
     icon: MapPin, title: "Toute l'Île-de-France",
@@ -87,10 +87,10 @@ export default function QuiSommesNousPage() {
           badge="Qui sommes-nous"
           title="Une entreprise familiale,"
           titleAccent="indépendante et certifiée"
-          subtitle="Derrière ClimExpert, deux associés passionnés et des techniciens RGE qui installent, entretiennent et dépannent votre climatisation en Île-de-France — avec un vrai savoir-faire et zéro pression commerciale."
+          subtitle="Derrière ClimExpert, deux associés passionnés et des techniciens RGE qui installent, entretiennent et dépannent votre climatisation en Île-de-France, avec un vrai savoir-faire et zéro pression commerciale."
           ctaLabel="Demander un devis gratuit"
           photo="/images/real-2.jpg"
-          photoAlt="Réalisation ClimExpert — climatisation en cassette plafonnière dans un local professionnel à Paris"
+          photoAlt="Réalisation ClimExpert, climatisation en cassette plafonnière dans un local professionnel à Paris"
           stats={[
             { value: "RGE", label: "Qualibat certifié" },
             { value: "Cat. I", label: "Fluides frigorigènes" },
@@ -136,11 +136,11 @@ export default function QuiSommesNousPage() {
               </p>
               <p>
                 L&apos;autre est tourné vers la <strong className="text-slate-900">relation client et l&apos;organisation</strong> : il
-                structure l&apos;entreprise, l&apos;accompagnement et la transparence — du premier appel au devis, jusqu&apos;au suivi après travaux.
+                structure l&apos;entreprise, l&apos;accompagnement et la transparence, du premier appel au devis, jusqu&apos;au suivi après travaux.
               </p>
               <p>
                 Ce duo, c&apos;est notre force : un vrai savoir-faire technique, doublé d&apos;un accompagnement clair et sans pression.
-                Pas de sous-traitance en cascade, pas de commerciaux agressifs — juste une <strong className="text-slate-900">entreprise
+                Pas de sous-traitance en cascade, pas de commerciaux agressifs, juste une <strong className="text-slate-900">entreprise
                 familiale</strong> qui répond, conseille et tient ses engagements.
               </p>
             </div>
@@ -158,7 +158,7 @@ export default function QuiSommesNousPage() {
                 Ce qui vous garantit la tranquillité
               </h2>
               <p className="text-slate-500 text-lg">
-                Des certifications, des assurances et des engagements concrets — pour confier votre climatisation en toute confiance.
+                Des certifications, des assurances et des engagements concrets, pour confier votre climatisation en toute confiance.
               </p>
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">

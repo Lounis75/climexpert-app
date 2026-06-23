@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
   if (!interv) return NextResponse.json({ error: "Intervention introuvable" }, { status: 404 });
 
   // Idempotence : si un rapport existe déjà (intervention déjà clôturée), ne pas
-  // réinsérer — la contrainte unique sur interventionId crasherait en 500. Cas réel :
+  // réinsérer, la contrainte unique sur interventionId crasherait en 500. Cas réel :
   // iPad en veille / réseau coupé → 1er POST réussit serveur mais réponse perdue → re-soumission.
   const [dejaRapport] = await db
     .select({ id: rapportsIntervention.id })
@@ -175,11 +175,11 @@ export async function POST(req: NextRequest) {
     refId:   interventionId,
   });
 
-  // Si non conforme : NE PAS envoyer l'email auto — notifier admin en priorité
+  // Si non conforme : NE PAS envoyer l'email auto, notifier admin en priorité
   if (!installationConforme) {
     await db.insert(notifications).values({
       type:    "escalade_client",
-      titre:   "⚠️ Installation non conforme — action requise",
+      titre:   "⚠️ Installation non conforme, action requise",
       contenu: `L'intervention ${interventionId} a été clôturée comme NON CONFORME. Vérifiez avant d'envoyer l'email au client.`,
       refType: "intervention",
       refId:   interventionId,

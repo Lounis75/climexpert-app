@@ -251,7 +251,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const interventionsTermineesN  = Number(interventionsTerminees?.cnt ?? 0);
   const savOuverts               = Number(savOuvertsRow?.cnt ?? 0);
 
-  // ─── CA mensuel (6 mois) — JS léger car peu de lignes ────────────────────────
+  // ─── CA mensuel (6 mois), JS léger car peu de lignes ────────────────────────
   const caMensuel: { mois: string; ct: number }[] = [];
   for (let i = 5; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -541,7 +541,7 @@ export async function getProchainesInterventions(limit = 12): Promise<IntervJour
     .limit(limit);
 }
 
-// ─── Interventions à planifier (sans date — ex. devis gagné) ─────────────────
+// ─── Interventions à planifier (sans date, ex. devis gagné) ─────────────────
 
 export async function getInterventionsAPlanifier(): Promise<IntervJour[]> {
   return db

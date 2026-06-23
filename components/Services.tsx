@@ -136,7 +136,7 @@ export default function Services() {
                 transition={{ delay: i * 0.1, duration: 0.6 }}
                 className="group relative flex flex-col bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-sm card-hover"
               >
-                {/* Photo header — cliquable vers la page service */}
+                {/* Photo header, cliquable vers la page service */}
                 <Link href={service.href} className="block relative h-48 overflow-hidden">
                   {/* TODO: remplacer par photo chantier réelle */}
                   <Image

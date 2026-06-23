@@ -19,7 +19,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 function formatTime(d: Date | string | null) {
-  if (!d) return "—";
+  if (!d) return "-";
   return new Date(d).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Paris" });
 }
 
@@ -121,7 +121,7 @@ export default async function TechnicienDashboard() {
                   <p className="text-lg font-bold text-slate-900">{formatTime(i.scheduledAt)}</p>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-slate-900 text-sm truncate">{i.clientName ?? "—"}</p>
+                  <p className="font-semibold text-slate-900 text-sm truncate">{i.clientName ?? "-"}</p>
                   <p className="text-slate-500 text-xs truncate">{TYPE_LABELS[i.type] ?? i.type} · {i.address ?? "Adresse non renseignée"}</p>
                 </div>
                 <span className={`flex-shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${STATUS_COLORS[i.status] ?? "bg-slate-50 text-slate-500 border-slate-200"}`}>
@@ -147,12 +147,12 @@ export default async function TechnicienDashboard() {
                 className="flex items-center gap-3 bg-white border border-slate-100 rounded-2xl p-3.5 hover:border-violet-200 transition-colors">
                 <div className="flex-shrink-0 text-center min-w-[56px]">
                   <p className="text-xs font-semibold text-violet-600 capitalize">
-                    {i.scheduledAt ? new Date(i.scheduledAt).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short", timeZone: "Europe/Paris" }) : "—"}
+                    {i.scheduledAt ? new Date(i.scheduledAt).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short", timeZone: "Europe/Paris" }) : "-"}
                   </p>
                   <p className="text-xs text-slate-500">{formatTime(i.scheduledAt)}</p>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-slate-900 text-sm truncate">{i.clientName ?? "—"}</p>
+                  <p className="font-semibold text-slate-900 text-sm truncate">{i.clientName ?? "-"}</p>
                   <p className="text-slate-500 text-xs truncate">{TYPE_LABELS[i.type] ?? i.type} · {i.address ?? "Adresse à confirmer"}</p>
                 </div>
                 <ChevronRight className="w-4 h-4 text-slate-300 flex-shrink-0" />

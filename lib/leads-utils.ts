@@ -5,7 +5,7 @@ import type { Lead } from "@/lib/db/schema";
 export function leadAction(lead: Lead): string | null {
   const terminal = lead.status === "gagné" || lead.status === "perdu";
 
-  // Manque le montant du devis (data gap) — toujours prioritaire.
+  // Manque le montant du devis (data gap), toujours prioritaire.
   if ((lead.status === "devis_envoyé" || lead.status === "gagné") && !lead.montantDevisCt) return "Devis à chiffrer";
   if (terminal) return null;
 

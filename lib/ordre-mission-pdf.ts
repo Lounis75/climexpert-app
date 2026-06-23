@@ -1,4 +1,4 @@
-// ClimExpert — « Ordre de mission » : fiche PDF d'une intervention à transmettre à
+// ClimExpert, « Ordre de mission » : fiche PDF d'une intervention à transmettre à
 // un sous-traitant (qui n'a pas accès au portail). Sortie A4 via pdfkit.
 import PDFDocument from "pdfkit";
 
@@ -48,7 +48,7 @@ export function generateOrdreMissionPDF(d: OrdreMissionData): Promise<Buffer> {
       if (st.entreprise) kv("Entreprise", st.entreprise);
       if (st.specialite) kv("Spécialité", st.specialite);
     } else {
-      doc.font("Helvetica").fontSize(10).fillColor(MISS).text("— non assigné —", M, doc.y);
+      doc.font("Helvetica").fontSize(10).fillColor(MISS).text("- non assigné -", M, doc.y);
       doc.moveDown(0.5);
     }
 
@@ -61,7 +61,7 @@ export function generateOrdreMissionPDF(d: OrdreMissionData): Promise<Buffer> {
     // ── Lieu ─────────────────────────────────────────────────────────────────
     section("Lieu");
     if (d.siteNom) kv("Site / client final", d.siteNom);
-    kv("Adresse", d.lieu || "—");
+    kv("Adresse", d.lieu || "-");
 
     // ── Contact client ───────────────────────────────────────────────────────
     section("Contact sur place");
@@ -81,7 +81,7 @@ export function generateOrdreMissionPDF(d: OrdreMissionData): Promise<Buffer> {
 
     // ── Pied de page ─────────────────────────────────────────────────────────
     doc.font("Helvetica").fontSize(8).fillColor(MISS).text(
-      "ClimExpert — 200 rue de la Croix Nivert, 75015 Paris · contact@climexpert.fr · Document de mission, à ne pas remettre au client.",
+      "ClimExpert, 200 rue de la Croix Nivert, 75015 Paris · contact@climexpert.fr · Document de mission, à ne pas remettre au client.",
       M, doc.page.height - M - 14, { width: W, align: "center" },
     );
 

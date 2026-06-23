@@ -628,7 +628,7 @@ export default function CalendrierDashboard() {
                           );
                         })}
 
-                        {/* RDV commerciaux (prospects) — créneau 2h */}
+                        {/* RDV commerciaux (prospects), créneau 2h */}
                         {dayRdvs.map((r) => {
                           if (!r.rdvDate) return null;
                           const start = new Date(r.rdvDate);

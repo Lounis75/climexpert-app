@@ -2,16 +2,16 @@ import type { Metadata } from "next";
 import CalculateurClient from "./CalculateurClient";
 
 export const metadata: Metadata = {
-  title: "Calculateur Climatisation Île-de-France — Estimation Gratuite",
+  title: "Calculateur Climatisation Île-de-France, Estimation Gratuite",
   description:
-    "Calculez la puissance et le prix de votre climatisation en 2 minutes. Monosplit, multisplit, gainable — estimation personnalisée selon votre logement. Devis gratuit sous 24h.",
+    "Calculez la puissance et le prix de votre climatisation en 2 minutes. Monosplit, multisplit, gainable, estimation personnalisée selon votre logement. Devis gratuit sous 24h.",
   keywords:
     "calculateur climatisation, calculer puissance climatisation, estimer prix climatisation ile-de-france, combien coûte climatisation, simulation climatisation paris",
   alternates: {
     canonical: "https://calculateur.climexpert.fr",
   },
   openGraph: {
-    title: "Calculateur Climatisation — Estimation Gratuite en 2 min | ClimExpert",
+    title: "Calculateur Climatisation, Estimation Gratuite en 2 min | ClimExpert",
     description:
       "Calculez la puissance et le budget pour votre projet. Résultat instantané, devis gratuit sous 24h.",
     url: "https://calculateur.climexpert.fr",
@@ -48,7 +48,7 @@ const faqSchema = {
       name: "Monosplit ou multisplit : quelle solution choisir ?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Le monosplit (1 unité intérieure) est idéal pour une seule pièce — salon, chambre ou bureau — à partir de 1 500 €. Le multisplit (2 à 6 unités intérieures sur une seule unité extérieure) convient aux logements multi-pièces et revient moins cher par pièce à partir de 2 unités, à partir de 2 800 €. Pour une maison entière, un système gainable ou une PAC air-air peut être plus adapté.",
+        text: "Le monosplit (1 unité intérieure) est idéal pour une seule pièce, salon, chambre ou bureau, à partir de 1 500 €. Le multisplit (2 à 6 unités intérieures sur une seule unité extérieure) convient aux logements multi-pièces et revient moins cher par pièce à partir de 2 unités, à partir de 2 800 €. Pour une maison entière, un système gainable ou une PAC air-air peut être plus adapté.",
       },
     },
     {

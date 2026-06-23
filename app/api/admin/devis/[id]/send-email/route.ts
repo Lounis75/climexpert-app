@@ -26,7 +26,7 @@ export async function POST(
       number: d.number,
       createdAt: new Date(d.createdAt).toISOString(),
       validUntil: d.validUntil ?? null,
-      clientName: d.clientName ?? "—",
+      clientName: d.clientName ?? "-",
       description: d.description ?? null,
       lignes: d.lignes.map((l) => ({
         id: l.id,
@@ -47,7 +47,7 @@ export async function POST(
     await resend.emails.send({
       from: "ClimExpert <noreply@climexpert.fr>",
       to: [d.clientEmail],
-      subject: `Votre devis ${d.number} — ClimExpert`,
+      subject: `Votre devis ${d.number}, ClimExpert`,
       attachments: [
         {
           filename: `${d.number}.pdf`,

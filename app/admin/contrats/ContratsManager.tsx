@@ -25,7 +25,7 @@ const emptyForm: Form = { clientId: "", units: "1", prixUnitaireEuros: "200", st
 const isoDate = (d: string | Date | null | undefined) => (d ? new Date(d).toISOString().slice(0, 10) : "");
 
 function fmt(d: string | Date | null | undefined) {
-  if (!d) return "—";
+  if (!d) return "-";
   return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
 }
 
@@ -133,7 +133,7 @@ export default function ContratsManager({
       if (res.ok) {
         const { contrat } = await res.json();
         const client = clients.find((c) => c.id === form.clientId);
-        setContrats((p) => [{ ...contrat, clientName: client?.name ?? "—" }, ...p]);
+        setContrats((p) => [{ ...contrat, clientName: client?.name ?? "-" }, ...p]);
         setForm(emptyForm);
         setShowForm(false);
       }
@@ -231,12 +231,12 @@ export default function ContratsManager({
             <div className="sm:col-span-2">
               <label className="block text-xs text-slate-400 mb-1.5">Client *</label>
               {editingId ? (
-                <p className={`${inputCls} !bg-slate-800 text-slate-300`}>{contrats.find((c) => c.id === editingId)?.clientName ?? "—"}</p>
+                <p className={`${inputCls} !bg-slate-800 text-slate-300`}>{contrats.find((c) => c.id === editingId)?.clientName ?? "-"}</p>
               ) : (
                 <select name="clientId" value={form.clientId} onChange={handleChange} required className={inputCls}>
                   <option value="">Sélectionner un client...</option>
                   {clients.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name} {c.city ? `— ${c.city}` : ""}</option>
+                    <option key={c.id} value={c.id}>{c.name} {c.city ? `- ${c.city}` : ""}</option>
                   ))}
                 </select>
               )}

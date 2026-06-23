@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
   await resend.emails.send({
     from: "ClimExpert <noreply@climexpert.fr>",
     to: [tech.email],
-    subject: "Votre lien de connexion — Espace Commercial",
+    subject: "Votre lien de connexion, Espace Commercial",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
         <h2 style="color: #0B1120;">Bonjour ${tech.prenom ?? tech.name},</h2>

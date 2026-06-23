@@ -28,7 +28,7 @@ export default function ChatPlaceholder() {
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
-          {/* Left — Copy */}
+          {/* Left, Copy */}
           <motion.div
             initial={{ opacity: 0, x: -24 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -37,7 +37,7 @@ export default function ChatPlaceholder() {
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400 text-sm font-medium mb-6">
               <Zap className="w-4 h-4" />
-              Assistant intelligent — Bientôt disponible
+              Assistant intelligent, Bientôt disponible
             </div>
 
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4 tracking-tight">
@@ -49,7 +49,7 @@ export default function ChatPlaceholder() {
             <p className="text-slate-400 text-lg mb-8 leading-relaxed">
               Notre assistant conversationnel analyse votre situation, vous
               pose les bonnes questions et vous donne une estimation précise
-              — sans attendre un rappel.
+             , sans attendre un rappel.
             </p>
 
             {/* Advantages */}
@@ -81,7 +81,7 @@ export default function ChatPlaceholder() {
             </div>
           </motion.div>
 
-          {/* Right — Chat mockup */}
+          {/* Right, Chat mockup */}
           <motion.div
             initial={{ opacity: 0, x: 24 }}
             whileInView={{ opacity: 1, x: 0 }}

@@ -36,7 +36,7 @@ export default async function AdminLeadsPage({
               <p className="hidden sm:flex text-slate-500 text-xs mt-1.5 items-start gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block mt-1 flex-shrink-0" />
                 <span>
-                  {enProductionCount} prospect{enProductionCount > 1 ? "s" : ""} passé{enProductionCount > 1 ? "s" : ""} en production (intervention planifiée) — masqué{enProductionCount > 1 ? "s" : ""} du Kanban, fiche conservée dans <Link href="/admin/clients" className="text-sky-400 hover:text-sky-300 underline underline-offset-2">Clients</Link>.
+                  {enProductionCount} prospect{enProductionCount > 1 ? "s" : ""} passé{enProductionCount > 1 ? "s" : ""} en production (intervention planifiée), masqué{enProductionCount > 1 ? "s" : ""} du Kanban, fiche conservée dans <Link href="/admin/clients" className="text-sky-400 hover:text-sky-300 underline underline-offset-2">Clients</Link>.
                 </span>
               </p>
             )}

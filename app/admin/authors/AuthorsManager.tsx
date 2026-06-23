@@ -198,7 +198,7 @@ export default function AuthorsManager({ initialAuthors }: { initialAuthors: Aut
                 type="text"
                 value={form.role}
                 onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
-                placeholder="Technicien RGE — 8 ans d'expérience"
+                placeholder="Technicien RGE, 8 ans d'expérience"
                 className={inputClass}
               />
             </div>

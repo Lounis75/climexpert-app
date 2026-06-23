@@ -38,7 +38,7 @@ export default function ZoneGeo() {
         {/* Colonnes de même hauteur totale grâce à items-stretch */}
         <div className="grid lg:grid-cols-2 gap-12 lg:items-stretch">
 
-          {/* Left — Texte + image qui remplit l'espace restant */}
+          {/* Left, Texte + image qui remplit l'espace restant */}
           <motion.div
             initial={{ opacity: 0, x: -24 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -79,7 +79,7 @@ export default function ZoneGeo() {
               </button>
             </div>
 
-            {/* Image — flex-1 pour remplir exactement l'espace restant */}
+            {/* Image, flex-1 pour remplir exactement l'espace restant */}
             <div className="relative flex-1 min-h-[160px] rounded-2xl overflow-hidden shadow-md border border-slate-100">
               <Image
                 src="/images/zone-idf.jpg"
@@ -95,7 +95,7 @@ export default function ZoneGeo() {
             </div>
           </motion.div>
 
-          {/* Right — Grille départements + bannière France en bas */}
+          {/* Right, Grille départements + bannière France en bas */}
           <motion.div
             initial={{ opacity: 0, x: 24 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -131,7 +131,7 @@ export default function ZoneGeo() {
               ))}
             </div>
 
-            {/* Bannière France entière — collée en bas */}
+            {/* Bannière France entière, collée en bas */}
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               whileInView={{ opacity: 1, y: 0 }}

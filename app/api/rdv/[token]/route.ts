@@ -80,23 +80,23 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
     });
   }
 
-  // Notifications (admin + technicien) — ne doivent jamais faire échouer la
+  // Notifications (admin + technicien), ne doivent jamais faire échouer la
   // confirmation du RDV : le créneau est déjà réservé en base à ce stade.
   try {
     const [admin] = await db.select({ id: admins.id }).from(admins).limit(1);
     if (admin) {
       await db.insert(notifications).values({
         id: createId(), adminId: admin.id, type: "intervention_planifiee",
-        titre: `Intervention confirmée — ${client?.name ?? "client"}`,
+        titre: `Intervention confirmée, ${client?.name ?? "client"}`,
         contenu: chosen.label, refType: "intervention", refId: interv.id,
       });
     }
-    // Notif technicien (adminId = technicienId, table polymorphe — cf. schema)
+    // Notif technicien (adminId = technicienId, table polymorphe, cf. schema)
     if (chosen.technicienId) {
       await db.insert(notifications).values({
         id: createId(), adminId: chosen.technicienId, type: "nouvelle_intervention",
         titre: `Nouvelle intervention confirmée`,
-        contenu: `${chosen.label} — ${client?.name ?? ""}`,
+        contenu: `${chosen.label}, ${client?.name ?? ""}`,
         refType: "intervention", refId: interv.id,
       });
     }

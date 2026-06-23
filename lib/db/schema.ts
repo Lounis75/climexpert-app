@@ -150,7 +150,7 @@ export const utilisateurs = pgTable("utilisateurs", {
 
 // ─── Clients ──────────────────────────────────────────────────────────────────
 // leadId et contratEntretienId sont des références logiques sans contrainte FK
-// (circular ref avec leads / contratsEntretien) — gérées par relations()
+// (circular ref avec leads / contratsEntretien), gérées par relations()
 
 export const clients = pgTable("clients", {
   id:                 text("id").primaryKey().$defaultFn(() => createId()),
@@ -205,7 +205,7 @@ export const leads = pgTable("leads", {
   status:              leadStatusEnum("status").default("nouveau").notNull(),
   source:              leadSourceEnum("source").default("formulaire").notNull(),
   notes:               text("notes"),
-  // Montant du devis (centimes) — à renseigner dès le passage en "devis_envoyé".
+  // Montant du devis (centimes), à renseigner dès le passage en "devis_envoyé".
   montantDevisCt:      integer("montant_devis_ct"),
   // Sous-statut quand le contact est établi (avant l'envoi du devis) :
   // "rdv_pris" | "a_recontacter" | "devis_a_faire". Null = non précisé.
@@ -321,7 +321,7 @@ export const interventions = pgTable("interventions", {
   dureeEstimeeMinutes:  integer("duree_estimee_minutes"),
   dureeReelleMinutes:   integer("duree_reelle_minutes"),
   rdvToken:               varchar("rdv_token", { length: 100 }).unique(),
-  rdvTokenChoix:          integer("rdv_token_choix"),              // 1|2|3 — choix sélectionné
+  rdvTokenChoix:          integer("rdv_token_choix"),              // 1|2|3, choix sélectionné
   rdvTokenCreneaux:       text("rdv_token_creneaux"),              // JSON: 3 créneaux proposés
   annulePar:              varchar("annule_par", { length: 20 }),   // "client"|"admin"|"technicien"
   motifAnnulation:        text("motif_annulation"),

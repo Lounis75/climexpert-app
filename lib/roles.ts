@@ -1,4 +1,4 @@
-// Vocabulaire des rôles — EXTENSIBLE : ajoute simplement une entrée ici pour
+// Vocabulaire des rôles, EXTENSIBLE : ajoute simplement une entrée ici pour
 // créer une nouvelle fonction (ex. "responsable_planning", "sav") sans migration DB.
 // Les rôles sont stockés en tableau sur utilisateurs.roles.
 

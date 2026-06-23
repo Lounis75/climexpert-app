@@ -21,7 +21,7 @@ export type RendezVous = {
 };
 
 /** Détecte un prospect actif (non supprimé) avec le même téléphone + nom (insensible
- *  à la casse) — pour empêcher les doublons saisis manuellement. */
+ *  à la casse), pour empêcher les doublons saisis manuellement. */
 export async function findActiveLeadByNamePhone(name: string, phone: string): Promise<Lead | null> {
   const rows = await db.select().from(leads)
     .where(and(eq(leads.phone, phone.trim()), isNull(leads.supprimeLe)));

@@ -1,4 +1,4 @@
-// ClimExpert — Générateur de contrat d'entretien et de maintenance (PDF A4).
+// ClimExpert, Générateur de contrat d'entretien et de maintenance (PDF A4).
 // Porté depuis le générateur .docx de Kamel : même logique (particulier/pro, TVA 10/20,
 // mono/multisplit, calcul HT/TTC). Sortie PDF via pdfkit (serverless-friendly).
 // Règle : AUCUN champ en rouge. Les champs manquants ressortent en gris discret, et
@@ -6,7 +6,7 @@
 
 import PDFDocument from "pdfkit";
 
-/* ─── Prestataire (ClimExpert) — à ajuster en un seul endroit ───────────────── */
+/* ─── Prestataire (ClimExpert), à ajuster en un seul endroit ───────────────── */
 const PRESTATAIRE = {
   raisonSociale: "CLIM EXPERT",
   formeCapital: "société par actions simplifiée (SAS) au capital de 1 000 €",
@@ -23,10 +23,10 @@ const PRESTATAIRE = {
   police: "SV75018041T42457",
 };
 
-/* ─── Médiateur de la consommation (particuliers) — SMP (adhésion ClimExpert). ── */
+/* ─── Médiateur de la consommation (particuliers), SMP (adhésion ClimExpert). ── */
 const MEDIATEUR = {
   name: "Société de la Médiation Professionnelle (SMP)",
-  contact: "Rue Marc Sangnier, 33130 Bègles — www.mediation-consommation-smp.fr",
+  contact: "Rue Marc Sangnier, 33130 Bègles, www.mediation-consommation-smp.fr",
 };
 
 /* ─── Charte ────────────────────────────────────────────────────────────────── */
@@ -217,10 +217,10 @@ function equipmentTable(doc: Doc, data: ContratData) {
     return [
       [seg(u.type, "[type]")],
       [seg(model, "[à compléter]")],
-      [seg(u.powerKw, "—")],
+      [seg(u.powerKw, "-")],
       [{ t: charge }],
-      [seg(u.serial, "—")],
-      [seg(u.location, "—")],
+      [seg(u.serial, "-")],
+      [seg(u.location, "-")],
     ];
   });
   drawTable(doc, cols, rows, header);
@@ -314,7 +314,7 @@ function build(doc: Doc, data: ContratData) {
   doc.moveDown(0.6);
 
   heading(doc, "Entre les soussignés");
-  // Prestataire — attestation fluides omise proprement si vide (pas de rouge)
+  // Prestataire, attestation fluides omise proprement si vide (pas de rouge)
   const attest = pr.attestationFluides && pr.attestationFluides.trim()
     ? `, titulaire de l'attestation de capacité à la manipulation des fluides frigorigènes n° ${pr.attestationFluides}`
     : "";

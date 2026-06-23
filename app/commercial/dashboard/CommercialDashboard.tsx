@@ -190,7 +190,7 @@ export default function CommercialDashboard({ session, rdvs }: { session: Commer
               {upcomingRdvs.map((r) => (
                 <div key={r.id} className="bg-slate-800 border border-white/10 rounded-xl p-4 flex items-center gap-4">
                   <div className="w-14 flex-shrink-0 text-center">
-                    <p className="text-fuchsia-400 text-[10px] font-bold uppercase leading-tight">{r.rdvDate ? rdvDay(r.rdvDate) : "—"}</p>
+                    <p className="text-fuchsia-400 text-[10px] font-bold uppercase leading-tight">{r.rdvDate ? rdvDay(r.rdvDate) : "-"}</p>
                     <p className="text-white text-lg font-bold tabular-nums leading-none mt-0.5">{r.rdvDate ? rdvTime(r.rdvDate) : "--:--"}</p>
                   </div>
                   <div className="flex-1 min-w-0">
@@ -299,11 +299,11 @@ export default function CommercialDashboard({ session, rdvs }: { session: Commer
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-slate-700/50 rounded-xl p-3">
                     <p className="text-slate-400 text-xs mb-1">Projet</p>
-                    <p className="text-white text-sm font-medium">{PROJECT_LABELS[selected.project ?? ""] ?? selected.project ?? "—"}</p>
+                    <p className="text-white text-sm font-medium">{PROJECT_LABELS[selected.project ?? ""] ?? selected.project ?? "-"}</p>
                   </div>
                   <div className="bg-slate-700/50 rounded-xl p-3">
                     <p className="text-slate-400 text-xs mb-1">Localisation</p>
-                    <p className="text-white text-sm font-medium truncate">{selected.location ?? "—"}</p>
+                    <p className="text-white text-sm font-medium truncate">{selected.location ?? "-"}</p>
                   </div>
                   {selected.email && (
                     <div className="col-span-2 bg-slate-700/50 rounded-xl p-3">

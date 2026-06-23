@@ -45,7 +45,7 @@ export async function markOverdueFactures(): Promise<void> {
   for (const f of toMark) {
     createNotification({
       type: "facture_en_retard",
-      titre: `Facture en retard — ${f.number}`,
+      titre: `Facture en retard, ${f.number}`,
       refType: "facture",
       refId: f.id,
     }).catch(() => {});
@@ -67,7 +67,7 @@ export async function getFactures(): Promise<FactureWithRefs[]> {
 
   return rows.map((r) => ({
     ...r.facture,
-    clientName: r.clientName ?? "—",
+    clientName: r.clientName ?? "-",
     devisNumber: r.devisNumber ?? undefined,
   }));
 }
@@ -91,7 +91,7 @@ export async function getFactureById(id: string): Promise<FactureWithRefs | null
     ? await db.select().from(lignesDevis).where(eq(lignesDevis.devisId, row.facture.devisId)).orderBy(lignesDevis.ordre)
     : [];
 
-  return { ...row.facture, clientName: row.clientName ?? "—", devisNumber: row.devisNumber ?? undefined, lignes };
+  return { ...row.facture, clientName: row.clientName ?? "-", devisNumber: row.devisNumber ?? undefined, lignes };
 }
 
 export async function createFactureFromDevis(devisId: string): Promise<Facture> {

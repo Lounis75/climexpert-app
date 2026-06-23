@@ -88,11 +88,11 @@ export default async function StatistiquesPage({
           ))}
         </div>
 
-        {/* Trafic — 30 jours */}
+        {/* Trafic, 30 jours */}
         <div className="bg-slate-800/40 border border-white/8 rounded-2xl p-5">
           <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
             <h2 className="text-white font-semibold text-sm flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-sky-400" /> Trafic du site — 30 jours
+              <TrendingUp className="w-4 h-4 text-sky-400" /> Trafic du site, 30 jours
             </h2>
             {s.visites > 0 && (
               <div className="flex items-center gap-3 text-xs">

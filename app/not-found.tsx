@@ -5,7 +5,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
-  title: "Page introuvable — ClimExpert",
+  title: "Page introuvable, ClimExpert",
   description: "Cette page n'existe pas. Retrouvez nos services de climatisation en Île-de-France.",
 };
 

@@ -4,7 +4,7 @@ import { clients, notifications, admins } from "@/lib/db/schema";
 import { and, isNull, lte, gte, isNotNull } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 
-// Called daily by Vercel Cron — checks for warranties expiring in 30 days
+// Called daily by Vercel Cron, checks for warranties expiring in 30 days
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
       id:      createId(),
       adminId: admin.id,
       type:    "garantie_expiration",
-      titre:   `Garantie expire bientôt — ${c.name}`,
+      titre:   `Garantie expire bientôt, ${c.name}`,
       contenu: `Expire le ${expDate}. Proposez un contrat d'entretien.`,
       refType: "client",
       refId:   c.id,

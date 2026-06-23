@@ -15,10 +15,10 @@ export const metadata: Metadata = {
     "climatisation ile-de-france, climatisation par departement, installateur clim 75 92 93 94 91 78 77 95",
   alternates: { canonical: `${BASE}/departements` },
   openGraph: {
-    title: "Climatisation par département en Île-de-France — ClimExpert",
+    title: "Climatisation par département en Île-de-France, ClimExpert",
     description: "Nos zones d'intervention dans les 8 départements franciliens.",
     url: `${BASE}/departements`,
-    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "ClimExpert — Climatisation Île-de-France" }],
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "ClimExpert, Climatisation Île-de-France" }],
   },
 };
 

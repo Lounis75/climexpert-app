@@ -33,7 +33,7 @@ export default function CGVPage() {
                 <p>200 rue de la Croix Nivert, 75015 Paris</p>
                 <p>SIRET : 992 975 862 00010</p>
                 <p>TVA : FR77992975862</p>
-                <p>Email : contact@climexpert.fr — Tél. : 06 67 43 27 67</p>
+                <p>Email : contact@climexpert.fr, Tél. : 06 67 43 27 67</p>
               </div>
             </section>
 
@@ -136,7 +136,7 @@ export default function CGVPage() {
                 <a href="mailto:contact@climexpert.fr" className="text-sky-600 hover:underline">
                   contact@climexpert.fr
                 </a>{" "}
-                — 06 67 43 27 67
+               , 06 67 43 27 67
               </p>
             </section>
 

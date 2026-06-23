@@ -138,7 +138,7 @@ export async function PATCH(req: NextRequest) {
         const current = await getLeadById(id);
         if (current) {
           return NextResponse.json(
-            { error: "Ce prospect vient d'être modifié par quelqu'un d'autre. Vos changements n'ont pas été appliqués — la fiche a été rechargée.", conflict: true, lead: current },
+            { error: "Ce prospect vient d'être modifié par quelqu'un d'autre. Vos changements n'ont pas été appliqués, la fiche a été rechargée.", conflict: true, lead: current },
             { status: 409 },
           );
         }

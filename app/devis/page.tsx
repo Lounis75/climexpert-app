@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     "devis climatisation gratuit, devis installation clim ile-de-france, devis entretien climatisation paris, demande devis clim",
   alternates: { canonical: "https://climexpert.fr/devis" },
   openGraph: {
-    title: "Devis Climatisation Gratuit — ClimExpert Île-de-France",
+    title: "Devis Climatisation Gratuit, ClimExpert Île-de-France",
     description:
       "Obtenez votre devis gratuit en 2 minutes. Installation, entretien, dépannage par des techniciens RGE certifiés.",
     url: "https://climexpert.fr/devis",
@@ -76,7 +76,7 @@ const serviceSchema = {
     "@type": "Offer",
     price: "0",
     priceCurrency: "EUR",
-    description: "Devis gratuit et sans engagement — réponse sous 24h",
+    description: "Devis gratuit et sans engagement, réponse sous 24h",
   },
   url: "https://climexpert.fr/devis",
 };

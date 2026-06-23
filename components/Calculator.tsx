@@ -99,7 +99,7 @@ export default function Calculator() {
           <label className="block text-sm font-medium text-slate-700 mb-1">
             Pièces à climatiser
           </label>
-          <p className="text-xs text-slate-400 mb-3">Couloirs et dégagements exclus — uniquement les pièces à équiper.</p>
+          <p className="text-xs text-slate-400 mb-3">Couloirs et dégagements exclus, uniquement les pièces à équiper.</p>
           <div className="flex gap-2 flex-wrap mb-5">
             {[1, 2, 3, 4, 5, 6].map((n) => (
               <button

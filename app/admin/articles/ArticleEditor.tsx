@@ -361,7 +361,7 @@ export default function ArticleEditor({ initialArticle, isEditing }: Props) {
           <CharCount len={draft.intro.length} max={200} ideal={[110, 180]} />
         </Field>
 
-        <Field label="Auteur" hint="Améliore le référencement E-E-A-T — sélectionnez un profil ou saisissez un nom">
+        <Field label="Auteur" hint="Améliore le référencement E-E-A-T, sélectionnez un profil ou saisissez un nom">
           {authors.length > 0 ? (
             <div className="space-y-2">
               <div className="grid grid-cols-2 gap-2">
@@ -402,7 +402,7 @@ export default function ArticleEditor({ initialArticle, isEditing }: Props) {
                     )}
                     <div className="min-w-0">
                       <p className="text-xs font-semibold truncate text-white">{author.name}</p>
-                      <p className="text-[10px] text-slate-500 truncate">{author.role.split("—")[0].trim()}</p>
+                      <p className="text-[10px] text-slate-500 truncate">{author.role.split("-")[0].trim()}</p>
                     </div>
                   </button>
                 ))}
@@ -433,7 +433,7 @@ export default function ArticleEditor({ initialArticle, isEditing }: Props) {
         </Field>
       </Card>
 
-      {/* Image hero — drag & drop */}
+      {/* Image hero, drag & drop */}
       <Card title="Image principale">
         <input
           ref={fileInputRef}
@@ -703,8 +703,8 @@ function CharCount({ len, max, ideal }: { len: number; max: number; ideal: [numb
   const inIdeal = len >= ideal[0] && len <= ideal[1];
   const color = over ? "text-red-400" : inIdeal ? "text-emerald-400" : len === 0 ? "text-slate-500" : "text-amber-400";
   let note = "";
-  if (over) note = " — trop long, Google le tronquera";
-  else if (len > 0 && len < ideal[0]) note = " — un peu court";
+  if (over) note = ", trop long, Google le tronquera";
+  else if (len > 0 && len < ideal[0]) note = ", un peu court";
   return (
     <p className={`text-xs mt-1 ${color}`}>
       {len}/{max} caractères{note}

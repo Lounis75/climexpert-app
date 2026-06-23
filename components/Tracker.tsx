@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 
-/** Identifiant visiteur anonyme (localStorage) — pas de cookie, RGPD-friendly. */
+/** Identifiant visiteur anonyme (localStorage), pas de cookie, RGPD-friendly. */
 function getSessionId(): string {
   try {
     let id = localStorage.getItem("cx_sid");

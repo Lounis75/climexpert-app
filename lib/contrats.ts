@@ -15,7 +15,7 @@ export async function getContrats(): Promise<ContratWithClient[]> {
     .where(isNull(contratsEntretien.supprimeLe))
     .orderBy(desc(contratsEntretien.createdAt));
 
-  return rows.map((r) => ({ ...r.contrat, clientName: r.clientName ?? "—" }));
+  return rows.map((r) => ({ ...r.contrat, clientName: r.clientName ?? "-" }));
 }
 
 // Numéro de contrat auto-incrémenté sur l'année : ENT-2026-0001, 0002, …

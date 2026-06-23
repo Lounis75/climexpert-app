@@ -1,4 +1,4 @@
-// Guide de qualification des besoins (clim / PAC) — client-safe (pas d'import DB).
+// Guide de qualification des besoins (clim / PAC), client-safe (pas d'import DB).
 // Sert à générer le formulaire (panneau prospect) ET à formater un résumé lisible
 // (repris dans la fiche client à la conversion → utile au commercial et au technicien).
 
@@ -15,7 +15,7 @@ export type Qualification = {
   budget?: string; delai?: string; dispoVisite?: string; commentConnu?: string;
   // 📝
   note?: string;
-  qualifieLe?: string; // ISO — renseigné au 1er enregistrement
+  qualifieLe?: string; // ISO, renseigné au 1er enregistrement
 };
 
 export type QualifKey = keyof Qualification;
@@ -91,7 +91,7 @@ export function formatQualification(q: Qualification | null | undefined): string
       .map((c) => ({ c, v: (q as Qualification)[c.key] }))
       .filter((x) => typeof x.v === "string" && x.v!.trim() !== "")
       .map((x) => `${x.c.label} : ${x.v}`);
-    if (parts.length) lines.push(`${g.emoji} ${g.titre} — ${parts.join(" · ")}`);
+    if (parts.length) lines.push(`${g.emoji} ${g.titre}, ${parts.join(" · ")}`);
   }
   const note = q!.note?.trim();
   if (note) lines.push(`📝 Note : ${note}`);

@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 const PAGE_SIZE = 50;
 
 export default async function AdminClientsPage() {
-  // 1ʳᵉ page seulement — la pagination + recherche se font côté serveur ensuite.
+  // 1ʳᵉ page seulement, la pagination + recherche se font côté serveur ensuite.
   const [{ items, total }, stats] = await Promise.all([
     getClientsPaginated({ page: 1, limit: PAGE_SIZE }),
     getClientsStats(),
@@ -23,7 +23,7 @@ export default async function AdminClientsPage() {
           <div>
             <h1 className="text-2xl font-bold text-white mb-1">Clients</h1>
             <p className="text-slate-400 text-sm">
-              Carnet d&apos;adresses — clients ayant eu une intervention ou un devis.
+              Carnet d&apos;adresses, clients ayant eu une intervention ou un devis.
             </p>
           </div>
           <a

@@ -13,7 +13,7 @@ export default async function TechniciensPage() {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-white mb-1">Techniciens</h1>
-          <p className="text-slate-400 text-sm">Équipe d&apos;intervention — gestion des techniciens actifs.</p>
+          <p className="text-slate-400 text-sm">Équipe d&apos;intervention, gestion des techniciens actifs.</p>
         </div>
         <TechniciensManager initialTechniciens={techniciens} />
       </main>

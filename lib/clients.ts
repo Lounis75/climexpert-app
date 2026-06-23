@@ -135,7 +135,7 @@ export async function createClientFromLead(leadId: string): Promise<Client | nul
   // au besoin avec scripts/backfill-chantiers.ts.
   try {
     if (!(await getChantierByLead(lead.id))) {
-      const nom = `${PROJECT_LABEL[lead.project ?? ""] ?? "Chantier"} — ${client.name}`;
+      const nom = `${PROJECT_LABEL[lead.project ?? ""] ?? "Chantier"}, ${client.name}`;
       await createChantier({ clientId: client.id, leadId: lead.id, nom, montantCt: lead.montantDevisCt ?? null });
     }
   } catch (e) {

@@ -4,7 +4,7 @@ import { clients, interventions, devis, factures, savTickets, suivis } from "@/l
 import { eq } from "drizzle-orm";
 import { isAdminRequest } from "@/lib/admin-guard";
 
-// RGPD data portability — returns all personal data for a client as JSON
+// RGPD data portability, returns all personal data for a client as JSON
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!(await isAdminRequest())) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
   const { id } = await params;

@@ -136,7 +136,7 @@ export default function EntretienPage({ params }: { params: Promise<{ token: str
           </form>
 
           <p className="text-[10px] text-slate-400 text-center mt-3">
-            Sans engagement — résiliable à tout moment. Notre équipe vous contacte pour valider les modalités.
+            Sans engagement, résiliable à tout moment. Notre équipe vous contacte pour valider les modalités.
           </p>
         </div>
 

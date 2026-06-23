@@ -10,7 +10,7 @@ import { getRendezVous } from "@/lib/leads";
 export const dynamic = "force-dynamic";
 
 function formatDate(d: Date | string | null) {
-  if (!d) return "—";
+  if (!d) return "-";
   return new Date(d).toLocaleDateString("fr-FR", {
     weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
   });
@@ -135,7 +135,7 @@ export default async function AdminInterventionsPage() {
           </div>
         </div>
 
-        {/* Mobile (< md) : agenda « façon Apple » — interventions + rendez-vous */}
+        {/* Mobile (< md) : agenda « façon Apple », interventions + rendez-vous */}
         <div className="md:hidden">
           <PlanningMobile
             events={events}

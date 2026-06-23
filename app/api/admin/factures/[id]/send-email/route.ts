@@ -46,8 +46,8 @@ export async function POST(
 
     const resend = new Resend(process.env.RESEND_API_KEY);
     const subject = f.status === "payée"
-      ? `Votre reçu ${f.number} — ClimExpert`
-      : `Votre facture ${f.number} — ClimExpert`;
+      ? `Votre reçu ${f.number}, ClimExpert`
+      : `Votre facture ${f.number}, ClimExpert`;
 
     await resend.emails.send({
       from: "ClimExpert <noreply@climexpert.fr>",

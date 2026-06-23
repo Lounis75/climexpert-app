@@ -277,7 +277,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
   // ⭐ Marquer / démarquer un prospect comme « intéressant » (optimiste + verrou version).
   async function toggleFavori(lead: Lead) {
-    // On lit la version dans `leads` (source de vérité) juste avant l'envoi — pas de
+    // On lit la version dans `leads` (source de vérité) juste avant l'envoi, pas de
     // fallback sur une snapshot potentiellement périmée (sinon 409 systématique).
     const current = leads.find((l) => l.id === lead.id);
     if (!current) return;
@@ -479,7 +479,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
   function onDragStart(e: React.DragEvent, id: string) {
     dragId.current = id;
-    // "Text" (capital T) is required for Safari — text/plain is not supported
+    // "Text" (capital T) is required for Safari, text/plain is not supported
     e.dataTransfer.setData("Text", id);
     e.dataTransfer.effectAllowed = "move";
   }
@@ -578,7 +578,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
         {/* Ligne 3 : dernière activité (ou source) · action rouge / relance planifiée / sous-statut */}
         <div className="flex items-center justify-between gap-2 mt-1.5 flex-wrap">
           {enSommeil ? (
-            <span className="flex items-center gap-1 text-amber-300/80 text-[11px]" title={`En sommeil — ${daysSince}j sans activité`}>
+            <span className="flex items-center gap-1 text-amber-300/80 text-[11px]" title={`En sommeil, ${daysSince}j sans activité`}>
               💤 {lastAct ? `il y a ${timeAgoShort(lastAct)}` : `${daysSince}j sans activité`}
             </span>
           ) : lastAct ? (
@@ -617,7 +617,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
   return (
     <div>
-      {/* Stats — masquées sur mobile (superflu) ; sur mobile, voir les chips par étape ci-dessous */}
+      {/* Stats, masquées sur mobile (superflu) ; sur mobile, voir les chips par étape ci-dessous */}
       <div className="hidden sm:grid sm:grid-cols-7 gap-2 mb-6">
         {[
           { label: "Total",         value: Object.values(colCounts).reduce((a, b) => a + b, 0),        dot: null },
@@ -701,7 +701,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
           Ajouter un lead
         </button>
 
-        {/* View toggle (desktop seulement — le mobile est toujours en liste verticale) */}
+        {/* View toggle (desktop seulement, le mobile est toujours en liste verticale) */}
         <div className="hidden sm:flex items-center gap-1 bg-slate-800/60 border border-white/10 rounded-xl p-1">
           <button
             onClick={() => setView("kanban")}
@@ -724,7 +724,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
         </div>
       </div>
 
-      {/* Raccourcis par étape (mobile) — remplacent le scroll horizontal du Kanban.
+      {/* Raccourcis par étape (mobile), remplacent le scroll horizontal du Kanban.
           « Tous » = aperçu global ; chaque étape = vue filtrée verticale. */}
       {leads.length > 0 && (
         <div className="sm:hidden -mx-4 px-4 mb-5 flex gap-2 overflow-x-auto pb-1">
@@ -1114,7 +1114,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                         <label className="text-slate-400 text-[11px] block mb-1">Projet</label>
                         <select value={editForm.project} onChange={(e) => setEditForm(f => ({ ...f, project: e.target.value }))}
                           className="w-full bg-slate-900/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-sm appearance-none focus:outline-none focus:border-sky-500/50">
-                          <option value="">— Aucun —</option>
+                          <option value="">- Aucun -</option>
                           {Object.entries(PROJECT_LABELS).map(([val, lbl]) => (
                             <option key={val} value={val} className="bg-slate-800">{lbl}</option>
                           ))}
@@ -1256,7 +1256,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                   </select>
                 </div>
 
-                {/* Qualification des besoins — guide d'appel (mis en avant au Contact établi) */}
+                {/* Qualification des besoins, guide d'appel (mis en avant au Contact établi) */}
                 <LeadQualification
                   key={lead.id}
                   value={lead.qualification ?? null}
@@ -1264,7 +1264,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                   onSave={async (q) => { await patchLeadField({ qualification: q }); }}
                 />
 
-                {/* Prochaine étape — quand le contact est établi, avant l'envoi du devis */}
+                {/* Prochaine étape, quand le contact est établi, avant l'envoi du devis */}
                 {lead.status === "contacté" && (
                   <div>
                     <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide flex items-center gap-1.5">
@@ -1281,7 +1281,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                       }}
                       className="w-full text-sm bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2.5 text-slate-200 appearance-none focus:outline-none focus:border-sky-500/50 cursor-pointer"
                     >
-                      <option value="">— Non précisé</option>
+                      <option value="">- Non précisé</option>
                       {Object.entries(PROCHAINE_ETAPE).map(([val, cfg]) => (
                         <option key={val} value={val} className="bg-slate-800 text-white">
                           {cfg.emoji} {cfg.label}
@@ -1310,7 +1310,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                   </div>
                 )}
 
-                {/* Prochaine action (relance) — anti-oubli : alerte rouge si la date est dépassée */}
+                {/* Prochaine action (relance), anti-oubli : alerte rouge si la date est dépassée */}
                 {lead.status !== "gagné" && lead.status !== "perdu" && (
                   <div>
                     <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide flex items-center gap-1.5">
@@ -1330,7 +1330,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                   </div>
                 )}
 
-                {/* Montant du devis — obligatoire dès "devis envoyé" / "gagné" */}
+                {/* Montant du devis, obligatoire dès "devis envoyé" / "gagné" */}
                 {(lead.status === "devis_envoyé" || lead.status === "gagné") && (
                   <div>
                     <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide flex items-center gap-1.5">
@@ -1372,7 +1372,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                       }}
                       className="w-full bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2 text-white text-sm [color-scheme:dark] focus:outline-none focus:border-sky-500/50"
                     />
-                    <p className="text-slate-500 text-[10px] mt-1">Souhait du client — pré-remplira l&apos;intervention à la conversion.</p>
+                    <p className="text-slate-500 text-[10px] mt-1">Souhait du client, pré-remplira l&apos;intervention à la conversion.</p>
                   </div>
                 )}
 
@@ -1390,7 +1390,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                       }}
                       className="w-full text-sm bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2.5 text-slate-200 appearance-none focus:outline-none focus:border-violet-500/50 cursor-pointer"
                     >
-                      <option value="">— Aucun —</option>
+                      <option value="">- Aucun -</option>
                       {commerciaux.map(c => (
                         <option key={c.id} value={c.id}>
                           {c.prenom ? `${c.prenom} ${c.name}` : c.name}
@@ -1610,7 +1610,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
               <div className="p-6 space-y-4">
                 <p className="text-slate-400 text-xs">
-                  Ces leads partagent le même numéro ou email. Tu peux fusionner un doublon dans le lead principal — les données manquantes seront copiées, les notes combinées, et le doublon supprimé.
+                  Ces leads partagent le même numéro ou email. Tu peux fusionner un doublon dans le lead principal, les données manquantes seront copiées, les notes combinées, et le doublon supprimé.
                 </p>
 
                 {/* Master */}

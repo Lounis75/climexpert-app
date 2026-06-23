@@ -61,7 +61,7 @@ export default function LeadQualification({
       {open && (
         <div className="px-4 pb-4 space-y-4 border-t border-white/8 pt-4">
           <p className="text-xs text-slate-400 bg-sky-500/[0.06] border border-sky-500/15 rounded-lg px-3 py-2">
-            Déroule le guide pendant l&apos;appel pour ne rien oublier. Tout est optionnel — remplis ce que tu obtiens, ça pré-remplira la fiche pour le commercial et le technicien.
+            Déroule le guide pendant l&apos;appel pour ne rien oublier. Tout est optionnel, remplis ce que tu obtiens, ça pré-remplira la fiche pour le commercial et le technicien.
           </p>
           {QUALIF_GROUPS.map((g) => (
             <div key={g.titre}>
@@ -72,7 +72,7 @@ export default function LeadQualification({
                     <label className="block text-[11px] text-slate-400 mb-1">{c.label}</label>
                     {c.type === "select" ? (
                       <select value={form[c.key] ?? ""} onChange={(e) => set(c.key, e.target.value)} className={inputCls}>
-                        <option value="">— —</option>
+                        <option value="">SÃ©lectionner</option>
                         {c.options!.map((o) => <option key={o} value={o}>{o}</option>)}
                       </select>
                     ) : c.type === "textarea" ? (

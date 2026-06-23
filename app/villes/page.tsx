@@ -16,10 +16,10 @@ export const metadata: Metadata = {
     "climatisation ville ile-de-france, installateur climatisation paris banlieue, clim boulogne neuilly versailles",
   alternates: { canonical: `${BASE}/villes` },
   openGraph: {
-    title: "Climatisation par ville en Île-de-France — ClimExpert",
+    title: "Climatisation par ville en Île-de-France, ClimExpert",
     description: "Nos villes couvertes en Île-de-France.",
     url: `${BASE}/villes`,
-    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "ClimExpert — Climatisation Île-de-France" }],
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "ClimExpert, Climatisation Île-de-France" }],
   },
 };
 

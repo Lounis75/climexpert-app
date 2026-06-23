@@ -212,7 +212,7 @@ export default function SalariesManager({ initial }: { initial: Row[] }) {
                 <input type="tel" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} className={inputCls} />
               </div>
               <div>
-                <p className="text-slate-400 text-xs mb-2">Rôle(s) — un admin peut cumuler, sinon un seul</p>
+                <p className="text-slate-400 text-xs mb-2">Rôle(s), un admin peut cumuler, sinon un seul</p>
                 <div className="flex flex-wrap gap-2">
                   {ALL_ROLES.map((role) => {
                     const active = form.roles.includes(role);

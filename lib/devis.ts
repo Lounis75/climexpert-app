@@ -42,7 +42,7 @@ export async function getDevis(): Promise<(Devis & { clientName: string })[]> {
     .leftJoin(leads, eq(devis.leadId, leads.id))
     .orderBy(desc(devis.createdAt));
 
-  return rows.map((r) => ({ ...r.devis, clientName: r.clientName ?? r.leadName ?? "—" }));
+  return rows.map((r) => ({ ...r.devis, clientName: r.clientName ?? r.leadName ?? "-" }));
 }
 
 export async function getDevisById(id: string): Promise<DevisWithLignes | null> {
@@ -61,7 +61,7 @@ export async function getDevisById(id: string): Promise<DevisWithLignes | null> 
     .where(eq(lignesDevis.devisId, id))
     .orderBy(lignesDevis.ordre);
 
-  return { ...row.devis, clientName: row.clientName ?? row.leadName ?? "—", clientEmail: row.clientEmail ?? row.leadEmail ?? null, clientPhone: row.clientPhone ?? row.leadPhone ?? null, lignes };
+  return { ...row.devis, clientName: row.clientName ?? row.leadName ?? "-", clientEmail: row.clientEmail ?? row.leadEmail ?? null, clientPhone: row.clientPhone ?? row.leadPhone ?? null, lignes };
 }
 
 export async function createDevis(
@@ -130,7 +130,7 @@ export async function getDevisByToken(token: string): Promise<DevisWithLignes | 
     .where(eq(lignesDevis.devisId, row.devis.id))
     .orderBy(lignesDevis.ordre);
 
-  return { ...row.devis, clientName: row.clientName ?? row.leadName ?? "—", clientEmail: row.clientEmail ?? row.leadEmail ?? null, lignes };
+  return { ...row.devis, clientName: row.clientName ?? row.leadName ?? "-", clientEmail: row.clientEmail ?? row.leadEmail ?? null, lignes };
 }
 
 export async function updateDevisStatus(

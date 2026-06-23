@@ -25,7 +25,7 @@ export async function finalizeCerfa(opts: {
     clientId: opts.clientId,
     interventionId: opts.interventionId,
     type: "cerfa",
-    label: `Attestation d'entretien (CERFA) — ${dateLabel}`,
+    label: `Attestation d'entretien (CERFA), ${dateLabel}`,
     url,
   });
 
@@ -36,7 +36,7 @@ export async function finalizeCerfa(opts: {
       await resend.emails.send({
         from: "ClimExpert <noreply@climexpert.fr>",
         to: process.env.EMAIL_TEST_OVERRIDE || opts.clientEmail,
-        subject: "Votre attestation d'entretien (CERFA) — ClimExpert",
+        subject: "Votre attestation d'entretien (CERFA), ClimExpert",
         html: `<p>Bonjour ${opts.clientName},</p>
 <p>Suite à notre passage, veuillez trouver ci-joint votre <strong>fiche d'intervention (CERFA 15497*04)</strong>.</p>
 <p>Conservez ce document : il atteste de l'entretien réglementaire de votre installation de climatisation / pompe à chaleur.</p>

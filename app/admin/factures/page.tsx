@@ -103,7 +103,7 @@ export default async function AdminFacturesPage() {
                     </div>
                     <span className="text-slate-300 text-sm truncate">{f.clientName}</span>
                     <span className="text-slate-500 text-xs">
-                      {f.devisNumber ?? <span className="italic">—</span>}
+                      {f.devisNumber ?? <span className="italic">-</span>}
                     </span>
                     <span className="text-white text-sm tabular-nums font-medium">
                       {centimesToEuros(f.totalTtcCt)}
@@ -112,7 +112,7 @@ export default async function AdminFacturesPage() {
                       <Calendar className="w-3 h-3" />
                       {f.dueDate
                         ? new Date(f.dueDate).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })
-                        : "—"}
+                        : "-"}
                     </span>
                     <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border w-fit ${status.color}`}>
                       {status.label}

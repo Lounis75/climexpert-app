@@ -1,4 +1,4 @@
-// Constantes d'affichage des interventions — SANS dépendance serveur (pas de db).
+// Constantes d'affichage des interventions, SANS dépendance serveur (pas de db).
 // Importables depuis des composants client (ex. AgendaMobile) sans embarquer la
 // connexion Postgres dans le bundle navigateur.
 

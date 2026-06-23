@@ -84,7 +84,7 @@ export default function AdminSetup() {
 
             <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4">
               <p className="text-amber-400 text-xs font-medium">
-                ⚠️ Note ce secret maintenant — il ne sera plus affiché.
+                ⚠️ Note ce secret maintenant, il ne sera plus affiché.
                 Après avoir scanné le QR code, rends-toi sur{" "}
                 <a href="/admin" className="underline">/admin</a> pour te connecter.
               </p>

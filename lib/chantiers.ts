@@ -33,7 +33,7 @@ export async function getChantiers(): Promise<ChantierWithClient[]> {
     .from(chantiers)
     .leftJoin(clients, eq(chantiers.clientId, clients.id))
     .orderBy(desc(chantiers.createdAt));
-  return rows.map((r) => ({ ...r.chantier, clientName: r.clientName ?? "—" }));
+  return rows.map((r) => ({ ...r.chantier, clientName: r.clientName ?? "-" }));
 }
 
 export async function updateChantier(

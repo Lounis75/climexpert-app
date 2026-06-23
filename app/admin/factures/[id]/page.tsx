@@ -76,7 +76,7 @@ export default async function FactureDetailPage({
             <div>
               <p className="text-xs text-slate-500">Date d&apos;échéance</p>
               <p className={`text-sm font-medium ${overdue ? "text-red-400" : "text-white"}`}>
-                {f.dueDate ? new Date(f.dueDate).toLocaleDateString("fr-FR") : "—"}
+                {f.dueDate ? new Date(f.dueDate).toLocaleDateString("fr-FR") : "-"}
               </p>
             </div>
           </div>

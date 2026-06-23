@@ -8,7 +8,7 @@ import FAQAccordion from "@/components/FAQAccordion";
 import PageCTA from "@/components/PageCTA";
 
 export const metadata: Metadata = {
-  title: "Nettoyage & Entretien Climatisation Île-de-France — 200 € TTC",
+  title: "Nettoyage & Entretien Climatisation Île-de-France, 200 € TTC",
   description:
     "Nettoyage et entretien climatisation en Île-de-France à partir de 200 € TTC/unité. Contrôle frigorigène F-Gaz, rapport d'intervention. Techniciens RGE certifiés. Devis gratuit.",
   keywords:
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     canonical: "https://climexpert.fr/entretien",
   },
   openGraph: {
-    title: "Entretien & Maintenance Climatisation — ClimExpert",
+    title: "Entretien & Maintenance Climatisation, ClimExpert",
     description:
       "Contrat d'entretien annuel à partir de 200 € TTC (Paris intramuros) +60 € TTC/unité supplémentaire. Nettoyage, contrôle frigorigène, rapport complet.",
     url: "https://climexpert.fr/entretien",
@@ -134,7 +134,7 @@ export default function EntretienPage() {
       <Header />
       <main>
         <PageHero
-          badge="Maintenance certifiée RGE — Île-de-France"
+          badge="Maintenance certifiée RGE, Île-de-France"
           title="Entretien & maintenance"
           titleAccent="de climatisation"
           subtitle="À partir de 200 € TTC pour 1 unité à Paris intramuros, +60 € TTC par unité supplémentaire, tout inclus. Nettoyage complet, contrôle frigorigène et rapport d'intervention détaillé par des techniciens certifiés."

@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
   footer: { position: "absolute", bottom: 32, left: 48, right: 48, borderTop: "1 solid #e2e8f0", paddingTop: 8, flexDirection: "row", justifyContent: "space-between" },
   footerText: { fontSize: 7, color: "#94a3b8" },
 
-  // Page 2 — Conditions générales
+  // Page 2, Conditions générales
   cgPage: { padding: 48, fontSize: 9, fontFamily: "Helvetica", color: "#1e293b", backgroundColor: "#ffffff" },
   cgHeader: { marginBottom: 28, borderBottom: "2 solid #0284c7", paddingBottom: 12 },
   cgPageTitle: { fontSize: 16, fontFamily: "Helvetica-Bold", color: "#0f172a", marginBottom: 4 },
@@ -133,7 +133,7 @@ export default function ContratMaintenancePDF({ contrat, client }: ContratPDFPro
 
   return (
     <Document>
-      {/* ─── PAGE 1 — CONTRAT ─── */}
+      {/* ─── PAGE 1, CONTRAT ─── */}
       <Page size="A4" style={styles.page}>
 
         {/* Header */}
@@ -242,7 +242,7 @@ export default function ContratMaintenancePDF({ contrat, client }: ContratPDFPro
             </View>
           </View>
           <View style={styles.signatureBox}>
-            <Text style={styles.signatureLabel}>Le client — {client.name}</Text>
+            <Text style={styles.signatureLabel}>Le client, {client.name}</Text>
             <View style={styles.signatureDash}>
               <Text style={styles.signatureDashHint}>Signature précédée de la mention{"\n"}« Lu et approuvé »</Text>
             </View>
@@ -258,7 +258,7 @@ export default function ContratMaintenancePDF({ contrat, client }: ContratPDFPro
 
       </Page>
 
-      {/* ─── PAGE 2 — CONDITIONS GÉNÉRALES ─── */}
+      {/* ─── PAGE 2, CONDITIONS GÉNÉRALES ─── */}
       <Page size="A4" style={styles.cgPage}>
 
         <View style={styles.cgHeader}>
@@ -268,7 +268,7 @@ export default function ContratMaintenancePDF({ contrat, client }: ContratPDFPro
 
         {/* Article 1 */}
         <View style={styles.cgArticle}>
-          <Text style={styles.cgArticleTitle}>Article 1 — Objet du contrat</Text>
+          <Text style={styles.cgArticleTitle}>Article 1, Objet du contrat</Text>
           <Text style={styles.cgArticleText}>
             Le présent contrat a pour objet la réalisation de prestations d&apos;entretien préventif sur les équipements de climatisation désignés à la page 1, installés à l&apos;adresse du client. Ces prestations comprennent toutes les opérations nécessaires au maintien en bon état de fonctionnement des unités couvertes, conformément aux préconisations des fabricants et aux règles de l&apos;art en vigueur dans le secteur du génie climatique. Le contrat ne constitue pas une assurance et ne saurait couvrir les pannes résultant d&apos;une cause extérieure aux équipements (surtension, foudre, intempéries, dégâts des eaux, etc.).
           </Text>
@@ -276,7 +276,7 @@ export default function ContratMaintenancePDF({ contrat, client }: ContratPDFPro
 
         {/* Article 2 */}
         <View style={styles.cgArticle}>
-          <Text style={styles.cgArticleTitle}>Article 2 — Prestations incluses</Text>
+          <Text style={styles.cgArticleTitle}>Article 2, Prestations incluses</Text>
           <Text style={styles.cgArticleText}>
             Dans le cadre du présent contrat, CLIM EXPERT SAS s&apos;engage à effectuer, au minimum une fois par an par unité couverte, les opérations suivantes : nettoyage complet des filtres à air, nettoyage de l&apos;évaporateur et du condenseur par voie chimique ou mécanique, vérification du circuit frigorigène (contrôle des pressions, recherche de fuites), contrôle des organes électriques et mise en sécurité (isolation, contacteurs, thermostats), vérification du bon fonctionnement de la pompe de relevage des condensats, ainsi que la remise d&apos;un rapport d&apos;intervention signé par le technicien. Ces interventions sont réalisées par un technicien qualifié, titulaire de l&apos;attestation d&apos;aptitude à la manipulation des fluides frigorigènes conformément au règlement (UE) n° 517/2014.
           </Text>
@@ -284,7 +284,7 @@ export default function ContratMaintenancePDF({ contrat, client }: ContratPDFPro
 
         {/* Article 3 */}
         <View style={styles.cgArticle}>
-          <Text style={styles.cgArticleTitle}>Article 3 — Prestations exclues</Text>
+          <Text style={styles.cgArticleTitle}>Article 3, Prestations exclues</Text>
           <Text style={styles.cgArticleText}>
             Sont expressément exclus du présent contrat : le remplacement de pièces détachées (compresseurs, cartes électroniques, vannes, résistances, motoréducteurs, etc.), le rechargement en fluide frigorigène, les travaux de réparation résultant d&apos;une détérioration accidentelle, d&apos;un acte de malveillance ou d&apos;un défaut d&apos;installation initial, les modifications ou extensions de l&apos;installation existante, ainsi que les déplacements d&apos;urgence hors des horaires d&apos;intervention habituels. Toute prestation non comprise dans le présent contrat fera l&apos;objet d&apos;un devis séparé préalable, accepté par le client avant exécution.
           </Text>
@@ -292,7 +292,7 @@ export default function ContratMaintenancePDF({ contrat, client }: ContratPDFPro
 
         {/* Article 4 */}
         <View style={styles.cgArticle}>
-          <Text style={styles.cgArticleTitle}>Article 4 — Durée et renouvellement</Text>
+          <Text style={styles.cgArticleTitle}>Article 4, Durée et renouvellement</Text>
           <Text style={styles.cgArticleText}>
             Le présent contrat est conclu pour une durée d&apos;un an renouvelable par tacite reconduction, sauf dénonciation par l&apos;une ou l&apos;autre des parties par lettre recommandée avec accusé de réception, au moins un (1) mois avant la date anniversaire. En cas de contrat pluriannuel, chaque année est facturée séparément selon les conditions tarifaires en vigueur à la date d&apos;émission de la facture annuelle. CLIM EXPERT SAS se réserve le droit d&apos;ajuster ses tarifs à chaque renouvellement, avec notification préalable au client au moins deux (2) mois avant l&apos;échéance.
           </Text>
@@ -300,7 +300,7 @@ export default function ContratMaintenancePDF({ contrat, client }: ContratPDFPro
 
         {/* Article 5 */}
         <View style={styles.cgArticle}>
-          <Text style={styles.cgArticleTitle}>Article 5 — Tarifs et paiement</Text>
+          <Text style={styles.cgArticleTitle}>Article 5, Tarifs et paiement</Text>
           <Text style={styles.cgArticleText}>
             Les prix indiqués sont exprimés en euros toutes taxes comprises (TTC). La facturation est effectuée annuellement, à la date anniversaire du contrat. Le règlement est exigible dans un délai de trente (30) jours à compter de la date d&apos;émission de la facture. En cas de retard de paiement, des pénalités seront appliquées au taux légal en vigueur, majoré de trois (3) points, sans qu&apos;une mise en demeure préalable soit nécessaire. Une indemnité forfaitaire de 40 € pour frais de recouvrement sera également due, conformément à l&apos;article L.441-10 du Code de commerce.
           </Text>
@@ -308,7 +308,7 @@ export default function ContratMaintenancePDF({ contrat, client }: ContratPDFPro
 
         {/* Article 6 */}
         <View style={styles.cgArticle}>
-          <Text style={styles.cgArticleTitle}>Article 6 — Résiliation</Text>
+          <Text style={styles.cgArticleTitle}>Article 6, Résiliation</Text>
           <Text style={styles.cgArticleText}>
             En dehors du cas de non-renouvellement visé à l&apos;article 4, le contrat peut être résilié avant son terme dans les cas suivants : manquement grave de l&apos;une des parties à ses obligations contractuelles, non corrigé dans un délai de quinze (15) jours suivant mise en demeure par lettre recommandée ; cessation définitive d&apos;utilisation des équipements couverts, sur justificatif. En cas de résiliation à l&apos;initiative du client hors motif légitime, les sommes versées au titre de la période en cours restent acquises à CLIM EXPERT SAS, et les échéances restant à courir seront dues à hauteur de 50 % à titre d&apos;indemnité forfaitaire. Toute résiliation doit être notifiée par lettre recommandée avec accusé de réception adressée au siège social de CLIM EXPERT SAS.
           </Text>
@@ -317,7 +317,7 @@ export default function ContratMaintenancePDF({ contrat, client }: ContratPDFPro
         {/* CG Footer */}
         <View style={styles.cgFooter} fixed>
           <Text style={styles.cgFooterText}>{COMPANY.name} · SIRET {COMPANY.siret}</Text>
-          <Text style={styles.cgFooterText}>{ref} — Conditions générales</Text>
+          <Text style={styles.cgFooterText}>{ref}, Conditions générales</Text>
           <Text style={styles.cgFooterText} render={({ pageNumber, totalPages }) => `Page ${pageNumber} / ${totalPages}`} />
         </View>
 

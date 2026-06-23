@@ -26,7 +26,7 @@ export default function CreneauEditor({ id, scheduledAt, dureeMin }: { id: strin
   const startDate = scheduledAt ? new Date(scheduledAt) : null;
   const displayDate = startDate
     ? startDate.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
-    : "—";
+    : "-";
   const range = startDate
     ? `${hm(startDate)}${dureeMin ? ` – ${hm(new Date(startDate.getTime() + dureeMin * 60000))} (${dureeMin < 60 ? `${dureeMin} min` : `${dureeMin / 60} h`})` : ""}`
     : "";

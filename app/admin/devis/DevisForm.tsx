@@ -113,7 +113,7 @@ export default function DevisForm({ clients, prospects }: { clients: Client[]; p
             <option value="">{mode === "prospect" ? "Sélectionner un prospect" : "Sélectionner un client"}</option>
             {(mode === "prospect" ? prospects : clients).map((c) => (
               <option key={c.id} value={c.id}>
-                {c.name} {("location" in c ? c.location : ("city" in c ? c.city : null)) ? `— ${("location" in c ? c.location : (c as Client).city)}` : ""}
+                {c.name} {("location" in c ? c.location : ("city" in c ? c.city : null)) ? `- ${("location" in c ? c.location : (c as Client).city)}` : ""}
               </option>
             ))}
           </select>
@@ -182,7 +182,7 @@ export default function DevisForm({ clients, prospects }: { clients: Client[]; p
             >
               <Upload className="w-5 h-5 text-slate-400" />
               <p className="text-slate-400 text-sm">{uploading ? "Envoi…" : "Glissez-déposez le PDF ici, ou cliquez"}</p>
-              <p className="text-slate-600 text-[11px]">Facultatif — vous pourrez l&apos;ajouter plus tard.</p>
+              <p className="text-slate-600 text-[11px]">Facultatif, vous pourrez l&apos;ajouter plus tard.</p>
               <input ref={fileRef} type="file" accept="application/pdf" className="hidden"
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadPdf(f); }} />
             </div>

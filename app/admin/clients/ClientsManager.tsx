@@ -179,7 +179,7 @@ export default function ClientsManager({
               <div>
                 <label className="block text-xs text-slate-400 mb-1.5">Civilité</label>
                 <select name="civilite" value={form.civilite} onChange={handleChange} className={inputCls}>
-                  <option value="">—</option>
+                  <option value="">-</option>
                   <option value="M.">M.</option>
                   <option value="Madame">Madame</option>
                 </select>
@@ -206,7 +206,7 @@ export default function ClientsManager({
               <input name="address" value={form.address} onChange={handleChange} placeholder="12 rue de la Paix, 75001 Paris" className={inputCls} />
             </div>
 
-            {/* Champs professionnels (pour le contrat) — pros et donneurs d'ordre */}
+            {/* Champs professionnels (pour le contrat), pros et donneurs d'ordre */}
             {form.typeClient !== "particulier" && (
               <>
                 <div>

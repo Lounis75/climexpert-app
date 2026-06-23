@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
     await resend.emails.send({
       from: "Contact ClimExpert <noreply@climexpert.fr>",
       to: ["contact@climexpert.fr"],
-      subject: `📩 Nouveau contact — ${body.nom} — ${typeLabels[body.type] ?? body.type}`,
+      subject: `📩 Nouveau contact, ${body.nom}, ${typeLabels[body.type] ?? body.type}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8fafc; padding: 24px; border-radius: 12px;">
           <div style="background: #0B1120; padding: 24px; border-radius: 8px; margin-bottom: 24px;">
@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
 
     await createNotification({
       type: "nouveau_lead",
-      titre: `Nouveau lead — ${body.nom}`,
+      titre: `Nouveau lead, ${body.nom}`,
       contenu: `${body.telephone}${body.ville ? ` · ${body.ville}` : ""}`,
       refType: "lead",
       refId: lead.id,

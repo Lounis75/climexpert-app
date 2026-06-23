@@ -39,7 +39,7 @@ export default function LeadsAnalytics({ stats, period }: { stats: LeadsPageStat
       {/* ─── Séparateur de section ───────────────────────────────────────────── */}
       <div className="flex items-center gap-3 pt-2">
         <div className="flex-1 h-px bg-white/8" />
-        <span className="text-xs text-slate-600 font-medium uppercase tracking-widest">CRM — Prospects &amp; pipeline</span>
+        <span className="text-xs text-slate-600 font-medium uppercase tracking-widest">CRM, Prospects &amp; pipeline</span>
         <div className="flex-1 h-px bg-white/8" />
       </div>
 
@@ -127,7 +127,7 @@ export default function LeadsAnalytics({ stats, period }: { stats: LeadsPageStat
 
       {/* ─── Tendance mensuelle ─────────────────────────────────────────────── */}
       <div className="bg-slate-800/40 border border-white/8 rounded-2xl p-5">
-        <h2 className="text-white font-semibold text-sm mb-5">Leads par mois — 8 derniers mois</h2>
+        <h2 className="text-white font-semibold text-sm mb-5">Leads par mois, 8 derniers mois</h2>
         <div className="flex items-end gap-2" style={{ height: "100px" }}>
           {stats.parMois.map(({ mois, total: t, alex: a }) => {
             const pct = Math.round((t / maxMois) * 100);
@@ -161,11 +161,11 @@ export default function LeadsAnalytics({ stats, period }: { stats: LeadsPageStat
         </div>
       </div>
 
-      {/* ─── Alex — Chatbot IA ──────────────────────────────────────────────── */}
+      {/* ─── Alex, Chatbot IA ──────────────────────────────────────────────── */}
       <div className="bg-slate-800/40 border border-white/8 rounded-2xl overflow-hidden">
         <div className="px-5 py-4 border-b border-white/8 flex items-center justify-between gap-3 flex-wrap">
           <h2 className="text-white font-semibold text-sm flex items-center gap-2">
-            <Bot className="w-4 h-4 text-violet-400" /> Alex — Chatbot IA
+            <Bot className="w-4 h-4 text-violet-400" /> Alex, Chatbot IA
           </h2>
           <Suspense fallback={<span className="text-[10px] text-slate-500">{PERIOD_LABELS[period]}</span>}>
             <AlexPeriodSelector current={period} />
@@ -237,7 +237,7 @@ export default function LeadsAnalytics({ stats, period }: { stats: LeadsPageStat
                 <div className="text-right">
                   <p className="text-slate-400 text-xs mb-1">Tendance</p>
                   {stats.alex.conversionSemainePrecedente === 0 ? (
-                    <span className="text-slate-500 text-xs">—</span>
+                    <span className="text-slate-500 text-xs">-</span>
                   ) : stats.alex.conversionCetteSemaine >= stats.alex.conversionSemainePrecedente ? (
                     <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
                       <TrendingUp className="w-3 h-3" />

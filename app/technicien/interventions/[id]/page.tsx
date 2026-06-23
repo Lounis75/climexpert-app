@@ -19,7 +19,7 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 function formatDateTime(d: Date | string | null) {
-  if (!d) return "—";
+  if (!d) return "-";
   return new Date(d).toLocaleString("fr-FR", {
     weekday: "long", day: "numeric", month: "long",
     hour: "2-digit", minute: "2-digit", timeZone: "Europe/Paris",
@@ -98,7 +98,7 @@ export default async function InterventionDetailPage({ params }: { params: Promi
       {/* Client */}
       <div className="bg-white border border-slate-100 rounded-2xl p-5">
         <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">Client</p>
-        <p className="font-semibold text-slate-900 mb-1">{row.clientName ?? "—"}</p>
+        <p className="font-semibold text-slate-900 mb-1">{row.clientName ?? "-"}</p>
         {row.clientPhone && (
           <a href={`tel:${row.clientPhone}`} className="flex items-center gap-2 text-sky-500 text-sm font-medium">
             <Phone className="w-4 h-4" /> {row.clientPhone}
@@ -118,7 +118,7 @@ export default async function InterventionDetailPage({ params }: { params: Promi
           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Équipement</p>
           <div className="flex items-center gap-2">
             <Wrench className="w-4 h-4 text-slate-400" />
-            <p className="text-sm text-slate-700">{[row.equipement, row.marqueModele].filter(Boolean).join(" — ")}</p>
+            <p className="text-sm text-slate-700">{[row.equipement, row.marqueModele].filter(Boolean).join(", ")}</p>
           </div>
         </div>
       )}

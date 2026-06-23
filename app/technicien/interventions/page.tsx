@@ -17,7 +17,7 @@ const STATUS_COLORS: Record<string, string> = {
 type Filter = "upcoming" | "today" | "past";
 
 function formatDate(d: string | null) {
-  if (!d) return "—";
+  if (!d) return "-";
   return new Date(d).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short", timeZone: "Europe/Paris" });
 }
 function formatTime(d: string | null) {
@@ -84,7 +84,7 @@ export default function InterventionsPage() {
                 <p className="text-sm font-bold text-slate-900">{formatTime(i.scheduledAt)}</p>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-slate-900 text-sm truncate">{i.clientName ?? "—"}</p>
+                <p className="font-semibold text-slate-900 text-sm truncate">{i.clientName ?? "-"}</p>
                 <p className="text-slate-400 text-xs truncate">{TYPE_LABELS[i.type] ?? i.type}</p>
               </div>
               <span className={`flex-shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${STATUS_COLORS[i.status] ?? "bg-slate-50 text-slate-400 border-slate-100"}`}>

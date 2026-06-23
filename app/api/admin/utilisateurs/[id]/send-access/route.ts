@@ -10,7 +10,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     if (!u) return NextResponse.json({ error: "Salarié introuvable" }, { status: 404 });
 
     // Génère un lien d'activation à usage unique (72 h). Le salarié CHOISIT son
-    // mot de passe — aucun mot de passe en clair ne transite par email.
+    // mot de passe, aucun mot de passe en clair ne transite par email.
     const token = await setActivationToken(id);
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://climexpert.fr";
     const activationUrl = `${siteUrl}/activer/${token}`;

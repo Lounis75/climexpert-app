@@ -19,7 +19,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
     const start = i.scheduledAt ? new Date(i.scheduledAt) : null;
     const dureeMin = i.dureeEstimeeMinutes ?? 0;
     const fmtT = (d: Date) => d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-    let creneau = "—";
+    let creneau = "-";
     if (start) {
       const jour = start.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
       const fin = dureeMin > 0 ? ` – ${fmtT(new Date(start.getTime() + dureeMin * 60000))}` : "";
@@ -37,7 +37,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
       lieu: i.address || i.clientAddress || "",
       siteNom: i.siteNom,
       client: {
-        nom: i.clientName ?? client?.name ?? "—",
+        nom: i.clientName ?? client?.name ?? "-",
         phone: i.clientPhone ?? client?.phone,
         email: i.clientEmail ?? client?.email,
       },

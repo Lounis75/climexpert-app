@@ -9,7 +9,7 @@ export interface Ville {
 }
 
 export const VILLES: Ville[] = [
-  // ─── Paris intramuros (arrondissements) — cœur de marché ClimExpert ──────────
+  // ─── Paris intramuros (arrondissements), cœur de marché ClimExpert ──────────
   {
     slug: "paris-1",
     name: "Paris 1er",
@@ -24,7 +24,7 @@ export const VILLES: Ville[] = [
     name: "Paris 2e",
     dept: "75",
     depName: "Paris",
-    context: "Le plus petit arrondissement de Paris (Bourse, Sentier, Montorgueil) est dense et très actif, avec une forte concentration de locaux professionnels — mode, agences, sociétés tech. Le bâti, principalement ancien, impose des installations soignées. Nous intervenons aussi bien pour des bureaux que pour les appartements au-dessus des commerces.",
+    context: "Le plus petit arrondissement de Paris (Bourse, Sentier, Montorgueil) est dense et très actif, avec une forte concentration de locaux professionnels, mode, agences, sociétés tech. Le bâti, principalement ancien, impose des installations soignées. Nous intervenons aussi bien pour des bureaux que pour les appartements au-dessus des commerces.",
     faqQ: "Faites-vous l'installation de climatisation pour les bureaux du 2e arrondissement ?",
     faqA: "Oui, le 2e concentre beaucoup de locaux professionnels. Nous installons des systèmes multisplit ou des cassettes plafonnières adaptés aux open spaces et commerces, avec une mise en service hors heures d'ouverture si besoin. Un devis gratuit est établi sous 24h après visite technique.",
   },
@@ -350,7 +350,7 @@ export const VILLES: Ville[] = [
     depName: "Hauts-de-Seine",
     context: "Ville verdoyante des Hauts-de-Seine à proximité de la forêt de Meudon, Clamart est appréciée pour sa qualité de vie résidentielle. Le parc immobilier est mixte, avec de nombreuses maisons individuelles dans les quartiers résidentiels et des copropriétés modernes. La végétation environnante peut tempérer les étés mais n'empêche pas les vagues de chaleur.",
     faqQ: "Quelle puissance de climatisation pour une maison à Clamart bien isolée ?",
-    faqA: "Pour une maison bien isolée à Clamart, le calcul de puissance s'effectue sur la base de 35 W/m². Pour une maison de 100 m², comptez environ 3,5 kW total — soit un multisplit 2 ou 3 têtes selon le nombre de pièces à climatiser. Notre calculateur en ligne vous donne une estimation en 2 minutes.",
+    faqA: "Pour une maison bien isolée à Clamart, le calcul de puissance s'effectue sur la base de 35 W/m². Pour une maison de 100 m², comptez environ 3,5 kW total, soit un multisplit 2 ou 3 têtes selon le nombre de pièces à climatiser. Notre calculateur en ligne vous donne une estimation en 2 minutes.",
   },
   {
     slug: "antony",

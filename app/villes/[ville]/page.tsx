@@ -20,8 +20,8 @@ export async function generateMetadata({
   const ville = getVilleBySlug(slug);
   if (!ville) return {};
 
-  const title = `Climatisation ${ville.name} — Installation & Entretien`;
-  const description = `Installateur climatisation à ${ville.name} (${ville.dept}). Techniciens RGE certifiés, devis gratuit sous 24h. Monosplit, multisplit, gainable — intervention rapide en ${ville.depName}.`;
+  const title = `Climatisation ${ville.name}, Installation & Entretien`;
+  const description = `Installateur climatisation à ${ville.name} (${ville.dept}). Techniciens RGE certifiés, devis gratuit sous 24h. Monosplit, multisplit, gainable, intervention rapide en ${ville.depName}.`;
 
   return {
     title,
@@ -29,7 +29,7 @@ export async function generateMetadata({
     keywords: `climatisation ${ville.name.toLowerCase()}, installation climatisation ${ville.name.toLowerCase()}, climatiseur ${ville.name.toLowerCase()}, entretien climatisation ${ville.dept}, installateur clim ${ville.name.toLowerCase()}`,
     alternates: { canonical: `https://climexpert.fr/villes/${ville.slug}` },
     openGraph: {
-      title: `Climatisation ${ville.name} — ClimExpert`,
+      title: `Climatisation ${ville.name}, ClimExpert`,
       description,
       url: `https://climexpert.fr/villes/${ville.slug}`,
       images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
@@ -167,7 +167,7 @@ export default async function VillePage({
             </h1>
             <p className="text-slate-400 text-lg leading-relaxed mb-6">
               Installation, entretien et dépannage par des techniciens certifiés RGE.
-              Devis gratuit sous 24h — intervention rapide à {ville.name}.
+              Devis gratuit sous 24h, intervention rapide à {ville.name}.
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
               <Link
@@ -270,7 +270,7 @@ export default async function VillePage({
         <section className="py-16 bg-white border-t border-slate-100">
           <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
             <h2 className="text-2xl font-bold text-slate-900 mb-8 text-center">
-              Questions fréquentes — {ville.name}
+              Questions fréquentes, {ville.name}
             </h2>
             <div className="space-y-4">
               {[

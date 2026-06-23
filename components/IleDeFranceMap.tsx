@@ -54,7 +54,7 @@ export default function IleDeFranceMap({ highlightedDept, className = "" }: Prop
     <svg
       viewBox="0 0 410 338"
       className={className}
-      aria-label={`Carte Île-de-France — département ${highlightedDept} mis en évidence`}
+      aria-label={`Carte Île-de-France, département ${highlightedDept} mis en évidence`}
     >
       {Object.entries(DEPTS).map(([code, { path, cx, cy, name }]) => {
         const isHighlighted = code === highlightedDept;

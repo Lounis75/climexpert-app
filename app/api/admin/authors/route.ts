@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(author, { status: 201 });
   } catch (e) {
     console.error("createAuthor error:", e);
-    return NextResponse.json({ error: "Erreur lors de la création — vérifiez la configuration R2" }, { status: 500 });
+    return NextResponse.json({ error: "Erreur lors de la création, vérifiez la configuration R2" }, { status: 500 });
   }
 }
 

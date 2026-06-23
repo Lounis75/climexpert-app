@@ -17,11 +17,11 @@ export const metadata: Metadata = {
     canonical: "https://climexpert.fr/installation",
   },
   openGraph: {
-    title: "Installation Climatisation Île-de-France — ClimExpert",
+    title: "Installation Climatisation Île-de-France, ClimExpert",
     description:
       "Pose de climatisation par des techniciens RGE certifiés. Devis gratuit, à partir de 1 500 €.",
     url: "https://climexpert.fr/installation",
-    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "ClimExpert — Installation climatisation Île-de-France" }],
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "ClimExpert, Installation climatisation Île-de-France" }],
   },
 };
 
@@ -165,7 +165,7 @@ export default function InstallationPage() {
       <Header />
       <main>
         <PageHero
-          badge="Techniciens RGE — Île-de-France"
+          badge="Techniciens RGE, Île-de-France"
           title="Installation climatisation"
           titleAccent="sur mesure"
           subtitle="Monosplit, multisplit, gainable, PAC air-air et air-eau. Étude gratuite, devis transparent, installation soignée par des techniciens certifiés RGE."

@@ -89,7 +89,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       if (admin) {
         await db.insert(notifications).values({
           id: createId(), adminId: admin.id, type: "intervention_planifiee",
-          titre: "Intervention reportée — nouvelle intervention créée",
+          titre: "Intervention reportée, nouvelle intervention créée",
           contenu: `Ancienne ID: ${id}`, refType: "intervention", refId: newId,
         });
       }

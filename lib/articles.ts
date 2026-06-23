@@ -239,7 +239,7 @@ export const articles: Article[] = [
         heading: "Si vous êtes locataire",
         content: [
           "En tant que locataire, vous pouvez installer une climatisation à condition d'obtenir l'accord écrit de votre propriétaire. La loi ELAN de 2018 vous y oblige pour tout aménagement modifiant le bien. Si le propriétaire refuse sans motif légitime, vous pouvez saisir le tribunal.",
-          "Bon à savoir : à la fin du bail, vous pouvez soit remettre le bien en état (enlever la clim), soit la laisser si le propriétaire l'accepte — parfois moyennant un avenant au bail.",
+          "Bon à savoir : à la fin du bail, vous pouvez soit remettre le bien en état (enlever la clim), soit la laisser si le propriétaire l'accepte, parfois moyennant un avenant au bail.",
         ],
       },
       {
@@ -302,7 +302,7 @@ export const articles: Article[] = [
       {
         heading: "MaPrimeRénov' : jusqu'à 4 000 € pour une PAC air-eau",
         content: [
-          "MaPrimeRénov' est la principale aide de l'État pour la rénovation énergétique. En 2026, elle concerne principalement les systèmes de chauffage — dont les pompes à chaleur air-eau — et non les climatiseurs réversibles air-air classiques.",
+          "MaPrimeRénov' est la principale aide de l'État pour la rénovation énergétique. En 2026, elle concerne principalement les systèmes de chauffage, dont les pompes à chaleur air-eau, et non les climatiseurs réversibles air-air classiques.",
         ],
         subsections: [
           {
@@ -383,7 +383,7 @@ export const articles: Article[] = [
       {
         question: "Peut-on cumuler MaPrimeRénov' et les CEE ?",
         answer:
-          "Oui, les deux aides sont cumulables. MaPrimeRénov' est versée par l'ANAH et les CEE sont versés par les fournisseurs d'énergie — ce sont deux dispositifs indépendants.",
+          "Oui, les deux aides sont cumulables. MaPrimeRénov' est versée par l'ANAH et les CEE sont versés par les fournisseurs d'énergie, ce sont deux dispositifs indépendants.",
       },
       {
         question: "Qui s'occupe des démarches d'aides ?",
@@ -393,7 +393,7 @@ export const articles: Article[] = [
       {
         question: "Faut-il avancer les sommes avant de percevoir les aides ?",
         answer:
-          "Pour les CEE, non — la prime est directement déduite de votre facture. Pour MaPrimeRénov', vous devez en général avancer une partie des fonds, puis percevoir le remboursement après les travaux. Dans certains cas (profils très modestes), une avance peut être accordée.",
+          "Pour les CEE, non, la prime est directement déduite de votre facture. Pour MaPrimeRénov', vous devez en général avancer une partie des fonds, puis percevoir le remboursement après les travaux. Dans certains cas (profils très modestes), une avance peut être accordée.",
       },
       {
         question: "Ces aides sont-elles disponibles pour les professionnels ?",
@@ -423,7 +423,7 @@ export const articles: Article[] = [
       "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=1200&q=85",
     heroAlt: "Unité intérieure de climatisation réversible installée dans un salon",
     intro:
-      "La climatisation réversible — aussi appelée pompe à chaleur air-air — est aujourd'hui la solution de confort thermique la plus efficace du marché. Elle refroidit en été et chauffe en hiver, avec un rendement 3 à 5 fois supérieur à un radiateur électrique classique. Comprendre son fonctionnement vous aidera à mieux choisir et optimiser votre équipement.",
+      "La climatisation réversible, aussi appelée pompe à chaleur air-air, est aujourd'hui la solution de confort thermique la plus efficace du marché. Elle refroidit en été et chauffe en hiver, avec un rendement 3 à 5 fois supérieur à un radiateur électrique classique. Comprendre son fonctionnement vous aidera à mieux choisir et optimiser votre équipement.",
     sections: [
       {
         heading: "Comment ça fonctionne ?",
@@ -479,12 +479,12 @@ export const articles: Article[] = [
       {
         heading: "Les marques les plus fiables en 2026",
         list: [
-          "Daikin — leader mondial, fiabilité et SAV excellents, gamme très complète",
-          "Mitsubishi Electric — innovation (technologie Hyper Heat), silencieux",
-          "Panasonic — bon rapport qualité/prix, efficacité énergétique élevée",
-          "Toshiba — fiable, gamme design appréciée",
-          "LG — design soigné, bonne connectivité Wi-Fi",
-          "Samsung — gamme Wind-Free très populaire, diffusion douce",
+          "Daikin, leader mondial, fiabilité et SAV excellents, gamme très complète",
+          "Mitsubishi Electric, innovation (technologie Hyper Heat), silencieux",
+          "Panasonic, bon rapport qualité/prix, efficacité énergétique élevée",
+          "Toshiba, fiable, gamme design appréciée",
+          "LG, design soigné, bonne connectivité Wi-Fi",
+          "Samsung, gamme Wind-Free très populaire, diffusion douce",
         ],
       },
     ],
@@ -868,7 +868,7 @@ export const articles: Article[] = [
   {
     slug: "installation-climatisation-paris",
     title: "Installation climatisation à Paris : guide complet par arrondissement",
-    metaTitle: "Installer une Climatisation à Paris — Prix, RGE, Devis Gratuit | ClimExpert",
+    metaTitle: "Installer une Climatisation à Paris, Prix, RGE, Devis Gratuit | ClimExpert",
     metaDescription:
       "Faire installer une climatisation à Paris : prix à partir de 1 500 €, démarches syndic, contraintes haussmanniennes. Techniciens RGE certifiés, devis gratuit sous 48h.",
     keywords:
@@ -878,14 +878,14 @@ export const articles: Article[] = [
     category: "Installation",
     heroImage:
       "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=1200&q=85",
-    heroAlt: "Immeuble haussmannien Paris — installation climatisation",
+    heroAlt: "Immeuble haussmannien Paris, installation climatisation",
     intro:
       "Installer une climatisation à Paris est tout à fait possible, mais demande de respecter quelques règles spécifiques aux immeubles parisiens : accord de syndic, contraintes de façade, passages de gaines dans les murs anciens. Voici tout ce qu'il faut savoir pour mener à bien votre projet dans la capitale.",
     sections: [
       {
         heading: "Spécificités de l'installation à Paris",
         content: [
-          "Les immeubles parisiens — souvent haussmanniens ou de l'entre-deux-guerres — présentent des contraintes particulières. Les murs sont épais (30 à 60 cm), les façades sont protégées et la plupart des logements sont en copropriété. Ces facteurs influencent directement le déroulement d'une installation.",
+          "Les immeubles parisiens, souvent haussmanniens ou de l'entre-deux-guerres, présentent des contraintes particulières. Les murs sont épais (30 à 60 cm), les façades sont protégées et la plupart des logements sont en copropriété. Ces facteurs influencent directement le déroulement d'une installation.",
           "La bonne nouvelle : nos techniciens interviennent chaque semaine dans Paris et maîtrisent parfaitement ces contraintes. Nous réalisons régulièrement des installations dans des appartements du 6e, 7e, 16e et 8e arrondissement, tout comme dans les arrondissements populaires du nord et de l'est parisien.",
         ],
       },
@@ -973,7 +973,7 @@ export const articles: Article[] = [
   {
     slug: "climatisation-hauts-de-seine-92",
     title: "Climatisation Hauts-de-Seine (92) : installation, entretien et dépannage",
-    metaTitle: "Climatisation Hauts-de-Seine 92 — Installation & Dépannage | ClimExpert",
+    metaTitle: "Climatisation Hauts-de-Seine 92, Installation & Dépannage | ClimExpert",
     metaDescription:
       "Installation, entretien et dépannage de climatisation dans les Hauts-de-Seine (92). Boulogne, Neuilly, Levallois, Issy, Courbevoie. Techniciens RGE, devis gratuit.",
     keywords:
@@ -983,7 +983,7 @@ export const articles: Article[] = [
     category: "Zone géographique",
     heroImage:
       "https://images.unsplash.com/photo-1523217582562-09d0def993a6?auto=format&fit=crop&w=1200&q=85",
-    heroAlt: "Maison Hauts-de-Seine — installation climatisation",
+    heroAlt: "Maison Hauts-de-Seine, installation climatisation",
     intro:
       "Les Hauts-de-Seine (92) concentrent une grande densité de logements de qualité : appartements récents, villas, locaux professionnels et résidences haut de gamme. ClimExpert intervient dans tout le département 92 pour l'installation, l'entretien et le dépannage de climatisation.",
     sections: [
@@ -1067,7 +1067,7 @@ export const articles: Article[] = [
     category: "Équipement",
     heroImage:
       "https://images.unsplash.com/photo-1585771724684-38269d6639fd?auto=format&fit=crop&w=1200&q=85",
-    heroAlt: "Unité intérieure climatisation — comparatif marques",
+    heroAlt: "Unité intérieure climatisation, comparatif marques",
     intro:
       "Daikin, Mitsubishi Electric, Samsung, Fujitsu, LG, Panasonic… Choisir une marque de climatisation peut sembler complexe. Voici notre comparatif basé sur 10 ans d'installations en Île-de-France : fiabilité terrain, efficacité énergétique, facilité d'entretien et réseau SAV.",
     sections: [
@@ -1075,21 +1075,21 @@ export const articles: Article[] = [
         heading: "Le top 3 selon nos techniciens",
         subsections: [
           {
-            heading: "1. Daikin — La référence absolue",
+            heading: "1. Daikin, La référence absolue",
             content: [
               "Daikin est la marque que nous recommandons le plus souvent. D'origine japonaise, elle dispose du réseau de techniciens agréés le plus dense en France. Les COP (coefficient de performance) sont parmi les meilleurs du marché (jusqu'à 5,5 pour les modèles haut de gamme). Le SAV est réactif et les pièces sont facilement disponibles.",
               "Gammes recommandées : Daikin Stylish (design), Daikin Emura (premium), Daikin Perfera (rapport qualité/prix). Prix : +15 à +25 % par rapport aux marques d'entrée de gamme, mais la durée de vie et la fiabilité justifient largement l'investissement.",
             ],
           },
           {
-            heading: "2. Mitsubishi Electric — L'excellence japonaise",
+            heading: "2. Mitsubishi Electric, L'excellence japonaise",
             content: [
               "Mitsubishi Electric est notre deuxième recommandation. Silencieux (jusqu'à 19 dB en mode nuit), très fiables et dotés d'une excellente technologie inverter. La gamme Kirigamine est particulièrement appréciée pour son design discret.",
               "Points forts : silence de fonctionnement exceptionnel, très bonne fiabilité à long terme, filtre anti-allergènes sur certains modèles. Légèrement plus cher que Daikin sur certaines gammes.",
             ],
           },
           {
-            heading: "3. Fujitsu — Le spécialiste du climatique extrême",
+            heading: "3. Fujitsu, Le spécialiste du climatique extrême",
             content: [
               "Fujitsu est particulièrement efficace dans les conditions difficiles : fonctionne en chauffage jusqu'à -25°C, idéal pour les régions froides ou les maisons mal isolées. Moins connue du grand public mais très appréciée des professionnels.",
             ],
@@ -1114,11 +1114,11 @@ export const articles: Article[] = [
       {
         heading: "Nos conseils selon votre profil",
         list: [
-          "Budget serré (moins de 1 800 € posé) : Samsung Wind-Free ou LG Artcool — bon rapport qualité/prix, design moderne.",
-          "Qualité premium, logement haut de gamme : Daikin Emura ou Mitsubishi Electric Kirigamine — design, silence et fiabilité maximaux.",
-          "Maison individuelle ou logement mal isolé : Fujitsu ou Daikin — performants jusqu'à -20°C en mode chauffage.",
-          "Local professionnel : Mitsubishi Heavy Industries ou Daikin — robustesse et maintenabilité optimales.",
-          "Appartement locatif (investissement) : Samsung ou Toshiba — bon rapport durabilité/prix pour un usage modéré.",
+          "Budget serré (moins de 1 800 € posé) : Samsung Wind-Free ou LG Artcool, bon rapport qualité/prix, design moderne.",
+          "Qualité premium, logement haut de gamme : Daikin Emura ou Mitsubishi Electric Kirigamine, design, silence et fiabilité maximaux.",
+          "Maison individuelle ou logement mal isolé : Fujitsu ou Daikin, performants jusqu'à -20°C en mode chauffage.",
+          "Local professionnel : Mitsubishi Heavy Industries ou Daikin, robustesse et maintenabilité optimales.",
+          "Appartement locatif (investissement) : Samsung ou Toshiba, bon rapport durabilité/prix pour un usage modéré.",
         ],
       },
       {
@@ -1167,7 +1167,7 @@ export const articles: Article[] = [
   {
     slug: "nettoyage-climatisation-paris",
     title: "Nettoyage Climatisation Paris : Prix, Fréquence et Guide Complet 2026",
-    metaTitle: "Nettoyage Climatisation Paris — Prix & Guide 2026 | ClimExpert",
+    metaTitle: "Nettoyage Climatisation Paris, Prix & Guide 2026 | ClimExpert",
     metaDescription: "Nettoyage climatisation à Paris à partir de 180 € TTC. Fréquence recommandée, étapes de la prestation, ce qui est inclus. Techniciens RGE certifiés, intervention sous 48h.",
     keywords: "nettoyage climatisation paris, entretien clim paris, nettoyage clim prix, nettoyage filtre climatisation, entretien climatisation ile-de-france",
     date: "2026-06-16",
@@ -1202,7 +1202,7 @@ export const articles: Article[] = [
           "Des majorations peuvent s'appliquer selon l'accessibilité de l'installation (hauteur, encombrement) et la distance depuis nos équipes. Une unité en toiture ou dans une cage technique compte comme une unité avec accessibilité difficile.",
           "Méfiez-vous des offres à 49-80 € qui ne comprennent souvent qu'un rinçage rapide des filtres sans démontage de l'évaporateur ni contrôle frigorigène. Un vrai nettoyage professionnel prend entre 45 minutes et 1h30 par unité.",
         ],
-        highlight: "Tarif ClimExpert Paris : à partir de 180 € TTC pour 1 unité — déplacement, nettoyage complet et rapport inclus.",
+        highlight: "Tarif ClimExpert Paris : à partir de 180 € TTC pour 1 unité, déplacement, nettoyage complet et rapport inclus.",
       },
       {
         heading: "Ce que comprend un nettoyage professionnel de climatisation",

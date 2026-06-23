@@ -1,4 +1,4 @@
-// ClimExpert — Remplissage du CERFA 15497*04 « Fiche d'intervention » (fluides frigorigènes).
+// ClimExpert, Remplissage du CERFA 15497*04 « Fiche d'intervention » (fluides frigorigènes).
 // On part du PDF OFFICIEL vierge (lib/cerfa-template-15497-04.pdf, AcroForm à 72 champs)
 // et on remplit chaque champ par son nom avec pdf-lib → document rigoureusement identique
 // à l'officiel, juste pré-rempli + signé. La signature (image PNG) est posée sur la cellule.
@@ -120,7 +120,7 @@ export async function generateCerfaPDF(d: CerfaData): Promise<Buffer> {
   T("Sign_Operateur_Nom", sig.nom); T("Sign_Operateur_Qualite", sig.qualite); T("Sign_Operateur_Date", sig.date);
   T("Sign_Detenteur_Nom", dsig.nom); T("Sign_Detenteur_Qualite", dsig.qualite); T("Sign_Detenteur_Date", dsig.date);
 
-  // Signature manuscrite (image PNG) — posée dans la cellule « Date et signature ».
+  // Signature manuscrite (image PNG), posée dans la cellule « Date et signature ».
   await drawSignature(pdf, form, "Sign_Operateur_Date", sig.signatureDataUrl);
   await drawSignature(pdf, form, "Sign_Detenteur_Date", dsig.signatureDataUrl);
 

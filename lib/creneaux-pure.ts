@@ -1,4 +1,4 @@
-// Pure functions with no external dependencies — safe for unit tests
+// Pure functions with no external dependencies, safe for unit tests
 
 export const DUREE_DEPLACEMENT: Record<string, number> = {
   "75": 30,

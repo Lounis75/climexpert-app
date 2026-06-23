@@ -70,7 +70,7 @@ export default function RapportForm({
       const res = await fetch("/api/technicien/upload", { method: "POST", body: form });
       const data = await res.json().catch(() => ({}));
       // Échec d'upload (taille >5Mo, format HEIC, R2 KO, session expirée) : on
-      // STOPPE au lieu de perdre la photo en silence — c'est une preuve d'intervention.
+      // STOPPE au lieu de perdre la photo en silence, c'est une preuve d'intervention.
       if (!res.ok || !data.url) {
         throw new Error(data.error ?? "Échec de l'envoi d'une photo. Vérifiez le format (JPG/PNG, <5 Mo) et réessayez.");
       }
@@ -333,7 +333,7 @@ export default function RapportForm({
           )}
         </div>
 
-        {/* Entretien annuel — OBLIGATOIRE */}
+        {/* Entretien annuel, OBLIGATOIRE */}
         <div className="bg-white border border-slate-100 rounded-2xl p-5">
           <p className="text-sm font-semibold text-slate-900 mb-1">Entretien annuel proposé au client ? <span className="text-red-500">*</span></p>
           <p className="text-xs text-slate-500 mb-3">Obligatoire pour clôturer l&apos;intervention.</p>
@@ -367,7 +367,7 @@ export default function RapportForm({
                   <p className="text-sm font-semibold text-slate-900 mb-1 flex items-center gap-1.5">
                     <PenLine className="w-4 h-4 text-emerald-600" /> Signature du client
                   </p>
-                  <p className="text-xs text-slate-500 mb-2">Contrat d&apos;entretien annuel — 200 € TTC/an. Faites signer le client ci-dessous.</p>
+                  <p className="text-xs text-slate-500 mb-2">Contrat d&apos;entretien annuel, 200 € TTC/an. Faites signer le client ci-dessous.</p>
                   <SignaturePad onChange={setSignature} />
                 </div>
               )}
@@ -380,7 +380,7 @@ export default function RapportForm({
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-sm font-semibold text-slate-900">Attestation d&apos;entretien (CERFA)</p>
-              <p className="text-xs text-slate-500 mt-0.5">Fiche officielle fluides frigorigènes — envoyée au client à la clôture.</p>
+              <p className="text-xs text-slate-500 mt-0.5">Fiche officielle fluides frigorigènes, envoyée au client à la clôture.</p>
             </div>
             <button type="button" onClick={() => setCerfaActif((v) => !v)}
               className={`px-3 py-2 rounded-xl border text-xs font-semibold flex-shrink-0 transition-colors ${cerfaActif ? "bg-sky-50 border-sky-300 text-sky-700" : "bg-white border-slate-200 text-slate-500"}`}>
@@ -394,7 +394,7 @@ export default function RapportForm({
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
                   <label className="text-xs text-slate-500 block mb-1">Équipement (marque, modèle, n° série)</label>
-                  <input value={cEquipId} onChange={(e) => setCEquipId(e.target.value)} placeholder="DAIKIN 3MXM68A2V1B9 — N° série…" className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm" />
+                  <input value={cEquipId} onChange={(e) => setCEquipId(e.target.value)} placeholder="DAIKIN 3MXM68A2V1B9, N° série…" className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm" />
                 </div>
                 <div><label className="text-xs text-slate-500 block mb-1">Fluide (R-)</label><input value={cFluide} onChange={(e) => setCFluide(e.target.value)} placeholder="32" className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm" /></div>
                 <div><label className="text-xs text-slate-500 block mb-1">Charge (kg)</label><input value={cCharge} onChange={(e) => setCCharge(e.target.value)} placeholder="9" className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm" /></div>

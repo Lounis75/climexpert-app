@@ -10,7 +10,7 @@ const ChatBot = dynamic(() => import("@/components/ChatBot"), { ssr: false });
 export default function ChatBotLoader() {
   const pathname = usePathname();
   // Alex est l'assistant du SITE PUBLIC. Dans le back-office (admin/technicien/
-  // commercial) et sur les écrans de connexion, on ne l'affiche pas — sinon il se
+  // commercial) et sur les écrans de connexion, on ne l'affiche pas, sinon il se
   // superpose à l'assistant dédié de l'admin. (Évite deux widgets de chat.)
   if (pathname && /^\/(admin|technicien|commercial|connexion|activer)(\/|$)/.test(pathname)) {
     return null;

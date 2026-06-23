@@ -36,7 +36,7 @@ export default async function DevisPublicPage({
   const statusLabel: Record<string, { label: string; cls: string }> = {
     brouillon:  { label: "Brouillon",  cls: "bg-slate-100 text-slate-600" },
     envoyé:     { label: "En attente de votre réponse", cls: "bg-sky-50 text-sky-700 border border-sky-200" },
-    accepté:    { label: "Accepté — merci !",           cls: "bg-emerald-50 text-emerald-700 border border-emerald-200" },
+    accepté:    { label: "Accepté, merci !",           cls: "bg-emerald-50 text-emerald-700 border border-emerald-200" },
     refusé:     { label: "Refusé",                      cls: "bg-red-50 text-red-600 border border-red-200" },
     expiré:     { label: "Expiré",                      cls: "bg-amber-50 text-amber-700 border border-amber-200" },
   };

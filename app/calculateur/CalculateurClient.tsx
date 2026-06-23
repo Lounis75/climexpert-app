@@ -211,7 +211,7 @@ export default function CalculateurClient() {
           type: "installation",
           bien,
           ville: adresse,
-          message: `Via calculateur — Système : ${rec.system} · ${kwLabel(rec.kwRaw)} · Budget : ${fmt(rec.priceMin)}–${fmt(rec.priceMax)} TTC · ${rooms} pièce(s) (${roomSurfaces.slice(0, rooms).map((s, i) => `P${i + 1}:${s}m²`).join(", ")}) · Surface totale : ${surface} m² · H : ${height}m · Isolation : ${isoData.label} · Exposition : ${expData.label} · Usage : Réversible${adresse ? ` · Adresse : ${adresse}` : ""}${contraintes.length ? ` · Contraintes : ${contraintes.join(", ")}` : ""}`,
+          message: `Via calculateur, Système : ${rec.system} · ${kwLabel(rec.kwRaw)} · Budget : ${fmt(rec.priceMin)}–${fmt(rec.priceMax)} TTC · ${rooms} pièce(s) (${roomSurfaces.slice(0, rooms).map((s, i) => `P${i + 1}:${s}m²`).join(", ")}) · Surface totale : ${surface} m² · H : ${height}m · Isolation : ${isoData.label} · Exposition : ${expData.label} · Usage : Réversible${adresse ? ` · Adresse : ${adresse}` : ""}${contraintes.length ? ` · Contraintes : ${contraintes.join(", ")}` : ""}`,
           photosUrls: uploadedFiles.map(f => f.url),
         }),
       });
@@ -520,7 +520,7 @@ export default function CalculateurClient() {
                       <span className="text-slate-400 text-xs">(pose incluse)</span>
                     </p>
                     <p className="text-xs text-emerald-600 font-medium mt-1.5 flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" />Réversible — chauffe aussi en hiver (COP 3-5)
+                      <CheckCircle2 className="w-3.5 h-3.5" />Réversible, chauffe aussi en hiver (COP 3-5)
                     </p>
                   </div>
                 </div>
@@ -562,7 +562,7 @@ export default function CalculateurClient() {
 
               {/* Contraintes */}
               <div className="bg-white border border-slate-200 rounded-2xl p-5 mb-4 shadow-sm">
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Précisez si applicable — pour affiner le devis :</p>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Précisez si applicable, pour affiner le devis :</p>
                 <div className="grid grid-cols-2 gap-2">
                   {[
                     { id: "acces-difficile",  label: "Accès difficile",       detail: "Étage élevé, pas d'ascenseur"   },
@@ -619,7 +619,7 @@ export default function CalculateurClient() {
                   <p className="text-xs text-slate-500 leading-relaxed">
                     <span className="font-semibold text-slate-700">Pourquoi ces écarts ?</span>{" "}
                     Daikin et Mitsubishi Electric sont haut de gamme : durabilité 15-20 ans, silence et SAV rapide. Fujitsu offre un excellent rapport qualité/prix.
-                    La <span className="font-medium text-slate-700">main-d'œuvre est identique</span> — seul le matériel change.
+                    La <span className="font-medium text-slate-700">main-d'œuvre est identique</span>, seul le matériel change.
                   </p>
                 </div>
               </div>
@@ -655,7 +655,7 @@ export default function CalculateurClient() {
               {/* Formulaire */}
               <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
                 <div className="px-5 pt-5 pb-3 border-b border-slate-100">
-                  <p className="text-sm font-semibold text-slate-900">Obtenez votre devis précis — gratuit</p>
+                  <p className="text-sm font-semibold text-slate-900">Obtenez votre devis précis, gratuit</p>
                   <p className="text-xs text-slate-400 mt-0.5">Un technicien vous rappelle sous 24h</p>
                 </div>
                 <form onSubmit={handleSubmit} className="p-5 space-y-3">
@@ -715,7 +715,7 @@ export default function CalculateurClient() {
                         <Camera className="w-4 h-4 text-white" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-sky-900">Ajoutez vos photos — devis bien plus précis</p>
+                        <p className="text-sm font-semibold text-sky-900">Ajoutez vos photos, devis bien plus précis</p>
                         <p className="text-xs text-sky-600 mt-0.5">Photo de l&apos;emplacement, du tableau électrique, de la façade extérieure…</p>
                       </div>
                     </div>
@@ -749,7 +749,7 @@ export default function CalculateurClient() {
                         ) : uploadedFiles.length >= 5 ? (
                           <>
                             <CheckCircle2 className="w-5 h-5 text-sky-400" />
-                            <span className="text-xs text-sky-600 font-medium">5 fichiers ajoutés — maximum atteint</span>
+                            <span className="text-xs text-sky-600 font-medium">5 fichiers ajoutés, maximum atteint</span>
                           </>
                         ) : (
                           <>
@@ -776,7 +776,7 @@ export default function CalculateurClient() {
                       )}
                       {uploadedFiles.length === 0 && (
                         <p className="text-center text-xs text-sky-500 mt-2">
-                          Aucune photo pour l&apos;instant — votre devis sera affiné lors du rendez-vous
+                          Aucune photo pour l&apos;instant, votre devis sera affiné lors du rendez-vous
                         </p>
                       )}
                     </div>
@@ -861,7 +861,7 @@ export default function CalculateurClient() {
               {[
                 { q: "Comment calculer la puissance d'une climatisation ?", a: "La puissance dépend de la surface, de la hauteur sous plafond, de l'isolation et de l'exposition solaire. Règle : 35 W/m² (bien isolé), 45 W/m² (moyen), 60 W/m² (mal isolé). Notre calculateur applique ces normes thermiques françaises automatiquement." },
                 { q: "Quel est le prix d'une climatisation en Île-de-France ?", a: "À partir de 1 500 € TTC pour un monosplit (1 pièce), 2 800–5 500 € pour un multisplit (2-3 pièces), 4 000–10 000 € pour un gainable. Tous les prix incluent le matériel, la pose et la mise en service." },
-                { q: "Monosplit ou multisplit : quelle solution choisir ?", a: "Le monosplit est idéal pour une seule pièce (à partir de 1 500 €). Le multisplit connecte 2 à 6 pièces sur une seule unité extérieure — il revient moins cher par pièce à partir de 2 unités." },
+                { q: "Monosplit ou multisplit : quelle solution choisir ?", a: "Le monosplit est idéal pour une seule pièce (à partir de 1 500 €). Le multisplit connecte 2 à 6 pièces sur une seule unité extérieure, il revient moins cher par pièce à partir de 2 unités." },
                 { q: "La climatisation réversible peut-elle chauffer en hiver ?", a: "Oui, tous nos systèmes sont réversibles. En mode chauffage, ils sont 3 à 5 fois plus efficaces qu'un radiateur électrique. Ils fonctionnent jusqu'à -15°C pour les modèles récents." },
                 { q: "Y a-t-il des aides financières disponibles ?", a: "Les PAC air-eau sont éligibles à MaPrimeRénov' (jusqu'à 4 000 €) et aux CEE (300–800 €). Pour les splits, des CEE sont disponibles (150–300 €). Nos techniciens RGE gèrent les dossiers." },
               ].map(({ q, a }) => (

@@ -165,7 +165,7 @@ export default function InterventionActions({
               <label className="text-slate-400 text-xs block mb-1">Technicien</label>
               <select value={technicienId} onChange={(e) => setTechnicienId(e.target.value)}
                 className="w-full bg-slate-900/60 border border-white/10 rounded-lg px-2.5 py-2 text-white text-sm appearance-none focus:outline-none focus:border-violet-500/50">
-                <option value="">— Non affecté —</option>
+                <option value="">- Non affecté -</option>
                 {techniciens.map((t) => <option key={t.id} value={t.id} className="bg-slate-800">{t.name}</option>)}
               </select>
             </div>

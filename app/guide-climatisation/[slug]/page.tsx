@@ -304,7 +304,7 @@ export default async function ArticlePage({ params }: Props) {
 
         {/* FAQ */}
         <FAQAccordion
-          title={`Questions fréquentes — ${article.category}`}
+          title={`Questions fréquentes, ${article.category}`}
           items={article.faq}
         />
 
@@ -345,7 +345,7 @@ export default async function ArticlePage({ params }: Props) {
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-4">Nos services en Île-de-France</p>
             <div className="grid sm:grid-cols-3 gap-3">
               {[
-                { href: "/installation", label: "Installation", desc: "Monosplit, multisplit, gainable — à partir de 1 500 €" },
+                { href: "/installation", label: "Installation", desc: "Monosplit, multisplit, gainable, à partir de 1 500 €" },
                 { href: "/entretien", label: "Entretien annuel", desc: "Contrat de maintenance à partir de 200 € TTC/unité/an" },
                 { href: "/depannage", label: "Dépannage", desc: "Intervention sous 48h, toutes marques, 7j/7" },
               ].map((s) => (

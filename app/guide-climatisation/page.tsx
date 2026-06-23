@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     canonical: "https://climexpert.fr/guide-climatisation",
   },
   openGraph: {
-    title: "Guide Climatisation 2026 — ClimExpert",
+    title: "Guide Climatisation 2026, ClimExpert",
     description:
       "Types de systèmes, prix, aides financières, entretien… Le guide complet pour bien choisir votre climatisation.",
     url: "https://climexpert.fr/guide-climatisation",
@@ -260,7 +260,7 @@ export default async function GuidePage() {
                 Guide <span className="text-sky-400">2026</span>
               </span>
 
-              {/* Calculateur — pill spécial */}
+              {/* Calculateur, pill spécial */}
               <a
                 href="#calculateur"
                 className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-sky-500/15 border border-sky-500/30 text-sky-300 hover:text-sky-100 hover:bg-sky-500/25 text-xs font-semibold transition-colors whitespace-nowrap"

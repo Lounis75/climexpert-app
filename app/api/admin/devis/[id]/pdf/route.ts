@@ -24,7 +24,7 @@ export async function GET(
       number: d.number,
       createdAt: new Date(d.createdAt).toISOString(),
       validUntil: d.validUntil ?? null,
-      clientName: d.clientName ?? "—",
+      clientName: d.clientName ?? "-",
       description: d.description ?? null,
       lignes: d.lignes.map((l) => ({
         id: l.id,

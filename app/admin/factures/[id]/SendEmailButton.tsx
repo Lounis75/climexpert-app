@@ -42,7 +42,7 @@ export default function SendEmailButton({ factureId }: { factureId: string }) {
       ) : state === "done" ? (
         <><Check className="w-3.5 h-3.5" /> Envoyée</>
       ) : state === "error" ? (
-        <>Erreur — réessayer</>
+        <>Erreur, réessayer</>
       ) : (
         <><Mail className="w-3.5 h-3.5" /> Envoyer par email</>
       )}

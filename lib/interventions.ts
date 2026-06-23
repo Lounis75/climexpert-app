@@ -33,7 +33,7 @@ export async function getInterventions(): Promise<InterventionWithRefs[]> {
 
   return rows.map((r) => ({
     ...r.intervention,
-    clientName: r.clientName ?? "—",
+    clientName: r.clientName ?? "-",
     technicienName: r.technicienName ?? undefined,
   }));
 }
@@ -56,7 +56,7 @@ export async function getInterventionById(id: string): Promise<InterventionWithR
   if (!row) return null;
   return {
     ...row.intervention,
-    clientName: row.clientName ?? "—",
+    clientName: row.clientName ?? "-",
     technicienName: row.technicienName ?? undefined,
     clientPhone: row.clientPhone,
     clientEmail: row.clientEmail,
@@ -80,7 +80,7 @@ export async function getUpcomingInterventions(): Promise<InterventionWithRefs[]
 
   return rows.map((r) => ({
     ...r.intervention,
-    clientName: r.clientName ?? "—",
+    clientName: r.clientName ?? "-",
     technicienName: r.technicienName ?? undefined,
   }));
 }

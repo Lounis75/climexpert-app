@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
 
     const phone = clientPhone.replace(/\s/g, "").replace(/^0/, "+33");
     const portalLink = clientToken ? ` Votre espace : ${baseUrl}/suivi/${clientToken}` : "";
-    const body = `Bonjour ${clientName ?? ""}, votre climatisation a 1 an ! Pensez à l'entretien annuel pour maintenir ses performances.${portalLink} — Clim Expert`;
+    const body = `Bonjour ${clientName ?? ""}, votre climatisation a 1 an ! Pensez à l'entretien annuel pour maintenir ses performances.${portalLink}, Clim Expert`;
 
     try {
       const res = await fetch(

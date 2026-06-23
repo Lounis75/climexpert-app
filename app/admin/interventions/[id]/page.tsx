@@ -17,7 +17,7 @@ function parsePhotos(json: string | null): string[] {
 }
 
 function formatDateLong(d: Date | string | null) {
-  if (!d) return "—";
+  if (!d) return "-";
   return new Date(d).toLocaleDateString("fr-FR", {
     weekday: "long", day: "numeric", month: "long", year: "numeric",
     hour: "2-digit", minute: "2-digit",
@@ -79,7 +79,7 @@ export default async function InterventionDetailPage({
           </div>
         </div>
 
-        {/* Ordre de mission — PDF à transmettre à un sous-traitant (qui n'a pas le portail) */}
+        {/* Ordre de mission, PDF à transmettre à un sous-traitant (qui n'a pas le portail) */}
         <a
           href={`/api/admin/interventions/${i.id}/ordre-mission`}
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800/60 border border-white/10 text-slate-200 hover:border-sky-500/40 hover:text-white text-sm font-semibold transition-colors"
@@ -120,7 +120,7 @@ export default async function InterventionDetailPage({
             <div className="bg-amber-500/[0.06] border border-amber-500/20 rounded-xl px-4 py-3 flex items-center gap-3 sm:col-span-2">
               <Briefcase className="w-4 h-4 text-amber-400 flex-shrink-0" />
               <div className="min-w-0">
-                <p className="text-xs text-amber-300">Sous-traitance — site du client final</p>
+                <p className="text-xs text-amber-300">Sous-traitance, site du client final</p>
                 <p className="text-white text-sm">{[i.siteNom, i.siteAdresse].filter(Boolean).join(" · ")}</p>
               </div>
             </div>
@@ -154,7 +154,7 @@ export default async function InterventionDetailPage({
           <NotesEditor id={i.id} initialNotes={i.notes ?? ""} version={i.version} />
         </div>
 
-        {/* Photos de briefing — l'admin ajoute des photos pour aider le technicien */}
+        {/* Photos de briefing, l'admin ajoute des photos pour aider le technicien */}
         <div className="bg-slate-800/40 border border-white/8 rounded-2xl p-5">
           <div className="flex items-center gap-2 mb-3">
             <ImageIcon className="w-4 h-4 text-slate-500" />
@@ -168,7 +168,7 @@ export default async function InterventionDetailPage({
   );
 }
 
-// Inline notes editor — server component wraps a client island
+// Inline notes editor, server component wraps a client island
 function NotesEditor({ id, initialNotes, version }: { id: string; initialNotes: string; version: number }) {
   return <NotesEditorClient id={id} initialNotes={initialNotes} currentVersion={version} />;
 }
