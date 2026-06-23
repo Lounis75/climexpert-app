@@ -6,6 +6,7 @@ import { MessageCircle, Phone, Mail, MapPin, Zap, CheckCircle2, ArrowRight, Send
 import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import AddressAutocomplete from "@/components/AddressAutocomplete";
 
 const demandeOptions = [
   { value: "installation", label: "Installation" },
@@ -79,7 +80,7 @@ export default function ContactClient() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.nom || !form.telephone || !form.type || !form.bien) return;
+    if (!form.nom || !form.telephone || !form.type || !form.bien || !form.email || !form.ville) return;
     setStatus("loading");
     try {
       const res = await fetch("/api/contact", {
@@ -97,8 +98,8 @@ export default function ContactClient() {
   return (
     <>
       <Header />
-      <nav aria-label="Fil d'ariane" className="border-b border-white/8 bg-[#080d18]/60 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5">
+      <nav aria-label="Fil d'ariane" className="border-b border-white/8 bg-[#080d18]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 lg:pt-24 pb-2.5">
           <ol className="flex items-center gap-1.5 flex-wrap">
             <li><Link href="/" className="flex items-center gap-1 text-xs text-slate-400 hover:text-sky-400 transition-colors"><Home className="w-3 h-3" />Accueil</Link></li>
             <li className="flex items-center gap-1.5"><ChevronRight className="w-3 h-3 text-slate-600" /><span className="text-xs font-medium text-white">Contact</span></li>
@@ -108,7 +109,7 @@ export default function ContactClient() {
       <main className="bg-[#f8fafc]">
 
         {/* Hero */}
-        <section className="relative bg-[#080d18] overflow-hidden pt-32 pb-16">
+        <section className="relative bg-[#080d18] overflow-hidden pt-12 pb-16">
           <div className="absolute inset-0 bg-grid opacity-40" />
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-sky-500/10 blur-[100px] rounded-full" />
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -223,17 +224,25 @@ export default function ContactClient() {
                   {/* Email */}
                   <div>
                     <label htmlFor="email" className="block text-sm font-semibold text-slate-700 mb-2.5">
-                      Email <span className="text-slate-400 font-normal text-xs">(optionnel)</span>
+                      Email <span className="text-red-400">*</span>
                     </label>
-                    <input id="email" name="email" type="email" value={form.email} onChange={handleChange} placeholder="jean@exemple.fr" className={inputBase} />
+                    <input id="email" name="email" type="email" value={form.email} onChange={handleChange} required placeholder="jean@exemple.fr" className={inputBase} />
                   </div>
 
                   {/* Ville */}
                   <div>
                     <label htmlFor="ville" className="block text-sm font-semibold text-slate-700 mb-2.5">
-                      Ville / Code postal
+                      Adresse / Ville / Code postal <span className="text-red-400">*</span>
                     </label>
-                    <input id="ville" name="ville" type="text" value={form.ville} onChange={handleChange} placeholder="Paris 15e, 92100 Boulogne..." className={inputBase} />
+                    <AddressAutocomplete
+                      id="ville"
+                      name="ville"
+                      required
+                      value={form.ville}
+                      onChange={(v) => setForm((p) => ({ ...p, ville: v }))}
+                      placeholder="Commencez à taper votre adresse…"
+                      className={inputBase}
+                    />
                   </div>
 
                   {/* Message */}

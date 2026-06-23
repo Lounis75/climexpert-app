@@ -13,12 +13,18 @@ export default function AddressAutocomplete({
   onSelect,
   placeholder,
   className,
+  id,
+  name,
+  required,
 }: {
   value: string;
   onChange: (v: string) => void;
   onSelect?: (s: Suggestion) => void;
   placeholder?: string;
   className?: string;
+  id?: string;
+  name?: string;
+  required?: boolean;
 }) {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [open, setOpen] = useState(false);
@@ -63,6 +69,9 @@ export default function AddressAutocomplete({
     <div ref={boxRef} className="relative">
       <input
         type="text"
+        id={id}
+        name={name}
+        required={required}
         value={value}
         onChange={(e) => handleChange(e.target.value)}
         onFocus={() => suggestions.length > 0 && setOpen(true)}
