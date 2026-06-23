@@ -136,41 +136,43 @@ export default async function DashboardPage() {
         <div className={hasRightCol ? "grid lg:grid-cols-2 gap-6 mb-6 items-start" : "mb-6"}>
 
         {/* À FAIRE (héros) */}
-        <div className={`rounded-2xl p-4 border ${totalTaches > 0 ? "bg-amber-500/[0.06] border-amber-500/20" : "bg-emerald-500/[0.05] border-emerald-500/20"}`}>
-          <div className="flex items-center gap-2 mb-3">
+        <div className="bg-slate-800/40 border border-white/8 rounded-2xl overflow-hidden">
+          <div className="flex items-center gap-2 px-5 py-4 border-b border-white/8">
             <div className={`w-7 h-7 rounded-lg border flex items-center justify-center ${totalTaches > 0 ? "bg-amber-500/15 border-amber-500/25 text-amber-400" : "bg-emerald-500/15 border-emerald-500/25 text-emerald-400"}`}>
               <ClipboardList className="w-4 h-4" />
             </div>
             <h2 className="text-white font-semibold text-sm">À faire</h2>
             {totalTaches > 0 && <span className="text-amber-400 text-xs font-bold bg-amber-500/15 px-2 py-0.5 rounded-full">{totalTaches}</span>}
           </div>
-          {tachesList.length === 0 ? (
-            <div className="flex items-center gap-2 text-emerald-300 text-sm py-2 px-1">
-              <CheckCircle2 className="w-4 h-4" /> Tout est à jour, rien en attente. 👌
-            </div>
-          ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
-              {tachesList.map((t) => (
-                <Link key={t.label} href={t.href}
-                  className="flex items-center gap-3 bg-slate-800/40 border border-white/8 rounded-xl px-3 py-2.5 hover:border-white/20 transition-all group">
-                  <span className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${TASK_COLORS[t.color]}`}>
-                    <t.icon className="w-4 h-4" />
-                  </span>
-                  <p className="text-sm text-slate-200 flex-1 leading-tight">
-                    <span className="font-bold text-white">{t.n}</span> {t.label}
-                  </p>
-                  <ArrowRight className="w-4 h-4 text-slate-600 group-hover:text-white transition-colors flex-shrink-0" />
-                </Link>
-              ))}
-            </div>
-          )}
+          <div className="p-4">
+            {tachesList.length === 0 ? (
+              <div className="flex items-center gap-2 text-emerald-300 text-sm py-2 px-1">
+                <CheckCircle2 className="w-4 h-4" /> Tout est à jour, rien en attente. 👌
+              </div>
+            ) : (
+              <div className="grid sm:grid-cols-2 gap-2">
+                {tachesList.map((t) => (
+                  <Link key={t.label} href={t.href}
+                    className="flex items-center gap-3 bg-slate-900/40 border border-white/8 rounded-xl px-3 py-2.5 hover:border-white/20 transition-all group">
+                    <span className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${TASK_COLORS[t.color]}`}>
+                      <t.icon className="w-4 h-4" />
+                    </span>
+                    <p className="text-sm text-slate-200 flex-1 leading-tight">
+                      <span className="font-bold text-white">{t.n}</span> {t.label}
+                    </p>
+                    <ArrowRight className="w-4 h-4 text-slate-600 group-hover:text-white transition-colors flex-shrink-0" />
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {hasRightCol && (
         <div className="space-y-6">
         {/* ─── Mes relances du jour (prospects à traiter, nominatif) ──────────────── */}
         {relances.length > 0 && (
-          <div className="bg-slate-800/40 border border-amber-500/20 rounded-2xl overflow-hidden">
+          <div className="bg-slate-800/40 border border-white/8 rounded-2xl overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
               <h2 className="text-white font-semibold text-sm flex items-center gap-2">
                 <Phone className="w-4 h-4 text-amber-400" /> Mes relances du jour
@@ -198,7 +200,7 @@ export default async function DashboardPage() {
 
         {/* ─── À planifier (interventions sans date, ex. devis gagné) ────────────── */}
         {interventionsAPlanifier.length > 0 && (
-          <div className="bg-slate-800/40 border border-sky-500/20 rounded-2xl overflow-hidden">
+          <div className="bg-slate-800/40 border border-white/8 rounded-2xl overflow-hidden">
             <div className="px-5 py-4 border-b border-white/8 flex items-center gap-2 flex-wrap">
               <CalendarPlus className="w-4 h-4 text-sky-400" />
               <h2 className="text-white font-semibold text-sm">À planifier</h2>
