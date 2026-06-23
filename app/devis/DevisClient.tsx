@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { Phone, Mail, CheckCircle2, ArrowRight, MapPin, Camera, X, Loader2, ChevronRight, Home } from "lucide-react";
+import { Phone, Mail, CheckCircle2, ArrowRight, MapPin, Camera, X, Loader2, ChevronRight, Home, MessageCircle } from "lucide-react";
 import Link from "next/link";
+import AddressAutocomplete from "@/components/AddressAutocomplete";
 
 const serviceOptions = [
   "Installation climatisation",
@@ -27,6 +28,22 @@ export default function DevisClient() {
   const [loading, setLoading] = useState(false);
   const [photos, setPhotos] = useState<PhotoFile[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const [ville, setVille] = useState("");
+  const [message, setMessage] = useState("");
+
+  // Alex (mode contact) renvoie le récapitulatif du besoin -> on remplit la description.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const text = (e as CustomEvent<{ text?: string }>).detail?.text;
+      if (text) {
+        setMessage(text);
+        document.getElementById("devis-message")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    };
+    window.addEventListener("alex-besoin", handler);
+    return () => window.removeEventListener("alex-besoin", handler);
+  }, []);
 
   function addPhotos(files: FileList | null) {
     if (!files) return;
@@ -168,7 +185,7 @@ export default function DevisClient() {
                     </a>
                   </div>
                 ) : (
-                  <form onSubmit={handleSubmit} className="space-y-6">
+                  <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
                     <div className="grid sm:grid-cols-2 gap-5">
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -198,11 +215,12 @@ export default function DevisClient() {
 
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Adresse email
+                        Adresse email <span className="text-sky-500">*</span>
                       </label>
                       <input
                         name="email"
                         type="email"
+                        required
                         placeholder="jean@exemple.fr"
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition"
                       />
@@ -242,26 +260,51 @@ export default function DevisClient() {
 
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Ville / Code postal
+                        Adresse / Ville / Code postal <span className="text-sky-500">*</span>
                       </label>
-                      <input
+                      <AddressAutocomplete
+                        id="devis-location"
                         name="location"
-                        type="text"
-                        placeholder="Paris 15e / 75015"
+                        required
+                        value={ville}
+                        onChange={setVille}
+                        placeholder="Commencez à taper votre adresse…"
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                      <label htmlFor="devis-message" className="block text-sm font-medium text-slate-700 mb-2">
                         Décrivez votre projet
                       </label>
                       <textarea
+                        id="devis-message"
                         name="message"
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
                         rows={5}
                         placeholder="Ex : Installation d'un monosplit dans un salon de 30m², appartement au 3e étage, Paris 15e. Façade disponible côté cour."
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-900 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition resize-none"
                       />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const fd = formRef.current ? new FormData(formRef.current) : null;
+                          const ctx: Record<string, string> = {};
+                          const nom = (fd?.get("name") as string) || "";
+                          if (nom) ctx.nom = nom.split(" ")[0];
+                          const service = (fd?.get("service") as string) || "";
+                          if (service) ctx.service = service;
+                          const property = (fd?.get("property") as string) || "";
+                          if (property) ctx.property = property;
+                          if (ville) ctx.ville = ville;
+                          window.dispatchEvent(new CustomEvent("open-chat", { detail: { besoin: ctx } }));
+                        }}
+                        className="mt-2.5 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-sky-50 border border-sky-100 text-sky-700 text-sm font-medium hover:bg-sky-100 transition-colors"
+                      >
+                        <MessageCircle className="w-4 h-4 text-sky-500" />
+                        Pas sûr de quoi écrire ? Décrire mon besoin avec Alex
+                      </button>
                     </div>
 
                     {/* Photo upload */}
