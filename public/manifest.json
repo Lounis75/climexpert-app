@@ -1,11 +1,11 @@
 {
-  "name": "ClimExpert",
-  "short_name": "ClimExpert",
-  "description": "Espace ClimExpert, gestion et terrain",
-  "start_url": "/",
+  "name": "Clim Expert - Technicien",
+  "short_name": "ClimTech",
+  "description": "Application technicien Clim Expert",
+  "start_url": "/technicien",
   "display": "standalone",
-  "orientation": "any",
-  "background_color": "#080d18",
+  "orientation": "portrait",
+  "background_color": "#f8fafc",
   "theme_color": "#0ea5e9",
   "icons": [
     {

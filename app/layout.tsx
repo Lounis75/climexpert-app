@@ -58,8 +58,11 @@ export const metadata: Metadata = {
     apple: "/icon-192.png",
   },
   // Installé sur l'écran d'accueil (iPad/iPhone) : ouvre en plein écran « app » avec un
-  // stockage PERSISTANT → plus de barre Safari et la session reste connectée entre 2 ouvertures.
-  manifest: "/manifest.json",
+  // stockage PERSISTANT → plus de barre Safari, session connectée entre 2 ouvertures, et
+  // l'icône ouvre la PAGE OÙ ON EST au moment de l'ajout (ex. /admin), pas l'accueil.
+  // (Pas de lien manifest ici volontairement : le manifest /manifest.json est réservé à
+  //  l'app technicien, dont le start_url est /technicien ; le lier globalement forçait
+  //  l'icône admin à ouvrir « / ».)
   appleWebApp: {
     capable: true,
     title: "ClimExpert",
