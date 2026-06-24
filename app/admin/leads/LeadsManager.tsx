@@ -1161,7 +1161,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
         return (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-end" onClick={() => { setSelectedLead(null); setEditingLead(false); }}>
             <div
-              className="bg-slate-900 border-l border-white/10 w-full max-w-2xl lg:max-w-3xl h-full overflow-y-auto shadow-2xl"
+              className="bg-slate-900 border-l border-white/10 w-full max-w-2xl lg:max-w-none lg:w-2/3 h-full overflow-y-auto shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
