@@ -7,6 +7,7 @@ import {
 } from "@/lib/auth";
 import { homeSpace } from "@/lib/roles";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
+import { sessionCookieOptions, clearCookieOptions } from "@/lib/cookie";
 
 // Hash factice pour égaliser le temps de réponse : on exécute toujours scrypt,
 // même si le compte n'existe pas, pour ne pas révéler par timing quels emails existent.
@@ -42,10 +43,7 @@ export async function POST(req: NextRequest) {
 
   const roles = u.roles ?? [];
   const fullName = u.prenom ? `${u.prenom} ${u.nom}` : u.nom;
-  const cookieOpts = {
-    httpOnly: true, sameSite: "lax" as const, maxAge: 60 * 60 * 24 * 30,
-    path: "/", secure: process.env.NODE_ENV === "production",
-  };
+  const cookieOpts = sessionCookieOptions(req.headers.get("host"));
 
   const res = NextResponse.json({ ok: true, redirect: homeSpace(roles) });
 
@@ -62,10 +60,11 @@ export async function POST(req: NextRequest) {
   return res;
 }
 
-export async function DELETE() {
+export async function DELETE(req: NextRequest) {
   const res = NextResponse.json({ ok: true });
+  const clear = clearCookieOptions(req.headers.get("host"));
   for (const name of [COOKIE_NAME, TECH_COOKIE_NAME, COMMERCIAL_COOKIE_NAME]) {
-    res.cookies.set(name, "", { maxAge: 0, path: "/" });
+    res.cookies.set(name, "", clear);
   }
   return res;
 }

@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { admins } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { signAdminToken, COOKIE_NAME } from "@/lib/auth";
+import { sessionCookieOptions, clearCookieOptions } from "@/lib/cookie";
 
 const attempts = new Map<string, { count: number; resetAt: number }>();
 
@@ -59,18 +60,12 @@ export async function POST(req: NextRequest) {
   const jwt = await signAdminToken({ sub: admin.id, email: admin.email, nom: admin.nom });
 
   const res = NextResponse.json({ ok: true });
-  res.cookies.set(COOKIE_NAME, jwt, {
-    httpOnly: true,
-    sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 30,
-    path: "/",
-    secure: process.env.NODE_ENV === "production",
-  });
+  res.cookies.set(COOKIE_NAME, jwt, sessionCookieOptions(req.headers.get("host")));
   return res;
 }
 
-export async function DELETE() {
+export async function DELETE(req: NextRequest) {
   const res = NextResponse.json({ ok: true });
-  res.cookies.set(COOKIE_NAME, "", { maxAge: 0, path: "/" });
+  res.cookies.set(COOKIE_NAME, "", clearCookieOptions(req.headers.get("host")));
   return res;
 }

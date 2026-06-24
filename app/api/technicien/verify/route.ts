@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { techniciens, magicLinkTokens } from "@/lib/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
 import { signTechnicienToken, TECH_COOKIE_NAME } from "@/lib/auth";
+import { sessionCookieOptions } from "@/lib/cookie";
 
 export async function POST(req: NextRequest) {
   const { token } = await req.json();
@@ -47,12 +48,6 @@ export async function POST(req: NextRequest) {
   });
 
   const res = NextResponse.json({ ok: true });
-  res.cookies.set(TECH_COOKIE_NAME, jwt, {
-    httpOnly: true,
-    secure:   process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path:     "/",
-    maxAge:   60 * 60 * 24 * 30, // 30 jours
-  });
+  res.cookies.set(TECH_COOKIE_NAME, jwt, sessionCookieOptions(req.headers.get("host")));
   return res;
 }

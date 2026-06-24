@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
+import { clearCookieOptions } from "@/lib/cookie";
 
 // Chemins admin publics — correspondance EXACTE (et NON par préfixe) : sinon
 // "/admin" rendrait tout /admin/* public (fuite du dashboard, des données clients…).
@@ -41,7 +42,7 @@ async function guardSpace(req: NextRequest, cookieName: string, loginPath: strin
   } catch {
     if (isApi) return NextResponse.json({ error: "Session expirée — reconnectez-vous" }, { status: 401 });
     const res = NextResponse.redirect(new URL(loginPath, req.url));
-    res.cookies.set(cookieName, "", { maxAge: 0, path: "/" });
+    res.cookies.set(cookieName, "", clearCookieOptions(req.headers.get("host")));
     return res;
   }
 }
@@ -94,7 +95,7 @@ export async function proxy(req: NextRequest) {
   } catch {
     if (isApiRoute) return NextResponse.json({ error: "Session expirée — reconnectez-vous" }, { status: 401 });
     const res = NextResponse.redirect(new URL("/admin", req.url));
-    res.cookies.set("admin_token", "", { maxAge: 0, path: "/" });
+    res.cookies.set("admin_token", "", clearCookieOptions(req.headers.get("host")));
     return res;
   }
 }
