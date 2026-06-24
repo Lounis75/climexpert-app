@@ -108,13 +108,21 @@ export async function POST(req: NextRequest) {
         : "",
     ].filter(Boolean).join("\n\n");
 
+    // Le champ "Adresse / Ville / CP" est autocomplété -> on récupère l'adresse complète.
+    // On la stocke dans `address` (carte « Adresse d'intervention », comme Alex) et on garde
+    // juste « CP Ville » pour `location` (affichage court sur les cartes du Kanban).
+    const adresseComplete = (body.ville || "").trim() || undefined;
+    const cpMatch = adresseComplete ? adresseComplete.match(/\b\d{5}\b.*$/) : null;
+    const villeCp = cpMatch ? cpMatch[0].trim() : adresseComplete;
+
     const lead = await createLead({
       source: "formulaire",
       name: body.nom,
       phone: body.telephone,
       email: body.email || undefined,
       project: body.type as "installation" | "entretien" | "depannage" | "contrat-pro" | "autre",
-      location: body.ville || undefined,
+      address: adresseComplete && /\d/.test(adresseComplete) ? adresseComplete : undefined,
+      location: villeCp,
       message: notesWithPhotos || undefined,
       consentementMarketing: body.consent === true,
       consentementLe: body.consent === true ? new Date() : undefined,
