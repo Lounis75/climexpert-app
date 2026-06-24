@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { contratsEntretien, clients } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { contratsEntretien, clients, documents } from "@/lib/db/schema";
+import { eq, and, desc } from "drizzle-orm";
 import { generateContratPDF } from "@/lib/contrat-pdf";
 import { buildContratData } from "@/lib/contrat-finalize";
 
@@ -23,7 +23,24 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   }
   const { contrat, client } = row;
 
-  // Aperçu/admin : contrat pré-signé par le gérant, case client vide (signée sur place).
+  // Contrat signé : on sert la VRAIE version signée des deux parties (gérant + client),
+  // stockée sur R2, au lieu de régénérer un PDF avec la case client vide.
+  if (contrat.signeLe) {
+    let signedUrl = contrat.pdfSigneUrl;
+    if (!signedUrl) {
+      // Compat : contrats signés avant l'ajout de pdfSigneUrl -> dernier document "contrat" du client.
+      const [doc] = await db
+        .select({ url: documents.url })
+        .from(documents)
+        .where(and(eq(documents.clientId, client.id), eq(documents.type, "contrat")))
+        .orderBy(desc(documents.createdAt))
+        .limit(1);
+      signedUrl = doc?.url ?? null;
+    }
+    if (signedUrl) return NextResponse.redirect(signedUrl);
+  }
+
+  // Aperçu/admin (contrat non signé) : pré-signé par le gérant, case client vide (signée sur place).
   const data = buildContratData(contrat, client);
 
   try {

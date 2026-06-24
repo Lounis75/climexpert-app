@@ -462,7 +462,7 @@ function build(doc: Doc, data: ContratData) {
   signatureBlocks(
     doc,
     { title: `Le Prestataire (${pr.raisonSociale})`, name: `${GERANT_NOM}, ${GERANT_QUALITE}`, date: frDate(contract.date), img: dataUrlToBuf(SIGNATURE_GERANT_DATAURL) },
-    { title: c.name ? `Le Client (${c.name})` : "Le Client", name: c.name, img: dataUrlToBuf(data.clientSignatureDataUrl) },
+    { title: c.name ? `Le Client (${c.name})` : "Le Client", name: c.name, date: data.clientSignatureDataUrl ? frDate(contract.date) : undefined, img: dataUrlToBuf(data.clientSignatureDataUrl) },
   );
 }
 

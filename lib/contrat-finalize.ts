@@ -10,7 +10,7 @@ import { documents, contratsEntretien, clients } from "@/lib/db/schema";
 import { createId } from "@paralleldrive/cuid2";
 import { Resend } from "resend";
 import { logError } from "@/lib/observability";
-import type { InferSelectModel } from "drizzle-orm";
+import { eq, type InferSelectModel } from "drizzle-orm";
 
 type Contrat = InferSelectModel<typeof contratsEntretien>;
 type Client = InferSelectModel<typeof clients>;
@@ -71,6 +71,9 @@ export async function finalizeContrat(opts: {
     label: `Contrat d'entretien ${opts.contrat.numero ?? ""}, ${dateLabel}`.replace(/\s+/g, " ").trim(),
     url,
   });
+
+  // Mémorise la dernière version signée sur le contrat -> servie par le bouton "Contrat PDF".
+  await db.update(contratsEntretien).set({ pdfSigneUrl: url }).where(eq(contratsEntretien.id, opts.contrat.id));
 
   if (opts.client.email) {
     try {

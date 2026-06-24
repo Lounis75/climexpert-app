@@ -1,0 +1,1 @@
+ALTER TABLE "contrats_entretien" ADD COLUMN "pdf_signe_url" text;
