@@ -242,6 +242,7 @@ export const leads = pgTable("leads", {
   statutChangeLe:      timestamp("statut_change_le"),  // date du dernier changement de statut (cycle de vie)
   relanceNotifieeLe:   timestamp("relance_notifiee_le"), // rappel déjà envoyé pour le statut courant (anti-doublon)
   archiveLe:           timestamp("archive_le"),        // perdu archivé (sort du Kanban, conservé pour recontact)
+  photosUrls:          text("photos_urls").array(),    // photos jointes au formulaire (affichées sur la fiche prospect)
 }, (t) => ({
   statusIdx:        index("leads_status_idx").on(t.status),
   sourceIdx:        index("leads_source_idx").on(t.source),

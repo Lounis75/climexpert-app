@@ -101,12 +101,9 @@ export async function POST(req: NextRequest) {
       `,
     });
 
-    const notesWithPhotos = [
-      body.message || "",
-      body.photosUrls && body.photosUrls.length > 0
-        ? `Photos: ${body.photosUrls.join(", ")}`
-        : "",
-    ].filter(Boolean).join("\n\n");
+    // Photos jointes : stockées dans un champ dédié du lead (affichées en vignettes sur la
+    // fiche), plus besoin de les coller en texte dans les notes.
+    const photosUrls = body.photosUrls && body.photosUrls.length > 0 ? body.photosUrls : undefined;
 
     // Le champ "Adresse / Ville / CP" est autocomplété -> on récupère l'adresse complète.
     // On la stocke dans `address` (carte « Adresse d'intervention », comme Alex) et on garde
@@ -123,7 +120,8 @@ export async function POST(req: NextRequest) {
       project: body.type as "installation" | "entretien" | "depannage" | "contrat-pro" | "autre",
       address: adresseComplete && /\d/.test(adresseComplete) ? adresseComplete : undefined,
       location: villeCp,
-      message: notesWithPhotos || undefined,
+      message: (body.message || "").trim() || undefined,
+      photosUrls,
       consentementMarketing: body.consent === true,
       consentementLe: body.consent === true ? new Date() : undefined,
       typeClient: ["professionnel", "sous_traitance"].includes(body.typeClient ?? "") ? body.typeClient : "particulier",

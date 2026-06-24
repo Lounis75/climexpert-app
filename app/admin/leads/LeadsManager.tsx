@@ -7,7 +7,7 @@ import {
   Phone, Bot, FileText, MapPin, Wrench,
   MessageSquare, Clock, LayoutList, Columns3, UserPlus, CheckCircle2,
   AlertTriangle, GitMerge, X, Search, Mail, ChevronRight, Briefcase, Plus,
-  Pencil, Check, ShieldCheck, CalendarPlus, Star, Maximize2, Minimize2, ClipboardPaste,
+  Pencil, Check, ShieldCheck, CalendarPlus, Star, Maximize2, Minimize2, ClipboardPaste, Camera,
 } from "lucide-react";
 import type { Lead, LeadStatus } from "@/lib/leads";
 import { detectDuplicates, leadAction } from "@/lib/leads-utils";
@@ -1370,6 +1370,23 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                       </p>
                     </div>
                   </a>
+                )}
+
+                {/* Photos jointes (envoyées via le formulaire) */}
+                {(lead.photosUrls?.length ?? 0) > 0 && (
+                  <div>
+                    <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide flex items-center gap-1.5">
+                      <Camera className="w-3 h-3" /> Photos jointes ({lead.photosUrls!.length})
+                    </p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {lead.photosUrls!.map((url, i) => (
+                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" title={`Photo ${i + 1}`}
+                          className="block aspect-square rounded-lg overflow-hidden bg-slate-900/60 border border-white/10 hover:border-sky-500/50 transition-colors">
+                          <img src={url} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" loading="lazy" />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
                 )}
                 </>
                 )}
