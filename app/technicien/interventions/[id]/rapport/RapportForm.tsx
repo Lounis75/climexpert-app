@@ -8,11 +8,14 @@ import SignaturePad from "@/components/SignaturePad";
 export default function RapportForm({
   interventionId,
   isVisiteTechnique,
+  returnTo,
 }: {
   interventionId: string;
   isVisiteTechnique: boolean;
+  returnTo?: string; // où revenir après clôture (admin: fiche intervention admin)
 }) {
   const router = useRouter();
+  const backHref = returnTo ?? `/technicien/interventions/${interventionId}`;
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
 
@@ -173,7 +176,7 @@ export default function RapportForm({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Erreur");
 
-      router.replace(`/technicien/interventions/${interventionId}`);
+      router.replace(backHref);
     } catch (err: any) {
       setError(err.message);
       setSubmitting(false);
@@ -184,7 +187,7 @@ export default function RapportForm({
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3">
-        <Link href={`/technicien/interventions/${interventionId}`} className="p-2 bg-white border border-slate-200 rounded-xl">
+        <Link href={backHref} className="p-2 bg-white border border-slate-200 rounded-xl">
           <ChevronLeft className="w-4 h-4 text-slate-600" />
         </Link>
         <h1 className="font-bold text-slate-900">Rapport de clôture</h1>

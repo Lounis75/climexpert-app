@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { interventions, rapportsIntervention, notifications, contratsEntretien, suivis, clients } from "@/lib/db/schema";
 import { eq, and, sql } from "drizzle-orm";
-import { verifyTechnicienToken, TECH_COOKIE_NAME } from "@/lib/auth";
+import { verifyTechnicienToken, TECH_COOKIE_NAME, verifyAdminToken, COOKIE_NAME } from "@/lib/auth";
 import { createId } from "@paralleldrive/cuid2";
 import { contratTotalCt } from "@/lib/contrat-pricing";
 import { finalizeCerfa } from "@/lib/cerfa";
@@ -11,9 +11,19 @@ import type { CerfaData } from "@/lib/cerfa-pdf";
 import { SIGNATURE_GERANT_DATAURL, GERANT_NOM, GERANT_QUALITE } from "@/lib/signature-gerant";
 
 export async function POST(req: NextRequest) {
-  const token = req.cookies.get(TECH_COOKIE_NAME)?.value;
-  const session = token ? await verifyTechnicienToken(token) : null;
-  if (!session) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+  // Clôture autorisée au technicien assigné (terrain) OU à l'administrateur (back-office,
+  // quand le technicien n'a pas pu remplir sur place).
+  const techToken = req.cookies.get(TECH_COOKIE_NAME)?.value;
+  const techSession = techToken ? await verifyTechnicienToken(techToken) : null;
+  let actor: { label: string; technicienId: string | null; isAdmin: boolean } | null = null;
+  if (techSession) {
+    actor = { label: `Le technicien ${techSession.name}`, technicienId: techSession.sub, isAdmin: false };
+  } else {
+    const adminToken = req.cookies.get(COOKIE_NAME)?.value;
+    const adminSession = adminToken ? await verifyAdminToken(adminToken) : null;
+    if (adminSession) actor = { label: `L'administrateur ${adminSession.nom}`, technicienId: null, isAdmin: true };
+  }
+  if (!actor) return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
 
   const body = await req.json();
   const {
@@ -48,10 +58,19 @@ export async function POST(req: NextRequest) {
   const [interv] = await db
     .select()
     .from(interventions)
-    .where(and(eq(interventions.id, interventionId), eq(interventions.technicienId, session.sub)))
+    .where(actor.isAdmin
+      ? eq(interventions.id, interventionId)
+      : and(eq(interventions.id, interventionId), eq(interventions.technicienId, actor.technicienId!)))
     .limit(1);
 
   if (!interv) return NextResponse.json({ error: "Intervention introuvable" }, { status: 404 });
+
+  // Le rapport est rattaché au technicien assigné (FK obligatoire). L'admin clôture à sa
+  // place : l'intervention doit donc avoir un technicien assigné.
+  const reportTechId = actor.isAdmin ? interv.technicienId : actor.technicienId;
+  if (!reportTechId) {
+    return NextResponse.json({ error: "Assignez un technicien à cette intervention avant de la clôturer." }, { status: 400 });
+  }
 
   // Idempotence : si un rapport existe déjà (intervention déjà clôturée), ne pas
   // réinsérer, la contrainte unique sur interventionId crasherait en 500. Cas réel :
@@ -70,7 +89,7 @@ export async function POST(req: NextRequest) {
     .insert(rapportsIntervention)
     .values({
       interventionId,
-      technicienId:         session.sub,
+      technicienId:         reportTechId,
       installationConforme: installationConforme ?? true,
       notes:                notes ?? null,
       photosUrls:           photosUrls ?? [],
@@ -114,7 +133,7 @@ export async function POST(req: NextRequest) {
       await db.insert(notifications).values({
         id: createId(), type: "nouveau_contrat",
         titre: "Contrat d'entretien signé sur le terrain",
-        contenu: `Le technicien ${session.name} a fait signer un contrat d'entretien annuel.`,
+        contenu: `${actor.label} a fait signer un contrat d'entretien annuel.`,
         refType: "contrat", refId: contratId,
       });
       // PDF du contrat signé (gérant pré-signé + signature client) -> R2 + fiche client + e-mail.
@@ -190,7 +209,7 @@ export async function POST(req: NextRequest) {
   await db.insert(notifications).values({
     type:    "rapport_requis",
     titre:   "Rapport d'intervention soumis",
-    contenu: `Le technicien ${session.name} a soumis le rapport de clôture.`,
+    contenu: `${actor.label} a soumis le rapport de clôture.`,
     refType: "intervention",
     refId:   interventionId,
   });

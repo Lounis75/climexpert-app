@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Play, XCircle, Trash2, CalendarClock, Check } from "lucide-react";
+import Link from "next/link";
+import { Play, XCircle, Trash2, CalendarClock, Check, ClipboardCheck } from "lucide-react";
 
 const ACTIONS: Record<string, { label: string; status: string; icon: React.ElementType; cls: string }[]> = {
   planifiée: [
@@ -138,9 +139,17 @@ export default function InterventionActions({
       </div>
 
       {currentStatus === "en_cours" && (
-        <p className="w-full sm:w-96 text-[11px] text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2 leading-relaxed">
-          La clôture (rapport, photos obligatoires, CERFA signé par le client) se fait depuis le <strong>portail technicien</strong>. L&apos;intervention passe « Terminée » uniquement à l&apos;envoi du rapport.
-        </p>
+        <div className="w-full sm:w-96 space-y-2">
+          <Link
+            href={`/admin/interventions/${id}/rapport`}
+            className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 text-xs font-semibold rounded-xl transition-all"
+          >
+            <ClipboardCheck className="w-3.5 h-3.5" /> Remplir le rapport de clôture
+          </Link>
+          <p className="text-[11px] text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2 leading-relaxed">
+            Clôture = rapport + photos obligatoires + CERFA signé par le client (+ contrat éventuel). Le technicien peut le faire sur place ; sinon, remplis-le ici. L&apos;intervention passe « Terminée » à l&apos;envoi.
+          </p>
+        </div>
       )}
 
       {planning && (
