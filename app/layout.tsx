@@ -57,6 +57,14 @@ export const metadata: Metadata = {
     shortcut: "/favicon.ico",
     apple: "/icon-192.png",
   },
+  // Installé sur l'écran d'accueil (iPad/iPhone) : ouvre en plein écran « app » avec un
+  // stockage PERSISTANT → plus de barre Safari et la session reste connectée entre 2 ouvertures.
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    title: "ClimExpert",
+    statusBarStyle: "default",
+  },
   robots: {
     index: true,
     follow: true,
