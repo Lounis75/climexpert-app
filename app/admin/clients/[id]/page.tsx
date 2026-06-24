@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import RgpdButtons from "./RgpdButtons";
 import ClientContactCard from "./ClientContactCard";
+import SendPortalAccess from "./SendPortalAccess";
 
 export const dynamic = "force-dynamic";
 
@@ -133,6 +134,7 @@ export default async function ClientDetailPage({
                   Portail client →
                 </Link>
               )}
+              <SendPortalAccess clientId={c.id} hasEmail={!!c.email} />
               <span className="inline-flex items-center gap-1.5 text-xs text-slate-400">
                 <span className="text-slate-500">Commercial :</span>
                 {commercial ? (

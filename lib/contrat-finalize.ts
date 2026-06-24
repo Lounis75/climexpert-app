@@ -78,6 +78,11 @@ export async function finalizeContrat(opts: {
   if (opts.client.email) {
     try {
       const resend = new Resend(process.env.RESEND_API_KEY);
+      const baseUrl = process.env.NEXT_PUBLIC_URL ?? "https://climexpert.fr";
+      const portalBtn = opts.client.clientToken
+        ? `<p>Retrouvez à tout moment vos documents, interventions et factures sur votre espace client :</p>
+<p><a href="${baseUrl}/suivi/${opts.client.clientToken}" style="background:#0ea5e9;color:white;padding:11px 22px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:bold;">Accéder à mon espace client</a></p>`
+        : "";
       await resend.emails.send({
         from: "ClimExpert <noreply@climexpert.fr>",
         to: process.env.EMAIL_TEST_OVERRIDE || opts.client.email,
@@ -85,6 +90,7 @@ export async function finalizeContrat(opts: {
         html: `<p>Bonjour ${opts.client.name},</p>
 <p>Merci de votre confiance. Vous trouverez ci-joint votre <strong>contrat d'entretien annuel</strong>, signé.</p>
 <p>Nous vous recontacterons avant chaque visite pour convenir d'un rendez-vous.</p>
+${portalBtn}
 <p>L'équipe ClimExpert<br>contact@climexpert.fr</p>`,
         attachments: [{ filename: "contrat-entretien.pdf", content: Buffer.from(pdf) }],
       });
