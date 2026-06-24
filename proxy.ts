@@ -63,6 +63,13 @@ export async function proxy(req: NextRequest) {
   // Espace technicien
   if (pathname.startsWith("/technicien") || pathname.startsWith("/api/technicien")) {
     if (matchesAny(pathname, TECH_PUBLIC)) return NextResponse.next();
+    // Clôture depuis le back-office : l'admin (sans session technicien) peut soumettre le
+    // rapport et uploader photos/signatures avec sa session admin. Ces 2 routes acceptent
+    // les deux rôles, on laisse donc passer admin_token dessus.
+    const clotureApi = pathname === "/api/technicien/rapports" || pathname === "/api/technicien/upload";
+    if (clotureApi && !req.cookies.get("tech_token")?.value && req.cookies.get("admin_token")?.value) {
+      return guardSpace(req, "admin_token", "/admin");
+    }
     return guardSpace(req, "tech_token", "/technicien/login");
   }
 
