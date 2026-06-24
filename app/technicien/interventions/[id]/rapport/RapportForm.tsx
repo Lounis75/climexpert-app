@@ -28,6 +28,7 @@ export default function RapportForm({
   const [dureeH, setDureeH]               = useState(""); // heures
   const [dureeM, setDureeM]               = useState(""); // minutes
   const [photos, setPhotos]               = useState<{ file: File; preview: string; url?: string }[]>([]);
+  const [dragOver, setDragOver]           = useState(false); // glisser-déposer (web)
   const [nbExt, setNbExt]                 = useState("1"); // nb d'unités extérieures
   const [nbInt, setNbInt]                 = useState("1"); // nb d'unités intérieures
   const [uploading, setUploading]         = useState(false);
@@ -56,7 +57,7 @@ export default function RapportForm({
   const [cFuites, setCFuites]             = useState<"oui" | "non">("non");
   const [cFuiteLoca, setCFuiteLoca]       = useState("");
 
-  async function addPhotos(files: FileList) {
+  async function addPhotos(files: FileList | File[]) {
     const newPhotos = Array.from(files).slice(0, 12 - photos.length);
     for (const f of newPhotos) {
       const preview = URL.createObjectURL(f);
@@ -320,7 +321,16 @@ export default function RapportForm({
         </div>
 
         {/* Photos, OBLIGATOIRES (1 par unité) */}
-        <div className="bg-white border border-slate-100 rounded-2xl p-5">
+        <div
+          className={`bg-white border rounded-2xl p-5 transition-colors ${dragOver ? "border-sky-400 ring-2 ring-sky-400/30" : "border-slate-100"}`}
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={(e) => { e.preventDefault(); setDragOver(false); }}
+          onDrop={(e) => {
+            e.preventDefault(); setDragOver(false);
+            const imgs = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith("image/"));
+            if (imgs.length) addPhotos(imgs);
+          }}
+        >
           <div className="flex items-center justify-between mb-3">
             <p className="text-sm font-semibold text-slate-900">
               Photos <span className={photos.length >= minPhotos ? "text-emerald-600" : "text-red-500"}>({photos.length}/{minPhotos} min)</span>
@@ -362,9 +372,10 @@ export default function RapportForm({
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="w-full border-2 border-dashed border-slate-200 rounded-xl py-8 text-slate-400 text-sm text-center"
+              className="w-full border-2 border-dashed border-slate-200 rounded-xl py-8 text-slate-400 text-sm text-center hover:border-slate-300 transition-colors"
             >
-              Appuyer pour ajouter des photos
+              <span className="sm:hidden">Appuyer pour ajouter des photos</span>
+              <span className="hidden sm:inline">Glisser-déposer des photos ici, ou cliquer</span>
             </button>
           )}
         </div>
