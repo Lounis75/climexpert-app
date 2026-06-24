@@ -7,10 +7,11 @@ import {
   Phone, Bot, FileText, MapPin, Wrench,
   MessageSquare, Clock, LayoutList, Columns3, UserPlus, CheckCircle2,
   AlertTriangle, GitMerge, X, Search, Mail, ChevronRight, Briefcase, Plus,
-  Pencil, Check, ShieldCheck, CalendarPlus, Star, Maximize2, Minimize2,
+  Pencil, Check, ShieldCheck, CalendarPlus, Star, Maximize2, Minimize2, ClipboardPaste,
 } from "lucide-react";
 import type { Lead, LeadStatus } from "@/lib/leads";
 import { detectDuplicates, leadAction } from "@/lib/leads-utils";
+import { extractPhones } from "@/lib/phone";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 import LeadQualification from "./LeadQualification";
 
@@ -135,6 +136,25 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
     if (found) { setSelectedLead(found); openedFromUrl.current = true; }
   }, [searchParams, leads]);
   const [showAddModal, setShowAddModal] = useState(false);
+  // Import en masse de numéros à rappeler
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkText, setBulkText] = useState("");
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkResult, setBulkResult] = useState<{ created: number; skipped: number; total: number } | null>(null);
+  const bulkDetected = useMemo(() => extractPhones(bulkText).length, [bulkText]);
+
+  async function importNumbers() {
+    setBulkLoading(true); setBulkResult(null);
+    try {
+      const res = await fetch("/api/admin/leads/bulk", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: bulkText }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) { alert("⚠️ " + (d.error ?? "Erreur lors de l'import")); return; }
+      setBulkResult(d);
+    } finally { setBulkLoading(false); }
+  }
   const [addForm, setAddForm] = useState({ name: "", phone: "", source: "téléphone", project: "", location: "", address: "", email: "", notes: "", consentementMarketing: false, typeClient: "particulier" });
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState("");
@@ -731,10 +751,20 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
           )}
         </div>
 
+        {/* Import en masse de numéros à rappeler */}
+        <button
+          onClick={() => { setBulkOpen(true); setBulkResult(null); }}
+          title="Coller une liste de numéros entrants à rappeler"
+          className="ml-auto flex items-center gap-1.5 px-3 py-1.5 bg-slate-800/60 border border-white/10 hover:border-white/20 text-slate-200 text-xs font-semibold rounded-xl transition-colors"
+        >
+          <ClipboardPaste className="w-3.5 h-3.5" />
+          Importer des numéros
+        </button>
+
         {/* Add lead button */}
         <button
           onClick={() => { setShowAddModal(true); setAddError(""); }}
-          className="ml-auto flex items-center gap-1.5 px-3 py-1.5 bg-sky-500 hover:bg-sky-400 text-white text-xs font-semibold rounded-xl transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-sky-500 hover:bg-sky-400 text-white text-xs font-semibold rounded-xl transition-colors"
         >
           <Plus className="w-3.5 h-3.5" />
           Ajouter un lead
@@ -1714,6 +1744,42 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
       })()}
 
       {/* ─── Modal ajout lead manuel ─────────────────────────────────────────── */}
+      {bulkOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { setBulkOpen(false); setBulkResult(null); }} />
+          <div className="relative bg-[#0f1623] border border-white/10 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
+              <h2 className="text-white font-semibold text-sm flex items-center gap-2"><ClipboardPaste className="w-4 h-4 text-sky-400" /> Importer des numéros à rappeler</h2>
+              <button onClick={() => { setBulkOpen(false); setBulkResult(null); }} className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-500 hover:text-white hover:bg-white/8 transition-colors"><X className="w-4 h-4" /></button>
+            </div>
+            <div className="p-5 space-y-4">
+              {bulkResult ? (
+                <div className="text-center py-3">
+                  <div className="w-12 h-12 rounded-full bg-emerald-500/15 flex items-center justify-center mx-auto mb-3"><CheckCircle2 className="w-7 h-7 text-emerald-400" /></div>
+                  <p className="text-white font-semibold">{bulkResult.created} prospect{bulkResult.created > 1 ? "s" : ""} ajouté{bulkResult.created > 1 ? "s" : ""}</p>
+                  <p className="text-slate-400 text-sm mt-1">{bulkResult.skipped} déjà présent{bulkResult.skipped > 1 ? "s" : ""} ou ignoré{bulkResult.skipped > 1 ? "s" : ""}, sur {bulkResult.total} numéro{bulkResult.total > 1 ? "s" : ""} détecté{bulkResult.total > 1 ? "s" : ""}.</p>
+                  <button onClick={() => window.location.reload()} className="mt-4 px-4 py-2 bg-sky-500 hover:bg-sky-400 text-white text-sm font-semibold rounded-xl transition-colors">Voir les prospects</button>
+                </div>
+              ) : (
+                <>
+                  <p className="text-slate-400 text-xs leading-relaxed">Colle ta liste de numéros (un par ligne, ou copiés depuis le journal d&apos;appels). Tous formats acceptés : <span className="text-slate-300">+33 6…</span>, <span className="text-slate-300">06…</span>. Les numéros déjà dans la base sont automatiquement ignorés. Ils arrivent en colonne <span className="text-slate-300">Nouveau</span> (source Téléphone), prêts à rappeler et qualifier.</p>
+                  <textarea value={bulkText} onChange={(e) => setBulkText(e.target.value)} rows={9}
+                    placeholder={"+33 6 84 02 55 48\n06 33 17 96 56\n07 68 17 63 55\n…"}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-900/60 border border-white/10 text-white text-sm placeholder-slate-600 focus:outline-none focus:border-sky-500/50 resize-none font-mono" />
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-500">{bulkDetected} numéro{bulkDetected > 1 ? "s" : ""} valide{bulkDetected > 1 ? "s" : ""} détecté{bulkDetected > 1 ? "s" : ""}</span>
+                    <button onClick={importNumbers} disabled={bulkLoading || bulkDetected === 0}
+                      className="px-4 py-2 bg-sky-500 hover:bg-sky-400 disabled:opacity-40 text-white text-sm font-semibold rounded-xl transition-colors">
+                      {bulkLoading ? "Import…" : `Importer ${bulkDetected || ""}`}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowAddModal(false)} />
