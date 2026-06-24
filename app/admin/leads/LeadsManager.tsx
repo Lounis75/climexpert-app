@@ -606,6 +606,8 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
     const active = lead.status !== "gagné" && lead.status !== "perdu";
     const daysSince = Math.floor((Date.now() - new Date(lastAct ?? lead.createdAt).getTime()) / 86400000);
     const enSommeil = active && !action && !pal && daysSince >= 7;
+    // Devis accepté en ligne par le client (signé) -> mise en avant dorée.
+    const devisSigne = lead.devisDecision === "accepte";
 
     return (
       <div
@@ -613,8 +615,10 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
         onDragStart={(e) => onDragStart(e, lead.id)}
         onClick={() => setSelectedLead(lead)}
         className={`bg-slate-800/40 border rounded-xl px-3 py-2.5 transition-colors cursor-pointer hover:bg-slate-800/70 select-none ${
-          action ? "border-red-500/40 hover:border-red-500/60" : lead.status === "nouveau" ? "border-sky-500/20 hover:border-white/15" : "border-white/[0.06] hover:border-white/15"
-        } ${lead.favori ? "ring-1 ring-amber-400/40" : ""}`}
+          devisSigne
+            ? "border-amber-400/60 ring-1 ring-amber-400/50 bg-amber-500/[0.04] hover:border-amber-400/80"
+            : action ? "border-red-500/40 hover:border-red-500/60" : lead.status === "nouveau" ? "border-sky-500/20 hover:border-white/15" : "border-white/[0.06] hover:border-white/15"
+        } ${lead.favori && !devisSigne ? "ring-1 ring-amber-400/40" : ""}`}
       >
         {/* Ligne 1 : étoile + nom (héros) + doublon + pastille commercial */}
         <div className="flex items-center gap-2">
@@ -649,6 +653,13 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
         {/* Ligne 2 : type · lieu */}
         {meta.length > 0 && (
           <p className="text-slate-400 text-xs mt-1 truncate">{meta.join(" · ")}</p>
+        )}
+
+        {/* Devis signé en ligne par le client */}
+        {devisSigne && (
+          <span className="inline-flex items-center gap-1 mt-1.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-400/40">
+            <CheckCircle2 className="w-3 h-3" /> Devis signé
+          </span>
         )}
 
         {/* Ligne 3 : dernière activité (ou source) · action rouge / relance planifiée / sous-statut */}
@@ -944,13 +955,14 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
           {filtered.map((lead) => {
             const statusCfg = STATUS_CONFIG[lead.status];
             const listDupes = duplicatesMap.get(lead.id) ?? [];
+            const devisSigne = lead.devisDecision === "accepte";
             return (
               <div
                 key={lead.id}
                 onClick={() => setSelectedLead(lead)}
                 className={`bg-slate-800/40 border rounded-2xl p-4 transition-all cursor-pointer hover:bg-slate-800/70 ${
-                  lead.status === "nouveau" ? "border-sky-500/20" : "border-white/8"
-                } ${lead.favori ? "ring-1 ring-amber-400/40" : ""}`}
+                  devisSigne ? "border-amber-400/60 ring-1 ring-amber-400/50 bg-amber-500/[0.04]" : lead.status === "nouveau" ? "border-sky-500/20" : "border-white/8"
+                } ${lead.favori && !devisSigne ? "ring-1 ring-amber-400/40" : ""}`}
               >
                 {/* Top row */}
                 <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
