@@ -72,7 +72,7 @@ export default function LeadQualification({
                     <label className="block text-[11px] text-slate-400 mb-1">{c.label}</label>
                     {c.type === "select" ? (
                       <select value={form[c.key] ?? ""} onChange={(e) => set(c.key, e.target.value)} className={inputCls}>
-                        <option value="">SÃ©lectionner</option>
+                        <option value="">Sélectionner</option>
                         {c.options!.map((o) => <option key={o} value={o}>{o}</option>)}
                       </select>
                     ) : c.type === "textarea" ? (
