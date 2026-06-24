@@ -207,6 +207,14 @@ export const leads = pgTable("leads", {
   notes:               text("notes"),
   // Montant du devis (centimes), à renseigner dès le passage en "devis_envoyé".
   montantDevisCt:      integer("montant_devis_ct"),
+  // ── Devis externe (fait sur un logiciel tiers) envoyé au client pour décision en ligne ──
+  devisUrl:            text("devis_url"),                            // PDF du devis stocké (R2)
+  devisNomFichier:     varchar("devis_nom_fichier", { length: 255 }),
+  devisEnvoyeLe:       timestamp("devis_envoye_le"),                 // date d'envoi au client
+  devisToken:          varchar("devis_token", { length: 100 }).unique(), // lien public de décision
+  devisDecision:       varchar("devis_decision", { length: 20 }),    // null | "accepte" | "refuse"
+  devisDecisionLe:     timestamp("devis_decision_le"),
+  devisMotifRefus:     text("devis_motif_refus"),                    // motif (préfait ou libre) si refusé
   // Sous-statut quand le contact est établi (avant l'envoi du devis) :
   // "rdv_pris" | "a_recontacter" | "devis_a_faire". Null = non précisé.
   prochaineEtape:      varchar("prochaine_etape", { length: 20 }),

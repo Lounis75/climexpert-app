@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { leads, devis, factures, interventions, clients, savTickets, logsAlex, techniciens, contratsEntretien } from "@/lib/db/schema";
-import { eq, gte, lte, ne, desc, and, sql, isNull, count, notInArray, inArray } from "drizzle-orm";
+import { eq, gte, lte, ne, desc, and, sql, isNull, isNotNull, count, notInArray, inArray } from "drizzle-orm";
 
 export type DashboardStats = {
   // Factures
@@ -513,6 +513,36 @@ export async function getApercuCommercial(): Promise<ApercuCommercial> {
     devisEnvoyesN, devisEnvoyesCt, gagnesN, gagnesCt,
     contratsActifs: contratRows.length,
     contratsCaAnnuelCt: contratRows.reduce((s, c) => s + (c.prix ?? 0), 0),
+  };
+}
+
+// Suivi des devis (PDF) envoyés au client : en attente de sa décision vs validés.
+export type SuiviDevisDecision = {
+  enAttente: { id: string; name: string; montantDevisCt: number | null; devisEnvoyeLe: Date | null }[];
+  valides: { id: string; name: string; montantDevisCt: number | null; devisDecisionLe: Date | null }[];
+  attenteN: number; attenteCt: number; validesN: number; refusesN: number;
+};
+
+export async function getSuiviDevisDecision(): Promise<SuiviDevisDecision> {
+  const [enAttente, valides, validesCountRow, refusesRow] = await Promise.all([
+    db.select({ id: leads.id, name: leads.name, montantDevisCt: leads.montantDevisCt, devisEnvoyeLe: leads.devisEnvoyeLe })
+      .from(leads)
+      .where(and(isNotNull(leads.devisEnvoyeLe), isNull(leads.devisDecision), isNull(leads.supprimeLe)))
+      .orderBy(leads.devisEnvoyeLe),
+    db.select({ id: leads.id, name: leads.name, montantDevisCt: leads.montantDevisCt, devisDecisionLe: leads.devisDecisionLe })
+      .from(leads)
+      .where(and(eq(leads.devisDecision, "accepte"), isNull(leads.supprimeLe)))
+      .orderBy(desc(leads.devisDecisionLe))
+      .limit(6),
+    db.select({ n: count() }).from(leads).where(and(eq(leads.devisDecision, "accepte"), isNull(leads.supprimeLe))),
+    db.select({ n: count() }).from(leads).where(and(eq(leads.devisDecision, "refuse"), isNull(leads.supprimeLe))),
+  ]);
+  return {
+    enAttente, valides,
+    attenteN: enAttente.length,
+    attenteCt: enAttente.reduce((s, l) => s + (l.montantDevisCt ?? 0), 0),
+    validesN: Number(validesCountRow[0]?.n ?? 0),
+    refusesN: Number(refusesRow[0]?.n ?? 0),
   };
 }
 

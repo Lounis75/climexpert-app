@@ -1,4 +1,4 @@
-import { getDashboardStats, getTachesAFaire, getProchainesInterventions, getInterventionsAPlanifier, getInterventionsParClient, getCaSigne, getApercuCommercial } from "@/lib/dashboard";
+import { getDashboardStats, getTachesAFaire, getProchainesInterventions, getInterventionsAPlanifier, getInterventionsParClient, getCaSigne, getApercuCommercial, getSuiviDevisDecision } from "@/lib/dashboard";
 import { getRelancesDuJour } from "@/lib/actions";
 import { getAudience } from "@/lib/analytics";
 import { getDynamicArticles, isPublished } from "@/lib/dynamicArticles";
@@ -61,7 +61,7 @@ const TASK_COLORS: Record<string, string> = {
 };
 
 export default async function DashboardPage() {
-  const [stats, dynamicArticles, taches, interventionsJour, interventionsAPlanifier, commerciaux, techOptions, audience, caSigne, apercu, relances] = await Promise.all([
+  const [stats, dynamicArticles, taches, interventionsJour, interventionsAPlanifier, commerciaux, techOptions, audience, caSigne, apercu, relances, suiviDevis] = await Promise.all([
     getDashboardStats(),
     getDynamicArticles(),
     getTachesAFaire(),
@@ -73,6 +73,7 @@ export default async function DashboardPage() {
     getCaSigne(),                 // CA signé semaine/mois/année (montant TTC des "gagné")
     getApercuCommercial(),        // devis envoyés / validés / contrats actifs
     getRelancesDuJour(),          // prospects à traiter aujourd'hui (nominatif)
+    getSuiviDevisDecision(),      // devis PDF : en attente de décision client / validés
   ]);
 
   // Interventions par client (pour le bouton Créer/Voir sur les prospects gagnés).
@@ -364,6 +365,63 @@ export default async function DashboardPage() {
           </div>
 
         </div>
+
+        {/* ─── Devis envoyés au client : en attente de validation / validés ──────── */}
+        {(suiviDevis.attenteN > 0 || suiviDevis.validesN > 0) && (
+          <div className="grid lg:grid-cols-2 gap-6 mb-6">
+            {/* En attente de validation */}
+            <div className="bg-slate-800/40 border border-white/8 rounded-2xl overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
+                <h2 className="text-white font-semibold text-sm flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-amber-400" /> Devis en attente de validation
+                  <span className="text-amber-400 text-xs font-bold bg-amber-500/15 px-2 py-0.5 rounded-full">{suiviDevis.attenteN}</span>
+                </h2>
+                {suiviDevis.attenteCt > 0 && <span className="text-slate-500 text-xs">{euros(suiviDevis.attenteCt)}</span>}
+              </div>
+              {suiviDevis.enAttente.length === 0 ? (
+                <p className="py-8 text-center text-slate-500 text-sm">Aucun devis en attente.</p>
+              ) : (
+                <div className="divide-y divide-white/5">
+                  {suiviDevis.enAttente.slice(0, 8).map((d) => (
+                    <Link key={d.id} href="/admin/leads" className="flex items-center justify-between px-5 py-3 hover:bg-white/[0.02] transition-colors">
+                      <div className="min-w-0">
+                        <p className="text-white text-sm truncate">{d.name}</p>
+                        <p className="text-slate-500 text-xs">Envoyé le {d.devisEnvoyeLe ? new Date(d.devisEnvoyeLe).toLocaleDateString("fr-FR") : "—"}</p>
+                      </div>
+                      <span className="text-slate-300 text-sm font-semibold tabular-nums flex-shrink-0">{d.montantDevisCt ? euros(d.montantDevisCt) : "—"}</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Validés (acceptés par le client) */}
+            <div className="bg-slate-800/40 border border-white/8 rounded-2xl overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
+                <h2 className="text-white font-semibold text-sm flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Devis validés
+                  <span className="text-emerald-400 text-xs font-bold bg-emerald-500/15 px-2 py-0.5 rounded-full">{suiviDevis.validesN}</span>
+                </h2>
+                {suiviDevis.refusesN > 0 && <span className="text-slate-500 text-xs">{suiviDevis.refusesN} décliné{suiviDevis.refusesN > 1 ? "s" : ""}</span>}
+              </div>
+              {suiviDevis.valides.length === 0 ? (
+                <p className="py-8 text-center text-slate-500 text-sm">Aucun devis validé pour l&apos;instant.</p>
+              ) : (
+                <div className="divide-y divide-white/5">
+                  {suiviDevis.valides.map((d) => (
+                    <Link key={d.id} href="/admin/leads" className="flex items-center justify-between px-5 py-3 hover:bg-white/[0.02] transition-colors">
+                      <div className="min-w-0">
+                        <p className="text-white text-sm truncate">{d.name}</p>
+                        <p className="text-emerald-400/70 text-xs">Accepté le {d.devisDecisionLe ? new Date(d.devisDecisionLe).toLocaleDateString("fr-FR") : "—"}</p>
+                      </div>
+                      <span className="text-emerald-300 text-sm font-semibold tabular-nums flex-shrink-0">{d.montantDevisCt ? euros(d.montantDevisCt) : "—"}</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* ─── Audience (7 derniers jours) ───────────────────────────────────────── */}
         <div className="bg-slate-800/40 border border-white/8 rounded-2xl p-5 mb-6">

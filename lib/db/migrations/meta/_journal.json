@@ -197,6 +197,13 @@
       "when": 1782250726133,
       "tag": "0027_contrat_signature_distance",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1782294308062,
+      "tag": "0028_lead_devis_decision",
+      "breakpoints": true
     }
   ]
 }

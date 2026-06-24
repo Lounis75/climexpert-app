@@ -155,6 +155,39 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
       setBulkResult(d);
     } finally { setBulkLoading(false); }
   }
+
+  // Envoi d'un devis (PDF externe) au prospect ouvert dans le panneau
+  const [devisOpen, setDevisOpen] = useState(false);
+  const [devisFile, setDevisFile] = useState<File | null>(null);
+  const [devisMontant, setDevisMontant] = useState("");
+  const [devisMessage, setDevisMessage] = useState("");
+  const [devisSending, setDevisSending] = useState(false);
+  const [devisError, setDevisError] = useState("");
+  const [devisDrag, setDevisDrag] = useState(false);
+
+  function openDevis(l: Lead) {
+    setDevisFile(null); setDevisError(""); setDevisMessage("");
+    setDevisMontant(l.montantDevisCt ? String(l.montantDevisCt / 100) : "");
+    setDevisOpen(true);
+  }
+
+  async function sendDevis() {
+    const id = selectedLead?.id;
+    if (!id || !devisFile) return;
+    setDevisSending(true); setDevisError("");
+    try {
+      const fd = new FormData();
+      fd.append("file", devisFile);
+      if (devisMontant.trim()) fd.append("montant", devisMontant.trim());
+      if (devisMessage.trim()) fd.append("message", devisMessage.trim());
+      const res = await fetch(`/api/admin/leads/${id}/devis`, { method: "POST", body: fd });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) { setDevisError(d.error ?? "Échec de l'envoi."); return; }
+      setDevisOpen(false);
+      window.location.reload(); // refléter le nouveau statut + l'historique
+    } catch { setDevisError("Erreur réseau, réessayez."); }
+    finally { setDevisSending(false); }
+  }
   const [addForm, setAddForm] = useState({ name: "", phone: "", source: "téléphone", project: "", location: "", address: "", email: "", notes: "", consentementMarketing: false, typeClient: "particulier" });
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState("");
@@ -1438,6 +1471,39 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                   </div>
                 )}
 
+                {/* ─── Devis (PDF) : envoi au client + suivi de sa décision ─── */}
+                <div className="rounded-xl border border-white/10 bg-slate-900/30 p-3">
+                  <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide flex items-center gap-1.5">
+                    <FileText className="w-3 h-3" /> Devis
+                  </p>
+                  {lead.devisDecision === "accepte" ? (
+                    <div className="flex items-center gap-2 text-emerald-400 text-sm">
+                      <CheckCircle2 className="w-4 h-4 flex-shrink-0" /> Accepté par le client{lead.devisDecisionLe ? ` le ${new Date(lead.devisDecisionLe).toLocaleDateString("fr-FR")}` : ""}
+                    </div>
+                  ) : lead.devisDecision === "refuse" ? (
+                    <div className="text-sm">
+                      <div className="flex items-center gap-2 text-red-400"><X className="w-4 h-4 flex-shrink-0" /> Décliné{lead.devisDecisionLe ? ` le ${new Date(lead.devisDecisionLe).toLocaleDateString("fr-FR")}` : ""}</div>
+                      {lead.devisMotifRefus && <p className="text-slate-400 text-xs mt-1">Motif : {lead.devisMotifRefus}</p>}
+                      <button onClick={() => openDevis(lead)} className="mt-2 text-sky-400 hover:text-sky-300 text-xs font-medium">Renvoyer un devis</button>
+                    </div>
+                  ) : lead.devisEnvoyeLe ? (
+                    <div className="text-sm">
+                      <div className="flex items-center gap-2 text-violet-300"><Clock className="w-4 h-4 flex-shrink-0" /> Envoyé le {new Date(lead.devisEnvoyeLe).toLocaleDateString("fr-FR")}, en attente de réponse</div>
+                      <div className="flex items-center gap-3 mt-2">
+                        {lead.devisUrl && <a href={lead.devisUrl} target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:text-sky-300 text-xs font-medium">Voir le PDF</a>}
+                        <button onClick={() => openDevis(lead)} className="text-slate-400 hover:text-white text-xs font-medium">Renvoyer</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button onClick={() => openDevis(lead)} disabled={!lead.email} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-sky-500 hover:bg-sky-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors">
+                      <FileText className="w-4 h-4" /> Envoyer un devis au client
+                    </button>
+                  )}
+                  {!lead.email && (
+                    <p className="text-amber-400 text-[11px] mt-2 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Ajoute un e-mail à ce prospect pour pouvoir lui envoyer le devis.</p>
+                  )}
+                </div>
+
                 {/* Date souhaitée d'intervention (dès l'envoi du devis) */}
                 {(lead.status === "devis_envoyé" || lead.status === "gagné") && (
                   <div>
@@ -1744,6 +1810,50 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
       })()}
 
       {/* ─── Modal ajout lead manuel ─────────────────────────────────────────── */}
+      {devisOpen && selectedLead && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setDevisOpen(false)} />
+          <div className="relative bg-[#0f1623] border border-white/10 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
+              <h2 className="text-white font-semibold text-sm flex items-center gap-2"><FileText className="w-4 h-4 text-sky-400" /> Envoyer un devis</h2>
+              <button onClick={() => setDevisOpen(false)} className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-500 hover:text-white hover:bg-white/8 transition-colors"><X className="w-4 h-4" /></button>
+            </div>
+            <div className="p-5 space-y-4">
+              <p className="text-slate-400 text-xs leading-relaxed">Glisse le PDF de ton devis (fait sur ton logiciel). Il part par e-mail à <span className="text-white">{selectedLead.email ?? "—"}</span> avec les boutons <span className="text-emerald-300">Accepter</span> / <span className="text-red-300">Décliner</span>.</p>
+
+              <label
+                onDragOver={(e) => { e.preventDefault(); setDevisDrag(true); }}
+                onDragLeave={() => setDevisDrag(false)}
+                onDrop={(e) => { e.preventDefault(); setDevisDrag(false); const f = e.dataTransfer.files?.[0]; if (f && f.type === "application/pdf") { setDevisFile(f); setDevisError(""); } else setDevisError("Le fichier doit être un PDF."); }}
+                className={`flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-8 cursor-pointer transition-colors ${devisDrag ? "border-sky-500 bg-sky-500/10" : devisFile ? "border-emerald-500/40 bg-emerald-500/5" : "border-white/15 hover:border-white/30 bg-slate-900/40"}`}
+              >
+                <input type="file" accept="application/pdf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) { setDevisFile(f); setDevisError(""); } }} />
+                {devisFile ? (
+                  <><CheckCircle2 className="w-7 h-7 text-emerald-400" /><span className="text-white text-sm font-medium text-center break-all px-2">{devisFile.name}</span><span className="text-slate-500 text-xs">Cliquer pour changer</span></>
+                ) : (
+                  <><FileText className="w-7 h-7 text-slate-500" /><span className="text-slate-300 text-sm">Glisser le PDF ici, ou cliquer</span><span className="text-slate-500 text-xs">PDF, 10 Mo max</span></>
+                )}
+              </label>
+
+              <div>
+                <label className="block text-[11px] text-slate-400 mb-1">Montant TTC (€) — facultatif</label>
+                <input type="number" min="0" value={devisMontant} onChange={(e) => setDevisMontant(e.target.value)} placeholder="ex : 3500" className="w-full px-3 py-2 rounded-lg bg-slate-900/60 border border-white/10 text-white text-sm placeholder-slate-600 focus:outline-none focus:border-sky-500/50" />
+              </div>
+              <div>
+                <label className="block text-[11px] text-slate-400 mb-1">Mot d&apos;accompagnement — facultatif</label>
+                <textarea value={devisMessage} onChange={(e) => setDevisMessage(e.target.value)} rows={2} placeholder="Bonjour, voici votre devis suite à notre échange…" className="w-full px-3 py-2 rounded-lg bg-slate-900/60 border border-white/10 text-white text-sm placeholder-slate-600 focus:outline-none focus:border-sky-500/50 resize-none" />
+              </div>
+
+              {devisError && <p className="text-red-400 text-xs bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{devisError}</p>}
+
+              <button onClick={sendDevis} disabled={devisSending || !devisFile} className="w-full py-2.5 rounded-lg bg-sky-500 hover:bg-sky-400 disabled:opacity-40 text-white text-sm font-semibold transition-colors">
+                {devisSending ? "Envoi en cours…" : "Envoyer le devis au client"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {bulkOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { setBulkOpen(false); setBulkResult(null); }} />
