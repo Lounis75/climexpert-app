@@ -5,7 +5,7 @@
 
 export type Qualification = {
   // 🏠 Le bien
-  typeBien?: string; clientType?: string;
+  typeBien?: string; clientType?: string; siret?: string;
   // 🔧 Prestation
   natureProjet?: string;
   // Entretien (équipement existant à entretenir)
@@ -48,6 +48,8 @@ export const QUALIF_GROUPS: QualifGroup[] = [
     titre: "Le bien", emoji: "🏠", champs: [
       { key: "typeBien",   label: "Type de bien", type: "select", options: ["Maison", "Appartement", "Local commercial", "Bureau", "Autre"] },
       { key: "clientType", label: "Client",       type: "select", options: ["Particulier", "Professionnel"] },
+      // Pro -> on demande le SIRET (facilite la facturation et la recherche du client).
+      { key: "siret",      label: "N° SIRET (professionnel)", type: "text", placeholder: "ex : 123 456 789 00012", full: true, showIf: (q) => q.clientType === "Professionnel" },
     ],
   },
   {

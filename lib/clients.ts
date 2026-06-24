@@ -116,6 +116,7 @@ export async function createClientFromLead(leadId: string): Promise<Client | nul
     email: lead.email ?? undefined,
     address: lead.address ?? undefined,
     city: lead.location ?? undefined,
+    siret: lead.qualification?.siret?.trim() || undefined, // SIRET pro saisi en qualification
     notes: notes || undefined,
     leadId: lead.id,
   });
