@@ -47,7 +47,10 @@ export function buildContratData(contrat: Contrat, client: Client, opts?: { clie
         { type: contrat.units > 1 ? `${contrat.units} unités intérieures` : "Unité intérieure", model: contrat.marque ?? undefined, location: "Intérieur", fluid: contrat.fluide ?? undefined },
       ],
     },
-    finance: { ttc: contrat.prixUnitaireCt / 100 },
+    // La grille (prixUnitaireCt) est exprimée en TTC pour un particulier (TVA 10 %). On en
+    // déduit le HT ; le PDF applique ensuite la bonne TVA selon le type de client (10 %
+    // particulier / 20 % pro) et recalcule le TTC. Un pro paie donc le même HT, TTC à +20 %.
+    finance: { ht: (contrat.prixUnitaireCt / 100) / 1.10 },
     clientSignatureDataUrl: opts?.clientSignatureDataUrl,
   };
 }

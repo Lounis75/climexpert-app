@@ -1276,6 +1276,25 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                   </div>
                 ) : (
                 <>
+                {/* Gagné & converti : action principale mise en avant tout en haut */}
+                {lead.status === "gagné" && isConverted && lead.clientId && (
+                  <div className="bg-emerald-500/[0.08] border border-emerald-500/30 rounded-2xl p-4">
+                    <p className="text-emerald-300 text-sm font-semibold flex items-center gap-2 mb-2.5">
+                      <CheckCircle2 className="w-4 h-4" /> Devis gagné, prochaine étape
+                    </p>
+                    <Link
+                      href={`/admin/interventions/new?client=${lead.clientId}${
+                        (lead as Lead & { dateSouhaiteeIntervention?: string | null }).dateSouhaiteeIntervention
+                          ? `&date=${encodeURIComponent(toLocalDT((lead as Lead & { dateSouhaiteeIntervention?: string | null }).dateSouhaiteeIntervention))}`
+                          : ""
+                      }`}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-500 hover:bg-emerald-400 text-white rounded-xl text-sm font-semibold transition-colors"
+                    >
+                      <CalendarPlus className="w-4 h-4" /> Créer l&apos;intervention
+                    </Link>
+                  </div>
+                )}
+
                 {/* Contact info */}
                 <div className="bg-slate-800/40 border border-white/8 rounded-2xl p-4 space-y-3">
                   <a
@@ -1730,19 +1749,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                   ) : null}
                 </div>
 
-                {/* Client gagné & converti → créer l'intervention (pré-remplie avec la date souhaitée) */}
-                {lead.status === "gagné" && isConverted && lead.clientId && (
-                  <Link
-                    href={`/admin/interventions/new?client=${lead.clientId}${
-                      (lead as Lead & { dateSouhaiteeIntervention?: string | null }).dateSouhaiteeIntervention
-                        ? `&date=${encodeURIComponent(toLocalDT((lead as Lead & { dateSouhaiteeIntervention?: string | null }).dateSouhaiteeIntervention))}`
-                        : ""
-                    }`}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-sky-500 hover:bg-sky-400 text-white rounded-xl text-sm font-semibold transition-colors mt-1"
-                  >
-                    <CalendarPlus className="w-4 h-4" /> Créer l&apos;intervention
-                  </Link>
-                )}
+                {/* « Créer l'intervention » est désormais mis en avant en haut du panneau. */}
 
               </div>
             </div>
