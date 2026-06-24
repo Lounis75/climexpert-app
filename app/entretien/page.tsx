@@ -213,22 +213,37 @@ export default function EntretienPage() {
               ))}
             </div>
 
-            {/* Prix mis en avant */}
-            <div className="mt-10 bg-[#0B1120] rounded-3xl p-8 lg:p-12 flex flex-col lg:flex-row items-center justify-between gap-8">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Contrat annuel</p>
-                <div className="flex items-baseline gap-3">
-                  <span className="text-5xl font-extrabold text-emerald-400">200 €<span className="text-xl font-semibold ml-1.5 opacity-60">TTC</span></span>
-                  <span className="text-slate-400 text-lg">/ 1ère unité</span>
+            {/* Prix mis en avant : avec / sans contrat */}
+            <div className="mt-10 bg-[#0B1120] rounded-3xl p-8 lg:p-12">
+              <div className="flex flex-col lg:flex-row items-stretch gap-6">
+                <div className="grid sm:grid-cols-2 gap-5 flex-1">
+                  {/* Avec contrat */}
+                  <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/[0.06] p-5">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 mb-2">Avec contrat d&apos;entretien</p>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-4xl font-extrabold text-emerald-400">200 €<span className="text-lg font-semibold ml-1.5 opacity-60">TTC</span></span>
+                      <span className="text-slate-400 text-sm">/ an · 1 unité</span>
+                    </div>
+                    <p className="text-slate-400 text-xs mt-1.5">Tarif réduit, entretien annuel programmé.</p>
+                  </div>
+                  {/* Sans contrat */}
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Entretien ponctuel (sans contrat)</p>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-4xl font-extrabold text-white">250 €<span className="text-lg font-semibold ml-1.5 opacity-60">TTC</span></span>
+                      <span className="text-slate-400 text-sm">/ 1 unité</span>
+                    </div>
+                    <p className="text-slate-400 text-xs mt-1.5">Visite à l&apos;unité, sans engagement.</p>
+                  </div>
                 </div>
-                <p className="text-slate-400 text-sm mt-1">+60 € TTC/unité supplémentaire · Paris intramuros · Majoration selon distance et accessibilité</p>
+                <a
+                  href="#devis"
+                  className="flex-shrink-0 self-center inline-flex items-center gap-2 px-8 py-4 bg-emerald-500 hover:bg-emerald-400 text-white font-semibold rounded-2xl transition-all duration-200 shadow-lg shadow-emerald-500/25 whitespace-nowrap"
+                >
+                  Souscrire un contrat
+                </a>
               </div>
-              <a
-                href="#devis"
-                className="flex-shrink-0 inline-flex items-center gap-2 px-8 py-4 bg-emerald-500 hover:bg-emerald-400 text-white font-semibold rounded-2xl transition-all duration-200 shadow-lg shadow-emerald-500/25 whitespace-nowrap"
-              >
-                Souscrire un contrat
-              </a>
+              <p className="text-slate-500 text-xs mt-5">+60 € TTC/unité supplémentaire · Paris intramuros · Majoration selon distance et accessibilité. Professionnels : TVA 20 % (182 € HT avec contrat, 228 € HT sans contrat).</p>
             </div>
           </div>
         </section>

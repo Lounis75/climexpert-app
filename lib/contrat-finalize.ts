@@ -4,6 +4,7 @@
 // et par la clôture terrain (rapport technicien).
 
 import { generateContratPDF, type ContratData } from "@/lib/contrat-pdf";
+import { entretienPrix } from "@/lib/contrat-pricing";
 import { r2PutFile } from "@/lib/r2";
 import { db } from "@/lib/db";
 import { documents, contratsEntretien, clients } from "@/lib/db/schema";
@@ -16,6 +17,14 @@ type Contrat = InferSelectModel<typeof contratsEntretien>;
 type Client = InferSelectModel<typeof clients>;
 
 export function buildContratData(contrat: Contrat, client: Client, opts?: { clientSignatureDataUrl?: string }): ContratData {
+  // Un contrat = entretien AVEC contrat. Le prix dépend du type de client (TVA 10/20) :
+  // particulier 181,82 € HT (200 TTC), pro 182 € HT (218,40 TTC). Recalculé ici pour être
+  // juste même sur les anciens contrats (la colonne prix stocke la référence particulier).
+  const prix = entretienPrix({
+    withContract: true,
+    pro: client.typeClient === "professionnel",
+    units: contrat.units,
+  });
   return {
     clientType: client.typeClient === "professionnel" ? "professionnel" : "particulier",
     contract: {
@@ -47,10 +56,7 @@ export function buildContratData(contrat: Contrat, client: Client, opts?: { clie
         { type: contrat.units > 1 ? `${contrat.units} unités intérieures` : "Unité intérieure", model: contrat.marque ?? undefined, location: "Intérieur", fluid: contrat.fluide ?? undefined },
       ],
     },
-    // La grille (prixUnitaireCt) est exprimée en TTC pour un particulier (TVA 10 %). On en
-    // déduit le HT ; le PDF applique ensuite la bonne TVA selon le type de client (10 %
-    // particulier / 20 % pro) et recalcule le TTC. Un pro paie donc le même HT, TTC à +20 %.
-    finance: { ht: (contrat.prixUnitaireCt / 100) / 1.10 },
+    finance: { ht: prix.htCt / 100, vatRate: prix.vatRate },
     clientSignatureDataUrl: opts?.clientSignatureDataUrl,
   };
 }
