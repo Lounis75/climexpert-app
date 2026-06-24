@@ -573,7 +573,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
           >
             <Star className={`w-4 h-4 transition-colors ${lead.favori ? "fill-amber-400 text-amber-400" : "text-slate-600 hover:text-amber-400"}`} />
           </button>
-          <p className="text-white font-semibold text-sm truncate flex-1">{lead.name}</p>
+          <p className="text-white font-semibold text-[13px] leading-tight line-clamp-2 break-words flex-1">{lead.name}</p>
           {dupes.length > 0 && (
             <button
               onClick={(e) => { e.stopPropagation(); setMergingPanel({ leadId: lead.id, dupes }); }}
