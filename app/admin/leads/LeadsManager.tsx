@@ -50,6 +50,17 @@ const PROJECT_LABELS: Record<string, string> = {
   autre: "Autre",
 };
 
+const DEPT_LABELS: Record<string, string> = {
+  "75": "Paris (75)", "77": "Seine-et-Marne (77)", "78": "Yvelines (78)",
+  "91": "Essonne (91)", "92": "Hauts-de-Seine (92)", "93": "Seine-St-Denis (93)",
+  "94": "Val-de-Marne (94)", "95": "Val-d'Oise (95)",
+};
+// Département (2 chiffres) déduit du secteur d'un lead (1er code postal trouvé dans location).
+function deptOf(location?: string | null): string | null {
+  const m = (location ?? "").match(/\b(\d{2})\d{3}\b/);
+  return m ? m[1] : null;
+}
+
 function formatDate(d: Date | string) {
   return new Date(d).toLocaleDateString("fr-FR", {
     day: "numeric", month: "short",
@@ -92,6 +103,8 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
   const [searching, setSearching] = useState(false);
   const [sourceFilter, setSourceFilter] = useState(initialSource ?? "tous");
   const [favorisOnly, setFavorisOnly] = useState(false);
+  const [typeFilter, setTypeFilter] = useState("tous");       // prestation (installation/entretien/…)
+  const [secteurFilter, setSecteurFilter] = useState("tous"); // département (75, 92, …)
   const [statusFilter, setStatusFilter] = useState<string>("tous"); // raccourci par étape (surtout mobile)
   const [focusedStatus, setFocusedStatus] = useState<string | null>(null); // focus sur une colonne (desktop)
   // Journal d'échanges du prospect ouvert (chargé à l'ouverture du panneau).
@@ -228,11 +241,20 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
     return () => clearTimeout(t);
   }, [search, cap]);
 
+  // Secteurs (départements) présents dans les leads chargés, pour le menu déroulant.
+  const secteurs = useMemo(() => {
+    const set = new Set<string>();
+    for (const l of leads) { const d = deptOf(l.location); if (d) set.add(d); }
+    return [...set].sort();
+  }, [leads]);
+
   const filtered = leads.filter((l) => {
     if (favorisOnly && !l.favori) return false;
     if (statusFilter !== "tous" && l.status !== statusFilter) return false;
     if (sourceFilter === "téléphone" && l.source !== "téléphone" && l.source !== "whatsapp") return false;
     if (sourceFilter !== "tous" && sourceFilter !== "téléphone" && l.source !== sourceFilter) return false;
+    if (typeFilter !== "tous" && l.project !== typeFilter) return false;
+    if (secteurFilter !== "tous" && deptOf(l.location) !== secteurFilter) return false;
     if (search) {
       const q = search.toLowerCase();
       return (
@@ -676,6 +698,22 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
           </button>
         </div>
 
+        {/* Filtre type de prestation */}
+        <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}
+          className="px-3 py-1.5 rounded-xl border border-white/10 bg-slate-800/60 text-xs text-white focus:outline-none focus:border-sky-500/50">
+          <option value="tous">Tous types</option>
+          {Object.entries(PROJECT_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+        </select>
+
+        {/* Filtre secteur (département présent dans les leads) */}
+        {secteurs.length > 0 && (
+          <select value={secteurFilter} onChange={(e) => setSecteurFilter(e.target.value)}
+            className="px-3 py-1.5 rounded-xl border border-white/10 bg-slate-800/60 text-xs text-white focus:outline-none focus:border-sky-500/50">
+            <option value="tous">Tous secteurs</option>
+            {secteurs.map((d) => <option key={d} value={d}>{DEPT_LABELS[d] ?? `Dépt ${d}`}</option>)}
+          </select>
+        )}
+
         {/* Search */}
         <div className="relative flex-1 min-w-[180px] max-w-xs">
           <Search className={`absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none ${searching ? "text-sky-400 animate-pulse" : "text-slate-500"}`} />
@@ -816,7 +854,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                     <LeadCard key={lead.id} lead={lead} />
                   ))}
                   {/* Charger plus (uniquement hors recherche/filtre, quand il reste des prospects) */}
-                  {!search && !favorisOnly && sourceFilter === "tous" && col.length < (colCounts[status] ?? 0) && (
+                  {!search && !favorisOnly && sourceFilter === "tous" && typeFilter === "tous" && secteurFilter === "tous" && col.length < (colCounts[status] ?? 0) && (
                     <button
                       onClick={() => loadMore(status)}
                       disabled={loadingCol === status}
@@ -1021,7 +1059,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
               </div>
             );
           })}
-          {!search && !favorisOnly && statusFilter === "tous" && leads.length < totalCount && (
+          {!search && !favorisOnly && statusFilter === "tous" && typeFilter === "tous" && secteurFilter === "tous" && leads.length < totalCount && (
             <button
               onClick={loadMoreListe}
               disabled={searching}
