@@ -3,6 +3,14 @@ import { createLead, updateLead, deleteLead, findActiveLeadByNamePhone, getLeads
 import { createClientFromLead } from "@/lib/clients";
 import { logError } from "@/lib/observability";
 import type { LeadStatus } from "@/lib/leads";
+import { db } from "@/lib/db";
+import { suivis } from "@/lib/db/schema";
+
+// Libellés de statut pour l'auto-historique (suivis générés sur les évènements clés).
+const STATUT_HIST: Record<string, string> = {
+  nouveau: "Nouveau", pas_de_reponse: "Pas de réponse", "contacté": "Contact établi",
+  "devis_envoyé": "Devis envoyé", "gagné": "Gagné", perdu: "Perdu",
+};
 
 export async function GET(req: NextRequest) {
   try {
@@ -132,6 +140,7 @@ export async function PATCH(req: NextRequest) {
 
     // Verrou optimiste : le client envoie la version qu'il a sous les yeux.
     const expectedVersion = typeof fields.version === "number" ? fields.version : undefined;
+    const before = await getLeadById(id);
     const lead = await updateLead(id, allowed, expectedVersion);
     if (!lead) {
       if (expectedVersion !== undefined) {
@@ -145,6 +154,22 @@ export async function PATCH(req: NextRequest) {
       }
       return NextResponse.json({ error: "Lead introuvable" }, { status: 404 });
     }
+
+    // Auto-historique : les évènements clés s'enregistrent tout seuls dans le fil d'échanges.
+    try {
+      const hist: { type: string; contenu: string }[] = [];
+      if (allowed.status && before && allowed.status !== before.status) {
+        hist.push({ type: "statut", contenu: `Statut → ${STATUT_HIST[allowed.status as string] ?? allowed.status}` });
+      }
+      if (typeof allowed.montantDevisCt === "number" && (!before || before.montantDevisCt !== allowed.montantDevisCt)) {
+        hist.push({ type: "devis", contenu: `Devis chiffré : ${(allowed.montantDevisCt / 100).toLocaleString("fr-FR")} €` });
+      }
+      if (allowed.rdvDate instanceof Date && (!before || !before.rdvDate || +new Date(before.rdvDate) !== +allowed.rdvDate)) {
+        hist.push({ type: "rdv", contenu: `RDV pris : ${allowed.rdvDate.toLocaleString("fr-FR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}` });
+      }
+      for (const h of hist) await db.insert(suivis).values({ leadId: id, type: h.type, contenu: h.contenu });
+    } catch (e) { logError("leads.autoHist", e, { leadId: id }); }
+
     return NextResponse.json({ lead, ...(conversionWarning ? { warning: conversionWarning } : {}) });
   } catch (e) {
     logError("leads.PATCH", e);

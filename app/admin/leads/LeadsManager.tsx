@@ -30,7 +30,7 @@ const STATUS_DOT: Record<LeadStatus, string> = {
 };
 
 // Journal d'échanges : type → icône.
-const SUIVI_ICONS: Record<string, string> = { appel: "📞", email: "✉️", sms: "💬", visite: "📍", note: "📝" };
+const SUIVI_ICONS: Record<string, string> = { appel: "📞", email: "✉️", sms: "💬", visite: "📍", note: "📝", statut: "🏷️", devis: "📄", rdv: "📅" };
 
 // Sous-statut « Prochaine étape » quand le contact est établi (avant l'envoi du devis).
 // "aucune_opportunite" est une action terminale : le prospect passe en "perdu".
@@ -1522,7 +1522,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                 {/* Journal des échanges */}
                 <div>
                   <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide flex items-center gap-1.5">
-                    <MessageSquare className="w-3 h-3" /> Échanges
+                    <MessageSquare className="w-3 h-3" /> Historique de la relation
                   </p>
                   <div className="flex gap-1.5 mb-2">
                     {[
