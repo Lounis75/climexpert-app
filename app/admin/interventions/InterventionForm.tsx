@@ -39,8 +39,11 @@ export default function InterventionForm({
   const preEnd = preStart
     ? (() => { const d = new Date(preStart); d.setHours(d.getHours() + 2); const p = (n: number) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; })()
     : "";
+  // Type pré-rempli via ?type=<projet du prospect> (entretien / installation / dépannage…).
+  const typeParam = searchParams.get("type");
+  const preType = typeParam && ["installation", "entretien", "depannage", "contrat-pro", "autre"].includes(typeParam) ? typeParam : "installation";
   const [clientId, setClientId] = useState(preClient?.id ?? "");
-  const [type, setType] = useState("installation");
+  const [type, setType] = useState(preType);
   const [sousContrat, setSousContrat] = useState<boolean | null>(null);
   const [scheduledAt, setScheduledAt] = useState(preStart);
   const [scheduledEndAt, setScheduledEndAt] = useState(preEnd);
@@ -87,7 +90,9 @@ export default function InterventionForm({
         body: JSON.stringify({
           clientId,
           type,
-          scheduledAt,
+          // Instant correct (le datetime-local est en heure locale) : on l'envoie en ISO,
+          // comme le fait le replanifier. Sinon le serveur (UTC) decale de +2h -> hors grille.
+          scheduledAt: new Date(scheduledAt).toISOString(),
           dureeEstimeeMinutes,
           technicienId: technicienId || undefined,
           address: (isSousTraitance && siteAdresse ? siteAdresse : address) || undefined,

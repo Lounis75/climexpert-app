@@ -1283,7 +1283,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                       <CheckCircle2 className="w-4 h-4" /> Devis gagné, prochaine étape
                     </p>
                     <Link
-                      href={`/admin/interventions/new?client=${lead.clientId}${
+                      href={`/admin/interventions/new?client=${lead.clientId}${lead.project ? `&type=${lead.project}` : ""}${
                         (lead as Lead & { dateSouhaiteeIntervention?: string | null }).dateSouhaiteeIntervention
                           ? `&date=${encodeURIComponent(toLocalDT((lead as Lead & { dateSouhaiteeIntervention?: string | null }).dateSouhaiteeIntervention))}`
                           : ""
