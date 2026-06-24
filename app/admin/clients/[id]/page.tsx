@@ -168,6 +168,7 @@ export default async function ClientDetailPage({
 
         {/* Coordonnées */}
         <ClientContactCard
+          clientId={c.id}
           name={c.name}
           phone={c.phone}
           email={c.email}
