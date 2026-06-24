@@ -1325,7 +1325,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                 </div>
 
                 {/* Project info */}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
                   {lead.project && (
                     <div className="bg-slate-800/40 border border-white/8 rounded-xl p-3">
                       <p className="text-slate-500 text-[10px] uppercase tracking-wide mb-1">Projet</p>
@@ -1388,8 +1388,18 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                     </div>
                   </div>
                 )}
+                {/* Qualification des besoins, guide d'appel (mis en avant au Contact établi) */}
+                <LeadQualification
+                  key={lead.id}
+                  value={lead.qualification ?? null}
+                  status={lead.status}
+                  onSave={async (q) => { await patchLeadField({ qualification: q }); }}
+                />
                 </>
                 )}
+
+                {/* ─── Suivi commercial sur 2 colonnes (panneau large) ─── */}
+                <div className="lg:grid lg:grid-cols-2 lg:gap-x-5 lg:gap-y-5 lg:items-start space-y-5 lg:space-y-0">
 
                 {/* Statut */}
                 <div>
@@ -1418,14 +1428,6 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                     ))}
                   </select>
                 </div>
-
-                {/* Qualification des besoins, guide d'appel (mis en avant au Contact établi) */}
-                <LeadQualification
-                  key={lead.id}
-                  value={lead.qualification ?? null}
-                  status={lead.status}
-                  onSave={async (q) => { await patchLeadField({ qualification: q }); }}
-                />
 
                 {/* Prochaine étape, quand le contact est établi, avant l'envoi du devis */}
                 {lead.status === "contacté" && (
@@ -1662,6 +1664,8 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                     </div>
                   )}
                 </div>
+
+                </div>{/* ─── fin grille 2 colonnes du suivi commercial ─── */}
 
                 {/* Journal des échanges */}
                 <div>
