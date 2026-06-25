@@ -10,7 +10,7 @@ import Link from "next/link";
 import {
   ArrowLeft, MapPin, Calendar,
   Wrench, FileText, ScrollText, HardHat,
-  HeadphonesIcon, Bell, CheckCircle2, Clock, XCircle, Shield, Euro, ExternalLink,
+  HeadphonesIcon, Bell, CheckCircle2, Clock, XCircle, Shield, Euro, ExternalLink, Building2, UserCircle,
 } from "lucide-react";
 import RgpdButtons from "./RgpdButtons";
 import ClientContactCard from "./ClientContactCard";
@@ -129,8 +129,24 @@ export default async function ClientDetailPage({
             <ArrowLeft className="w-4 h-4" />
           </Link>
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl font-bold text-white">{c.name}</h1>
-            <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h1 className="text-2xl font-bold text-white">{c.name}</h1>
+              {c.typeClient === "professionnel" ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 font-semibold text-[11px]"><Building2 className="w-3 h-3" /> Professionnel</span>
+              ) : c.typeClient === "sous_traitance" ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/30 text-violet-300 font-semibold text-[11px]"><HardHat className="w-3 h-3" /> Sous-traitance</span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-300 font-semibold text-[11px]"><UserCircle className="w-3 h-3" /> Particulier</span>
+              )}
+            </div>
+            {c.typeClient === "professionnel" && (c.representant || c.siret) && (
+              <p className="text-slate-400 text-xs mt-1">
+                {c.representant && <>Contact : <span className="text-slate-200">{c.representant}{c.representantQualite ? `, ${c.representantQualite}` : ""}</span></>}
+                {c.representant && c.siret ? " · " : ""}
+                {c.siret && <>SIRET : <span className="text-slate-200">{c.siret}</span></>}
+              </p>
+            )}
+            <div className="flex items-center gap-3 mt-1 flex-wrap">
               {c.clientToken && (
                 <Link href={`/suivi/${c.clientToken}`} target="_blank" className="text-xs text-sky-500 hover:text-sky-400 underline underline-offset-2">
                   Portail client →
