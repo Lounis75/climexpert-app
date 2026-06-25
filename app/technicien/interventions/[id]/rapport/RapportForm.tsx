@@ -55,7 +55,16 @@ export default function RapportForm({
   const [cDetecteur, setCDetecteur]       = useState("Détecteur électronique");
   const [cSysteme, setCSysteme]           = useState<"oui" | "non">("non");
   const [cFuites, setCFuites]             = useState<"oui" | "non">("non");
-  const [cFuiteLoca, setCFuiteLoca]       = useState("");
+  // [7] quantité de fluide (plage) / [8-9] fréquence du contrôle périodique
+  const [cQuantite, setCQuantite]         = useState("");
+  const [cFreq, setCFreq]                 = useState("");
+  // [10] jusqu'à 3 fuites (localisation + réparation)
+  const [cFuitesList, setCFuitesList]     = useState<{ loca: string; rep: "realisee" | "a_faire" | "" }[]>([{ loca: "", rep: "" }]);
+  // [11] manipulation du fluide frigorigène (kg) / [13] destination du fluide récupéré
+  const [mn, setMn]                       = useState({ charge: "", vierge: "", recycle: "", regenere: "", denom: "", recup: "", traitement: "", reutil: "", bsff: "", contenants: "" });
+  const [cDestination, setCDestination]   = useState("");
+  // [12] dénomination ADR/RID (déchet)
+  const [adr, setAdr]                     = useState({ un1078: false, un1078Autres: "", un3161: false, un3161Autres: "" });
 
   async function addPhotos(files: FileList | File[]) {
     const newPhotos = Array.from(files).slice(0, 12 - photos.length);
@@ -161,8 +170,15 @@ export default function RapportForm({
             nature: { maintenance: cNatMaint, controleEtanchPeriodique: cNatCtrl },
             detecteurManuel: cDetecteur,
             systemePermanent: cSysteme,
+            quantiteRange: cQuantite || undefined,
+            frequence: cFreq || undefined,
             fuitesConstatees: cFuites,
-            fuites: cFuites === "oui" ? [{ localisation: cFuiteLoca, reparation: "a_faire" }] : [],
+            fuites: cFuites === "oui"
+              ? cFuitesList.filter((f) => f.loca.trim() || f.rep).map((f) => ({ localisation: f.loca, reparation: f.rep || null }))
+              : [],
+            manip: { chargeeTotale: mn.charge, vierge: mn.vierge, recycle: mn.recycle, regenere: mn.regenere, denominationSiChangement: mn.denom, recupereeTotale: mn.recup, traitement: mn.traitement, reutilisation: mn.reutil, bsff: mn.bsff, contenants: mn.contenants },
+            adr: { un1078: adr.un1078, un1078Autres: adr.un1078Autres, un3161: adr.un3161, un3161Autres: adr.un3161Autres },
+            destination: cDestination,
             observations: notes,
           },
         }),
@@ -476,9 +492,116 @@ export default function RapportForm({
                   </div>
                 </div>
               </div>
+              {/* [10] Détail des fuites (jusqu'à 3) */}
               {cFuites === "oui" && (
-                <div><label className="text-xs text-slate-500 block mb-1">Localisation de la fuite</label><input value={cFuiteLoca} onChange={(e) => setCFuiteLoca(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm" /></div>
+                <div className="space-y-2">
+                  <p className="text-xs text-slate-500">Fuites constatées, localisation + réparation</p>
+                  {cFuitesList.map((f, i) => (
+                    <div key={i} className="flex gap-2 items-end">
+                      <div className="flex-1">
+                        <label className="text-[11px] text-slate-400 block mb-1">Localisation {i + 1}</label>
+                        <input value={f.loca} onChange={(e) => setCFuitesList((p) => p.map((x, j) => j === i ? { ...x, loca: e.target.value } : x))} className="w-full px-2.5 py-2 border border-slate-200 rounded-lg text-sm" />
+                      </div>
+                      <div className="flex gap-1 flex-shrink-0">
+                        {(["realisee", "a_faire"] as const).map((r) => (
+                          <button key={r} type="button" onClick={() => setCFuitesList((p) => p.map((x, j) => j === i ? { ...x, rep: x.rep === r ? "" : r } : x))} className={`px-2.5 py-2 rounded-lg border text-[11px] font-medium ${f.rep === r ? "bg-sky-50 border-sky-300 text-sky-700" : "bg-white border-slate-200 text-slate-500"}`}>{r === "realisee" ? "Réparée" : "À faire"}</button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  {cFuitesList.length < 3 && (
+                    <button type="button" onClick={() => setCFuitesList((p) => [...p, { loca: "", rep: "" }])} className="text-xs text-sky-600 font-medium">+ Ajouter une fuite</button>
+                  )}
+                </div>
               )}
+
+              {/* [7] Quantité de fluide dans l'équipement */}
+              <div>
+                <p className="text-xs text-slate-500 mb-2">[7] Quantité de fluide dans l&apos;équipement</p>
+                {[
+                  { fam: "HCFC", opts: [["HCFC_2", "2–30 kg"], ["HCFC_30", "30–300 kg"], ["HCFC_300", "≥ 300 kg"]] },
+                  { fam: "HFC/PFC", opts: [["HFC_5", "5–50 t"], ["HFC_50", "50–500 t"], ["HFC_500", "≥ 500 t"]] },
+                  { fam: "HFO", opts: [["HFO_1", "1–10 kg"], ["HFO_10", "10–100 kg"], ["HFO_100", "≥ 100 kg"]] },
+                ].map((row) => (
+                  <div key={row.fam} className="flex items-center gap-2 mb-1.5">
+                    <span className="text-[11px] text-slate-500 w-14 flex-shrink-0">{row.fam}</span>
+                    <div className="flex gap-1 flex-wrap">
+                      {row.opts.map(([val, lbl]) => (
+                        <button key={val} type="button" onClick={() => setCQuantite(cQuantite === val ? "" : val)} className={`px-2 py-1.5 rounded-lg border text-[11px] ${cQuantite === val ? "bg-sky-50 border-sky-300 text-sky-700" : "bg-white border-slate-200 text-slate-500"}`}>{lbl}</button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* [8/9] Fréquence du contrôle périodique */}
+              <div>
+                <p className="text-xs text-slate-500 mb-2">[8/9] Fréquence du contrôle périodique</p>
+                {[
+                  { lbl: "Sans détection", opts: [["Sans_12m", "12 mois"], ["Sans_6m", "6 mois"], ["Sans_3m", "3 mois"]] },
+                  { lbl: "Avec détection", opts: [["Avec_24m", "24 mois"], ["Avec_12m", "12 mois"], ["Avec_6m", "6 mois"]] },
+                ].map((row) => (
+                  <div key={row.lbl} className="flex items-center gap-2 mb-1.5">
+                    <span className="text-[11px] text-slate-500 w-24 flex-shrink-0">{row.lbl}</span>
+                    <div className="flex gap-1">
+                      {row.opts.map(([val, lbl]) => (
+                        <button key={val} type="button" onClick={() => setCFreq(cFreq === val ? "" : val)} className={`px-2.5 py-1.5 rounded-lg border text-[11px] ${cFreq === val ? "bg-sky-50 border-sky-300 text-sky-700" : "bg-white border-slate-200 text-slate-500"}`}>{lbl}</button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* [11] Manipulation du fluide frigorigène */}
+              <div>
+                <p className="text-xs text-slate-500 mb-2">[11] Manipulation du fluide (kg)</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    ["charge", "Quantité chargée totale (A+B+C)"],
+                    ["recup", "Quantité récupérée totale (D+E)"],
+                    ["vierge", "A — fluide vierge"],
+                    ["traitement", "D — destiné au traitement"],
+                    ["recycle", "B — recyclé"],
+                    ["reutil", "E — conservé pour réutilisation"],
+                    ["regenere", "C — régénéré"],
+                    ["bsff", "N° BSFF (Trackdéchets)"],
+                  ] as const).map(([k, lbl]) => (
+                    <div key={k}>
+                      <label className="text-[11px] text-slate-400 block mb-1">{lbl}</label>
+                      <input value={mn[k]} onChange={(e) => setMn((p) => ({ ...p, [k]: e.target.value }))} className="w-full px-2.5 py-2 border border-slate-200 rounded-lg text-sm" />
+                    </div>
+                  ))}
+                  <div className="col-span-2">
+                    <label className="text-[11px] text-slate-400 block mb-1">Dénomination du fluide chargé (si changement)</label>
+                    <input value={mn.denom} onChange={(e) => setMn((p) => ({ ...p, denom: e.target.value }))} className="w-full px-2.5 py-2 border border-slate-200 rounded-lg text-sm" />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-[11px] text-slate-400 block mb-1">Identification du ou des contenants</label>
+                    <input value={mn.contenants} onChange={(e) => setMn((p) => ({ ...p, contenants: e.target.value }))} className="w-full px-2.5 py-2 border border-slate-200 rounded-lg text-sm" />
+                  </div>
+                </div>
+              </div>
+
+              {/* [12] Dénomination ADR/RID (déchet) */}
+              <div>
+                <p className="text-xs text-slate-500 mb-2">[12] Dénomination ADR/RID (déchet)</p>
+                <label className="flex items-start gap-2 text-xs text-slate-600 mb-1.5">
+                  <input type="checkbox" checked={adr.un1078} onChange={(e) => setAdr((p) => ({ ...p, un1078: e.target.checked }))} className="mt-0.5" />
+                  <span>UN 1078, gaz frigorifique non-inflammable (2.2)</span>
+                </label>
+                <input value={adr.un1078Autres} onChange={(e) => setAdr((p) => ({ ...p, un1078Autres: e.target.value }))} placeholder="Autres fluides non-inflammables…" className="w-full px-2.5 py-2 border border-slate-200 rounded-lg text-sm mb-2" />
+                <label className="flex items-start gap-2 text-xs text-slate-600 mb-1.5">
+                  <input type="checkbox" checked={adr.un3161} onChange={(e) => setAdr((p) => ({ ...p, un3161: e.target.checked }))} className="mt-0.5" />
+                  <span>UN 3161, gaz liquéfié inflammable (2.1)</span>
+                </label>
+                <input value={adr.un3161Autres} onChange={(e) => setAdr((p) => ({ ...p, un3161Autres: e.target.value }))} placeholder="Autres fluides inflammables…" className="w-full px-2.5 py-2 border border-slate-200 rounded-lg text-sm" />
+              </div>
+
+              {/* [13] Installation de destination du fluide récupéré */}
+              <div>
+                <label className="text-xs text-slate-500 block mb-1">[13] Installation de destination du fluide récupéré (Nom, SIRET, adresse)</label>
+                <textarea value={cDestination} onChange={(e) => setCDestination(e.target.value)} rows={2} className="w-full px-2.5 py-2 border border-slate-200 rounded-lg text-sm resize-none" />
+              </div>
 
               <div>
                 <p className="text-sm font-semibold text-slate-900 mb-1 flex items-center gap-1.5"><PenLine className="w-4 h-4 text-sky-600" /> Signature du client</p>
