@@ -254,6 +254,27 @@ export const leads = pgTable("leads", {
   rdvDateIdx:       index("leads_rdv_date_idx").on(t.rdvDate),
 }));
 
+// Historique des devis envoyés à un prospect : plusieurs liens peuvent coexister, chacun
+// avec sa propre décision (accepté / décliné). Le prospect garde aussi des champs « devis
+// courant » (miroir du dernier devis envoyé) pour les vues Dashboard existantes.
+export const devisEnvois = pgTable("devis_envois", {
+  id:          text("id").primaryKey().$defaultFn(() => createId()),
+  leadId:      text("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+  url:         text("url").notNull(),
+  nomFichier:  varchar("nom_fichier", { length: 255 }),
+  token:       varchar("token", { length: 100 }).notNull().unique(),
+  montantCt:   integer("montant_ct"),
+  envoyeLe:    timestamp("envoye_le").defaultNow().notNull(),
+  decision:    varchar("decision", { length: 20 }),     // null | "accepte" | "refuse"
+  decisionLe:  timestamp("decision_le"),
+  motifRefus:  text("motif_refus"),
+  createdAt:   timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  leadIdx:  index("devis_envois_lead_id_idx").on(t.leadId),
+  tokenIdx: index("devis_envois_token_idx").on(t.token),
+}));
+export type DevisEnvoi = typeof devisEnvois.$inferSelect;
+
 // ─── Devis ────────────────────────────────────────────────────────────────────
 
 export const devis = pgTable("devis", {

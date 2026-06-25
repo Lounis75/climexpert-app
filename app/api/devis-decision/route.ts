@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { leads, suivis, notifications } from "@/lib/db/schema";
+import { leads, suivis, notifications, devisEnvois } from "@/lib/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { createClientFromLead } from "@/lib/clients";
 import { createIntervention } from "@/lib/interventions";
@@ -16,29 +16,39 @@ export async function POST(req: NextRequest) {
   if (!token || (decision !== "accepte" && decision !== "refuse")) {
     return NextResponse.json({ error: "Requête invalide" }, { status: 400 });
   }
-  const [lead] = await db.select().from(leads).where(eq(leads.devisToken, token)).limit(1);
+  // Résolution du token : d'abord l'historique des devis (plusieurs liens peuvent coexister),
+  // sinon l'ancien champ du prospect (devis envoyés avant la mise en place de l'historique).
+  const [envoi] = await db.select().from(devisEnvois).where(eq(devisEnvois.token, token)).limit(1);
+  const [lead] = envoi
+    ? await db.select().from(leads).where(eq(leads.id, envoi.leadId)).limit(1)
+    : await db.select().from(leads).where(eq(leads.devisToken, token)).limit(1);
   if (!lead) return NextResponse.json({ error: "Lien invalide ou expiré" }, { status: 404 });
-  if (lead.devisDecision) {
-    return NextResponse.json({ ok: true, already: true, decision: lead.devisDecision });
+
+  const dejaDecide = envoi ? envoi.decision : lead.devisDecision;
+  if (dejaDecide) {
+    return NextResponse.json({ ok: true, already: true, decision: dejaDecide });
   }
 
   const motifClean = decision === "refuse" ? (String(motif ?? "").slice(0, 500).trim() || "Non précisé") : null;
-  const newStatus = decision === "accepte" ? "gagné" : "perdu";
-  const montantTxt = lead.montantDevisCt ? ` (${(lead.montantDevisCt / 100).toLocaleString("fr-FR")} €)` : "";
+  const estDevisCourant = lead.devisToken === token; // ce lien est-il le « devis courant » du prospect ?
+  const montantCt = envoi?.montantCt ?? lead.montantDevisCt;
+  const montantTxt = montantCt ? ` (${(montantCt / 100).toLocaleString("fr-FR")} €)` : "";
 
-  await db.update(leads).set({
-    devisDecision: decision,
-    devisDecisionLe: new Date(),
-    devisMotifRefus: motifClean,
-    status: newStatus,
-    ...(decision === "accepte" ? { gagneLe: new Date() } : {}),
-    statutChangeLe: new Date(), relanceNotifieeLe: null,
-    version: sql`${leads.version} + 1`, updatedAt: new Date(),
-  }).where(eq(leads.id, lead.id));
+  // Décision enregistrée sur la ligne d'historique (le devis concerné)
+  if (envoi) {
+    await db.update(devisEnvois).set({ decision, decisionLe: new Date(), motifRefus: motifClean }).where(eq(devisEnvois.id, envoi.id));
+  }
 
-  // Accepté -> conversion auto en client (idempotent) + création de l'intervention à planifier
-  // (le devis accepté = prestation à réaliser ; le gérant n'a plus qu'à caler le créneau).
+  // Prospect : sur acceptation -> « gagné » (toujours). Sur refus -> « perdu » seulement si c'est
+  // le devis courant (un autre devis du prospect peut encore être en attente de réponse).
   if (decision === "accepte") {
+    await db.update(leads).set({
+      ...(estDevisCourant ? { devisDecision: "accepte", devisDecisionLe: new Date(), devisMotifRefus: null } : {}),
+      status: "gagné", gagneLe: new Date(),
+      statutChangeLe: new Date(), relanceNotifieeLe: null,
+      version: sql`${leads.version} + 1`, updatedAt: new Date(),
+    }).where(eq(leads.id, lead.id));
+    // conversion auto en client (idempotent) + intervention à planifier
     try {
       const client = await createClientFromLead(lead.id);
       if (client) {
@@ -52,6 +62,12 @@ export async function POST(req: NextRequest) {
         });
       }
     } catch (e) { logError("devisDecision.conversion", e, { leadId: lead.id }); }
+  } else if (estDevisCourant) {
+    await db.update(leads).set({
+      devisDecision: "refuse", devisDecisionLe: new Date(), devisMotifRefus: motifClean,
+      status: "perdu", statutChangeLe: new Date(), relanceNotifieeLe: null,
+      version: sql`${leads.version} + 1`, updatedAt: new Date(),
+    }).where(eq(leads.id, lead.id));
   }
 
   // Historique du prospect

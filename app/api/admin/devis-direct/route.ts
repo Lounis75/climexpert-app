@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { leads, clients, suivis } from "@/lib/db/schema";
+import { leads, clients, suivis, devisEnvois } from "@/lib/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { randomBytes } from "crypto";
 import { Resend } from "resend";
@@ -89,6 +89,7 @@ export async function POST(req: NextRequest) {
     status: "devis_envoyé", statutChangeLe: new Date(), relanceNotifieeLe: null,
     version: sql`${leads.version} + 1`, updatedAt: new Date(),
   }).where(eq(leads.id, lead.id));
+  await db.insert(devisEnvois).values({ leadId: lead.id, url, nomFichier: file.name || "devis.pdf", token, montantCt: montantCt ?? null, envoyeLe: new Date() }).catch((e) => logError("devisDirect.envoi.insert", e, { leadId: lead.id }));
   await db.insert(suivis).values({ leadId: lead.id, type: "devis", contenu: `Devis envoyé au client${montantTxt ? ` (${montantTxt})` : ""}, en attente de sa réponse.` }).catch(() => {});
 
   return NextResponse.json({ ok: true, leadId: lead.id });

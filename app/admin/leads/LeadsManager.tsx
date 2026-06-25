@@ -112,6 +112,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
   // Journal d'échanges du prospect ouvert (chargé à l'ouverture du panneau).
   const [suivis, setSuivis] = useState<Suivi[]>([]);
   const [loadingSuivis, setLoadingSuivis] = useState(false);
+  const [devisHist, setDevisHist] = useState<{ id: string; url: string; montantCt: number | null; envoyeLe: string; decision: string | null; decisionLe: string | null; motifRefus: string | null }[]>([]);
   const [suiviContenu, setSuiviContenu] = useState("");
   const [suiviType, setSuiviType] = useState("appel");
   const [savingSuivi, setSavingSuivi] = useState(false);
@@ -213,6 +214,15 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
       .then(d => setSuivis(d.suivis ?? []))
       .catch(() => {})
       .finally(() => setLoadingSuivis(false));
+  }, [openLeadId]);
+
+  // Charge l'historique des devis du prospect ouvert (plusieurs liens peuvent coexister).
+  useEffect(() => {
+    if (!openLeadId) { setDevisHist([]); return; }
+    fetch(`/api/admin/leads/${openLeadId}/devis`)
+      .then(r => r.json())
+      .then(d => setDevisHist(d.devis ?? []))
+      .catch(() => {});
   }, [openLeadId]);
 
   async function logSuivi(leadId: string) {
@@ -1530,29 +1540,44 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                   <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide flex items-center gap-1.5">
                     <FileText className="w-3 h-3" /> Devis
                   </p>
-                  {lead.devisDecision === "accepte" ? (
-                    <div className="flex items-center gap-2 text-emerald-400 text-sm">
-                      <CheckCircle2 className="w-4 h-4 flex-shrink-0" /> Accepté par le client{lead.devisDecisionLe ? ` le ${new Date(lead.devisDecisionLe).toLocaleDateString("fr-FR")}` : ""}
-                    </div>
-                  ) : lead.devisDecision === "refuse" ? (
-                    <div className="text-sm">
-                      <div className="flex items-center gap-2 text-red-400"><X className="w-4 h-4 flex-shrink-0" /> Décliné{lead.devisDecisionLe ? ` le ${new Date(lead.devisDecisionLe).toLocaleDateString("fr-FR")}` : ""}</div>
-                      {lead.devisMotifRefus && <p className="text-slate-400 text-xs mt-1">Motif : {lead.devisMotifRefus}</p>}
-                      <button onClick={() => openDevis(lead)} className="mt-2 text-sky-400 hover:text-sky-300 text-xs font-medium">Renvoyer un devis</button>
+                  {/* Historique : une ligne par devis envoyé (chaque lien a sa propre décision) */}
+                  {devisHist.length > 0 ? (
+                    <div className="space-y-1.5 mb-3">
+                      {devisHist.map((dv, idx) => (
+                        <div key={dv.id} className="flex items-center gap-2 text-sm rounded-lg bg-slate-900/40 border border-white/8 px-2.5 py-2">
+                          <span className="flex-1 min-w-0">
+                            <span className="text-slate-300">Devis {devisHist.length - idx}</span>
+                            <span className="text-slate-500 text-xs ml-1.5">{new Date(dv.envoyeLe).toLocaleDateString("fr-FR")}{dv.montantCt ? ` · ${(dv.montantCt / 100).toLocaleString("fr-FR")} €` : ""}</span>
+                          </span>
+                          {dv.decision === "accepte" ? (
+                            <span className="text-emerald-400 text-xs font-medium flex items-center gap-1 flex-shrink-0"><CheckCircle2 className="w-3.5 h-3.5" /> Accepté</span>
+                          ) : dv.decision === "refuse" ? (
+                            <span className="text-red-400 text-xs font-medium flex items-center gap-1 flex-shrink-0"><X className="w-3.5 h-3.5" /> Décliné</span>
+                          ) : (
+                            <span className="text-violet-300 text-xs font-medium flex items-center gap-1 flex-shrink-0"><Clock className="w-3.5 h-3.5" /> En attente</span>
+                          )}
+                          {dv.url && <a href={dv.url} target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:text-sky-300 text-xs flex-shrink-0">PDF</a>}
+                        </div>
+                      ))}
                     </div>
                   ) : lead.devisEnvoyeLe ? (
-                    <div className="text-sm">
-                      <div className="flex items-center gap-2 text-violet-300"><Clock className="w-4 h-4 flex-shrink-0" /> Envoyé le {new Date(lead.devisEnvoyeLe).toLocaleDateString("fr-FR")}, en attente de réponse</div>
-                      <div className="flex items-center gap-3 mt-2">
-                        {lead.devisUrl && <a href={lead.devisUrl} target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:text-sky-300 text-xs font-medium">Voir le PDF</a>}
-                        <button onClick={() => openDevis(lead)} className="text-slate-400 hover:text-white text-xs font-medium">Renvoyer</button>
-                      </div>
+                    /* Repli : devis envoyé avant la mise en place de l'historique */
+                    <div className="text-sm mb-3">
+                      {lead.devisDecision === "accepte" ? (
+                        <div className="flex items-center gap-2 text-emerald-400"><CheckCircle2 className="w-4 h-4 flex-shrink-0" /> Accepté{lead.devisDecisionLe ? ` le ${new Date(lead.devisDecisionLe).toLocaleDateString("fr-FR")}` : ""}</div>
+                      ) : lead.devisDecision === "refuse" ? (
+                        <div><div className="flex items-center gap-2 text-red-400"><X className="w-4 h-4 flex-shrink-0" /> Décliné{lead.devisDecisionLe ? ` le ${new Date(lead.devisDecisionLe).toLocaleDateString("fr-FR")}` : ""}</div>{lead.devisMotifRefus && <p className="text-slate-400 text-xs mt-1">Motif : {lead.devisMotifRefus}</p>}</div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-violet-300"><Clock className="w-4 h-4 flex-shrink-0" /> Envoyé le {new Date(lead.devisEnvoyeLe).toLocaleDateString("fr-FR")}, en attente de réponse</div>
+                      )}
+                      {lead.devisUrl && <a href={lead.devisUrl} target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:text-sky-300 text-xs font-medium mt-1 inline-block">Voir le PDF</a>}
                     </div>
-                  ) : (
-                    <button onClick={() => openDevis(lead)} disabled={!lead.email} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-sky-500 hover:bg-sky-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors">
-                      <FileText className="w-4 h-4" /> Envoyer un devis au client
-                    </button>
-                  )}
+                  ) : null}
+
+                  {/* Bouton toujours disponible : 1er devis OU devis supplémentaire (2e lien, etc.) */}
+                  <button onClick={() => openDevis(lead)} disabled={!lead.email} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-sky-500 hover:bg-sky-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors">
+                    <FileText className="w-4 h-4" /> {(devisHist.length > 0 || lead.devisEnvoyeLe) ? "Envoyer un autre devis" : "Envoyer un devis au client"}
+                  </button>
                   {!lead.email && (
                     <p className="text-amber-400 text-[11px] mt-2 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Ajoute un e-mail à ce prospect pour pouvoir lui envoyer le devis.</p>
                   )}

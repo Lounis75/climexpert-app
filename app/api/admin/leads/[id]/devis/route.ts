@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { leads, suivis } from "@/lib/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { leads, suivis, devisEnvois } from "@/lib/db/schema";
+import { eq, sql, desc } from "drizzle-orm";
 import { randomBytes } from "crypto";
 import { Resend } from "resend";
 import { r2PutFile } from "@/lib/r2";
 import { logError } from "@/lib/observability";
 
 export const runtime = "nodejs";
+
+// Historique des devis envoyés à ce prospect (plusieurs liens peuvent coexister).
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const rows = await db.select().from(devisEnvois).where(eq(devisEnvois.leadId, id)).orderBy(desc(devisEnvois.envoyeLe));
+  return NextResponse.json({ devis: rows });
+}
 
 // Envoi d'un devis (fait sur un logiciel tiers) au prospect : on stocke le PDF, on l'envoie
 // par e-mail avec un lien de décision (Accepter / Décliner), et on passe le prospect en
@@ -81,6 +88,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     statutChangeLe: new Date(), relanceNotifieeLe: null,
     version: sql`${leads.version} + 1`, updatedAt: new Date(),
   }).where(eq(leads.id, id));
+
+  // Historique : une ligne par devis envoyé (plusieurs liens peuvent coexister)
+  await db.insert(devisEnvois).values({
+    leadId: id, url, nomFichier: file.name || "devis.pdf", token, montantCt: montantCt ?? null, envoyeLe: new Date(),
+  }).catch((e) => logError("devis.envoi.insert", e, { leadId: id }));
 
   await db.insert(suivis).values({
     leadId: id, type: "devis",

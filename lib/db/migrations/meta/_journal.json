@@ -225,6 +225,13 @@
       "when": 1782395504208,
       "tag": "0031_intervention_facture",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1782415789704,
+      "tag": "0032_devis_envois",
+      "breakpoints": true
     }
   ]
 }
