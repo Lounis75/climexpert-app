@@ -95,7 +95,7 @@ export default async function DashboardPage() {
     { n: taches.prospectsSansCommercial,     label: "prospect(s) à affecter",           href: "/admin/leads",         color: "sky",    icon: Users },
     { n: taches.devisAChiffrer,              label: "devis à chiffrer (montant manquant)", href: "/admin/leads",      color: "red",     icon: FileText },
     { n: taches.entretiensARelancer,         label: "entretien(s) à relancer",          href: "/admin/clients",       color: "emerald", icon: Wrench },
-    { n: taches.facturesAEnvoyer,            label: "facture(s) à envoyer au client",   href: "/admin/interventions", color: "emerald", icon: Receipt },
+    { n: taches.facturesAEnvoyer,            label: "facture(s) à envoyer au client",   href: "/admin/facturation",   color: "emerald", icon: Receipt },
     { n: stats.savOuverts,                   label: "SAV ouvert(s)",                    href: "/admin/sav",           color: "red",    icon: HeadphonesIcon },
   ].filter((t) => t.n > 0);
   const totalTaches = tachesList.reduce((s, t) => s + t.n, 0);
@@ -330,14 +330,14 @@ export default async function DashboardPage() {
               <h2 className="text-white font-semibold text-sm flex items-center gap-2">
                 <ClipboardList className="w-4 h-4 text-sky-400" /> Suivi devis
               </h2>
-              <Link href="/admin/leads" className="text-sky-400 hover:text-sky-300 text-xs flex items-center gap-1">
+              <Link href="/admin/suivi-devis" className="text-sky-400 hover:text-sky-300 text-xs flex items-center gap-1">
                 Voir <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
 
             <div className="space-y-2 mb-5">
               {/* Devis envoyés (en attente de signature) */}
-              <Link href="/admin/leads" className="flex items-center justify-between rounded-xl bg-slate-900/40 border border-white/8 px-3 py-2.5 hover:border-violet-500/30 transition-colors">
+              <Link href="/admin/suivi-devis" className="flex items-center justify-between rounded-xl bg-slate-900/40 border border-white/8 px-3 py-2.5 hover:border-violet-500/30 transition-colors">
                 <span className="text-xs text-slate-300 flex items-center gap-1.5"><FileText className="w-3.5 h-3.5 text-violet-400" /> Devis envoyés</span>
                 <span className="text-right whitespace-nowrap">
                   <span className="text-white text-sm font-bold tabular-nums">{apercu.devisEnvoyesN}</span>
@@ -345,7 +345,7 @@ export default async function DashboardPage() {
                 </span>
               </Link>
               {/* Validés (signés), en dessous */}
-              <Link href="/admin/leads" className="flex items-center justify-between rounded-xl bg-emerald-500/5 border border-emerald-500/20 px-3 py-2.5 hover:border-emerald-500/40 transition-colors">
+              <Link href="/admin/suivi-devis" className="flex items-center justify-between rounded-xl bg-emerald-500/5 border border-emerald-500/20 px-3 py-2.5 hover:border-emerald-500/40 transition-colors">
                 <span className="text-xs text-emerald-300 flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5" /> Validés (signés)</span>
                 <span className="text-right whitespace-nowrap">
                   <span className="text-white text-sm font-bold tabular-nums">{apercu.gagnesN}</span>
@@ -384,7 +384,7 @@ export default async function DashboardPage() {
               ) : (
                 <div className="divide-y divide-white/5">
                   {suiviDevis.enAttente.slice(0, 8).map((d) => (
-                    <Link key={d.id} href="/admin/leads" className="flex items-center justify-between px-5 py-3 hover:bg-white/[0.02] transition-colors">
+                    <Link key={d.id} href="/admin/suivi-devis" className="flex items-center justify-between px-5 py-3 hover:bg-white/[0.02] transition-colors">
                       <div className="min-w-0">
                         <p className="text-white text-sm truncate">{d.name}</p>
                         <p className="text-slate-500 text-xs">Envoyé le {d.devisEnvoyeLe ? new Date(d.devisEnvoyeLe).toLocaleDateString("fr-FR") : "—"}</p>
@@ -410,7 +410,7 @@ export default async function DashboardPage() {
               ) : (
                 <div className="divide-y divide-white/5">
                   {suiviDevis.valides.map((d) => (
-                    <Link key={d.id} href="/admin/leads" className="flex items-center justify-between px-5 py-3 hover:bg-white/[0.02] transition-colors">
+                    <Link key={d.id} href="/admin/suivi-devis" className="flex items-center justify-between px-5 py-3 hover:bg-white/[0.02] transition-colors">
                       <div className="min-w-0">
                         <p className="text-white text-sm truncate">{d.name}</p>
                         <p className="text-emerald-400/70 text-xs">Accepté le {d.devisDecisionLe ? new Date(d.devisDecisionLe).toLocaleDateString("fr-FR") : "—"}</p>
