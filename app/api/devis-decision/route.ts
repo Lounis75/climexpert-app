@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { leads, suivis, notifications } from "@/lib/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { createClientFromLead } from "@/lib/clients";
+import { createIntervention } from "@/lib/interventions";
 import { Resend } from "resend";
 import { logError } from "@/lib/observability";
 
@@ -35,10 +36,22 @@ export async function POST(req: NextRequest) {
     version: sql`${leads.version} + 1`, updatedAt: new Date(),
   }).where(eq(leads.id, lead.id));
 
-  // Accepté -> conversion auto en client (idempotent), comme un passage "gagné" classique.
+  // Accepté -> conversion auto en client (idempotent) + création de l'intervention à planifier
+  // (le devis accepté = prestation à réaliser ; le gérant n'a plus qu'à caler le créneau).
   if (decision === "accepte") {
-    try { await createClientFromLead(lead.id); }
-    catch (e) { logError("devisDecision.conversion", e, { leadId: lead.id }); }
+    try {
+      const client = await createClientFromLead(lead.id);
+      if (client) {
+        await createIntervention({
+          clientId: client.id,
+          type: (lead.project ?? "autre"),
+          status: "planifiée",
+          scheduledAt: null,
+          address: lead.address ?? client.address ?? null,
+          dureeEstimeeMinutes: 120,
+        });
+      }
+    } catch (e) { logError("devisDecision.conversion", e, { leadId: lead.id }); }
   }
 
   // Historique du prospect

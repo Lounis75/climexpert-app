@@ -14,6 +14,7 @@ import { detectDuplicates, leadAction } from "@/lib/leads-utils";
 import { extractPhones } from "@/lib/phone";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 import LeadQualification from "./LeadQualification";
+import NouveauDevisModal from "@/components/NouveauDevisModal";
 
 const STATUS_CONFIG: Record<LeadStatus, { label: string; color: string; col: string }> = {
   nouveau:          { label: "Nouveau",          color: "bg-sky-500/10 text-sky-400 border-sky-500/30",       col: "border-t-sky-500" },
@@ -813,6 +814,9 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
           <Plus className="w-3.5 h-3.5" />
           Ajouter un lead
         </button>
+
+        {/* Nouveau devis (client existant ou nouveau contact) */}
+        <NouveauDevisModal triggerClassName="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500 hover:bg-violet-400 text-white text-xs font-semibold rounded-xl transition-colors" />
 
         {/* View toggle (desktop seulement, le mobile est toujours en liste verticale) */}
         <div className="hidden sm:flex items-center gap-1 bg-slate-800/60 border border-white/10 rounded-xl p-1">

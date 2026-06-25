@@ -15,6 +15,7 @@ import {
 import RgpdButtons from "./RgpdButtons";
 import ClientContactCard from "./ClientContactCard";
 import SendPortalAccess from "./SendPortalAccess";
+import NouveauDevisModal from "@/components/NouveauDevisModal";
 
 export const dynamic = "force-dynamic";
 
@@ -179,11 +180,14 @@ export default async function ClientDetailPage({
               )}
             </div>
           </div>
-          {/* Un client peut avoir plusieurs interventions (installation, puis entretien, 2e logement…). */}
+          {/* Un client peut avoir plusieurs interventions / devis (vente d'une prestation en plus…). */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <NouveauDevisModal presetClient={{ id: c.id, name: c.name }} triggerClassName="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-violet-500 hover:bg-violet-400 text-white text-sm font-semibold transition-colors" />
           <Link href={`/admin/interventions/new?client=${c.id}`}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-white text-sm font-semibold transition-colors flex-shrink-0">
             <Wrench className="w-4 h-4" /> Nouvelle intervention
           </Link>
+          </div>
         </div>
 
         {/* Coordonnées */}
