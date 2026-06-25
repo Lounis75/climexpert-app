@@ -1,8 +1,16 @@
-<svg width="512" height="512" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" fill="none">
-  <!-- Fond plein, couleur exacte du logo (iOS arrondit automatiquement en squircle) -->
-  <rect width="60" height="60" fill="#3AABF0"/>
-  <!-- Lignes de vent : tracés EXACTS du logo officiel ClimExpert -->
-  <path d="M13 20 L37 20 Q46 20 46 13 Q46 7 39 7" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round"/>
-  <path d="M13 30 L42 30 Q51 30 51 23 Q51 17 44 17" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round"/>
-  <path d="M13 40 L34 40 Q43 40 43 47 Q43 53 36 53" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round"/>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="climGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4FB6F5"/>
+      <stop offset="1" stop-color="#2C9BE0"/>
+    </linearGradient>
+  </defs>
+  <!-- Fond plein dégradé (iOS arrondit automatiquement en squircle) -->
+  <rect width="512" height="512" fill="url(#climGrad)"/>
+  <!-- Logo « vent » officiel (tracés exacts), centré avec plus de marge + traits affinés -->
+  <g transform="translate(256,256) scale(7) translate(-32,-30)" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round">
+    <path d="M13 20 L37 20 Q46 20 46 13 Q46 7 39 7"/>
+    <path d="M13 30 L42 30 Q51 30 51 23 Q51 17 44 17"/>
+    <path d="M13 40 L34 40 Q43 40 43 47 Q43 53 36 53"/>
+  </g>
 </svg>
