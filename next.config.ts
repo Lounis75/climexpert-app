@@ -24,6 +24,11 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "*.r2.dev" },           // images uploadées (Cloudflare R2 public)
       { protocol: "https", hostname: "*.r2.cloudflarestorage.com" },
     ],
+    // Moins de variantes générées par image (défaut Next = 8 deviceSizes). On garde les 4
+    // points de rupture utiles (mobile / tablette / desktop / large) : divise par 2 le nombre
+    // de transformations facturées sur Vercel, sans perte visible (le hero 4K est inutile).
+    deviceSizes: [640, 828, 1200, 1920],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     formats: ["image/avif", "image/webp"],
     minimumCacheTTL: 31536000,
   },

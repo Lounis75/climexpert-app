@@ -15,10 +15,9 @@ const ADMIN_PUBLIC = [
 const TECH_PUBLIC = ["/technicien/login", "/technicien/activation", "/api/technicien/login", "/api/technicien/verify"];
 const COMMERCIAL_PUBLIC = ["/commercial/login", "/commercial/activation", "/api/commercial/login", "/api/commercial/verify"];
 
-function getSecret(): Uint8Array {
-  const secret = process.env.NEXTAUTH_SECRET ?? "";
-  return new TextEncoder().encode(secret);
-}
+// Encodé une seule fois au chargement du module (le secret ne change pas entre requêtes) :
+// évite un TextEncoder().encode() à chaque vérification de JWT.
+const CACHED_SECRET = new TextEncoder().encode(process.env.NEXTAUTH_SECRET ?? "");
 
 function matchesAny(pathname: string, paths: string[]): boolean {
   return paths.some((p) => pathname === p || pathname.startsWith(p + "/"));
@@ -37,7 +36,7 @@ async function guardSpace(req: NextRequest, cookieName: string, loginPath: strin
     return NextResponse.redirect(new URL(loginPath, req.url));
   }
   try {
-    await jwtVerify(token, getSecret());
+    await jwtVerify(token, CACHED_SECRET);
     return NextResponse.next();
   } catch {
     if (isApi) return NextResponse.json({ error: "Session expirée — reconnectez-vous" }, { status: 401 });
@@ -97,7 +96,7 @@ export async function proxy(req: NextRequest) {
   }
 
   try {
-    await jwtVerify(token, getSecret());
+    await jwtVerify(token, CACHED_SECRET);
     return NextResponse.next();
   } catch {
     if (isApiRoute) return NextResponse.json({ error: "Session expirée — reconnectez-vous" }, { status: 401 });
@@ -108,6 +107,9 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
+  // Le middleware ne tourne QUE sur les espaces protégés (admin/technicien/commercial) et,
+  // via la condition d'hôte, sur le sous-domaine calculateur (pour son rewrite). Il ne
+  // s'exécute donc plus sur le site vitrine public : gros gain de CPU Vercel sur le trafic.
   matcher: [
     "/admin/:path*",
     "/api/admin/:path*",
@@ -115,6 +117,9 @@ export const config = {
     "/api/technicien/:path*",
     "/commercial/:path*",
     "/api/commercial/:path*",
-    "/((?!_next/static|_next/image|favicon.ico|icon.svg|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)).*)",
+    {
+      source: "/((?!_next/static|_next/image|favicon.ico|icon.svg|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)).*)",
+      has: [{ type: "host", value: "calculateur.climexpert.fr" }],
+    },
   ],
 };

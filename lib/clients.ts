@@ -165,16 +165,17 @@ export async function deleteClient(id: string): Promise<void> {
 }
 
 export async function getClientActivity(id: string): Promise<ClientActivity | null> {
-  const client = await getClientById(id);
-  if (!client) return null;
-
-  const [devisList, facturesList, interventionsList, savList, suivisList] = await Promise.all([
+  // Tout en parallèle : les requêtes liées utilisent l'id du paramètre, pas la fiche client,
+  // donc la lecture du client n'a pas besoin d'être faite avant (un aller-retour DB en moins).
+  const [client, devisList, facturesList, interventionsList, savList, suivisList] = await Promise.all([
+    getClientById(id),
     db.select().from(devis).where(eq(devis.clientId, id)).orderBy(desc(devis.createdAt)),
     db.select().from(factures).where(eq(factures.clientId, id)).orderBy(desc(factures.createdAt)),
     db.select().from(interventions).where(eq(interventions.clientId, id)).orderBy(desc(interventions.createdAt)),
     db.select().from(savTickets).where(eq(savTickets.clientId, id)).orderBy(desc(savTickets.createdAt)),
     db.select().from(suivisPlanifies).where(eq(suivisPlanifies.clientId, id)).orderBy(desc(suivisPlanifies.datePrevue)),
   ]);
+  if (!client) return null;
 
   return { ...client, devisList, facturesList, interventionsList, savList, suivisList };
 }

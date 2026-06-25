@@ -46,20 +46,18 @@ export async function getDevis(): Promise<(Devis & { clientName: string })[]> {
 }
 
 export async function getDevisById(id: string): Promise<DevisWithLignes | null> {
-  const [row] = await db
-    .select({ devis: devis, clientName: clients.name, clientEmail: clients.email, clientPhone: clients.phone, leadName: leads.name, leadEmail: leads.email, leadPhone: leads.phone })
-    .from(devis)
-    .leftJoin(clients, eq(devis.clientId, clients.id))
-    .leftJoin(leads, eq(devis.leadId, leads.id))
-    .where(eq(devis.id, id));
+  // Entête et lignes en parallèle (les deux requêtes sont indexées sur l'id du paramètre).
+  const [[row], lignes] = await Promise.all([
+    db
+      .select({ devis: devis, clientName: clients.name, clientEmail: clients.email, clientPhone: clients.phone, leadName: leads.name, leadEmail: leads.email, leadPhone: leads.phone })
+      .from(devis)
+      .leftJoin(clients, eq(devis.clientId, clients.id))
+      .leftJoin(leads, eq(devis.leadId, leads.id))
+      .where(eq(devis.id, id)),
+    db.select().from(lignesDevis).where(eq(lignesDevis.devisId, id)).orderBy(lignesDevis.ordre),
+  ]);
 
   if (!row) return null;
-
-  const lignes = await db
-    .select()
-    .from(lignesDevis)
-    .where(eq(lignesDevis.devisId, id))
-    .orderBy(lignesDevis.ordre);
 
   return { ...row.devis, clientName: row.clientName ?? row.leadName ?? "-", clientEmail: row.clientEmail ?? row.leadEmail ?? null, clientPhone: row.clientPhone ?? row.leadPhone ?? null, lignes };
 }
