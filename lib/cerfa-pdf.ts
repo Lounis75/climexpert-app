@@ -88,8 +88,8 @@ export async function generateCerfaPDF(d: CerfaData): Promise<Buffer> {
   C("Case_Demantel", nat.demantelement);
   C("Case_Autre", nat.autre || !!v(nat.autreText));
   T("Autre", nat.autreText);
-  // [5]
-  T("Detecteur_ID", d.detecteurManuel);
+  // [5] Détecteur manuel de fuite : toujours un détecteur électronique chez ClimExpert.
+  T("Detecteur_ID", d.detecteurManuel || "Détecteur électronique");
   const [jj, mm, aa] = v(d.controleLe).split("/");
   T("Controle_Jour", jj); T("Controle_Mois", mm); T("Controle_Annee", aa);
   // [6] OUI=1 / NON=2

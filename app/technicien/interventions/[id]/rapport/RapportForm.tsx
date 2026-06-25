@@ -52,7 +52,7 @@ export default function RapportForm({
   const [cTonnage, setCTonnage]           = useState("");
   const [cNatMaint, setCNatMaint]         = useState(true);
   const [cNatCtrl, setCNatCtrl]           = useState(true);
-  const [cDetecteur, setCDetecteur]       = useState("");
+  const [cDetecteur, setCDetecteur]       = useState("Détecteur électronique");
   const [cSysteme, setCSysteme]           = useState<"oui" | "non">("non");
   const [cFuites, setCFuites]             = useState<"oui" | "non">("non");
   const [cFuiteLoca, setCFuiteLoca]       = useState("");
