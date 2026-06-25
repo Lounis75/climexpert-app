@@ -84,8 +84,10 @@ export default async function ClientDetailPage({
     .orderBy(desc(contratsEntretien.createdAt))
     .limit(1);
 
-  // Montant généré = deal initial + contrat annuel (le suivi facturation Pennylane vit hors CRM).
-  const montantGenere = leadMontantCt + (contrat?.prixUnitaireCt ?? 0);
+  // Montant généré = montant du deal / des interventions uniquement. On N'ajoute PAS le contrat
+  // d'entretien : pour un entretien, c'est le même argent que le deal -> évite le double comptage
+  // (le suivi de facturation réel vit dans le logiciel compta, hors CRM).
+  const montantGenere = leadMontantCt;
 
   // Documents du client (attestations CERFA, etc.)
   const docs = await db.select().from(documents)
