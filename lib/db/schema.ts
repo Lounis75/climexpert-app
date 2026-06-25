@@ -332,6 +332,9 @@ export const interventions = pgTable("interventions", {
   photosBriefing:       text("photos_briefing"),
   dureeEstimeeMinutes:  integer("duree_estimee_minutes"),
   dureeReelleMinutes:   integer("duree_reelle_minutes"),
+  // ── Facture (PDF fait sur le logiciel compta) envoyée au client après l'intervention ──
+  factureUrl:           text("facture_url"),                // PDF de la facture stocké (R2)
+  factureEnvoyeeLe:     timestamp("facture_envoyee_le"),    // date d'envoi au client (sinon = à facturer)
   rdvToken:               varchar("rdv_token", { length: 100 }).unique(),
   rdvTokenChoix:          integer("rdv_token_choix"),              // 1|2|3, choix sélectionné
   rdvTokenCreneaux:       text("rdv_token_creneaux"),              // JSON: 3 créneaux proposés

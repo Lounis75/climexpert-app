@@ -14,7 +14,7 @@ import Link from "next/link";
 import {
   Users, FileText, ArrowRight, Wrench, Euro, AlertTriangle,
   ClipboardList, CalendarCheck, CalendarPlus, CheckCircle2, Clock, Plus,
-  UserCircle, Home, HeadphonesIcon, MessageSquare, TrendingUp, ScrollText, Phone,
+  UserCircle, Home, HeadphonesIcon, MessageSquare, TrendingUp, ScrollText, Phone, Receipt,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -95,6 +95,7 @@ export default async function DashboardPage() {
     { n: taches.prospectsSansCommercial,     label: "prospect(s) à affecter",           href: "/admin/leads",         color: "sky",    icon: Users },
     { n: taches.devisAChiffrer,              label: "devis à chiffrer (montant manquant)", href: "/admin/leads",      color: "red",     icon: FileText },
     { n: taches.entretiensARelancer,         label: "entretien(s) à relancer",          href: "/admin/clients",       color: "emerald", icon: Wrench },
+    { n: taches.facturesAEnvoyer,            label: "facture(s) à envoyer au client",   href: "/admin/interventions", color: "emerald", icon: Receipt },
     { n: stats.savOuverts,                   label: "SAV ouvert(s)",                    href: "/admin/sav",           color: "red",    icon: HeadphonesIcon },
   ].filter((t) => t.n > 0);
   const totalTaches = tachesList.reduce((s, t) => s + t.n, 0);

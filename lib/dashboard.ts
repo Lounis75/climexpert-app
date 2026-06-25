@@ -370,12 +370,13 @@ export type TachesAFaire = {
   devisARelancer: number;
   devisAChiffrer: number;
   entretiensARelancer: number;
+  facturesAEnvoyer: number;
 };
 
 export async function getTachesAFaire(): Promise<TachesAFaire> {
   const il7j = new Date(Date.now() - 7 * 86400000);
   const aujourdhui = new Date().toISOString().split("T")[0];
-  const [a, b, c, d, e, f] = await Promise.all([
+  const [a, b, c, d, e, f, g] = await Promise.all([
     // Prospects actifs (non convertis, non perdus) sans commercial affecté
     db.select({ n: count() }).from(leads).where(and(
       isNull(leads.commercialId),
@@ -411,6 +412,12 @@ export async function getTachesAFaire(): Promise<TachesAFaire> {
       isNull(clients.supprimeLe),
       lte(clients.prochainEntretienLe, aujourdhui),
     )),
+    // Interventions terminées dont la facture n'a pas encore été envoyée au client
+    db.select({ n: count() }).from(interventions).where(and(
+      eq(interventions.status, "terminée"),
+      isNull(interventions.factureEnvoyeeLe),
+      isNull(interventions.supprimeLe),
+    )),
   ]);
   return {
     prospectsSansCommercial:     Number(a[0]?.n ?? 0),
@@ -419,6 +426,7 @@ export async function getTachesAFaire(): Promise<TachesAFaire> {
     devisARelancer:              Number(d[0]?.n ?? 0),
     devisAChiffrer:              Number(e[0]?.n ?? 0),
     entretiensARelancer:         Number(f[0]?.n ?? 0),
+    facturesAEnvoyer:            Number(g[0]?.n ?? 0),
   };
 }
 

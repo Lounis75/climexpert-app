@@ -8,6 +8,7 @@ import InterventionActions from "./InterventionActions";
 import CopyableContact from "@/components/CopyableContact";
 import BriefingPhotos from "./BriefingPhotos";
 import CreneauEditor from "./CreneauEditor";
+import FactureUpload from "./FactureUpload";
 
 export const dynamic = "force-dynamic";
 
@@ -86,6 +87,16 @@ export default async function InterventionDetailPage({
         >
           <FileText className="w-4 h-4 text-sky-400" /> Ordre de mission (PDF)
         </a>
+
+        {/* Facturation : disponible une fois l'intervention terminée */}
+        {i.status === "terminée" && (
+          <FactureUpload
+            interventionId={i.id}
+            factureUrl={i.factureUrl ?? null}
+            factureEnvoyeeLe={i.factureEnvoyeeLe ? new Date(i.factureEnvoyeeLe).toISOString() : null}
+            hasEmail={!!i.clientEmail}
+          />
+        )}
 
         {/* Infos */}
         <div className="grid sm:grid-cols-2 gap-4">
