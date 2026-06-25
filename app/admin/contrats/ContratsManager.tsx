@@ -301,7 +301,7 @@ export default function ContratsManager({
             <div>
               <label className="block text-xs text-slate-400 mb-1.5">Fluide frigorigène</label>
               <select name="fluide" value={form.fluide} onChange={handleChange} className={inputCls}>
-                {["R410A", "R32", "R290", "R454B", "R407C", "R134a"].map((f) => <option key={f} value={f}>{f}</option>)}
+                {["R410A", "R32", "R22", "R290", "R454B", "R407C", "R134a"].map((f) => <option key={f} value={f}>{f}</option>)}
               </select>
             </div>
             <div>
