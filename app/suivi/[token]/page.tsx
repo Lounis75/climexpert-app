@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { clients, interventions, factures, savTickets, techniciens, documents, rapportsIntervention } from "@/lib/db/schema";
+import { clients, interventions, factures, savTickets, techniciens, documents, rapportsIntervention, contratsEntretien } from "@/lib/db/schema";
 import { eq, and, isNull, desc } from "drizzle-orm";
 import { Wind, Wrench, FileText, HeadphonesIcon, CalendarDays, CheckCircle2, Clock, AlertTriangle, Shield, Download, Camera } from "lucide-react";
 import Link from "next/link";
@@ -103,6 +103,15 @@ export default async function SuiviPage({ params }: { params: Promise<{ token: s
   const garantieExpired = client.garantieExpireLe ? new Date(client.garantieExpireLe) < new Date() : null;
   const clientPhotos = clientPhotosRows.flatMap((r) => r.photosUrls ?? []).slice(0, 12);
 
+  // Le client a-t-il déjà un contrat d'entretien actif ? Source de vérité = la table des
+  // contrats (plus fiable que client.contratEntretienId, qui n'est pas toujours renseigné).
+  const [contratActif] = await db
+    .select({ id: contratsEntretien.id })
+    .from(contratsEntretien)
+    .where(and(eq(contratsEntretien.clientId, client.id), eq(contratsEntretien.active, true), isNull(contratsEntretien.supprimeLe)))
+    .limit(1);
+  const hasContrat = !!contratActif || !!client.contratEntretienId;
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
@@ -151,7 +160,7 @@ export default async function SuiviPage({ params }: { params: Promise<{ token: s
         )}
 
         {/* Entretien annuel */}
-        {!client.contratEntretienId && (
+        {!hasContrat && (
           <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
             <p className="text-amber-800 text-sm font-semibold mb-1">Entretien annuel recommandé</p>
             <p className="text-amber-700 text-xs mb-3">Prolongez la durée de vie de votre équipement et préservez votre garantie.</p>
