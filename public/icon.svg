@@ -1,17 +1,8 @@
-<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="climbg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#38bdf8"/>
-      <stop offset="1" stop-color="#0284c7"/>
-    </linearGradient>
-  </defs>
-  <!-- Fond plein (iOS arrondit automatiquement en squircle) -->
-  <rect width="512" height="512" fill="url(#climbg)"/>
-  <!-- Logo « vent » (Lucide Wind), centré, traits fins et épurés -->
-  <g transform="translate(256,256) scale(10.6) translate(-12,-12.4)"
-     fill="none" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/>
-    <path d="M9.6 4.6A2 2 0 1 1 11 8H2"/>
-    <path d="M12.6 19.4A2 2 0 1 0 14 16H2"/>
-  </g>
+<svg width="512" height="512" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" fill="none">
+  <!-- Fond plein, couleur exacte du logo (iOS arrondit automatiquement en squircle) -->
+  <rect width="60" height="60" fill="#3AABF0"/>
+  <!-- Lignes de vent : tracés EXACTS du logo officiel ClimExpert -->
+  <path d="M13 20 L37 20 Q46 20 46 13 Q46 7 39 7" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M13 30 L42 30 Q51 30 51 23 Q51 17 44 17" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M13 40 L34 40 Q43 40 43 47 Q43 53 36 53" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round"/>
 </svg>
