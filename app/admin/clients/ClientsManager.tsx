@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Phone, Mail, MapPin, Trash2, Plus, X, Check,
-  UserCircle, MessageSquare, Building2, ChevronRight, AlertTriangle,
+  UserCircle, Building2, ChevronRight, AlertTriangle,
   ChevronLeft, Loader2,
 } from "lucide-react";
 import Link from "next/link";
@@ -319,12 +319,8 @@ export default function ClientsManager({
                     </span>
                   )}
                 </div>
-                {client.notes && (
-                  <div className="mt-2 flex items-start gap-1.5 text-slate-500 text-xs">
-                    <MessageSquare className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                    <span>{client.notes}</span>
-                  </div>
-                )}
+                {/* La conversation / les notes ne sont PAS affichées ici (liste épurée) :
+                    elles restent consultables sur la fiche détaillée du client. */}
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <span className="text-slate-600 text-xs">{formatDate(client.createdAt)}</span>
