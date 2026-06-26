@@ -97,7 +97,16 @@ export async function getLeads(): Promise<Lead[]> {
   return db.select().from(leads).where(isNull(leads.supprimeLe)).orderBy(desc(leads.createdAt));
 }
 
-const STATUS_LIST: LeadStatus[] = ["nouveau", "pas_de_reponse", "contacté", "devis_envoyé", "gagné", "perdu"];
+const STATUS_LIST: LeadStatus[] = ["nouveau", "contacté", "devis_envoyé", "gagné", "perdu"];
+
+/** Ordre d'une colonne du Kanban. La colonne "Nouveau" est une file d'appels : le plus ancien
+ *  (jamais appelé) en haut ; un « pas de réponse » met à jour dernierAppelLe et renvoie le
+ *  prospect en bas. Les autres colonnes restent en plus récent d'abord. */
+function orderForStatus(st: LeadStatus) {
+  return st === "nouveau"
+    ? sql`COALESCE(${leads.dernierAppelLe}, ${leads.createdAt}) ASC`
+    : desc(leads.createdAt);
+}
 
 /** Ensemble des prospects « en production » (gagnés AVEC une intervention planifiée
  *  date+technicien) → masqués du Kanban. Calculé en une requête (pas par lot). */
@@ -132,7 +141,7 @@ export async function getLeadsBoard(cap = 50): Promise<{ leads: Lead[]; counts: 
   const perStatus = await Promise.all(STATUS_LIST.map((st) => {
     const conds: SQL[] = [isNull(leads.supprimeLe), isNull(leads.archiveLe), eq(leads.status, st)];
     if (st === "gagné" && enProdArr.length) conds.push(notInArray(leads.id, enProdArr));
-    return db.select().from(leads).where(and(...conds)).orderBy(desc(leads.createdAt)).limit(cap);
+    return db.select().from(leads).where(and(...conds)).orderBy(orderForStatus(st)).limit(cap);
   }));
   return { leads: perStatus.flat(), counts, enProductionCount: enProd.size };
 }
@@ -144,7 +153,7 @@ export async function getLeadsByStatusPaged(opts: { status: LeadStatus; offset: 
     const enProd = [...await getEnProductionLeadIdSet()];
     if (enProd.length) conds.push(notInArray(leads.id, enProd));
   }
-  return db.select().from(leads).where(and(...conds)).orderBy(desc(leads.createdAt))
+  return db.select().from(leads).where(and(...conds)).orderBy(orderForStatus(opts.status))
     .limit(Math.min(100, Math.max(1, opts.limit))).offset(Math.max(0, opts.offset));
 }
 

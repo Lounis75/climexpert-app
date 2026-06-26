@@ -26,6 +26,10 @@ const STATUS_CONFIG: Record<LeadStatus, { label: string; color: string; col: str
 };
 
 const STATUSES = Object.keys(STATUS_CONFIG) as LeadStatus[];
+// La colonne « Pas de réponse » est retirée du Kanban : un prospect non-répondant reste dans
+// « Nouveau » (file d'appels). On conserve l'entrée dans STATUS_CONFIG pour les libellés hérités,
+// mais elle n'apparaît plus comme colonne, filtre, ou option de statut.
+const BOARD_STATUSES = STATUSES.filter((s) => s !== "pas_de_reponse");
 const STATUS_DOT: Record<LeadStatus, string> = {
   nouveau: "bg-sky-400", pas_de_reponse: "bg-rose-400", contacté: "bg-amber-400",
   devis_envoyé: "bg-violet-400", gagné: "bg-emerald-400", perdu: "bg-slate-400",
@@ -429,6 +433,36 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
     }
   }
 
+  // Actions de « premier contact » sur un prospect "nouveau" (file d'appels).
+  // pas_de_reponse : reste en "nouveau", +1 tentative, renvoyé en bas de la file (trace).
+  // pas_de_business / contact_etabli : changent le statut (perdu / contacté).
+  async function premierContact(id: string, action: "pas_de_reponse" | "pas_de_business" | "contact_etabli") {
+    const current = leads.find((l) => l.id === id);
+    const previous = current?.status;
+    setUpdating(id);
+    try {
+      const res = await fetch(`/api/admin/leads/${id}/contact`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      if (res.status === 401) { window.location.href = "/admin"; return; }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { alert("⚠️ " + (data.error ?? "Échec de l'action.")); return; }
+      if (data.lead) applyServerLead(data.lead);
+      const newStatus: string | undefined = data.lead?.status;
+      if (previous && newStatus && previous !== newStatus) {
+        setColCounts((c) => ({ ...c, [previous]: Math.max(0, (c[previous] ?? 0) - 1), [newStatus]: (c[newStatus] ?? 0) + 1 }));
+      }
+      // « Pas de réponse » : le prospect repart en bas de la file "Nouveau".
+      if (action === "pas_de_reponse") {
+        setLeads((prev) => { const me = prev.find((l) => l.id === id); return me ? [...prev.filter((l) => l.id !== id), me] : prev; });
+      }
+    } finally {
+      setUpdating(null);
+    }
+  }
+
   async function saveNotes(id: string) {
     setUpdating(id);
     try {
@@ -673,6 +707,13 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
           </span>
         )}
 
+        {/* Prospect injoignable : 4 appels sans réponse ou plus (reste dans la file) */}
+        {lead.status === "nouveau" && (lead.tentativesAppel ?? 0) >= 4 && (
+          <span className="inline-flex items-center gap-1 mt-1.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-orange-500/15 text-orange-300 border border-orange-400/40">
+            <AlertTriangle className="w-3 h-3" /> Injoignable ({lead.tentativesAppel})
+          </span>
+        )}
+
         {/* Ligne 3 : dernière activité (ou source) · action rouge / relance planifiée / sous-statut */}
         <div className="flex items-center justify-between gap-2 mt-1.5 flex-wrap">
           {enSommeil ? (
@@ -716,11 +757,10 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
   return (
     <div>
       {/* Stats, masquées sur mobile (superflu) ; sur mobile, voir les chips par étape ci-dessous */}
-      <div className="hidden sm:grid sm:grid-cols-7 gap-2 mb-6">
+      <div className="hidden sm:grid sm:grid-cols-6 gap-2 mb-6">
         {[
           { label: "Total",         value: Object.values(colCounts).reduce((a, b) => a + b, 0),        dot: null },
           { label: "Nouveau",       value: colCounts["nouveau"] ?? 0,                                 dot: "bg-sky-400" },
-          { label: "Pas de rép.",   value: colCounts["pas_de_reponse"] ?? 0,                          dot: "bg-rose-400" },
           { label: "Contact",       value: colCounts["contacté"] ?? 0,                                dot: "bg-amber-400" },
           { label: "Devis",         value: colCounts["devis_envoyé"] ?? 0,                            dot: "bg-violet-400" },
           { label: "Gagné",         value: colCounts["gagné"] ?? 0,                                   dot: "bg-emerald-400" },
@@ -861,7 +901,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
           >
             Tous <span className="tabular-nums opacity-70">{totalCount}</span>
           </button>
-          {STATUSES.map((s) => (
+          {BOARD_STATUSES.map((s) => (
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
@@ -885,10 +925,10 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
       {/* ── KANBAN VIEW ─────────────────────────────────────────────────────── */}
       {view === "kanban" && leads.length > 0 && (
         <div
-          className="hidden sm:flex lg:grid lg:grid-cols-6 gap-2 overflow-x-auto lg:overflow-visible snap-x snap-mandatory lg:snap-none pb-2 -mx-4 px-4 sm:mx-0 sm:px-0"
-          style={focusedStatus ? { gridTemplateColumns: STATUSES.map((s) => (s === focusedStatus ? "minmax(0,3fr)" : "minmax(0,0.6fr)")).join(" ") } : undefined}
+          className="hidden sm:flex lg:grid lg:grid-cols-5 gap-2 overflow-x-auto lg:overflow-visible snap-x snap-mandatory lg:snap-none pb-2 -mx-4 px-4 sm:mx-0 sm:px-0"
+          style={focusedStatus ? { gridTemplateColumns: BOARD_STATUSES.map((s) => (s === focusedStatus ? "minmax(0,3fr)" : "minmax(0,0.6fr)")).join(" ") } : undefined}
         >
-          {STATUSES.map((status) => {
+          {BOARD_STATUSES.map((status) => {
             const cfg = STATUS_CONFIG[status];
             const col = filtered.filter((l) => l.status === status);
             const isOver = dragOver === status;
@@ -1019,7 +1059,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                         updating === lead.id ? "opacity-50 cursor-wait" : ""
                       }`}
                     >
-                      {Object.entries(STATUS_CONFIG).map(([val, cfg]) => (
+                      {Object.entries(STATUS_CONFIG).filter(([val]) => val !== "pas_de_reponse").map(([val, cfg]) => (
                         <option key={val} value={val} className="bg-slate-800 text-white text-xs">
                           {cfg.label}
                         </option>
@@ -1111,16 +1151,16 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                   </a>
                   {lead.status === "nouveau" && (
                     <button
-                      onClick={() => updateStatus(lead.id, "pas_de_reponse")}
+                      onClick={() => premierContact(lead.id, "pas_de_reponse")}
                       disabled={updating === lead.id}
                       className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:bg-rose-500/20 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
                     >
                       Pas de réponse
                     </button>
                   )}
-                  {(lead.status === "nouveau" || lead.status === "pas_de_reponse") && (
+                  {lead.status === "nouveau" && (
                     <button
-                      onClick={() => updateStatus(lead.id, "contacté")}
+                      onClick={() => premierContact(lead.id, "contact_etabli")}
                       disabled={updating === lead.id}
                       className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
                     >
@@ -1413,6 +1453,35 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                 )}
 
                 {/* ─── Suivi commercial sur 2 colonnes (panneau large) ─── */}
+                {/* Premier contact : file d'appels (uniquement tant que le prospect est "nouveau") */}
+                {lead.status === "nouveau" && (
+                  <div className="rounded-xl border border-sky-500/20 bg-sky-500/[0.04] p-3 mb-5">
+                    <p className="text-sky-400 text-xs font-semibold mb-2 uppercase tracking-wide flex items-center gap-1.5">
+                      <Phone className="w-3 h-3" /> Premier contact
+                    </p>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button onClick={() => premierContact(lead.id, "pas_de_reponse")} disabled={updating === lead.id}
+                        className="flex items-center justify-center text-center py-2.5 px-1 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300 hover:bg-rose-500/20 text-xs font-medium transition-colors disabled:opacity-50">
+                        Pas de réponse
+                      </button>
+                      <button onClick={() => premierContact(lead.id, "pas_de_business")} disabled={updating === lead.id}
+                        className="flex items-center justify-center text-center py-2.5 px-1 rounded-lg bg-slate-500/10 border border-slate-500/30 text-slate-300 hover:bg-slate-500/20 text-xs font-medium transition-colors disabled:opacity-50">
+                        Pas de business
+                      </button>
+                      <button onClick={() => premierContact(lead.id, "contact_etabli")} disabled={updating === lead.id}
+                        className="flex items-center justify-center text-center py-2.5 px-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 text-xs font-medium transition-colors disabled:opacity-50">
+                        Contact établi
+                      </button>
+                    </div>
+                    {(lead.tentativesAppel ?? 0) > 0 && (
+                      <p className={`text-[11px] mt-2 flex items-center gap-1 ${(lead.tentativesAppel ?? 0) >= 4 ? "text-orange-400" : "text-slate-500"}`}>
+                        {(lead.tentativesAppel ?? 0) >= 4 && <AlertTriangle className="w-3 h-3 flex-shrink-0" />}
+                        {lead.tentativesAppel} appel{(lead.tentativesAppel ?? 0) > 1 ? "s" : ""} sans réponse{(lead.tentativesAppel ?? 0) >= 4 ? " (injoignable)" : ""}.
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 <div className="lg:grid lg:grid-cols-2 lg:gap-x-5 lg:gap-y-5 lg:items-start space-y-5 lg:space-y-0">
 
                 {/* Statut */}
@@ -1435,7 +1504,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                       updating === lead.id ? "opacity-50 cursor-wait" : ""
                     }`}
                   >
-                    {Object.entries(STATUS_CONFIG).map(([val, cfg]) => (
+                    {Object.entries(STATUS_CONFIG).filter(([val]) => val !== "pas_de_reponse").map(([val, cfg]) => (
                       <option key={val} value={val} className="bg-slate-800 text-white text-xs">
                         {cfg.label}
                       </option>
@@ -1779,22 +1848,6 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                       }`}
                     >
                       {isConverted ? <><CheckCircle2 className="w-4 h-4" /> Client créé</> : convertingId === lead.id ? <><span className="w-4 h-4 border border-emerald-400/50 border-t-emerald-400 rounded-full animate-spin" /> Conversion…</> : <><UserPlus className="w-4 h-4" /> Convertir</>}
-                    </button>
-                  ) : lead.status === "nouveau" ? (
-                    <button
-                      onClick={() => { updateStatus(lead.id, "pas_de_reponse"); setSelectedLead({ ...lead, status: "pas_de_reponse" }); }}
-                      disabled={updating === lead.id}
-                      className="flex items-center justify-center gap-2 px-4 py-2.5 bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:bg-rose-500/20 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
-                    >
-                      Pas de réponse
-                    </button>
-                  ) : lead.status === "pas_de_reponse" ? (
-                    <button
-                      onClick={() => { updateStatus(lead.id, "contacté"); setSelectedLead({ ...lead, status: "contacté" }); }}
-                      disabled={updating === lead.id}
-                      className="flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
-                    >
-                      Contact établi
                     </button>
                   ) : null}
                 </div>

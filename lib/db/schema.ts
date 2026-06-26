@@ -241,6 +241,10 @@ export const leads = pgTable("leads", {
   qualification:       jsonb("qualification").$type<Qualification>(), // 📋 guide de qualification des besoins
   statutChangeLe:      timestamp("statut_change_le"),  // date du dernier changement de statut (cycle de vie)
   relanceNotifieeLe:   timestamp("relance_notifiee_le"), // rappel déjà envoyé pour le statut courant (anti-doublon)
+  // ── Premier contact : file d'appels du statut "nouveau" ──
+  tentativesAppel:     integer("tentatives_appel").default(0).notNull(), // nb d'appels "pas de réponse" (badge injoignable à 4)
+  dernierAppelLe:      timestamp("dernier_appel_le"),  // dernière tentative d'appel → renvoie le prospect en bas de la file "Nouveau"
+  motifPerdu:          varchar("motif_perdu", { length: 40 }), // "pas_de_business" | "injoignable" | "refus" | "autre"
   archiveLe:           timestamp("archive_le"),        // perdu archivé (sort du Kanban, conservé pour recontact)
   photosUrls:          text("photos_urls").array(),    // photos jointes au formulaire (affichées sur la fiche prospect)
 }, (t) => ({
