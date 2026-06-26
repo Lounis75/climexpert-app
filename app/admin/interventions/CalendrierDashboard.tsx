@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { X, Plus, Check, ChevronLeft, ChevronRight, ChevronDown, Ban } from "lucide-react";
+import { X, Plus, Check, ChevronLeft, ChevronRight, ChevronDown, Ban, Trash2, ExternalLink } from "lucide-react";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 const HOUR_START   = 7;
@@ -392,6 +392,8 @@ export default function CalendrierDashboard() {
   const [nowY, setNowY]                   = useState<number | null>(null);
   const [modal, setModal]                 = useState<{ date: Date } | null>(null);
   const [indispoModal, setIndispoModal]   = useState(false);
+  // Popup d'action au clic sur un évènement (ouvrir / supprimer).
+  const [eventModal, setEventModal]       = useState<{ kind: "int" | "rdv" | "visite"; id: string; leadId?: string; title: string; sub: string; href: string } | null>(null);
   const nowRef  = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
 
@@ -422,6 +424,19 @@ export default function CalendrierDashboard() {
   }, [viewMode, monthAnchor]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Suppression depuis la popup : intervention -> DELETE ; visite / RDV -> on efface la date du prospect.
+  async function deleteEvent(ev: NonNullable<typeof eventModal>) {
+    if (ev.kind === "int") {
+      if (!confirm("Supprimer définitivement cette intervention ?")) return;
+      await fetch(`/api/admin/interventions/${ev.id}`, { method: "DELETE" }).catch(() => {});
+    } else if (ev.leadId) {
+      const patch = ev.kind === "visite" ? { visiteClientLe: null } : { rdvDate: null };
+      await fetch(`/api/admin/leads`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: ev.leadId, ...patch }) }).catch(() => {});
+    }
+    setEventModal(null);
+    load();
+  }
 
   // Current time
   useEffect(() => {
@@ -616,6 +631,26 @@ export default function CalendrierDashboard() {
         <IndispoModal techniciens={techniciens} onClose={() => setIndispoModal(false)} onCreated={load} />
       )}
 
+      {/* Popup d'action au clic sur un évènement : ouvrir la fiche ou supprimer */}
+      {eventModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" onClick={() => setEventModal(null)}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="relative bg-[#0f1623] border border-white/10 rounded-2xl shadow-2xl w-full max-w-xs p-5" onClick={(e) => e.stopPropagation()}>
+            <p className="text-white font-semibold text-sm">{eventModal.title}</p>
+            <p className="text-slate-400 text-xs mt-0.5">{eventModal.sub}</p>
+            <div className="mt-4 space-y-2">
+              <Link href={eventModal.href} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-white text-sm font-semibold transition-colors">
+                <ExternalLink className="w-4 h-4" /> Ouvrir la fiche
+              </Link>
+              <button onClick={() => deleteEvent(eventModal)} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 text-sm font-semibold transition-colors">
+                <Trash2 className="w-4 h-4" /> Supprimer
+              </button>
+              <button onClick={() => setEventModal(null)} className="w-full py-2 text-slate-400 hover:text-white text-sm transition-colors">Fermer</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Bascule Semaine / Mois (+ navigation mois) */}
       <div className="flex items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-2">
@@ -716,7 +751,7 @@ export default function CalendrierDashboard() {
                       return (
                         <Link key={`${ev.kind}-${ev.id}`}
                           href={ev.kind === "int" ? `/admin/interventions/${ev.id}` : `/admin/leads?lead=${ev.leadId ?? ev.id}`}
-                          onClick={(e) => e.stopPropagation()}
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEventModal({ kind: ev.kind, id: ev.id, leadId: ev.leadId, title: ev.label, sub: `${ev.time ? ev.time + " · " : ""}${ev.kind === "int" ? "Intervention" : ev.kind === "visite" ? "Visite client" : "RDV commercial"}`, href: ev.kind === "int" ? `/admin/interventions/${ev.id}` : `/admin/leads?lead=${ev.leadId ?? ev.id}` }); }}
                           draggable={ev.kind !== "visite"}
                           onDragStart={(e) => { if (ev.kind === "visite") { e.preventDefault(); return; } onEventDragStart(e, ev.id, ev.kind as "int" | "rdv", ev.duree, ev.start); }}
                           onDragEnd={() => { dragRef.current = null; setDragId(null); }}
@@ -836,7 +871,7 @@ export default function CalendrierDashboard() {
                               <Link
                                 key={b.key}
                                 href={`/admin/leads?lead=${r.leadId ?? r.id}`}
-                                onClick={(e) => e.stopPropagation()}
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEventModal({ kind: isVisite ? "visite" : "rdv", id: r.id, leadId: r.leadId ?? r.id, title: r.clientName, sub: `${fmtHM(start)} · ${isVisite ? "Visite client" : "RDV commercial"}`, href: `/admin/leads?lead=${r.leadId ?? r.id}` }); }}
                                 draggable={!isVisite}
                                 onDragStart={(e) => { if (isVisite) { e.preventDefault(); return; } onEventDragStart(e, r.id, "rdv", r.duree ?? 120, start.getTime()); }}
                                 onDragEnd={() => { dragRef.current = null; setDragId(null); }}
@@ -863,7 +898,7 @@ export default function CalendrierDashboard() {
                             <Link
                               key={b.key}
                               href={`/admin/interventions/${ev.id}`}
-                              onClick={(e) => e.stopPropagation()}
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEventModal({ kind: "int", id: ev.id, title: ev.clientName, sub: `${fmtHM(start)} · ${ev.type}`, href: `/admin/interventions/${ev.id}` }); }}
                               draggable
                               onDragStart={(e) => onEventDragStart(e, ev.id, "int", dur, start.getTime())}
                               onDragEnd={() => { dragRef.current = null; setDragId(null); }}
