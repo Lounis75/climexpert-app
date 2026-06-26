@@ -3,6 +3,9 @@
 // (repris dans la fiche client à la conversion → utile au commercial et au technicien).
 // Le formulaire se RAMIFIE selon le type de prestation (entretien / installation / dépannage).
 
+// Tâche manuelle à effectuer pour un prospect/client (checklist du « parcours client »).
+export type LeadTache = { id: string; label: string; dueDate?: string | null; fait: boolean };
+
 export type Qualification = {
   // 🏠 Le bien
   typeBien?: string; clientType?: string; siret?: string;

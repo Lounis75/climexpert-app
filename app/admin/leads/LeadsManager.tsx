@@ -14,6 +14,8 @@ import { detectDuplicates, leadAction } from "@/lib/leads-utils";
 import { extractPhones } from "@/lib/phone";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 import LeadQualification from "./LeadQualification";
+import LeadParcours from "./LeadParcours";
+import type { LeadTache } from "@/lib/qualification";
 import NouveauDevisModal from "@/components/NouveauDevisModal";
 
 const STATUS_CONFIG: Record<LeadStatus, { label: string; color: string; col: string }> = {
@@ -356,6 +358,12 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
     setSaveFlash("saved");
     if (saveFlashTimer.current) clearTimeout(saveFlashTimer.current);
     saveFlashTimer.current = setTimeout(() => setSaveFlash("idle"), 1800);
+  }
+
+  // Enregistre la liste des tâches du prospect (checklist du parcours client).
+  async function saveTaches(next: LeadTache[]) {
+    setSelectedLead((prev) => (prev ? ({ ...prev, taches: next } as Lead) : null));
+    await patchLeadField({ taches: next });
   }
 
   async function patchLeadField(fields: Record<string, unknown>): Promise<boolean> {
@@ -1438,92 +1446,51 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                   </div>
                 )}
 
-                {/* Contact info */}
-                <div className="bg-slate-800/40 border border-white/8 rounded-2xl p-4 space-y-3">
-                  <a
-                    href={`tel:${lead.phone}`}
-                    className="flex items-center gap-3 group"
-                  >
-                    <div className="w-8 h-8 bg-sky-500/10 border border-sky-500/20 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-sky-500/20 transition-colors">
-                      <Phone className="w-3.5 h-3.5 text-sky-400" />
-                    </div>
-                    <div>
-                      <p className="text-white font-semibold text-sm group-hover:text-sky-300 transition-colors">{lead.phone}</p>
-                      <p className="text-slate-500 text-xs">Appuyer pour appeler</p>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-600 ml-auto group-hover:text-sky-400 transition-colors" />
-                  </a>
-                  {lead.email && (
-                    <a href={`mailto:${lead.email}`} className="flex items-center gap-3 group">
-                      <div className="w-8 h-8 bg-violet-500/10 border border-violet-500/20 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-violet-500/20 transition-colors">
-                        <Mail className="w-3.5 h-3.5 text-violet-400" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-white font-medium text-sm truncate group-hover:text-violet-300 transition-colors">{lead.email}</p>
-                        <p className="text-slate-500 text-xs">Email</p>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-slate-600 ml-auto group-hover:text-violet-400 transition-colors" />
+                {/* ── Fiche client : l'essentiel, compact ── */}
+                <div className="bg-slate-800/40 border border-white/8 rounded-2xl p-3.5">
+                  <p className="text-slate-500 text-[10px] font-medium mb-2.5 uppercase tracking-wide">Fiche client</p>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-x-5">
+                    <a href={`tel:${lead.phone}`} className="flex items-center gap-2 group min-w-0">
+                      <Phone className="w-3.5 h-3.5 text-sky-400 flex-shrink-0" />
+                      <span className="text-white font-semibold text-sm group-hover:text-sky-300 transition-colors">{lead.phone}</span>
                     </a>
-                  )}
-                </div>
+                    {lead.email && (
+                      <a href={`mailto:${lead.email}`} className="flex items-center gap-2 group min-w-0">
+                        <Mail className="w-3.5 h-3.5 text-violet-400 flex-shrink-0" />
+                        <span className="text-slate-200 text-sm truncate group-hover:text-violet-300 transition-colors">{lead.email}</span>
+                      </a>
+                    )}
+                  </div>
 
-                {/* Project info */}
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
                   {(() => {
                     const l = lead as Lead & { typeClient?: string | null; entreprise?: string | null; siren?: string | null };
                     return l.typeClient === "professionnel" && (l.entreprise || l.siren) ? (
-                      <div className="bg-amber-500/[0.06] border border-amber-500/20 rounded-xl p-3 col-span-2 lg:col-span-3">
-                        <p className="text-amber-400/80 text-[10px] uppercase tracking-wide mb-1 flex items-center gap-1"><Briefcase className="w-3 h-3" /> Entreprise</p>
-                        <p className="text-white text-sm font-medium">{l.entreprise || "Non renseignée"}</p>
-                        {l.siren && <p className="text-slate-400 text-xs mt-0.5">SIREN : {l.siren}</p>}
-                      </div>
+                      <p className="text-xs mt-2.5 flex items-center gap-1.5 flex-wrap">
+                        <Briefcase className="w-3 h-3 text-amber-400 flex-shrink-0" />
+                        <span className="text-slate-200 font-medium">{l.entreprise || "Entreprise"}</span>
+                        {l.siren && <span className="text-slate-500">· SIREN {l.siren}</span>}
+                      </p>
                     ) : null;
                   })()}
-                  {lead.project && (
-                    <div className="bg-slate-800/40 border border-white/8 rounded-xl p-3">
-                      <p className="text-slate-500 text-[10px] uppercase tracking-wide mb-1">Projet</p>
-                      <p className="text-white text-sm font-medium flex items-center gap-1.5">
-                        <Wrench className="w-3 h-3 text-slate-400" />
-                        {PROJECT_LABELS[lead.project] ?? lead.project}
-                      </p>
-                    </div>
-                  )}
-                  {/* Ville/CP : masquée si une adresse complète existe (la ville y figure déjà). */}
-                  {lead.location && !(lead as Lead & { address?: string | null }).address && (
-                    <div className="bg-slate-800/40 border border-white/8 rounded-xl p-3">
-                      <p className="text-slate-500 text-[10px] uppercase tracking-wide mb-1">Ville / CP</p>
-                      <p className="text-white text-sm font-medium flex items-center gap-1.5">
-                        <MapPin className="w-3 h-3 text-slate-400" />
-                        {lead.location}
-                      </p>
-                    </div>
-                  )}
-                  <div className="bg-slate-800/40 border border-white/8 rounded-xl p-3">
-                    <p className="text-slate-500 text-[10px] uppercase tracking-wide mb-1">Reçu le</p>
-                    <p className="text-white text-sm font-medium flex items-center gap-1.5">
-                      <Clock className="w-3 h-3 text-slate-400" />
-                      {formatDate(lead.createdAt)}
-                    </p>
-                  </div>
-                </div>
 
-                {/* Adresse chantier */}
-                {(lead as Lead & { address?: string | null }).address && (
-                  <a
-                    href={`https://maps.google.com/?q=${encodeURIComponent((lead as Lead & { address?: string | null }).address!)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 group"
-                  >
-                    <MapPin className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-slate-500 text-[10px] uppercase tracking-wide mb-0.5">Adresse d&apos;intervention</p>
-                      <p className="text-emerald-300 text-sm font-medium group-hover:text-white transition-colors truncate">
-                        {(lead as Lead & { address?: string | null }).address}
-                      </p>
-                    </div>
-                  </a>
-                )}
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-2.5 text-xs">
+                    {lead.project && (
+                      <span className="flex items-center gap-1 text-slate-300"><Wrench className="w-3 h-3 text-slate-500" /> {PROJECT_LABELS[lead.project] ?? lead.project}</span>
+                    )}
+                    <span className="flex items-center gap-1 text-slate-400"><Clock className="w-3 h-3 text-slate-500" /> Reçu le {formatDate(lead.createdAt)}</span>
+                    {lead.location && !(lead as Lead & { address?: string | null }).address && (
+                      <span className="flex items-center gap-1 text-slate-400"><MapPin className="w-3 h-3 text-slate-500" /> {lead.location}</span>
+                    )}
+                  </div>
+
+                  {(lead as Lead & { address?: string | null }).address && (
+                    <a href={`https://maps.google.com/?q=${encodeURIComponent((lead as Lead & { address?: string | null }).address!)}`} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-2 mt-2.5 text-sm text-emerald-300 hover:text-white transition-colors group">
+                      <MapPin className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                      <span className="truncate">{(lead as Lead & { address?: string | null }).address}</span>
+                    </a>
+                  )}
+                </div>
 
                 {/* Photos jointes (envoyées via le formulaire) */}
                 {(lead.photosUrls?.length ?? 0) > 0 && (
@@ -1548,6 +1515,9 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                   status={lead.status}
                   onSave={async (q) => { await patchLeadField({ qualification: q }); }}
                 />
+
+                {/* Parcours client : frise des jalons + tâches à effectuer (auto + manuelles) */}
+                <LeadParcours lead={lead} devisHist={devisHist} onSaveTaches={saveTaches} />
                 </>
                 )}
 

@@ -83,6 +83,7 @@ export async function PATCH(req: NextRequest) {
     if (fields.notes !== undefined)        allowed.notes = fields.notes;
     if (fields.favori !== undefined)       allowed.favori = !!fields.favori;
     if (fields.qualification !== undefined) allowed.qualification = fields.qualification;
+    if (fields.taches !== undefined)       allowed.taches = Array.isArray(fields.taches) ? fields.taches.slice(0, 50) : [];
     if (fields.status)                     allowed.status = fields.status as LeadStatus;
     if (fields.clientId)                   allowed.clientId = fields.clientId;
     if (fields.commercialId !== undefined) allowed.commercialId = fields.commercialId || null;

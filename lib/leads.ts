@@ -187,7 +187,7 @@ export async function getLeadById(id: string): Promise<Lead | null> {
 
 export async function updateLead(
   id: string,
-  data: Partial<Pick<NewLead, "status" | "notes" | "email" | "location" | "address" | "project" | "name" | "phone" | "clientId" | "commercialId" | "consentementMarketing" | "consentementLe" | "montantDevisCt" | "prochaineEtape" | "rdvDate" | "visiteClientLe" | "dateSouhaiteeIntervention" | "prochaineActionLe" | "favori" | "qualification" | "typeClient" | "entreprise" | "siren">>,
+  data: Partial<Pick<NewLead, "status" | "notes" | "email" | "location" | "address" | "project" | "name" | "phone" | "clientId" | "commercialId" | "consentementMarketing" | "consentementLe" | "montantDevisCt" | "prochaineEtape" | "rdvDate" | "visiteClientLe" | "dateSouhaiteeIntervention" | "prochaineActionLe" | "favori" | "qualification" | "taches" | "typeClient" | "entreprise" | "siren">>,
   expectedVersion?: number,
 ): Promise<Lead | null> {
   // Verrou optimiste : si expectedVersion est fourni, la mise à jour n'a lieu que si
