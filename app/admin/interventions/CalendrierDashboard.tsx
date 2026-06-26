@@ -759,7 +759,7 @@ export default function CalendrierDashboard() {
                           draggable={ev.kind !== "visite"}
                           onDragStart={(e) => { if (ev.kind === "visite") { e.preventDefault(); return; } onEventDragStart(e, ev.id, ev.kind as "int" | "rdv", ev.duree, ev.start); }}
                           onDragEnd={() => { dragRef.current = null; setDragId(null); }}
-                          className={`block rounded px-1 py-0.5 text-[9px] leading-tight truncate hover:opacity-80 ${ev.kind === "visite" ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"} ${ev.kind === "rdv" ? "bg-amber-500/20 text-amber-300" : ev.kind === "visite" ? "bg-sky-500/20 text-sky-300" : `${cfg.bg} ${cfg.text}`} ${dragId === ev.id ? "opacity-40" : ""}`}>
+                          className={`block rounded px-1 py-0.5 text-[9px] leading-tight truncate hover:opacity-80 ${ev.kind === "visite" ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"} ${ev.kind === "rdv" ? "bg-amber-500/20 text-amber-300" : ev.kind === "visite" ? "bg-fuchsia-500/20 text-fuchsia-300" : `${cfg.bg} ${cfg.text}`} ${dragId === ev.id ? "opacity-40" : ""}`}>
                           {ev.time && <span className="opacity-70">{ev.time} </span>}{ev.kind === "rdv" ? "RDV " : ev.kind === "visite" ? "Visite " : ""}{ev.label}
                         </Link>
                       );
@@ -878,13 +878,13 @@ export default function CalendrierDashboard() {
                                 draggable={!isVisite}
                                 onDragStart={(e) => { if (isVisite) { e.preventDefault(); return; } onEventDragStart(e, r.id, "rdv", r.duree ?? 120, start.getTime()); }}
                                 onDragEnd={() => { dragRef.current = null; setDragId(null); }}
-                                className={`absolute rounded-lg border px-2 py-1 overflow-hidden z-10 transition-opacity hover:opacity-80 ${isVisite ? "cursor-pointer bg-sky-500/15 border-sky-500/40" : "cursor-grab active:cursor-grabbing bg-amber-500/15 border-amber-500/40"} ${dragId === r.id ? "opacity-40" : ""}`}
+                                className={`absolute rounded-lg border px-2 py-1 overflow-hidden z-10 transition-opacity hover:opacity-80 ${isVisite ? "cursor-pointer bg-fuchsia-500/15 border-fuchsia-500/40" : "cursor-grab active:cursor-grabbing bg-amber-500/15 border-amber-500/40"} ${dragId === r.id ? "opacity-40" : ""}`}
                                 style={{ top: b.top, height: b.height, ...box, ...(pc ? { borderLeftColor: pc, borderLeftWidth: 3 } : {}) }}
                               >
                                 <div className="flex items-start gap-1.5 h-full overflow-hidden">
-                                  <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 mt-[3px] ${isVisite ? "bg-sky-400" : "bg-amber-400"}`} />
+                                  <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 mt-[3px] ${isVisite ? "bg-fuchsia-400" : "bg-amber-400"}`} />
                                   <div className="flex-1 min-w-0">
-                                    <p className={`text-[10px] font-semibold leading-tight truncate ${isVisite ? "text-sky-300" : "text-amber-300"}`}>{fmtHM(start)} · {r.clientName || (isVisite ? "Visite" : "RDV")}</p>
+                                    <p className={`text-[10px] font-semibold leading-tight truncate ${isVisite ? "text-fuchsia-300" : "text-amber-300"}`}>{fmtHM(start)} · {r.clientName || (isVisite ? "Visite" : "RDV")}</p>
                                     {b.height >= 34 && <p className="text-white/70 text-[10px] leading-tight truncate mt-0.5">{isVisite ? "Visite" : "RDV"}{r.commercialName ? ` · ${r.commercialName}` : ""}</p>}
                                   </div>
                                 </div>

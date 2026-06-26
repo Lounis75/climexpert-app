@@ -12,7 +12,7 @@ const fmtDate = (d?: string | Date | null) => (d ? new Date(d).toLocaleDateStrin
 const euros = (ct?: number | null) => (ct ? `${(ct / 100).toLocaleString("fr-FR")} €` : "");
 const tid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
 
-const DOT: Record<string, string> = { sky: "bg-sky-400 border-sky-400", violet: "bg-violet-400 border-violet-400", emerald: "bg-emerald-400 border-emerald-400", red: "bg-red-400 border-red-400", slate: "bg-slate-500 border-slate-500" };
+const DOT: Record<string, string> = { sky: "bg-sky-400 border-sky-400", violet: "bg-violet-400 border-violet-400", emerald: "bg-emerald-400 border-emerald-400", red: "bg-red-400 border-red-400", slate: "bg-slate-500 border-slate-500", fuchsia: "bg-fuchsia-400 border-fuchsia-400" };
 const PRESETS = ["Relancer", "Visite client", "Appeler", "Envoyer un devis", "Métrage"];
 
 // Parcours client : une frise verticale des jalons (reçu, devis, visite, gagné) + un bloc
@@ -43,7 +43,7 @@ export default function LeadParcours({ lead, devisHist, onSaveTaches }: {
     });
   });
   if (lead.visiteClientLe) {
-    nodes.push({ key: "visite", date: new Date(lead.visiteClientLe), title: "Visite client", sub: fmtDateTime(lead.visiteClientLe), done: new Date(lead.visiteClientLe) < now, color: "sky" });
+    nodes.push({ key: "visite", date: new Date(lead.visiteClientLe), title: "Visite client", sub: fmtDateTime(lead.visiteClientLe), done: new Date(lead.visiteClientLe) < now, color: "fuchsia" });
   }
   if (lead.status === "gagné" && lead.gagneLe) {
     nodes.push({ key: "gagne", date: new Date(lead.gagneLe), title: "Gagné", sub: "Client signé", done: true, color: "emerald" });
