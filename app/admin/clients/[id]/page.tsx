@@ -65,13 +65,15 @@ export default async function ClientDetailPage({
   const c = await getClientActivity(id);
   if (!c) notFound();
 
-  // Commercial affecté + montant du deal : résolus via le prospect (lead) d'origine
+  // Commercial affecté + montant du deal + consentement démarchage : résolus via le prospect d'origine
   let commercial: string | null = null;
   let leadMontantCt = 0;
+  let consentMarketing = false;
   if (c.leadId) {
-    const [lead] = await db.select({ commercialId: leads.commercialId, montantDevisCt: leads.montantDevisCt }).from(leads).where(eq(leads.id, c.leadId)).limit(1);
+    const [lead] = await db.select({ commercialId: leads.commercialId, montantDevisCt: leads.montantDevisCt, consentementMarketing: leads.consentementMarketing }).from(leads).where(eq(leads.id, c.leadId)).limit(1);
     if (lead) {
       leadMontantCt = lead.montantDevisCt ?? 0;
+      consentMarketing = lead.consentementMarketing ?? false;
       if (lead.commercialId) {
         const [tech] = await db.select({ name: techniciens.name, prenom: techniciens.prenom }).from(techniciens).where(eq(techniciens.id, lead.commercialId)).limit(1);
         if (tech) commercial = tech.prenom ? `${tech.prenom} ${tech.name}` : tech.name;
@@ -164,6 +166,11 @@ export default async function ClientDetailPage({
                   <span className="text-slate-500 italic">non affecté</span>
                 )}
               </span>
+              {consentMarketing && (
+                <span title="Consentement au démarchage commercial donné" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 font-medium text-xs">
+                  <Shield className="w-3 h-3" /> Démarchage OK
+                </span>
+              )}
               {/* Contrat d'entretien */}
               {c.contratEntretienId ? (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 font-medium text-xs">

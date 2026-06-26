@@ -7,13 +7,17 @@ import { QUALIF_GROUPS, isQualified, type Qualification } from "@/lib/qualificat
 /** Section « Qualification des besoins » du panneau prospect : guide d'appel dépliable.
  *  Mise en avant (badge « À remplir ») au stade « Contact établi » tant que non renseignée. */
 export default function LeadQualification({
-  value, status, onSave, notes, onSaveNotes,
+  value, status, onSave, notes, onSaveNotes, dateSouhaitee, onSaveDateSouhaitee, consent, onSaveConsent,
 }: {
   value: Qualification | null | undefined;
   status: string;
   onSave: (q: Qualification) => Promise<void>;
   notes?: string | null;
   onSaveNotes: (text: string) => Promise<void>;
+  dateSouhaitee: string;
+  onSaveDateSouhaitee: (localValue: string) => Promise<void>;
+  consent: boolean;
+  onSaveConsent: (v: boolean) => Promise<void>;
 }) {
   const alreadyQualified = isQualified(value);
   const aRemplir = status === "contacté" && !alreadyQualified;
@@ -92,6 +96,23 @@ export default function LeadQualification({
               </div>
             </div>
           ))}
+          {/* Date souhaitée d'intervention + consentement démarchage (champs du prospect) */}
+          <div className="space-y-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-2">📅 Date souhaitée d&apos;intervention</p>
+              <input type="datetime-local" step={1800} value={dateSouhaitee} onChange={(e) => onSaveDateSouhaitee(e.target.value)}
+                className="w-full h-11 px-3 rounded-lg bg-slate-900/60 border border-white/10 text-white text-sm [color-scheme:dark] focus:outline-none focus:border-sky-500/50 transition-colors" />
+              <p className="text-slate-500 text-[10px] mt-1">Souhait du client, pré-remplira l&apos;intervention à la conversion.</p>
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-2">🛡️ Démarchage commercial (RGPD)</p>
+              <button type="button" onClick={() => onSaveConsent(!consent)}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg border text-sm transition-colors ${consent ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300" : "bg-slate-900/60 border-white/10 text-slate-400 hover:border-white/20"}`}>
+                <span className="flex items-center gap-1.5">{consent ? <Check className="w-3.5 h-3.5" /> : null}{consent ? "Consentement donné" : "Pas de consentement"}</span>
+                <span className="text-xs opacity-70">{consent ? "Retirer" : "Marquer accordé"}</span>
+              </button>
+            </div>
+          </div>
           {/* Remarques = Note interne (même base, synchronisée avec celle du bas de la fiche) */}
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-2">📝 Remarques / Note</p>

@@ -207,6 +207,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
   const [saveFlash, setSaveFlash] = useState<"idle" | "saving" | "saved">("idle");
   const saveFlashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [visiteDraft, setVisiteDraft] = useState<string | null>(null); // brouillon d'édition de la visite (null = non modifié)
+  const [visiteOpen, setVisiteOpen] = useState(false); // encadré « Visite client » ouvert ?
   const dragId = useRef<string | null>(null);
   const [commerciaux, setCommerciaux] = useState<{ id: string; name: string; prenom: string | null; color: string | null }[]>([]);
 
@@ -229,7 +230,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
   // Charge l'historique des devis du prospect ouvert (plusieurs liens peuvent coexister).
   useEffect(() => {
-    setVisiteDraft(null); // reset le brouillon de visite quand on change de prospect
+    setVisiteDraft(null); setVisiteOpen(false); // reset l'édition de visite quand on change de prospect
     if (!openLeadId) { setDevisHist([]); return; }
     fetch(`/api/admin/leads/${openLeadId}/devis`)
       .then(r => r.json())
@@ -1320,6 +1321,11 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                   {(lead as Lead & { typeClient?: string }).typeClient === "professionnel" && (
                     <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-semibold flex-shrink-0">Pro</span>
                   )}
+                  {(lead as Lead).consentementMarketing && (
+                    <span title="Consentement démarchage donné" className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-semibold flex-shrink-0">
+                      <ShieldCheck className="w-2.5 h-2.5" /> Démarchage OK
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-1.5 flex-shrink-0 ml-3">
                   {/* Retour visuel d'enregistrement (les champs se sauvegardent automatiquement) */}
@@ -1546,6 +1552,10 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                   onSave={async (q) => { await patchLeadField({ qualification: q }); }}
                   notes={lead.notes}
                   onSaveNotes={async (text) => { setSelectedLead(prev => prev ? { ...prev, notes: text } as Lead : null); await patchLeadField({ notes: text }); }}
+                  dateSouhaitee={toLocalDT((lead as Lead & { dateSouhaiteeIntervention?: string | null }).dateSouhaiteeIntervention)}
+                  onSaveDateSouhaitee={async (localValue) => { const iso = localValue ? new Date(localValue).toISOString() : null; setSelectedLead(prev => prev ? { ...prev, dateSouhaiteeIntervention: iso } as Lead : null); await patchLeadField({ dateSouhaiteeIntervention: iso }); }}
+                  consent={(lead as Lead).consentementMarketing}
+                  onSaveConsent={async (v) => { setSelectedLead(prev => prev ? { ...prev, consentementMarketing: v } as Lead : null); await patchLeadField({ consentementMarketing: v }); }}
                 />
 
                 {/* Parcours client : frise des jalons + tâches à effectuer (auto + manuelles) */}
@@ -1583,9 +1593,9 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                   </div>
                 )}
 
-                <div className="lg:grid lg:grid-cols-2 lg:gap-x-5 lg:gap-y-5 lg:items-start space-y-5 lg:space-y-0">
+                <div className="space-y-5">
 
-                {/* Statut */}
+                {/* Statut (élément principal) */}
                 <div>
                   <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide">Statut</p>
                   <select
@@ -1601,7 +1611,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                       }
                     }}
                     disabled={updating === lead.id}
-                    className={`text-xs font-semibold px-3 py-2 rounded-xl border bg-slate-800/60 cursor-pointer transition-opacity appearance-none w-full ${statusCfg.color} ${
+                    className={`text-sm font-bold px-4 py-3 rounded-xl border-2 bg-slate-800/60 cursor-pointer transition-opacity appearance-none w-full ${statusCfg.color} ${
                       updating === lead.id ? "opacity-50 cursor-wait" : ""
                     }`}
                   >
@@ -1659,66 +1669,59 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                   </div>
                 )}
 
-                {/* Prochaine action (relance), anti-oubli : alerte rouge si la date est dépassée */}
-                {lead.status !== "gagné" && lead.status !== "perdu" && (
-                  <div>
-                    <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide flex items-center gap-1.5">
-                      <Clock className="w-3 h-3" /> Prochaine action (relance)
-                    </p>
-                    <input
-                      type="date"
-                      value={((lead as Lead & { prochaineActionLe?: string | null }).prochaineActionLe ?? "").slice(0, 10)}
-                      onChange={async (e) => {
-                        const prochaineActionLe = e.target.value || null;
-                        setSelectedLead(prev => prev ? { ...prev, prochaineActionLe } as Lead : null);
-                        await patchLeadField({ prochaineActionLe });
-                      }}
-                      className="w-full text-sm bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2.5 text-white [color-scheme:dark] focus:outline-none focus:border-sky-500/50"
-                    />
-                    <p className="text-slate-500 text-[10px] mt-1">Passe la carte en alerte rouge si la date est dépassée.</p>
-                  </div>
-                )}
-
-                {/* Visite client (commerciale, créneau 1h) → s'ajoute au Planning, sans changer le statut */}
+                {/* Visite client : bouton → encadré (date + heure + Enregistrer). Chip si déjà posée. */}
                 {lead.status !== "perdu" && (() => {
-                  const savedVisite = toLocalDT((lead as Lead & { visiteClientLe?: string | null }).visiteClientLe);
+                  const saved = (lead as Lead & { visiteClientLe?: string | null }).visiteClientLe;
+                  const savedVisite = toLocalDT(saved);
                   const visiteVal = visiteDraft !== null ? visiteDraft : savedVisite;
-                  const visiteChanged = visiteDraft !== null && visiteDraft !== savedVisite;
                   const saveVisite = async () => {
                     const iso = visiteVal ? new Date(visiteVal).toISOString() : null;
                     setSelectedLead(prev => prev ? { ...prev, visiteClientLe: iso } as Lead : null);
                     await patchLeadField({ visiteClientLe: iso });
-                    setVisiteDraft(null);
+                    setVisiteDraft(null); setVisiteOpen(false);
                   };
-                  return (
-                  <div>
-                    <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide flex items-center gap-1.5">
-                      <CalendarPlus className="w-3 h-3" /> Visite client (créneau 1h)
-                    </p>
-                    <div className="flex gap-2">
-                      <input
-                        type="datetime-local" step={1800}
-                        value={visiteVal}
-                        onChange={(e) => setVisiteDraft(e.target.value)}
-                        className="flex-1 min-w-0 text-sm bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2.5 text-white [color-scheme:dark] focus:outline-none focus:border-sky-500/50"
-                      />
-                      <button onClick={saveVisite} disabled={!visiteChanged}
-                        className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 disabled:opacity-40 disabled:cursor-default text-white text-sm font-semibold transition-colors">
-                        <Check className="w-4 h-4" /> Enregistrer
-                      </button>
+                  const removeVisite = async () => {
+                    setSelectedLead(prev => prev ? { ...prev, visiteClientLe: null } as Lead : null);
+                    await patchLeadField({ visiteClientLe: null });
+                    setVisiteDraft(null); setVisiteOpen(false);
+                  };
+                  if (saved && !visiteOpen) return (
+                    <div className="flex items-center gap-2 rounded-xl border border-fuchsia-500/30 bg-fuchsia-500/10 px-3 py-2.5">
+                      <CalendarPlus className="w-4 h-4 text-fuchsia-300 flex-shrink-0" />
+                      <span className="flex-1 min-w-0 text-sm text-fuchsia-100">Visite client le {new Date(saved).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
+                      <button onClick={() => { setVisiteDraft(savedVisite); setVisiteOpen(true); }} className="text-slate-300 hover:text-white text-xs font-medium flex-shrink-0">Modifier</button>
+                      <button onClick={removeVisite} title="Supprimer la visite" className="text-slate-400 hover:text-red-400 flex-shrink-0"><X className="w-4 h-4" /></button>
                     </div>
-                    <p className="text-slate-500 text-[10px] mt-1">S&apos;ajoute au Planning. Clique « Enregistrer » pour valider le rendez-vous.</p>
-                  </div>
+                  );
+                  if (visiteOpen) return (
+                    <div className="rounded-xl border border-fuchsia-500/30 bg-fuchsia-500/[0.06] p-3">
+                      <p className="text-fuchsia-300 text-xs font-semibold mb-2 uppercase tracking-wide flex items-center gap-1.5"><CalendarPlus className="w-3 h-3" /> Visite client (créneau 1h)</p>
+                      <input type="datetime-local" step={1800} value={visiteVal} onChange={(e) => setVisiteDraft(e.target.value)} autoFocus className="w-full text-sm bg-slate-900/60 border border-white/10 rounded-lg px-3 py-2.5 text-white [color-scheme:dark] focus:outline-none focus:border-fuchsia-500/50" />
+                      <div className="flex gap-2 mt-2">
+                        <button onClick={saveVisite} disabled={!visiteVal} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-fuchsia-500 hover:bg-fuchsia-400 disabled:opacity-40 text-white text-sm font-semibold transition-colors"><Check className="w-4 h-4" /> Enregistrer</button>
+                        <button onClick={() => { setVisiteDraft(null); setVisiteOpen(false); }} className="px-4 py-2 text-slate-400 hover:text-white text-sm transition-colors">Annuler</button>
+                      </div>
+                      <p className="text-slate-500 text-[10px] mt-1.5">S&apos;ajoute au Planning (en fuchsia).</p>
+                    </div>
+                  );
+                  return (
+                    <button onClick={() => { setVisiteDraft(savedVisite); setVisiteOpen(true); }} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-fuchsia-500/40 text-fuchsia-300 hover:bg-fuchsia-500/10 text-sm font-semibold transition-colors">
+                      <Plus className="w-4 h-4" /> Visite client
+                    </button>
                   );
                 })()}
 
-                {/* Montant du devis, obligatoire dès "devis envoyé" / "gagné" */}
-                {(lead.status === "devis_envoyé" || lead.status === "gagné") && (
-                  <div>
-                    <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide flex items-center gap-1.5">
-                      <FileText className="w-3 h-3" /> Montant du devis (€ TTC)
-                    </p>
+                {/* ─── Devis (cœur commercial) : montant + historique + envoi ─── */}
+                <div className="rounded-xl border border-violet-500/25 bg-violet-500/[0.05] p-3.5">
+                  <p className="text-violet-300 text-xs font-semibold mb-2.5 uppercase tracking-wide flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5" /> Devis
+                  </p>
+
+                  {/* Montant TTC (à côté du devis) */}
+                  <div className="mb-3">
+                    <label className="text-slate-400 text-[11px] block mb-1">Montant (€ TTC)</label>
                     <input
+                      key={`montant-${lead.id}`}
                       type="number" min="0" step="1"
                       defaultValue={lead.montantDevisCt ? lead.montantDevisCt / 100 : ""}
                       placeholder="ex : 3500"
@@ -1728,21 +1731,12 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                         if (ct === (lead.montantDevisCt ?? null)) return;
                         await patchLeadField({ montantDevisCt: ct });
                       }}
-                      className={`w-full bg-slate-800/60 border rounded-xl px-3 py-2 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-sky-500/50 ${lead.montantDevisCt ? "border-white/10" : "border-amber-500/40"}`}
+                      className={`w-full bg-slate-900/60 border rounded-lg px-3 py-2 text-white text-sm placeholder-slate-600 focus:outline-none focus:border-violet-500/50 ${!lead.montantDevisCt && (lead.status === "devis_envoyé" || lead.status === "gagné") ? "border-amber-500/40" : "border-white/10"}`}
                     />
-                    {!lead.montantDevisCt && (
-                      <p className="text-amber-400 text-[11px] mt-1.5 flex items-center gap-1">
-                        <AlertTriangle className="w-3 h-3" /> Renseignez le montant du devis (tâche à effectuer).
-                      </p>
+                    {!lead.montantDevisCt && (lead.status === "devis_envoyé" || lead.status === "gagné") && (
+                      <p className="text-amber-400 text-[11px] mt-1.5 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Montant à renseigner.</p>
                     )}
                   </div>
-                )}
-
-                {/* ─── Devis (PDF) : envoi au client + suivi de sa décision ─── */}
-                <div className="rounded-xl border border-white/10 bg-slate-900/30 p-3">
-                  <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide flex items-center gap-1.5">
-                    <FileText className="w-3 h-3" /> Devis
-                  </p>
                   {/* Historique : une ligne par devis envoyé (chaque lien a sa propre décision) */}
                   {devisHist.length > 0 ? (
                     <div className="space-y-1.5 mb-3">
@@ -1784,77 +1778,6 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                   {!lead.email && (
                     <p className="text-amber-400 text-[11px] mt-2 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Ajoute un e-mail à ce prospect pour pouvoir lui envoyer le devis.</p>
                   )}
-                </div>
-
-                {/* Date souhaitée d'intervention (dès l'envoi du devis) */}
-                {(lead.status === "devis_envoyé" || lead.status === "gagné") && (
-                  <div>
-                    <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide flex items-center gap-1.5">
-                      <CalendarPlus className="w-3 h-3" /> Date souhaitée d&apos;intervention
-                    </p>
-                    <input
-                      type="datetime-local" step={1800}
-                      defaultValue={toLocalDT((lead as Lead & { dateSouhaiteeIntervention?: string | null }).dateSouhaiteeIntervention)}
-                      onChange={async (e) => {
-                        const dateSouhaiteeIntervention = e.target.value ? new Date(e.target.value).toISOString() : null;
-                        setSelectedLead(prev => prev ? { ...prev, dateSouhaiteeIntervention } as Lead : null);
-                        await patchLeadField({ dateSouhaiteeIntervention });
-                      }}
-                      className="w-full bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2 text-white text-sm [color-scheme:dark] focus:outline-none focus:border-sky-500/50"
-                    />
-                    <p className="text-slate-500 text-[10px] mt-1">Souhait du client, pré-remplira l&apos;intervention à la conversion.</p>
-                  </div>
-                )}
-
-                {/* Commercial */}
-                {commerciaux.length > 0 && (
-                  <div>
-                    <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide flex items-center gap-1.5">
-                      <Briefcase className="w-3 h-3" /> Commercial assigné
-                    </p>
-                    <select
-                      value={(lead as Lead & { commercialId?: string | null }).commercialId ?? ""}
-                      onChange={async (e) => {
-                        const commercialId = e.target.value || null;
-                        await patchLeadField({ commercialId });
-                      }}
-                      className="w-full text-sm bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2.5 text-slate-200 appearance-none focus:outline-none focus:border-violet-500/50 cursor-pointer"
-                    >
-                      <option value="">- Aucun -</option>
-                      {commerciaux.map(c => (
-                        <option key={c.id} value={c.id}>
-                          {c.prenom ? `${c.prenom} ${c.name}` : c.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {/* Consentement RGPD (démarchage) */}
-                <div>
-                  <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide flex items-center gap-1.5">
-                    <ShieldCheck className="w-3 h-3" /> Démarchage commercial
-                  </p>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      const next = !(lead as Lead).consentementMarketing;
-                      // Champ RGPD opposable : on n'affiche le consentement qu'une fois persisté
-                      // (patchLeadField resynchronise depuis le serveur en cas de conflit/échec).
-                      await patchLeadField({ consentementMarketing: next });
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border text-sm transition-colors ${
-                      (lead as Lead).consentementMarketing
-                        ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
-                        : "bg-slate-800/60 border-white/10 text-slate-400 hover:border-white/20"
-                    }`}
-                  >
-                    <span className="flex items-center gap-1.5">
-                      {(lead as Lead).consentementMarketing ? <Check className="w-3.5 h-3.5" /> : null}
-                      {(lead as Lead).consentementMarketing ? "Consentement donné" : "Pas de consentement"}
-                    </span>
-                    <span className="text-xs opacity-70">{(lead as Lead).consentementMarketing ? "Retirer" : "Marquer accordé"}</span>
-                  </button>
                 </div>
 
                 {/* Notes */}
