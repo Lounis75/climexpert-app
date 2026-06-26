@@ -197,7 +197,7 @@ export default function InterventionForm({
         <div>
           <label className="block text-xs text-slate-400 mb-1.5 font-medium">Début *</label>
           <input
-            type="datetime-local"
+            type="datetime-local" step={1800}
             value={scheduledAt}
             onChange={(e) => {
               const v = e.target.value;
@@ -217,7 +217,7 @@ export default function InterventionForm({
         <div>
           <label className="block text-xs text-slate-400 mb-1.5 font-medium">Fin *</label>
           <input
-            type="datetime-local"
+            type="datetime-local" step={1800}
             value={scheduledEndAt}
             onChange={(e) => setScheduledEndAt(e.target.value)}
             required

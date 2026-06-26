@@ -48,7 +48,7 @@ export default function PlanifierInline({
   return (
     <div className="flex flex-wrap items-center gap-2">
       <input
-        type="datetime-local"
+        type="datetime-local" step={1800}
         value={date}
         onChange={(e) => setDate(e.target.value)}
         className="text-xs bg-slate-900/70 border border-white/15 rounded-lg px-2 py-1.5 text-slate-200 focus:outline-none focus:border-sky-500/50 [color-scheme:dark]"

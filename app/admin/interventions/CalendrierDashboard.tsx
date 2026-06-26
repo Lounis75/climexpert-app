@@ -49,7 +49,7 @@ function topPx(d: Date)             { return Math.max(0, (d.getHours() + d.getMi
 function heightPx(min: number)      { return Math.max(28, (min / 60) * PX_PER_HOUR); }
 function fmtHM(d: Date)             { return d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }); }
 function fmtISO(d: Date)            { return d.toISOString().slice(0, 16); }
-function snapMinutes(min: number)   { return Math.round(min / 15) * 15; }
+function snapMinutes(min: number)   { return Math.round(min / 30) * 30; }
 
 // ─── Quick-add modal ──────────────────────────────────────────────────────────
 function QuickAddModal({
@@ -229,7 +229,7 @@ function QuickAddModal({
           <div>
             <label className="text-xs text-slate-400 block mb-1.5">Date et heure *</label>
             <input
-              type="datetime-local"
+              type="datetime-local" step={1800}
               value={scheduledAt}
               onChange={(e) => setScheduledAt(e.target.value)}
               required
@@ -353,8 +353,8 @@ function IndispoModal({ techniciens, onClose, onCreated }: { techniciens: CalTec
           ) : (
             <div className="grid grid-cols-3 gap-3">
               <div><label className="text-xs text-slate-400 block mb-1.5">Date *</label><input type="date" value={du} onChange={(e) => setDu(e.target.value)} className="w-full bg-slate-800 border border-white/10 rounded-xl px-2 py-2 text-sm text-white focus:outline-none [color-scheme:dark]" /></div>
-              <div><label className="text-xs text-slate-400 block mb-1.5">De</label><input type="time" value={heureFrom} onChange={(e) => setHeureFrom(e.target.value)} className="w-full bg-slate-800 border border-white/10 rounded-xl px-2 py-2 text-sm text-white focus:outline-none [color-scheme:dark]" /></div>
-              <div><label className="text-xs text-slate-400 block mb-1.5">À</label><input type="time" value={heureTo} onChange={(e) => setHeureTo(e.target.value)} className="w-full bg-slate-800 border border-white/10 rounded-xl px-2 py-2 text-sm text-white focus:outline-none [color-scheme:dark]" /></div>
+              <div><label className="text-xs text-slate-400 block mb-1.5">De</label><input type="time" step={1800} value={heureFrom} onChange={(e) => setHeureFrom(e.target.value)} className="w-full bg-slate-800 border border-white/10 rounded-xl px-2 py-2 text-sm text-white focus:outline-none [color-scheme:dark]" /></div>
+              <div><label className="text-xs text-slate-400 block mb-1.5">À</label><input type="time" step={1800} value={heureTo} onChange={(e) => setHeureTo(e.target.value)} className="w-full bg-slate-800 border border-white/10 rounded-xl px-2 py-2 text-sm text-white focus:outline-none [color-scheme:dark]" /></div>
             </div>
           )}
           <div>

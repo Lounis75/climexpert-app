@@ -1613,7 +1613,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                           <CalendarPlus className="w-3 h-3" /> Date du rendez-vous (créneau 2h au calendrier)
                         </p>
                         <input
-                          type="datetime-local"
+                          type="datetime-local" step={1800}
                           defaultValue={toLocalDT((lead as Lead & { rdvDate?: string | null }).rdvDate)}
                           onChange={async (e) => {
                             const rdvDate = e.target.value ? new Date(e.target.value).toISOString() : null;
@@ -1654,7 +1654,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                       <CalendarPlus className="w-3 h-3" /> Visite client (créneau 1h)
                     </p>
                     <input
-                      type="datetime-local"
+                      type="datetime-local" step={1800}
                       value={toLocalDT((lead as Lead & { visiteClientLe?: string | null }).visiteClientLe)}
                       onChange={async (e) => {
                         const visiteClientLe = e.target.value ? new Date(e.target.value).toISOString() : null;
@@ -1748,7 +1748,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                       <CalendarPlus className="w-3 h-3" /> Date souhaitée d&apos;intervention
                     </p>
                     <input
-                      type="datetime-local"
+                      type="datetime-local" step={1800}
                       defaultValue={toLocalDT((lead as Lead & { dateSouhaiteeIntervention?: string | null }).dateSouhaiteeIntervention)}
                       onChange={async (e) => {
                         const dateSouhaiteeIntervention = e.target.value ? new Date(e.target.value).toISOString() : null;

@@ -82,7 +82,7 @@ export default function CreneauEditor({ id, scheduledAt, dureeMin }: { id: strin
               <div>
                 <label className="text-slate-400 text-[11px] block mb-1">Date &amp; heure de début</label>
                 <input
-                  type="datetime-local"
+                  type="datetime-local" step={1800}
                   value={start}
                   onChange={(e) => {
                     const v = e.target.value;
@@ -97,7 +97,7 @@ export default function CreneauEditor({ id, scheduledAt, dureeMin }: { id: strin
               <div>
                 <label className="text-slate-400 text-[11px] block mb-1">Heure de fin (créneau)</label>
                 <input
-                  type="time"
+                  type="time" step={1800}
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
                   className="w-full bg-slate-900/60 border border-white/10 rounded-lg px-2.5 py-2 text-white text-sm [color-scheme:dark] focus:outline-none focus:border-sky-500/50"

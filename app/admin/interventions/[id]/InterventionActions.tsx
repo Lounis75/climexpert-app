@@ -159,7 +159,7 @@ export default function InterventionActions({
           </p>
           <div>
             <label className="text-slate-400 text-xs block mb-1">Date &amp; heure de début</label>
-            <input type="datetime-local" value={scheduledAt}
+            <input type="datetime-local" step={1800} value={scheduledAt}
               onChange={(e) => {
                 const v = e.target.value;
                 setScheduledAt(v);
@@ -172,7 +172,7 @@ export default function InterventionActions({
           </div>
           <div>
             <label className="text-slate-400 text-xs block mb-1">Heure de fin (créneau)</label>
-            <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)}
+            <input type="time" step={1800} value={endTime} onChange={(e) => setEndTime(e.target.value)}
               className="w-full bg-slate-900/60 border border-white/10 rounded-lg px-2.5 py-2 text-white text-sm [color-scheme:dark] focus:outline-none focus:border-violet-500/50" />
             <p className="text-slate-500 text-[10px] mt-1">Ex. début 08:00 + fin 10:00 = créneau 8h–10h.</p>
           </div>

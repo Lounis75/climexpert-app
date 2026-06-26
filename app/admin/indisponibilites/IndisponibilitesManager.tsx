@@ -142,8 +142,8 @@ export default function IndisponibilitesManager({ team }: { team: Membre[] }) {
           ) : (
             <div className="grid grid-cols-3 gap-3">
               <div><label className="block text-xs text-slate-400 mb-1.5">Date *</label><input type="date" value={du} onChange={(e) => setDu(e.target.value)} required className={inputCls} /></div>
-              <div><label className="block text-xs text-slate-400 mb-1.5">De</label><input type="time" value={heureFrom} onChange={(e) => setHeureFrom(e.target.value)} className={inputCls} /></div>
-              <div><label className="block text-xs text-slate-400 mb-1.5">À</label><input type="time" value={heureTo} onChange={(e) => setHeureTo(e.target.value)} className={inputCls} /></div>
+              <div><label className="block text-xs text-slate-400 mb-1.5">De</label><input type="time" step={1800} value={heureFrom} onChange={(e) => setHeureFrom(e.target.value)} className={inputCls} /></div>
+              <div><label className="block text-xs text-slate-400 mb-1.5">À</label><input type="time" step={1800} value={heureTo} onChange={(e) => setHeureTo(e.target.value)} className={inputCls} /></div>
             </div>
           )}
           <div>
