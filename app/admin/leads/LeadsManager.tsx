@@ -939,6 +939,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
             const cfg = STATUS_CONFIG[status];
             const col = filtered.filter((l) => l.status === status);
             const isOver = dragOver === status;
+            const isCollapsed = !!focusedStatus && focusedStatus !== status; // une AUTRE colonne est agrandie
             return (
               <div
                 key={status}
@@ -968,7 +969,17 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                   </span>
                 </button>
 
-                {/* Cards */}
+                {/* Cards (masquées quand une AUTRE colonne est agrandie : évite les cartes écrasées illisibles) */}
+                {isCollapsed ? (
+                  <button
+                    type="button"
+                    onClick={() => setFocusedStatus(status)}
+                    title="Agrandir cette colonne"
+                    className="w-full min-h-[120px] flex items-center justify-center text-slate-500 hover:text-slate-200 hover:bg-white/[0.02] transition-colors py-4"
+                  >
+                    <span className="[writing-mode:vertical-rl] rotate-180 text-[11px] font-medium tracking-wide whitespace-nowrap">{cfg.label} · {colCounts[status] ?? col.length}</span>
+                  </button>
+                ) : (
                 <div
                   className="p-1.5 space-y-1.5 min-h-32"
                   onDragEnter={(e) => { e.preventDefault(); setDragOver(status); }}
@@ -999,6 +1010,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                     </button>
                   )}
                 </div>
+                )}
               </div>
             );
           })}
