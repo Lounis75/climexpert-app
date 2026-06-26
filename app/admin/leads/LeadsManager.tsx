@@ -120,9 +120,6 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
   const [suivis, setSuivis] = useState<Suivi[]>([]);
   const [loadingSuivis, setLoadingSuivis] = useState(false);
   const [devisHist, setDevisHist] = useState<{ id: string; url: string; montantCt: number | null; envoyeLe: string; decision: string | null; decisionLe: string | null; motifRefus: string | null }[]>([]);
-  const [suiviContenu, setSuiviContenu] = useState("");
-  const [suiviType, setSuiviType] = useState("appel");
-  const [savingSuivi, setSavingSuivi] = useState(false);
   const [search, setSearch] = useState("");
   const [view, setView] = useState<"kanban" | "liste">("kanban");
   const [updating, setUpdating] = useState<string | null>(null);
@@ -238,22 +235,6 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
       .catch(() => {});
   }, [openLeadId]);
 
-  async function logSuivi(leadId: string) {
-    if (!suiviContenu.trim()) return;
-    setSavingSuivi(true);
-    try {
-      const res = await fetch(`/api/admin/leads/${leadId}/suivis`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: suiviType, contenu: suiviContenu.trim() }),
-      });
-      if (res.status === 401) { window.location.href = "/admin"; return; }
-      if (res.ok) {
-        const { suivi } = await res.json();
-        setSuivis(prev => [suivi, ...prev]);
-        setSuiviContenu("");
-      }
-    } finally { setSavingSuivi(false); }
-  }
 
   const [listePage, setListePage] = useState(1);
 
@@ -1528,6 +1509,26 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                   )}
                 </div>
 
+                {/* ── Note interne (mise en avant) — synchronisée avec les Remarques du guide ── */}
+                <div>
+                  <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide flex items-center gap-1.5"><MessageSquare className="w-3 h-3" /> Note interne</p>
+                  {editingNotes === lead.id ? (
+                    <>
+                      <textarea value={notesValue} onChange={(e) => setNotesValue(e.target.value)} rows={3} placeholder="Indications sur ce client…" className="w-full text-sm bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2.5 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-amber-500/50 resize-none" autoFocus />
+                      <div className="flex gap-2 mt-2">
+                        <button onClick={() => saveNotes(lead.id)} disabled={updating === lead.id} className="px-4 py-1.5 bg-sky-500 hover:bg-sky-400 text-white rounded-lg text-xs font-semibold transition-colors disabled:opacity-50">Enregistrer</button>
+                        <button onClick={() => setEditingNotes(null)} className="px-4 py-1.5 text-slate-500 hover:text-slate-400 text-xs transition-colors">Annuler</button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-slate-200 text-sm bg-amber-500/[0.06] hover:bg-amber-500/[0.1] border border-amber-500/20 rounded-xl px-4 py-3 flex gap-2.5 cursor-pointer transition-colors min-h-[56px]"
+                      onClick={() => { setEditingNotes(lead.id); setNotesValue(lead.notes ?? ""); }}>
+                      <MessageSquare className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-amber-400/70" />
+                      <span className="whitespace-pre-wrap">{lead.notes || <span className="text-slate-500">Ajouter une note / des indications…</span>}</span>
+                    </div>
+                  )}
+                </div>
+
                 {/* Photos jointes (envoyées via le formulaire) */}
                 {(lead.photosUrls?.length ?? 0) > 0 && (
                   <div>
@@ -1780,86 +1781,18 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                   )}
                 </div>
 
-                {/* Notes */}
-                <div>
-                  <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide">Note interne</p>
-                  {editingNotes === lead.id ? (
-                    <>
-                      <textarea
-                        value={notesValue}
-                        onChange={(e) => setNotesValue(e.target.value)}
-                        rows={4}
-                        placeholder="Note interne..."
-                        className="w-full text-sm bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2.5 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sky-500/50 resize-none"
-                        autoFocus
-                      />
-                      <div className="flex gap-2 mt-2">
-                        <button
-                          onClick={() => saveNotes(lead.id)}
-                          disabled={updating === lead.id}
-                          className="px-4 py-1.5 bg-sky-500/20 border border-sky-500/40 text-sky-400 rounded-lg text-xs font-medium hover:bg-sky-500/30 transition-colors disabled:opacity-50"
-                        >
-                          Enregistrer
-                        </button>
-                        <button
-                          onClick={() => setEditingNotes(null)}
-                          className="px-4 py-1.5 text-slate-500 hover:text-slate-400 text-xs transition-colors"
-                        >
-                          Annuler
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <div
-                      className="text-slate-400 text-sm bg-slate-800/40 hover:bg-slate-800/60 border border-white/8 rounded-xl px-4 py-3 flex gap-2.5 cursor-pointer transition-colors group min-h-[60px]"
-                      onClick={() => { setEditingNotes(lead.id); setNotesValue(lead.notes ?? ""); }}
-                    >
-                      <MessageSquare className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 group-hover:text-slate-300 text-slate-600" />
-                      <span className="group-hover:text-slate-300 text-slate-500 whitespace-pre-wrap">{lead.notes || "Ajouter une note..."}</span>
-                    </div>
-                  )}
-                </div>
-
-                </div>{/* ─── fin grille 2 colonnes du suivi commercial ─── */}
+                </div>{/* ─── fin section suivi (une colonne) ─── */}
 
                 {/* Journal des échanges */}
                 <div>
                   <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide flex items-center gap-1.5">
                     <MessageSquare className="w-3 h-3" /> Historique de la relation
                   </p>
-                  <div className="flex gap-1.5 mb-2">
-                    {[
-                      { v: "appel", emoji: "📞", l: "Appel" },
-                      { v: "email", emoji: "✉️", l: "Email" },
-                      { v: "sms",   emoji: "💬", l: "SMS" },
-                      { v: "note",  emoji: "📝", l: "Note" },
-                    ].map(({ v, emoji, l }) => (
-                      <button key={v} type="button" onClick={() => setSuiviType(v)}
-                        className={`flex-1 px-2 py-2 rounded-lg border text-xs font-medium transition-colors ${
-                          suiviType === v ? "bg-sky-500/15 border-sky-500/40 text-sky-300" : "bg-slate-800/60 border-white/10 text-slate-400 hover:border-white/20"
-                        }`}>
-                        {emoji} {l}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex gap-2">
-                    <input
-                      value={suiviContenu}
-                      onChange={(e) => setSuiviContenu(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); logSuivi(lead.id); } }}
-                      placeholder="Ex : pas joignable, rappeler demain…"
-                      className="flex-1 text-sm bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sky-500/50"
-                    />
-                    <button type="button" onClick={() => logSuivi(lead.id)} disabled={savingSuivi || !suiviContenu.trim()}
-                      className="px-3 py-2 bg-sky-500 hover:bg-sky-400 disabled:opacity-40 text-white rounded-xl text-xs font-semibold transition-colors flex-shrink-0">
-                      {savingSuivi ? "…" : "Logger"}
-                    </button>
-                  </div>
-                  <div className="mt-3 space-y-2.5">
+                  <div className="space-y-2.5">
                     {loadingSuivis ? (
                       <p className="text-slate-600 text-xs">Chargement…</p>
                     ) : suivis.length === 0 ? (
-                      <p className="text-slate-600 text-xs">Aucun échange enregistré. Logge ton 1er appel/email ci-dessus.</p>
+                      <p className="text-slate-600 text-xs">Aucune activité pour l&apos;instant.</p>
                     ) : suivis.map((s) => (
                       <div key={s.id} className="flex gap-2.5 text-xs">
                         <span className="flex-shrink-0 leading-none mt-0.5">{SUIVI_ICONS[s.type] ?? "📝"}</span>
