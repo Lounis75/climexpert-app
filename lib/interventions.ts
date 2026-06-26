@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { interventions, clients, techniciens, suivisPlanifies, rapportsIntervention, savTickets, suivis } from "@/lib/db/schema";
+import { interventions, clients, techniciens, suivisPlanifies, rapportsIntervention, savTickets, suivis, documents } from "@/lib/db/schema";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import { eq, desc, gte, asc, and, isNull, sql } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
@@ -163,5 +163,7 @@ export async function deleteIntervention(id: string): Promise<void> {
   // Indépendants (appartiennent au client) -> on conserve en détachant la référence :
   await db.update(savTickets).set({ interventionId: null }).where(eq(savTickets.interventionId, id));
   await db.update(suivis).set({ interventionId: null }).where(eq(suivis.interventionId, id));
+  // Documents (CERFA, facture...) : ils restent sur la fiche client, on retire juste le lien.
+  await db.update(documents).set({ interventionId: null }).where(eq(documents.interventionId, id));
   await db.delete(interventions).where(eq(interventions.id, id));
 }

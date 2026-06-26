@@ -427,13 +427,17 @@ export default function CalendrierDashboard() {
 
   // Suppression depuis la popup : intervention -> DELETE ; visite / RDV -> on efface la date du prospect.
   async function deleteEvent(ev: NonNullable<typeof eventModal>) {
-    if (ev.kind === "int") {
-      if (!confirm("Supprimer définitivement cette intervention ?")) return;
-      await fetch(`/api/admin/interventions/${ev.id}`, { method: "DELETE" }).catch(() => {});
-    } else if (ev.leadId) {
-      const patch = ev.kind === "visite" ? { visiteClientLe: null } : { rdvDate: null };
-      await fetch(`/api/admin/leads`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: ev.leadId, ...patch }) }).catch(() => {});
-    }
+    try {
+      let res: Response;
+      if (ev.kind === "int") {
+        if (!confirm("Supprimer définitivement cette intervention ?")) return;
+        res = await fetch(`/api/admin/interventions/${ev.id}`, { method: "DELETE" });
+      } else {
+        const patch = ev.kind === "visite" ? { visiteClientLe: null } : { rdvDate: null };
+        res = await fetch(`/api/admin/leads`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: ev.leadId, ...patch }) });
+      }
+      if (!res.ok) { alert("La suppression a échoué. Réessayez."); return; }
+    } catch { alert("Erreur réseau, réessayez."); return; }
     setEventModal(null);
     load();
   }
@@ -864,14 +868,13 @@ export default function CalendrierDashboard() {
                           if (b.k === "rdv") {
                             const r = b.rdv;
                             const start = new Date(r.rdvDate!);
-                            const isShort = b.height < 44;
                             const pc = showPersonColor ? colorOf(r.commercialId) : null;
                             const isVisite = r.kind === "visite";
                             return (
                               <Link
                                 key={b.key}
                                 href={`/admin/leads?lead=${r.leadId ?? r.id}`}
-                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEventModal({ kind: isVisite ? "visite" : "rdv", id: r.id, leadId: r.leadId ?? r.id, title: r.clientName, sub: `${fmtHM(start)} · ${isVisite ? "Visite client" : "RDV commercial"}`, href: `/admin/leads?lead=${r.leadId ?? r.id}` }); }}
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEventModal({ kind: isVisite ? "visite" : "rdv", id: r.id, leadId: r.leadId ?? r.id, title: r.clientName, sub: `${fmtHM(start)} · ${isVisite ? "Visite client" : "RDV commercial"}${r.commercialName ? ` · ${r.commercialName}` : ""}`, href: `/admin/leads?lead=${r.leadId ?? r.id}` }); }}
                                 draggable={!isVisite}
                                 onDragStart={(e) => { if (isVisite) { e.preventDefault(); return; } onEventDragStart(e, r.id, "rdv", r.duree ?? 120, start.getTime()); }}
                                 onDragEnd={() => { dragRef.current = null; setDragId(null); }}
@@ -881,8 +884,8 @@ export default function CalendrierDashboard() {
                                 <div className="flex items-start gap-1.5 h-full overflow-hidden">
                                   <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 mt-[3px] ${isVisite ? "bg-sky-400" : "bg-amber-400"}`} />
                                   <div className="flex-1 min-w-0">
-                                    <p className={`text-[10px] font-semibold leading-tight ${isVisite ? "text-sky-300" : "text-amber-300"}`}>{fmtHM(start)} · {isVisite ? "Visite" : "RDV"}</p>
-                                    {!isShort && <p className="text-white/85 text-[11px] font-medium leading-tight truncate mt-0.5">{r.clientName}</p>}
+                                    <p className={`text-[10px] font-semibold leading-tight truncate ${isVisite ? "text-sky-300" : "text-amber-300"}`}>{fmtHM(start)} · {r.clientName || (isVisite ? "Visite" : "RDV")}</p>
+                                    {b.height >= 34 && <p className="text-white/70 text-[10px] leading-tight truncate mt-0.5">{isVisite ? "Visite" : "RDV"}{r.commercialName ? ` · ${r.commercialName}` : ""}</p>}
                                   </div>
                                 </div>
                               </Link>

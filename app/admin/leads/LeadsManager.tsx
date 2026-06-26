@@ -205,6 +205,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
   // Retour visuel d'enregistrement des champs auto-sauvegardés (visite, relance, montant, RDV…).
   const [saveFlash, setSaveFlash] = useState<"idle" | "saving" | "saved">("idle");
   const saveFlashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [visiteDraft, setVisiteDraft] = useState<string | null>(null); // brouillon d'édition de la visite (null = non modifié)
   const dragId = useRef<string | null>(null);
   const [commerciaux, setCommerciaux] = useState<{ id: string; name: string; prenom: string | null; color: string | null }[]>([]);
 
@@ -227,6 +228,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
   // Charge l'historique des devis du prospect ouvert (plusieurs liens peuvent coexister).
   useEffect(() => {
+    setVisiteDraft(null); // reset le brouillon de visite quand on change de prospect
     if (!openLeadId) { setDevisHist([]); return; }
     fetch(`/api/admin/leads/${openLeadId}/devis`)
       .then(r => r.json())
@@ -369,11 +371,13 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
   async function patchLeadField(fields: Record<string, unknown>): Promise<boolean> {
     const id = selectedLead?.id;
     if (!id) return false;
-    const current = leads.find((l) => l.id === id) ?? selectedLead;
     setSaveFlash("saving");
+    // Pas de "version" ici : ce sont des modifications inline d'un seul champ (dernier gagne).
+    // Évite les faux conflits quand un champ date envoie plusieurs sauvegardes rapprochées
+    // (jour, puis heure, puis minutes) plus vite que la version locale ne se met à jour.
     const res = await fetch("/api/admin/leads", {
       method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, ...fields, version: current?.version }),
+      body: JSON.stringify({ id, ...fields }),
     });
     if (res.status === 401) { window.location.href = "/admin"; return false; }
     const data = await res.json().catch(() => ({}));
@@ -1648,24 +1652,37 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                 )}
 
                 {/* Visite client (commerciale, créneau 1h) → s'ajoute au Planning, sans changer le statut */}
-                {lead.status !== "perdu" && (
+                {lead.status !== "perdu" && (() => {
+                  const savedVisite = toLocalDT((lead as Lead & { visiteClientLe?: string | null }).visiteClientLe);
+                  const visiteVal = visiteDraft !== null ? visiteDraft : savedVisite;
+                  const visiteChanged = visiteDraft !== null && visiteDraft !== savedVisite;
+                  const saveVisite = async () => {
+                    const iso = visiteVal ? new Date(visiteVal).toISOString() : null;
+                    setSelectedLead(prev => prev ? { ...prev, visiteClientLe: iso } as Lead : null);
+                    await patchLeadField({ visiteClientLe: iso });
+                    setVisiteDraft(null);
+                  };
+                  return (
                   <div>
                     <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide flex items-center gap-1.5">
                       <CalendarPlus className="w-3 h-3" /> Visite client (créneau 1h)
                     </p>
-                    <input
-                      type="datetime-local" step={1800}
-                      value={toLocalDT((lead as Lead & { visiteClientLe?: string | null }).visiteClientLe)}
-                      onChange={async (e) => {
-                        const visiteClientLe = e.target.value ? new Date(e.target.value).toISOString() : null;
-                        setSelectedLead(prev => prev ? { ...prev, visiteClientLe } as Lead : null);
-                        await patchLeadField({ visiteClientLe });
-                      }}
-                      className="w-full text-sm bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2.5 text-white [color-scheme:dark] focus:outline-none focus:border-sky-500/50"
-                    />
-                    <p className="text-slate-500 text-[10px] mt-1">S&apos;ajoute au Planning (RDV commerciaux). Pas besoin de changer le statut.</p>
+                    <div className="flex gap-2">
+                      <input
+                        type="datetime-local" step={1800}
+                        value={visiteVal}
+                        onChange={(e) => setVisiteDraft(e.target.value)}
+                        className="flex-1 min-w-0 text-sm bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2.5 text-white [color-scheme:dark] focus:outline-none focus:border-sky-500/50"
+                      />
+                      <button onClick={saveVisite} disabled={!visiteChanged}
+                        className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 disabled:opacity-40 disabled:cursor-default text-white text-sm font-semibold transition-colors">
+                        <Check className="w-4 h-4" /> Enregistrer
+                      </button>
+                    </div>
+                    <p className="text-slate-500 text-[10px] mt-1">S&apos;ajoute au Planning. Clique « Enregistrer » pour valider le rendez-vous.</p>
                   </div>
-                )}
+                  );
+                })()}
 
                 {/* Montant du devis, obligatoire dès "devis envoyé" / "gagné" */}
                 {(lead.status === "devis_envoyé" || lead.status === "gagné") && (
