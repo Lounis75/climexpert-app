@@ -113,6 +113,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
   const [favorisOnly, setFavorisOnly] = useState(false);
   const [typeFilter, setTypeFilter] = useState("tous");       // prestation (installation/entretien/…)
   const [secteurFilter, setSecteurFilter] = useState("tous"); // département (75, 92, …)
+  const [actionFilter, setActionFilter] = useState("tous");   // action à faire (à recontacter, devis à faire, RDV…)
   const [statusFilter, setStatusFilter] = useState<string>("tous"); // raccourci par étape (surtout mobile)
   const [focusedStatus, setFocusedStatus] = useState<string | null>(null); // focus sur une colonne (desktop)
   // Journal d'échanges du prospect ouvert (chargé à l'ouverture du panneau).
@@ -330,6 +331,20 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
     if (sourceFilter !== "tous" && sourceFilter !== "téléphone" && l.source !== sourceFilter) return false;
     if (typeFilter !== "tous" && l.project !== typeFilter) return false;
     if (secteurFilter !== "tous" && deptOf(l.location) !== secteurFilter) return false;
+    if (actionFilter !== "tous") {
+      const a = leadAction(l);
+      const pe = (l as Lead & { prochaineEtape?: string | null }).prochaineEtape;
+      const isRelance = a === "Planifier la relance" || (!!a && a.startsWith("Relance")) || pe === "a_recontacter";
+      const isDevis = pe === "devis_a_faire" || a === "Devis à chiffrer";
+      const isRdv = pe === "rdv_pris" || a === "Fixer le RDV";
+      const ok =
+        actionFilter === "a_traiter" ? a !== null :
+        actionFilter === "relance" ? isRelance :
+        actionFilter === "devis" ? isDevis :
+        actionFilter === "rdv" ? isRdv :
+        actionFilter === "reflexion" ? pe === "en_reflexion" : true;
+      if (!ok) return false;
+    }
     if (search) {
       const q = search.toLowerCase();
       const lx = l as Lead & { address?: string | null; entreprise?: string | null };
@@ -853,6 +868,17 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
           {Object.entries(PROJECT_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>
 
+        {/* Filtre action à faire (à recontacter, devis à faire, RDV à fixer, réflexion) */}
+        <select value={actionFilter} onChange={(e) => setActionFilter(e.target.value)}
+          className={`px-3 py-1.5 rounded-xl border text-xs focus:outline-none focus:border-sky-500/50 ${actionFilter !== "tous" ? "border-amber-500/40 bg-amber-500/10 text-amber-200" : "border-white/10 bg-slate-800/60 text-white"}`}>
+          <option value="tous">Toutes actions</option>
+          <option value="a_traiter">À traiter (toute alerte)</option>
+          <option value="relance">À recontacter / relance</option>
+          <option value="devis">Devis à faire</option>
+          <option value="rdv">RDV à fixer</option>
+          <option value="reflexion">En réflexion</option>
+        </select>
+
         {/* Filtre secteur (département présent dans les leads) */}
         {secteurs.length > 0 && (
           <select value={secteurFilter} onChange={(e) => setSecteurFilter(e.target.value)}
@@ -1026,7 +1052,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                     <LeadCard key={lead.id} lead={lead} />
                   ))}
                   {/* Charger plus (uniquement hors recherche/filtre, quand il reste des prospects) */}
-                  {!search && !favorisOnly && sourceFilter === "tous" && typeFilter === "tous" && secteurFilter === "tous" && col.length < (colCounts[status] ?? 0) && (
+                  {!search && !favorisOnly && sourceFilter === "tous" && typeFilter === "tous" && secteurFilter === "tous" && actionFilter === "tous" && col.length < (colCounts[status] ?? 0) && (
                     <button
                       onClick={() => loadMore(status)}
                       disabled={loadingCol === status}
