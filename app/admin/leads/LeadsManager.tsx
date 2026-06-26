@@ -1518,6 +1518,8 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                   value={lead.qualification ?? null}
                   status={lead.status}
                   onSave={async (q) => { await patchLeadField({ qualification: q }); }}
+                  notes={lead.notes}
+                  onSaveNotes={async (text) => { setSelectedLead(prev => prev ? { ...prev, notes: text } as Lead : null); await patchLeadField({ notes: text }); }}
                 />
 
                 {/* Parcours client : frise des jalons + tâches à effectuer (auto + manuelles) */}

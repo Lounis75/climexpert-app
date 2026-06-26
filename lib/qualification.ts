@@ -83,11 +83,8 @@ export const QUALIF_GROUPS: QualifGroup[] = [
       { key: "commentConnu",   label: "Comment nous a-t-il connu ?", type: "text", placeholder: "ex : Google, bouche-à-oreille, recommandation…", full: true },
     ],
   },
-  {
-    titre: "Remarques", emoji: "📝", champs: [
-      { key: "note", label: "Remarques (précisions, contexte…)", type: "textarea", full: true },
-    ],
-  },
+  // Le bloc « Remarques » a été retiré du guide : les remarques sont désormais la Note interne
+  // du prospect (lead.notes), éditable à la fois ici et en bas de la fiche (même base, synchro).
 ];
 
 /** True si au moins un champ (hors méta) est renseigné. */

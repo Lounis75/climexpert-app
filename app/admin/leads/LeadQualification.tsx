@@ -1,17 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ChevronDown, ClipboardList, Check } from "lucide-react";
 import { QUALIF_GROUPS, isQualified, type Qualification } from "@/lib/qualification";
 
 /** Section « Qualification des besoins » du panneau prospect : guide d'appel dépliable.
  *  Mise en avant (badge « À remplir ») au stade « Contact établi » tant que non renseignée. */
 export default function LeadQualification({
-  value, status, onSave,
+  value, status, onSave, notes, onSaveNotes,
 }: {
   value: Qualification | null | undefined;
   status: string;
   onSave: (q: Qualification) => Promise<void>;
+  notes?: string | null;
+  onSaveNotes: (text: string) => Promise<void>;
 }) {
   const alreadyQualified = isQualified(value);
   const aRemplir = status === "contacté" && !alreadyQualified;
@@ -19,6 +21,10 @@ export default function LeadQualification({
   const [form, setForm] = useState<Qualification>(value ?? {});
   const [saving, setSaving] = useState(false);
   const [savedFlash, setSavedFlash] = useState(false);
+  // Note / remarques : MÊME base que la « Note interne » du bas de fiche (lead.notes).
+  const [note, setNote] = useState(notes ?? "");
+  const noteFocused = useRef(false);
+  useEffect(() => { if (!noteFocused.current) setNote(notes ?? ""); }, [notes]);
 
   const set = (k: keyof Qualification, v: string) => setForm((p) => ({ ...p, [k]: v }));
 
@@ -26,6 +32,7 @@ export default function LeadQualification({
     setSaving(true);
     try {
       await onSave({ ...form, qualifieLe: value?.qualifieLe ?? new Date().toISOString() });
+      if ((note ?? "") !== (notes ?? "")) await onSaveNotes(note);
       setSavedFlash(true);
       setTimeout(() => setSavedFlash(false), 2000);
     } finally {
@@ -85,6 +92,19 @@ export default function LeadQualification({
               </div>
             </div>
           ))}
+          {/* Remarques = Note interne (même base, synchronisée avec celle du bas de la fiche) */}
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-2">📝 Remarques / Note</p>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              onFocus={() => { noteFocused.current = true; }}
+              onBlur={() => { noteFocused.current = false; if ((note ?? "") !== (notes ?? "")) onSaveNotes(note); }}
+              rows={2}
+              placeholder="Remarques, précisions, contexte… (même note qu'en bas de la fiche)"
+              className={taCls}
+            />
+          </div>
           <button type="button" onClick={handleSave} disabled={saving} className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-white text-sm font-semibold transition-colors">
             {saving ? "Enregistrement…" : savedFlash ? <><Check className="w-4 h-4" /> Enregistré</> : "Enregistrer la qualification"}
           </button>
