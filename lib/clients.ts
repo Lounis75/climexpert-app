@@ -38,7 +38,7 @@ export async function getClientsPaginated(opts: { search?: string; page?: number
   const filters: SQL[] = [isNull(clients.supprimeLe)];
   if (q) {
     const like = `%${q}%`;
-    filters.push(or(ilike(clients.name, like), ilike(clients.phone, like), ilike(clients.city, like))!);
+    filters.push(or(ilike(clients.name, like), ilike(clients.phone, like), ilike(clients.city, like), ilike(clients.address, like), ilike(clients.email, like), ilike(clients.representant, like))!);
   }
   const where = and(...filters);
   const [items, totalRows] = await Promise.all([

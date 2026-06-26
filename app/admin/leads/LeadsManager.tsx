@@ -325,11 +325,14 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
     if (secteurFilter !== "tous" && deptOf(l.location) !== secteurFilter) return false;
     if (search) {
       const q = search.toLowerCase();
+      const lx = l as Lead & { address?: string | null; entreprise?: string | null };
       return (
         l.name.toLowerCase().includes(q) ||
         l.phone.includes(q) ||
         (l.location ?? "").toLowerCase().includes(q) ||
-        (l.email ?? "").toLowerCase().includes(q)
+        (l.email ?? "").toLowerCase().includes(q) ||
+        (lx.address ?? "").toLowerCase().includes(q) ||
+        (lx.entreprise ?? "").toLowerCase().includes(q)
       );
     }
     return true;

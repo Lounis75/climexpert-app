@@ -170,7 +170,7 @@ export async function getLeadsPaginated(opts: { search?: string; page?: number; 
   if (enProd.length) filters.push(notInArray(leads.id, enProd));
   if (q) {
     const like = `%${q}%`;
-    filters.push(or(ilike(leads.name, like), ilike(leads.phone, like), ilike(leads.location, like))!);
+    filters.push(or(ilike(leads.name, like), ilike(leads.phone, like), ilike(leads.location, like), ilike(leads.address, like), ilike(leads.entreprise, like))!);
   }
   const where = and(...filters);
   const [items, totalRows] = await Promise.all([
