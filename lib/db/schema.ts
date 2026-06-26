@@ -195,6 +195,9 @@ export const leads = pgTable("leads", {
   address:             text("address"),
   // Particulier ou professionnel (utile pour devis, TVA, démarchage B2B).
   typeClient:          varchar("type_client", { length: 20 }).default("particulier").notNull(), // "particulier" | "professionnel" | "sous_traitance"
+  // Professionnel : "name" reste le contact (la personne), l'entreprise et le SIREN sont à part.
+  entreprise:          varchar("entreprise", { length: 255 }),  // raison sociale (pro)
+  siren:               varchar("siren", { length: 20 }),        // n° SIREN / SIRET (pro)
   project:             projectTypeEnum("project"),
   typeBatiment:        batimentTypeEnum("type_batiment"),
   surfaceM2:           integer("surface_m2"),

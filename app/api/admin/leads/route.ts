@@ -89,6 +89,9 @@ export async function PATCH(req: NextRequest) {
     // Champs éditables des coordonnées (name/phone sont NOT NULL : ignorés si vides)
     if (typeof fields.name === "string" && fields.name.trim())   allowed.name = fields.name.trim();
     if (typeof fields.phone === "string" && fields.phone.trim()) allowed.phone = fields.phone.trim();
+    if (fields.typeClient !== undefined && ["particulier", "professionnel", "sous_traitance"].includes(fields.typeClient)) allowed.typeClient = fields.typeClient;
+    if (fields.entreprise !== undefined)   allowed.entreprise = (fields.entreprise?.trim() || null);
+    if (fields.siren !== undefined)        allowed.siren = (fields.siren?.trim() || null);
     if (fields.email !== undefined)        allowed.email = (fields.email?.trim() || null);
     if (fields.location !== undefined)     allowed.location = (fields.location?.trim() || null);
     if (fields.address !== undefined)      allowed.address = (fields.address?.trim() || null);

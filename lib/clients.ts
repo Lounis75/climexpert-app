@@ -109,14 +109,18 @@ export async function createClientFromLead(leadId: string): Promise<Client | nul
     formatQualification(lead.qualification), // guide de qualification (vide si non rempli)
   ].filter(Boolean).join("\n");
 
+  // Pro avec entreprise renseignée : le client porte la raison sociale (name) et le contact
+  // saisi sur le prospect devient le représentant. Sinon le name du prospect est repris tel quel.
+  const isProAvecEntreprise = lead.typeClient === "professionnel" && !!lead.entreprise?.trim();
   const client = await createClient({
     typeClient: lead.typeClient, // particulier / professionnel hérité du prospect
-    name: lead.name,
+    name: isProAvecEntreprise ? lead.entreprise!.trim() : lead.name,
+    representant: isProAvecEntreprise ? lead.name : undefined, // le contact du prospect = le représentant
     phone: lead.phone,
     email: lead.email ?? undefined,
     address: lead.address ?? undefined,
     city: lead.location ?? undefined,
-    siret: lead.qualification?.siret?.trim() || undefined, // SIRET pro saisi en qualification
+    siret: lead.siren?.trim() || lead.qualification?.siret?.trim() || undefined, // SIREN saisi, sinon SIRET de la qualification
     notes: notes || undefined,
     leadId: lead.id,
   });

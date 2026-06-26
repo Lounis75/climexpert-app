@@ -198,7 +198,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState("");
   const [editingLead, setEditingLead] = useState(false);
-  const [editForm, setEditForm] = useState({ name: "", phone: "", email: "", project: "", location: "", address: "" });
+  const [editForm, setEditForm] = useState({ name: "", phone: "", email: "", project: "", location: "", address: "", typeClient: "particulier", entreprise: "", siren: "" });
   const [savingEdit, setSavingEdit] = useState(false);
   const dragId = useRef<string | null>(null);
   const [commerciaux, setCommerciaux] = useState<{ id: string; name: string; prenom: string | null; color: string | null }[]>([]);
@@ -557,13 +557,17 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
   }
 
   function startEditLead(lead: Lead) {
+    const l = lead as Lead & { address?: string | null; typeClient?: string | null; entreprise?: string | null; siren?: string | null };
     setEditForm({
       name: lead.name ?? "",
       phone: lead.phone ?? "",
       email: lead.email ?? "",
       project: lead.project ?? "",
       location: lead.location ?? "",
-      address: (lead as Lead & { address?: string | null }).address ?? "",
+      address: l.address ?? "",
+      typeClient: l.typeClient ?? "particulier",
+      entreprise: l.entreprise ?? "",
+      siren: l.siren ?? "",
     });
     setEditingLead(true);
   }
@@ -1250,7 +1254,28 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                     <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-semibold flex-shrink-0">Pro</span>
                   )}
                 </div>
-                <div className="flex items-center gap-1 flex-shrink-0 ml-3">
+                <div className="flex items-center gap-1.5 flex-shrink-0 ml-3">
+                  {/* Commercial : visible et affectable directement depuis l'en-tête */}
+                  {!editingLead && commerciaux.length > 0 && (() => {
+                    const cId = (lead as Lead & { commercialId?: string | null }).commercialId ?? "";
+                    const assigned = commerciaux.find((x) => x.id === cId);
+                    return (
+                      <div className="relative flex-shrink-0">
+                        <Briefcase className={`w-3 h-3 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none ${assigned ? "text-violet-300" : "text-amber-300"}`} />
+                        <select
+                          value={cId}
+                          onChange={async (e) => { await patchLeadField({ commercialId: e.target.value || null }); }}
+                          title="Commercial assigné"
+                          className={`appearance-none cursor-pointer rounded-full pl-7 pr-2.5 py-1 text-[11px] font-semibold border focus:outline-none max-w-[150px] ${assigned ? "bg-violet-500/15 text-violet-200 border-violet-500/30 hover:bg-violet-500/25" : "bg-amber-500/10 text-amber-300 border-amber-500/30 hover:bg-amber-500/20"}`}
+                        >
+                          <option value="">Affecter…</option>
+                          {commerciaux.map((c) => (
+                            <option key={c.id} value={c.id}>{c.prenom ? `${c.prenom} ${c.name}` : c.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    );
+                  })()}
                   {!editingLead && (
                     <button
                       onClick={() => startEditLead(lead)}
@@ -1273,9 +1298,20 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                     <p className="text-sky-400 text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5">
                       <Pencil className="w-3 h-3" /> Modifier les coordonnées
                     </p>
+                    {/* Type de client : un professionnel a une entreprise + un SIREN en plus du contact */}
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => setEditForm(f => ({ ...f, typeClient: "particulier" }))}
+                        className={`flex-1 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${editForm.typeClient !== "professionnel" ? "bg-sky-500/15 border-sky-500/40 text-sky-200" : "bg-slate-900/40 border-white/10 text-slate-400"}`}>
+                        Particulier
+                      </button>
+                      <button type="button" onClick={() => setEditForm(f => ({ ...f, typeClient: "professionnel" }))}
+                        className={`flex-1 py-1.5 rounded-lg border text-xs font-semibold transition-colors ${editForm.typeClient === "professionnel" ? "bg-amber-500/15 border-amber-500/40 text-amber-200" : "bg-slate-900/40 border-white/10 text-slate-400"}`}>
+                        Professionnel
+                      </button>
+                    </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="text-slate-400 text-[11px] block mb-1">Nom *</label>
+                        <label className="text-slate-400 text-[11px] block mb-1">{editForm.typeClient === "professionnel" ? "Contact *" : "Nom *"}</label>
                         <input value={editForm.name} onChange={(e) => setEditForm(f => ({ ...f, name: e.target.value }))}
                           className="w-full bg-slate-900/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-sm focus:outline-none focus:border-sky-500/50" />
                       </div>
@@ -1285,6 +1321,22 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                           className="w-full bg-slate-900/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-sm focus:outline-none focus:border-sky-500/50" />
                       </div>
                     </div>
+                    {editForm.typeClient === "professionnel" && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-slate-400 text-[11px] block mb-1">Nom de l&apos;entreprise</label>
+                          <input value={editForm.entreprise} onChange={(e) => setEditForm(f => ({ ...f, entreprise: e.target.value }))}
+                            placeholder="Raison sociale"
+                            className="w-full bg-slate-900/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-sm placeholder-slate-600 focus:outline-none focus:border-sky-500/50" />
+                        </div>
+                        <div>
+                          <label className="text-slate-400 text-[11px] block mb-1">N° SIREN</label>
+                          <input value={editForm.siren} onChange={(e) => setEditForm(f => ({ ...f, siren: e.target.value }))}
+                            placeholder="ex : 123 456 789"
+                            className="w-full bg-slate-900/60 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-sm placeholder-slate-600 focus:outline-none focus:border-sky-500/50" />
+                        </div>
+                      </div>
+                    )}
                     <div>
                       <label className="text-slate-400 text-[11px] block mb-1">Email</label>
                       <input type="email" value={editForm.email} onChange={(e) => setEditForm(f => ({ ...f, email: e.target.value }))}
@@ -1380,6 +1432,16 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
                 {/* Project info */}
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                  {(() => {
+                    const l = lead as Lead & { typeClient?: string | null; entreprise?: string | null; siren?: string | null };
+                    return l.typeClient === "professionnel" && (l.entreprise || l.siren) ? (
+                      <div className="bg-amber-500/[0.06] border border-amber-500/20 rounded-xl p-3 col-span-2 lg:col-span-3">
+                        <p className="text-amber-400/80 text-[10px] uppercase tracking-wide mb-1 flex items-center gap-1"><Briefcase className="w-3 h-3" /> Entreprise</p>
+                        <p className="text-white text-sm font-medium">{l.entreprise || "Non renseignée"}</p>
+                        {l.siren && <p className="text-slate-400 text-xs mt-0.5">SIREN : {l.siren}</p>}
+                      </div>
+                    ) : null;
+                  })()}
                   {lead.project && (
                     <div className="bg-slate-800/40 border border-white/8 rounded-xl p-3">
                       <p className="text-slate-500 text-[10px] uppercase tracking-wide mb-1">Projet</p>
