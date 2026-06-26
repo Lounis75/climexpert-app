@@ -200,6 +200,9 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
   const [editingLead, setEditingLead] = useState(false);
   const [editForm, setEditForm] = useState({ name: "", phone: "", email: "", project: "", location: "", address: "", typeClient: "particulier", entreprise: "", siren: "" });
   const [savingEdit, setSavingEdit] = useState(false);
+  // Retour visuel d'enregistrement des champs auto-sauvegardés (visite, relance, montant, RDV…).
+  const [saveFlash, setSaveFlash] = useState<"idle" | "saving" | "saved">("idle");
+  const saveFlashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dragId = useRef<string | null>(null);
   const [commerciaux, setCommerciaux] = useState<{ id: string; name: string; prenom: string | null; color: string | null }[]>([]);
 
@@ -349,10 +352,17 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
   // Enregistre un champ du prospect OUVERT avec verrou de version + gestion du 409.
   // Renvoie true si OK. En cas de conflit/échec, resynchronise la fiche serveur.
+  function flashSaved() {
+    setSaveFlash("saved");
+    if (saveFlashTimer.current) clearTimeout(saveFlashTimer.current);
+    saveFlashTimer.current = setTimeout(() => setSaveFlash("idle"), 1800);
+  }
+
   async function patchLeadField(fields: Record<string, unknown>): Promise<boolean> {
     const id = selectedLead?.id;
     if (!id) return false;
     const current = leads.find((l) => l.id === id) ?? selectedLead;
+    setSaveFlash("saving");
     const res = await fetch("/api/admin/leads", {
       method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, ...fields, version: current?.version }),
@@ -360,12 +370,14 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
     if (res.status === 401) { window.location.href = "/admin"; return false; }
     const data = await res.json().catch(() => ({}));
     if (res.status === 409) {
+      setSaveFlash("idle");
       if (data.lead) applyServerLead(data.lead);
       alert("⚠️ " + (data.error ?? "Ce prospect a été modifié par quelqu'un d'autre."));
       return false;
     }
-    if (!res.ok) { alert("Échec de l'enregistrement. Réessayez."); return false; }
+    if (!res.ok) { setSaveFlash("idle"); alert("Échec de l'enregistrement. Réessayez."); return false; }
     if (data.lead) applyServerLead(data.lead);
+    flashSaved();
     return true;
   }
 
@@ -468,6 +480,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
   async function saveNotes(id: string) {
     setUpdating(id);
+    setSaveFlash("saving");
     try {
       const res = await fetch("/api/admin/leads", {
         method: "PATCH",
@@ -479,7 +492,8 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
         if (data.lead) applyServerLead(data.lead); // garde la version locale à jour
         else setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, notes: notesValue } : l)));
         setEditingNotes(null);
-      }
+        flashSaved();
+      } else { setSaveFlash("idle"); }
     } finally {
       setUpdating(null);
     }
@@ -1270,6 +1284,14 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                   )}
                 </div>
                 <div className="flex items-center gap-1.5 flex-shrink-0 ml-3">
+                  {/* Retour visuel d'enregistrement (les champs se sauvegardent automatiquement) */}
+                  {saveFlash !== "idle" && (
+                    <span className={`flex items-center gap-1 text-[11px] font-medium whitespace-nowrap ${saveFlash === "saved" ? "text-emerald-400" : "text-slate-400"}`}>
+                      {saveFlash === "saving"
+                        ? <><span className="w-3 h-3 border-2 border-slate-500/40 border-t-slate-300 rounded-full animate-spin" /> Enregistrement…</>
+                        : <><Check className="w-3.5 h-3.5" /> Enregistré</>}
+                    </span>
+                  )}
                   {/* Commercial : visible et affectable directement depuis l'en-tête */}
                   {!editingLead && commerciaux.length > 0 && (() => {
                     const cId = (lead as Lead & { commercialId?: string | null }).commercialId ?? "";
