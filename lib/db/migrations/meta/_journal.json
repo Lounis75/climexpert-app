@@ -246,6 +246,13 @@
       "when": 1782469211966,
       "tag": "0034_lead_pro_entreprise",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1782477239217,
+      "tag": "0035_visite_client",
+      "breakpoints": true
     }
   ]
 }

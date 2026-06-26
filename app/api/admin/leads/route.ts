@@ -118,6 +118,10 @@ export async function PATCH(req: NextRequest) {
       const d = fields.rdvDate ? new Date(fields.rdvDate) : null;
       allowed.rdvDate = d && !isNaN(d.getTime()) ? d : null;
     }
+    if (fields.visiteClientLe !== undefined) {
+      const d = fields.visiteClientLe ? new Date(fields.visiteClientLe) : null;
+      allowed.visiteClientLe = d && !isNaN(d.getTime()) ? d : null;
+    }
     if (fields.dateSouhaiteeIntervention !== undefined) {
       const d = fields.dateSouhaiteeIntervention ? new Date(fields.dateSouhaiteeIntervention) : null;
       allowed.dateSouhaiteeIntervention = d && !isNaN(d.getTime()) ? d : null;

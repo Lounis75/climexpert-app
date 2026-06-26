@@ -18,7 +18,7 @@ type CalIntervention = {
 };
 type CalTechnicien = { id: string; name: string; color: string | null; role?: string | null };
 type SimpleClient   = { id: string; name: string; phone: string };
-type CalRdv         = { id: string; clientName: string; rdvDate: string | null; commercialId: string | null; commercialName: string | null };
+type CalRdv         = { id: string; leadId?: string; clientName: string; rdvDate: string | null; commercialId: string | null; commercialName: string | null; kind?: "rdv" | "visite"; duree?: number };
 type CalIndispo     = { id: string; technicienId: string; dateDebut: string; dateFin: string; motif: string | null };
 
 // ─── Lookup tables ────────────────────────────────────────────────────────────
@@ -536,7 +536,7 @@ export default function CalendrierDashboard() {
     for (const r of forDayRdv(d)) {
       if (!r.rdvDate) continue;
       const top = topPx(new Date(r.rdvDate)); if (top > TOTAL_HEIGHT) continue;
-      blocks.push({ k: "rdv", key: `r-${r.id}`, top, height: heightPx(120), rdv: r });
+      blocks.push({ k: "rdv", key: `r-${r.id}`, top, height: heightPx(r.duree ?? 120), rdv: r });
     }
     return layoutDay(blocks);
   }
@@ -699,8 +699,8 @@ export default function CalendrierDashboard() {
             {monthDays.map((d, idx) => {
               const inMonth = d.getMonth() === monthAnchor.getMonth();
               const isToday = isSameDay(d, now);
-              const all: { kind: "int" | "rdv"; id: string; label: string; time: string; start: number; duree: number; type?: string }[] = [
-                ...forDayRdv(d).map((r) => ({ kind: "rdv" as const, id: r.id, label: r.clientName, time: r.rdvDate ? fmtHM(new Date(r.rdvDate)) : "", start: r.rdvDate ? new Date(r.rdvDate).getTime() : 0, duree: 120 })),
+              const all: { kind: "int" | "rdv" | "visite"; id: string; leadId?: string; label: string; time: string; start: number; duree: number; type?: string }[] = [
+                ...forDayRdv(d).map((r) => ({ kind: (r.kind ?? "rdv") as "rdv" | "visite", id: r.id, leadId: r.leadId ?? r.id, label: r.clientName, time: r.rdvDate ? fmtHM(new Date(r.rdvDate)) : "", start: r.rdvDate ? new Date(r.rdvDate).getTime() : 0, duree: r.duree ?? 120 })),
                 ...forDay(d).map((i) => ({ kind: "int" as const, id: i.id, label: i.clientName, time: i.scheduledAt ? fmtHM(new Date(i.scheduledAt)) : "", start: i.scheduledAt ? new Date(i.scheduledAt).getTime() : 0, duree: i.duree ?? 120, type: i.type })),
               ];
               return (
@@ -715,13 +715,13 @@ export default function CalendrierDashboard() {
                       const cfg = TYPE_COLORS[ev.type ?? "autre"] ?? TYPE_COLORS.autre;
                       return (
                         <Link key={`${ev.kind}-${ev.id}`}
-                          href={ev.kind === "rdv" ? `/admin/leads?lead=${ev.id}` : `/admin/interventions/${ev.id}`}
+                          href={ev.kind === "int" ? `/admin/interventions/${ev.id}` : `/admin/leads?lead=${ev.leadId ?? ev.id}`}
                           onClick={(e) => e.stopPropagation()}
-                          draggable
-                          onDragStart={(e) => onEventDragStart(e, ev.id, ev.kind, ev.duree, ev.start)}
+                          draggable={ev.kind !== "visite"}
+                          onDragStart={(e) => { if (ev.kind === "visite") { e.preventDefault(); return; } onEventDragStart(e, ev.id, ev.kind as "int" | "rdv", ev.duree, ev.start); }}
                           onDragEnd={() => { dragRef.current = null; setDragId(null); }}
-                          className={`block rounded px-1 py-0.5 text-[9px] leading-tight truncate cursor-grab active:cursor-grabbing hover:opacity-80 ${ev.kind === "rdv" ? "bg-amber-500/20 text-amber-300" : `${cfg.bg} ${cfg.text}`} ${dragId === ev.id ? "opacity-40" : ""}`}>
-                          {ev.time && <span className="opacity-70">{ev.time} </span>}{ev.kind === "rdv" ? "RDV " : ""}{ev.label}
+                          className={`block rounded px-1 py-0.5 text-[9px] leading-tight truncate hover:opacity-80 ${ev.kind === "visite" ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"} ${ev.kind === "rdv" ? "bg-amber-500/20 text-amber-300" : ev.kind === "visite" ? "bg-sky-500/20 text-sky-300" : `${cfg.bg} ${cfg.text}`} ${dragId === ev.id ? "opacity-40" : ""}`}>
+                          {ev.time && <span className="opacity-70">{ev.time} </span>}{ev.kind === "rdv" ? "RDV " : ev.kind === "visite" ? "Visite " : ""}{ev.label}
                         </Link>
                       );
                     })}
@@ -831,21 +831,22 @@ export default function CalendrierDashboard() {
                             const start = new Date(r.rdvDate!);
                             const isShort = b.height < 44;
                             const pc = showPersonColor ? colorOf(r.commercialId) : null;
+                            const isVisite = r.kind === "visite";
                             return (
                               <Link
                                 key={b.key}
-                                href={`/admin/leads?lead=${r.id}`}
+                                href={`/admin/leads?lead=${r.leadId ?? r.id}`}
                                 onClick={(e) => e.stopPropagation()}
-                                draggable
-                                onDragStart={(e) => onEventDragStart(e, r.id, "rdv", 120, start.getTime())}
+                                draggable={!isVisite}
+                                onDragStart={(e) => { if (isVisite) { e.preventDefault(); return; } onEventDragStart(e, r.id, "rdv", r.duree ?? 120, start.getTime()); }}
                                 onDragEnd={() => { dragRef.current = null; setDragId(null); }}
-                                className={`absolute rounded-lg border px-2 py-1 overflow-hidden z-10 transition-opacity hover:opacity-80 cursor-grab active:cursor-grabbing bg-amber-500/15 border-amber-500/40 ${dragId === r.id ? "opacity-40" : ""}`}
+                                className={`absolute rounded-lg border px-2 py-1 overflow-hidden z-10 transition-opacity hover:opacity-80 ${isVisite ? "cursor-pointer bg-sky-500/15 border-sky-500/40" : "cursor-grab active:cursor-grabbing bg-amber-500/15 border-amber-500/40"} ${dragId === r.id ? "opacity-40" : ""}`}
                                 style={{ top: b.top, height: b.height, ...box, ...(pc ? { borderLeftColor: pc, borderLeftWidth: 3 } : {}) }}
                               >
                                 <div className="flex items-start gap-1.5 h-full overflow-hidden">
-                                  <div className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-[3px] bg-amber-400" />
+                                  <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 mt-[3px] ${isVisite ? "bg-sky-400" : "bg-amber-400"}`} />
                                   <div className="flex-1 min-w-0">
-                                    <p className="text-[10px] font-semibold leading-tight text-amber-300">{fmtHM(start)} · RDV</p>
+                                    <p className={`text-[10px] font-semibold leading-tight ${isVisite ? "text-sky-300" : "text-amber-300"}`}>{fmtHM(start)} · {isVisite ? "Visite" : "RDV"}</p>
                                     {!isShort && <p className="text-white/85 text-[11px] font-medium leading-tight truncate mt-0.5">{r.clientName}</p>}
                                   </div>
                                 </div>

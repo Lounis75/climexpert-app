@@ -1643,6 +1643,26 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                   </div>
                 )}
 
+                {/* Visite client (commerciale, créneau 1h) → s'ajoute au Planning, sans changer le statut */}
+                {lead.status !== "perdu" && (
+                  <div>
+                    <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide flex items-center gap-1.5">
+                      <CalendarPlus className="w-3 h-3" /> Visite client (créneau 1h)
+                    </p>
+                    <input
+                      type="datetime-local"
+                      value={toLocalDT((lead as Lead & { visiteClientLe?: string | null }).visiteClientLe)}
+                      onChange={async (e) => {
+                        const visiteClientLe = e.target.value ? new Date(e.target.value).toISOString() : null;
+                        setSelectedLead(prev => prev ? { ...prev, visiteClientLe } as Lead : null);
+                        await patchLeadField({ visiteClientLe });
+                      }}
+                      className="w-full text-sm bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2.5 text-white [color-scheme:dark] focus:outline-none focus:border-sky-500/50"
+                    />
+                    <p className="text-slate-500 text-[10px] mt-1">S&apos;ajoute au Planning (RDV commerciaux). Pas besoin de changer le statut.</p>
+                  </div>
+                )}
+
                 {/* Montant du devis, obligatoire dès "devis envoyé" / "gagné" */}
                 {(lead.status === "devis_envoyé" || lead.status === "gagné") && (
                   <div>

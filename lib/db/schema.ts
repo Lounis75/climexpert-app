@@ -225,6 +225,9 @@ export const leads = pgTable("leads", {
   prochaineActionLe:   date("prochaine_action_le"),
   // Date du rendez-vous commercial pris (sous-statut "rdv_pris") → affiché au calendrier.
   rdvDate:             timestamp("rdv_date"),
+  // Visite client (commerciale, créneau 1h) planifiée sur le prospect, indépendante du statut →
+  // affichée au Planning. Sert souvent à caler une visite de métrage avant/après le devis.
+  visiteClientLe:      timestamp("visite_client_le"),
   // Date souhaitée d'intervention par le client (notée dès l'envoi du devis) →
   // pré-remplit l'intervention créée lors de la conversion en client.
   dateSouhaiteeIntervention: timestamp("date_souhaitee_intervention"),
