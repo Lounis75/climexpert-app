@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   Phone, Bot, FileText, MapPin, Wrench,
-  MessageSquare, Clock, LayoutList, Columns3, UserPlus, CheckCircle2,
+  MessageSquare, Clock, LayoutList, Columns3, UserPlus, CheckCircle2, Send,
   AlertTriangle, GitMerge, X, Search, Mail, ChevronRight, Briefcase, Plus,
   Pencil, Check, ShieldCheck, CalendarPlus, Star, Maximize2, Minimize2, ClipboardPaste, Camera,
 } from "lucide-react";
@@ -120,6 +120,8 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
   // Journal d'échanges du prospect ouvert (chargé à l'ouverture du panneau).
   const [suivis, setSuivis] = useState<Suivi[]>([]);
   const [loadingSuivis, setLoadingSuivis] = useState(false);
+  const [msgDraft, setMsgDraft] = useState("");        // message interne en cours de rédaction
+  const [sendingMsg, setSendingMsg] = useState(false);
   const [devisHist, setDevisHist] = useState<{ id: string; url: string; montantCt: number | null; envoyeLe: string; decision: string | null; decisionLe: string | null; motifRefus: string | null }[]>([]);
   const [search, setSearch] = useState("");
   const [view, setView] = useState<"kanban" | "liste">("kanban");
@@ -369,6 +371,25 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
   async function saveTaches(next: LeadTache[]) {
     setSelectedLead((prev) => (prev ? ({ ...prev, taches: next } as Lead) : null));
     await patchLeadField({ taches: next });
+  }
+
+  // Poste un message interne, signé par l'admin connecté (apparaît dans le fil).
+  async function sendMessage(leadId: string) {
+    const contenu = msgDraft.trim();
+    if (!contenu || sendingMsg) return;
+    setSendingMsg(true);
+    try {
+      const res = await fetch(`/api/admin/leads/${leadId}/suivis`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "note", contenu }),
+      });
+      if (res.status === 401) { window.location.href = "/admin"; return; }
+      if (res.ok) {
+        const { suivi } = await res.json();
+        setSuivis((prev) => [suivi, ...prev]);
+        setMsgDraft("");
+      }
+    } finally { setSendingMsg(false); }
   }
 
   async function patchLeadField(fields: Record<string, unknown>): Promise<boolean> {
@@ -1819,27 +1840,55 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
                 </div>{/* ─── fin section suivi (une colonne) ─── */}
 
-                {/* Journal des échanges */}
+                {/* Messages internes (échanges de l'équipe + évènements auto) */}
                 <div>
                   <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide flex items-center gap-1.5">
-                    <MessageSquare className="w-3 h-3" /> Historique de la relation
+                    <MessageSquare className="w-3 h-3" /> Messages internes
                   </p>
+                  {/* Composer : message signé par la personne connectée */}
+                  <div className="flex gap-2 mb-3">
+                    <textarea
+                      value={msgDraft}
+                      onChange={(e) => setMsgDraft(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(lead.id); } }}
+                      rows={2}
+                      placeholder="Écrire un message à l'équipe… (Entrée pour envoyer)"
+                      className="flex-1 min-w-0 text-sm bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sky-500/50 resize-none"
+                    />
+                    <button type="button" onClick={() => sendMessage(lead.id)} disabled={sendingMsg || !msgDraft.trim()}
+                      className="flex-shrink-0 self-end flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 disabled:opacity-40 text-white text-sm font-semibold transition-colors">
+                      <Send className="w-3.5 h-3.5" /> {sendingMsg ? "…" : "Envoyer"}
+                    </button>
+                  </div>
+                  {/* Fil : messages attribués (Message de X) + évènements automatiques */}
                   <div className="space-y-2.5">
                     {loadingSuivis ? (
                       <p className="text-slate-600 text-xs">Chargement…</p>
                     ) : suivis.length === 0 ? (
-                      <p className="text-slate-600 text-xs">Aucune activité pour l&apos;instant.</p>
-                    ) : suivis.map((s) => (
-                      <div key={s.id} className="flex gap-2.5 text-xs">
-                        <span className="flex-shrink-0 leading-none mt-0.5">{SUIVI_ICONS[s.type] ?? "📝"}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-slate-300 whitespace-pre-wrap break-words">{s.contenu}</p>
-                          <p className="text-slate-600 text-[10px] mt-0.5">
-                            {s.auteur ? `${s.auteur} · ` : ""}{new Date(s.createdAt).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
-                          </p>
+                      <p className="text-slate-600 text-xs">Aucun message pour l&apos;instant. Écris le premier ci-dessus.</p>
+                    ) : suivis.map((s) => {
+                      const dateStr = new Date(s.createdAt).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+                      return s.auteur ? (
+                        // Message d'un membre de l'équipe : « Message de [Prénom] » + contenu
+                        <div key={s.id} className="rounded-xl border border-white/8 bg-slate-800/40 px-3 py-2.5">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <span className="w-5 h-5 rounded-full bg-sky-500/20 text-sky-300 text-[10px] font-bold flex items-center justify-center flex-shrink-0">{s.auteur.charAt(0).toUpperCase()}</span>
+                            <span className="text-xs font-semibold text-sky-300">Message de {s.auteur.split(" ")[0]}</span>
+                            <span className="text-slate-600 text-[10px] ml-auto flex-shrink-0">{dateStr}</span>
+                          </div>
+                          <p className="text-slate-200 text-sm whitespace-pre-wrap break-words">{s.contenu}</p>
                         </div>
-                      </div>
-                    ))}
+                      ) : (
+                        // Évènement automatique (devis envoyé, contact établi…)
+                        <div key={s.id} className="flex gap-2.5 text-xs">
+                          <span className="flex-shrink-0 leading-none mt-0.5">{SUIVI_ICONS[s.type] ?? "📝"}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-slate-400 whitespace-pre-wrap break-words">{s.contenu}</p>
+                            <p className="text-slate-600 text-[10px] mt-0.5">{dateStr}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
