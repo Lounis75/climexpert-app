@@ -18,6 +18,14 @@ function normalizeSource(raw: unknown): string | null {
   if (!host) return null;
   if (/(^|\.)climexpert\.fr$/.test(host) || host.endsWith(".vercel.app")) return null; // interne / direct
   host = host.replace(/^www\./, "");
+  // Assistants IA (à tester AVANT google/bing : gemini.google.com / copilot contiennent leur nom).
+  if (host.includes("chatgpt") || host === "chat.openai.com" || host.includes("openai")) return "chatgpt";
+  if (host.includes("perplexity")) return "perplexity";
+  if (host.includes("gemini.google") || host.includes("bard.google")) return "gemini";
+  if (host === "claude.ai" || host.endsWith(".claude.ai") || host.includes("anthropic")) return "claude";
+  if (host.includes("copilot")) return "copilot";
+  if (host.includes("you.com")) return "you.com";
+  if (host.includes("poe.com")) return "poe";
   if (host.includes("google")) return "google";
   if (host.includes("bing")) return "bing";
   if (host.includes("duckduckgo")) return "duckduckgo";
