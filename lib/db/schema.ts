@@ -255,6 +255,7 @@ export const leads = pgTable("leads", {
   archiveLe:           timestamp("archive_le"),        // perdu archivé (sort du Kanban, conservé pour recontact)
   photosUrls:          text("photos_urls").array(),    // photos jointes au formulaire (affichées sur la fiche prospect)
   piecesJointes:       text("pieces_jointes").array(),  // pièces ajoutées en interne sur le dossier (photos/PDF), propres au lead
+  noteEpinglee:        text("note_epinglee"),           // note courte mise en avant dans le cockpit (infos clés appel/visite)
 }, (t) => ({
   statusIdx:        index("leads_status_idx").on(t.status),
   sourceIdx:        index("leads_source_idx").on(t.source),

@@ -267,6 +267,13 @@
       "when": 1782594986935,
       "tag": "0037_lead_pieces_jointes",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1782597727263,
+      "tag": "0038_lead_note_epinglee",
+      "breakpoints": true
     }
   ]
 }

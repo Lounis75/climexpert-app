@@ -7,7 +7,7 @@ import {
   Phone, Bot, FileText, MapPin, Wrench,
   MessageSquare, Clock, LayoutList, Columns3, UserPlus, CheckCircle2, Send,
   AlertTriangle, GitMerge, X, Search, Mail, ChevronRight, ChevronDown, Briefcase, Plus,
-  Pencil, Check, ShieldCheck, CalendarPlus, Star, Maximize2, Minimize2, ClipboardPaste, Camera,
+  Pencil, Check, ShieldCheck, CalendarPlus, Star, Maximize2, Minimize2, ClipboardPaste, Camera, Pin,
 } from "lucide-react";
 import type { Lead, LeadStatus } from "@/lib/leads";
 import { detectDuplicates, leadAction } from "@/lib/leads-utils";
@@ -1778,6 +1778,26 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                     </button>
                   );
                 })()}
+
+                {/* ─── Note épinglée : infos clés mises en avant (appel, visite, accès…), juste au-dessus du devis ─── */}
+                <div>
+                  <p className="text-amber-300/80 text-xs font-semibold mb-2 uppercase tracking-wide flex items-center gap-1.5">
+                    <Pin className="w-3 h-3" /> Note épinglée
+                  </p>
+                  <textarea
+                    key={`noteep-${lead.id}`}
+                    defaultValue={(lead as Lead & { noteEpinglee?: string | null }).noteEpinglee ?? ""}
+                    onBlur={async (e) => {
+                      const v = e.target.value.trim() || null;
+                      if (v === ((lead as Lead & { noteEpinglee?: string | null }).noteEpinglee ?? null)) return;
+                      setSelectedLead(prev => prev ? { ...prev, noteEpinglee: v } as Lead : null);
+                      await patchLeadField({ noteEpinglee: v });
+                    }}
+                    rows={2}
+                    placeholder="Infos clés à garder en tête : préférences, accès, dispo… (ex : rappeler après 17h, code portail 1234)"
+                    className="w-full text-sm bg-amber-500/[0.07] border border-amber-500/30 rounded-xl px-3 py-2.5 text-amber-50 placeholder-amber-200/30 focus:outline-none focus:border-amber-500/60 resize-none"
+                  />
+                </div>
 
                 {/* ─── Devis (cœur commercial) : montant + historique + envoi ─── */}
                 <div className="rounded-xl border border-violet-500/25 bg-violet-500/[0.05] p-3.5">
