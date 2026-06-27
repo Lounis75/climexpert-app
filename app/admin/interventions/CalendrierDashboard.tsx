@@ -643,7 +643,7 @@ export default function CalendrierDashboard() {
             <p className="text-white font-semibold text-sm">{eventModal.title}</p>
             <p className="text-slate-400 text-xs mt-0.5">{eventModal.sub}</p>
             <div className="mt-4 space-y-2">
-              <Link href={eventModal.href} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-white text-sm font-semibold transition-colors">
+              <Link href={eventModal.href} onClick={() => setEventModal(null)} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-white text-sm font-semibold transition-colors">
                 <ExternalLink className="w-4 h-4" /> Ouvrir la fiche
               </Link>
               <button onClick={() => deleteEvent(eventModal)} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 text-sm font-semibold transition-colors">

@@ -147,15 +147,16 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
   const [mergingPanel, setMergingPanel] = useState<{ leadId: string; dupes: Lead[] } | null>(null);
   const [merging, setMerging] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const openedFromUrl = useRef(false);
+  const lastUrlLeadId = useRef<string | null>(null);
   const searchParams = useSearchParams();
-  // Ouvre directement la fiche du prospect ciblé via ?lead=<id> (lien depuis le dashboard).
+  // Ouvre la fiche du prospect ciblé via ?lead=<id> (liens depuis le Planning / Dashboard).
+  // On mémorise le dernier id traité : ré-ouvrable sur un AUTRE lead, et ne se ré-ouvre pas
+  // tout seul si on ferme le panneau (l'URL garde le paramètre).
   useEffect(() => {
-    if (openedFromUrl.current) return;
     const leadId = searchParams.get("lead");
-    if (!leadId) return;
+    if (!leadId || leadId === lastUrlLeadId.current) return;
     const found = leads.find((l) => l.id === leadId);
-    if (found) { setSelectedLead(found); openedFromUrl.current = true; }
+    if (found) { lastUrlLeadId.current = leadId; setSelectedLead(found); }
   }, [searchParams, leads]);
   const [showAddModal, setShowAddModal] = useState(false);
   // Import en masse de numéros à rappeler
