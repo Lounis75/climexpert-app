@@ -318,12 +318,12 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
       const pe = (l as Lead & { prochaineEtape?: string | null }).prochaineEtape;
       const isRelance = a === "Planifier la relance" || (!!a && a.startsWith("Relance")) || pe === "a_recontacter";
       const isDevis = pe === "devis_a_faire" || a === "Devis à chiffrer";
-      const isRdv = pe === "rdv_pris" || a === "Fixer le RDV";
       const ok =
         actionFilter === "a_traiter" ? a !== null :
         actionFilter === "relance" ? isRelance :
         actionFilter === "devis" ? isDevis :
-        actionFilter === "rdv" ? isRdv :
+        actionFilter === "rdv_pris" ? pe === "rdv_pris" :
+        actionFilter === "rdv" ? a === "Fixer le RDV" :
         actionFilter === "reflexion" ? pe === "en_reflexion" : true;
       if (!ok) return false;
     }
@@ -857,7 +857,8 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
           <option value="a_traiter">À traiter (toute alerte)</option>
           <option value="relance">À recontacter / relance</option>
           <option value="devis">Devis à faire</option>
-          <option value="rdv">RDV à fixer</option>
+          <option value="rdv_pris">RDV pris</option>
+          <option value="rdv">RDV à fixer (sans date)</option>
           <option value="reflexion">En réflexion</option>
         </select>
 
