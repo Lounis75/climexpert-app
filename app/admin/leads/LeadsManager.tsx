@@ -206,6 +206,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
   const saveFlashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [visiteDraft, setVisiteDraft] = useState<string | null>(null); // brouillon d'édition de la visite (null = non modifié)
   const [visiteOpen, setVisiteOpen] = useState(false); // encadré « Visite client » ouvert ?
+  const [rdvDraft, setRdvDraft] = useState<string | null>(null); // brouillon de la date de RDV (null = non modifié)
   const dragId = useRef<string | null>(null);
   const [commerciaux, setCommerciaux] = useState<{ id: string; name: string; prenom: string | null; color: string | null }[]>([]);
 
@@ -228,7 +229,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
   // Charge l'historique des devis du prospect ouvert (plusieurs liens peuvent coexister).
   useEffect(() => {
-    setVisiteDraft(null); setVisiteOpen(false); // reset l'édition de visite quand on change de prospect
+    setVisiteDraft(null); setVisiteOpen(false); setRdvDraft(null); // reset l'édition (visite/RDV) quand on change de prospect
     if (!openLeadId) { setDevisHist([]); return; }
     fetch(`/api/admin/leads/${openLeadId}/devis`)
       .then(r => r.json())
@@ -1666,23 +1667,42 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                     </select>
 
                     {/* Date du RDV → calendrier (créneau 2h) */}
-                    {(lead as Lead & { prochaineEtape?: string | null }).prochaineEtape === "rdv_pris" && (
-                      <div className="mt-2.5">
-                        <p className="text-slate-500 text-[11px] mb-1.5 flex items-center gap-1.5">
-                          <CalendarPlus className="w-3 h-3" /> Date du rendez-vous (créneau 2h au calendrier)
-                        </p>
-                        <input
-                          type="datetime-local" step={1800}
-                          defaultValue={toLocalDT((lead as Lead & { rdvDate?: string | null }).rdvDate)}
-                          onChange={async (e) => {
-                            const rdvDate = e.target.value ? new Date(e.target.value).toISOString() : null;
-                            setSelectedLead(prev => prev ? { ...prev, rdvDate } as Lead : null);
-                            await patchLeadField({ rdvDate });
-                          }}
-                          className="w-full text-sm bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2.5 text-white [color-scheme:dark] focus:outline-none focus:border-sky-500/50"
-                        />
-                      </div>
-                    )}
+                    {(lead as Lead & { prochaineEtape?: string | null }).prochaineEtape === "rdv_pris" && (() => {
+                      const savedRdv = (lead as Lead & { rdvDate?: string | null }).rdvDate;
+                      const savedRdvLocal = toLocalDT(savedRdv);
+                      const rdvVal = rdvDraft !== null ? rdvDraft : savedRdvLocal;
+                      const rdvChanged = rdvDraft !== null && rdvDraft !== savedRdvLocal;
+                      const saveRdv = async () => {
+                        const iso = rdvVal ? new Date(rdvVal).toISOString() : null;
+                        setSelectedLead(prev => prev ? { ...prev, rdvDate: iso } as Lead : null);
+                        await patchLeadField({ rdvDate: iso });
+                        setRdvDraft(null);
+                      };
+                      return (
+                        <div className="mt-2.5">
+                          <p className="text-slate-500 text-[11px] mb-1.5 flex items-center gap-1.5">
+                            <CalendarPlus className="w-3 h-3" /> Date du rendez-vous (créneau 2h au calendrier)
+                          </p>
+                          <div className="flex gap-2">
+                            <input
+                              type="datetime-local" step={1800}
+                              value={rdvVal}
+                              onChange={(e) => setRdvDraft(e.target.value)}
+                              className="flex-1 min-w-0 text-sm bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2.5 text-white [color-scheme:dark] focus:outline-none focus:border-sky-500/50"
+                            />
+                            <button onClick={saveRdv} disabled={!rdvChanged}
+                              className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-default text-white text-sm font-semibold transition-colors">
+                              <Check className="w-4 h-4" /> Enregistrer
+                            </button>
+                          </div>
+                          {savedRdv && rdvDraft === null && (
+                            <p className="text-emerald-400 text-[11px] mt-1.5 flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3 flex-shrink-0" /> Rendez-vous le {new Date(savedRdv).toLocaleString("fr-FR", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} · ajouté au Planning
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
 
