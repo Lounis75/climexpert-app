@@ -114,6 +114,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
   const [typeFilter, setTypeFilter] = useState("tous");       // prestation (installation/entretien/…)
   const [secteurFilter, setSecteurFilter] = useState("tous"); // département (75, 92, …)
   const [actionFilter, setActionFilter] = useState("tous");   // action à faire (à recontacter, devis à faire, RDV…)
+  const [commercialFilter, setCommercialFilter] = useState("tous"); // commercial assigné
   const [statusFilter, setStatusFilter] = useState<string>("tous"); // raccourci par étape (surtout mobile)
   const [focusedStatus, setFocusedStatus] = useState<string | null>(null); // focus sur une colonne (desktop)
   // Journal d'échanges du prospect ouvert (chargé à l'ouverture du panneau).
@@ -313,6 +314,10 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
     if (sourceFilter !== "tous" && sourceFilter !== "téléphone" && l.source !== sourceFilter) return false;
     if (typeFilter !== "tous" && l.project !== typeFilter) return false;
     if (secteurFilter !== "tous" && deptOf(l.location) !== secteurFilter) return false;
+    if (commercialFilter !== "tous") {
+      const cid = (l as Lead & { commercialId?: string | null }).commercialId ?? null;
+      if (commercialFilter === "none" ? cid !== null : cid !== commercialFilter) return false;
+    }
     if (actionFilter !== "tous") {
       const a = leadAction(l);
       const pe = (l as Lead & { prochaineEtape?: string | null }).prochaineEtape;
@@ -871,6 +876,16 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
           </select>
         )}
 
+        {/* Filtre commercial assigné */}
+        {commerciaux.length > 0 && (
+          <select value={commercialFilter} onChange={(e) => setCommercialFilter(e.target.value)}
+            className={`px-3 py-1.5 rounded-xl border text-xs focus:outline-none focus:border-sky-500/50 ${commercialFilter !== "tous" ? "border-violet-500/40 bg-violet-500/10 text-violet-200" : "border-white/10 bg-slate-800/60 text-white"}`}>
+            <option value="tous">Tous commerciaux</option>
+            {commerciaux.map((c) => <option key={c.id} value={c.id}>{c.prenom ? `${c.prenom} ${c.name}` : c.name}</option>)}
+            <option value="none">Non affecté</option>
+          </select>
+        )}
+
         {/* Search */}
         <div className="relative flex-1 min-w-[180px] max-w-xs">
           <Search className={`absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none ${searching ? "text-sky-400 animate-pulse" : "text-slate-500"}`} />
@@ -1035,7 +1050,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                     <LeadCard key={lead.id} lead={lead} />
                   ))}
                   {/* Charger plus (uniquement hors recherche/filtre, quand il reste des prospects) */}
-                  {!search && !favorisOnly && sourceFilter === "tous" && typeFilter === "tous" && secteurFilter === "tous" && actionFilter === "tous" && col.length < (colCounts[status] ?? 0) && (
+                  {!search && !favorisOnly && sourceFilter === "tous" && typeFilter === "tous" && secteurFilter === "tous" && actionFilter === "tous" && commercialFilter === "tous" && col.length < (colCounts[status] ?? 0) && (
                     <button
                       onClick={() => loadMore(status)}
                       disabled={loadingCol === status}
