@@ -22,8 +22,8 @@ export function leadAction(lead: Lead): string | null {
     return null; // planifiée dans le futur → pas d'alerte
   }
 
-  // Intention de relance déclarée mais sans date → inviter à planifier.
-  if (lead.prochaineEtape === "a_recontacter" || lead.prochaineEtape === "devis_a_faire") return "Planifier la relance";
+  // « À recontacter » / « Devis à faire » s'affichent via le badge de sous-statut (PROCHAINE_ETAPE),
+  // plus comme une alerte rouge « Planifier la relance » (le champ date de relance a été retiré).
   return null;
 }
 

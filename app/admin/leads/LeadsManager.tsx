@@ -316,10 +316,10 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
     if (actionFilter !== "tous") {
       const a = leadAction(l);
       const pe = (l as Lead & { prochaineEtape?: string | null }).prochaineEtape;
-      const isRelance = a === "Planifier la relance" || (!!a && a.startsWith("Relance")) || pe === "a_recontacter";
+      const isRelance = (!!a && a.startsWith("Relance")) || pe === "a_recontacter";
       const isDevis = pe === "devis_a_faire" || a === "Devis à chiffrer";
       const ok =
-        actionFilter === "a_traiter" ? a !== null :
+        actionFilter === "a_traiter" ? (a !== null || pe === "a_recontacter" || pe === "devis_a_faire") :
         actionFilter === "relance" ? isRelance :
         actionFilter === "devis" ? isDevis :
         actionFilter === "rdv_pris" ? pe === "rdv_pris" :
