@@ -17,12 +17,14 @@ function getSessionId(): string {
   }
 }
 
-export function trackEvent(type: string, meta?: Record<string, unknown>) {
+export function trackEvent(type: string, meta?: Record<string, unknown>, ref?: string) {
   try {
     fetch("/api/track", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type, path: location.pathname, sessionId: getSessionId(), meta }),
+      // `ref` = document.referrer (vraie source d'arrivée) ; le serveur le normalise (google,
+      // réseaux sociaux…) ou le met à null pour une navigation interne / un accès direct.
+      body: JSON.stringify({ type, path: location.pathname, sessionId: getSessionId(), meta, ref }),
       keepalive: true,
     }).catch(() => {});
   } catch { /* ignore */ }
@@ -35,7 +37,9 @@ export default function Tracker() {
     if (!pathname) return;
     // On ne piste pas le back-office ni les écrans d'auth/API.
     if (/^\/(admin|technicien|commercial|connexion|activer|api)(\/|$)/.test(pathname)) return;
-    trackEvent("page_view");
+    // En App Router, document.referrer reste la source d'entrée du chargement courant
+    // (l'origine externe Google/réseaux), pas la page interne précédente.
+    trackEvent("page_view", undefined, typeof document !== "undefined" ? document.referrer : undefined);
   }, [pathname]);
   return null;
 }
