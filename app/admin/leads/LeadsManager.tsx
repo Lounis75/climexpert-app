@@ -225,6 +225,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
   const [visiteOpen, setVisiteOpen] = useState(false); // encadré « Visite client » ouvert ?
   const [notesOpen, setNotesOpen] = useState(false);   // note interne / conversation Alex dépliée ?
   const [showAllHistory, setShowAllHistory] = useState(false); // historique des messages internes déplié ?
+  const [tab, setTab] = useState<"qualif" | "parcours" | "pieces" | "histo">("qualif"); // onglet actif de la fiche
   const [rdvDraft, setRdvDraft] = useState<string | null>(null); // brouillon de la date de RDV (null = non modifié)
   const dragId = useRef<string | null>(null);
   const [commerciaux, setCommerciaux] = useState<{ id: string; name: string; prenom: string | null; color: string | null }[]>([]);
@@ -248,7 +249,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
   // Charge l'historique des devis du prospect ouvert (plusieurs liens peuvent coexister).
   useEffect(() => {
-    setVisiteDraft(null); setVisiteOpen(false); setRdvDraft(null); setNotesOpen(false); setShowAllHistory(false); // reset l'édition (visite/RDV/note/historique) quand on change de prospect
+    setVisiteDraft(null); setVisiteOpen(false); setRdvDraft(null); setNotesOpen(false); setShowAllHistory(false); setTab("qualif"); // reset l'édition (visite/RDV/note/historique/onglet) quand on change de prospect
     if (!openLeadId) { setDevisHist([]); return; }
     fetch(`/api/admin/leads/${openLeadId}/devis`)
       .then(r => r.json())
@@ -1608,106 +1609,6 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                   )}
                 </div>
 
-                {/* ── Messages internes (remontés en haut : note rapide à l'équipe, toujours visible) ── */}
-                <div>
-                  <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide flex items-center gap-1.5">
-                    <MessageSquare className="w-3 h-3" /> Messages internes
-                  </p>
-                  {/* Composer : message signé par la personne connectée */}
-                  <div className="flex gap-2 mb-3">
-                    <textarea
-                      value={msgDraft}
-                      onChange={(e) => setMsgDraft(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(lead.id); } }}
-                      rows={2}
-                      placeholder="Écrire un message à l'équipe… (Entrée pour envoyer)"
-                      className="flex-1 min-w-0 text-sm bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sky-500/50 resize-none"
-                    />
-                    <button type="button" onClick={() => sendMessage(lead.id)} disabled={sendingMsg || !msgDraft.trim()}
-                      className="flex-shrink-0 self-end flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 disabled:opacity-40 text-white text-sm font-semibold transition-colors">
-                      <Send className="w-3.5 h-3.5" /> {sendingMsg ? "…" : "Envoyer"}
-                    </button>
-                  </div>
-                  {/* Fil : messages attribués (Message de X) + évènements automatiques */}
-                  <div className="space-y-2.5">
-                    {loadingSuivis ? (
-                      <p className="text-slate-600 text-xs">Chargement…</p>
-                    ) : suivis.length === 0 ? (
-                      <p className="text-slate-600 text-xs">Aucun message pour l&apos;instant. Écris le premier ci-dessus.</p>
-                    ) : (() => {
-                      const HISTO_COLLAPSED = 4; // on n'affiche que les + récents, le reste via « Voir tout l'historique »
-                      const shown = showAllHistory ? suivis : suivis.slice(0, HISTO_COLLAPSED);
-                      return (
-                        <>
-                          {shown.map((s) => {
-                            const dateStr = new Date(s.createdAt).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-                            return s.auteur ? (
-                              <div key={s.id} className="rounded-xl border border-white/8 bg-slate-800/40 px-3 py-2.5">
-                                <div className="flex items-center gap-1.5 mb-1">
-                                  <span className="w-5 h-5 rounded-full bg-sky-500/20 text-sky-300 text-[10px] font-bold flex items-center justify-center flex-shrink-0">{s.auteur.charAt(0).toUpperCase()}</span>
-                                  <span className="text-xs font-semibold text-sky-300">Message de {s.auteur.split(" ")[0]}</span>
-                                  <span className="text-slate-600 text-[10px] ml-auto flex-shrink-0">{dateStr}</span>
-                                </div>
-                                <p className="text-slate-200 text-sm whitespace-pre-wrap break-words">{s.contenu}</p>
-                              </div>
-                            ) : (
-                              <div key={s.id} className="flex gap-2.5 text-xs">
-                                <span className="flex-shrink-0 leading-none mt-0.5">{SUIVI_ICONS[s.type] ?? "📝"}</span>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-slate-400 whitespace-pre-wrap break-words">{s.contenu}</p>
-                                  <p className="text-slate-600 text-[10px] mt-0.5">{dateStr}</p>
-                                </div>
-                              </div>
-                            );
-                          })}
-                          {suivis.length > HISTO_COLLAPSED && (
-                            <button type="button" onClick={() => setShowAllHistory((v) => !v)}
-                              className="w-full text-[11px] text-sky-400 hover:text-sky-300 py-1.5 rounded-lg border border-dashed border-white/10 hover:border-white/20 transition-colors">
-                              {showAllHistory ? "Réduire l'historique" : `Voir tout l'historique (${suivis.length - HISTO_COLLAPSED} de plus)`}
-                            </button>
-                          )}
-                        </>
-                      );
-                    })()}
-                  </div>
-                </div>
-
-                {/* Photos jointes (envoyées via le formulaire) */}
-                {(lead.photosUrls?.length ?? 0) > 0 && (
-                  <div>
-                    <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide flex items-center gap-1.5">
-                      <Camera className="w-3 h-3" /> Photos jointes ({lead.photosUrls!.length})
-                    </p>
-                    <div className="grid grid-cols-3 gap-2">
-                      {lead.photosUrls!.map((url, i) => (
-                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" title={`Photo ${i + 1}`}
-                          className="block aspect-square rounded-lg overflow-hidden bg-slate-900/60 border border-white/10 hover:border-sky-500/50 transition-colors">
-                          <img src={url} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" loading="lazy" />
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Pièces jointes internes : photos / PDF ajoutés au dossier (propres au prospect) */}
-                <LeadAttachments key={lead.id} leadId={lead.id} initial={(lead as Lead & { piecesJointes?: string[] | null }).piecesJointes ?? []} />
-
-                {/* Qualification des besoins, guide d'appel (mis en avant au Contact établi) */}
-                <LeadQualification
-                  key={lead.id}
-                  value={lead.qualification ?? null}
-                  status={lead.status}
-                  onSave={async (q) => { await patchLeadField({ qualification: q }); }}
-                  notes={lead.notes}
-                  onSaveNotes={async (text) => { setSelectedLead(prev => prev ? { ...prev, notes: text } as Lead : null); await patchLeadField({ notes: text }); }}
-                  dateSouhaitee={toLocalDT((lead as Lead & { dateSouhaiteeIntervention?: string | null }).dateSouhaiteeIntervention)}
-                  onSaveDateSouhaitee={async (localValue) => { const iso = localValue ? new Date(localValue).toISOString() : null; setSelectedLead(prev => prev ? { ...prev, dateSouhaiteeIntervention: iso } as Lead : null); await patchLeadField({ dateSouhaiteeIntervention: iso }); }}
-                  consent={(lead as Lead).consentementMarketing}
-                  onSaveConsent={async (v) => { setSelectedLead(prev => prev ? { ...prev, consentementMarketing: v } as Lead : null); await patchLeadField({ consentementMarketing: v }); }}
-                />
-
-                {/* Parcours client : frise des jalons + tâches à effectuer (auto + manuelles) */}
-                <LeadParcours lead={lead} devisHist={devisHist} onSaveTaches={saveTaches} />
                 </>
                 )}
 
@@ -1949,38 +1850,160 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
                 </div>{/* ─── fin section suivi (une colonne) ─── */}
 
-                {/* ── Note interne & conversation Alex (descendue en bas, repliée par défaut : peut être longue) ── */}
-                <div className="rounded-xl border border-white/10 bg-slate-900/30 overflow-hidden">
-                  <button type="button" onClick={() => setNotesOpen((o) => !o)}
-                    className="w-full flex items-center justify-between gap-2 px-4 py-3 hover:bg-white/[0.02] transition-colors">
-                    <span className="flex items-center gap-2 text-sm font-semibold text-white">
-                      <MessageSquare className="w-4 h-4 text-amber-400" />
-                      Note interne{lead.source === "alex" ? " & conversation Alex" : ""}
-                    </span>
-                    <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform flex-shrink-0 ${notesOpen ? "rotate-180" : ""}`} />
-                  </button>
-                  {!notesOpen && (
-                    <p className="px-4 pb-3 -mt-1 text-xs text-slate-500 truncate">
-                      {lead.notes ? lead.notes.split("\n").find((ln) => ln.trim()) : "Ajouter une note / des indications…"}
-                    </p>
-                  )}
-                  {notesOpen && (
-                    <div className="px-4 pb-4 border-t border-white/8 pt-3">
-                      {editingNotes === lead.id ? (
-                        <>
-                          <textarea value={notesValue} onChange={(e) => setNotesValue(e.target.value)} rows={6} placeholder="Indications sur ce client…" className="w-full text-sm bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2.5 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-amber-500/50 resize-none" autoFocus />
-                          <div className="flex gap-2 mt-2">
-                            <button onClick={() => saveNotes(lead.id)} disabled={updating === lead.id} className="px-4 py-1.5 bg-sky-500 hover:bg-sky-400 text-white rounded-lg text-xs font-semibold transition-colors disabled:opacity-50">Enregistrer</button>
-                            <button onClick={() => setEditingNotes(null)} className="px-4 py-1.5 text-slate-500 hover:text-slate-400 text-xs transition-colors">Annuler</button>
+                {/* ── Note interne : mot rapide à l'équipe (le fil complet est dans l'onglet Historique) ── */}
+                <div>
+                  <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide flex items-center gap-1.5">
+                    <MessageSquare className="w-3 h-3" /> Note interne
+                  </p>
+                  <div className="flex gap-2">
+                    <textarea
+                      value={msgDraft}
+                      onChange={(e) => setMsgDraft(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(lead.id); } }}
+                      rows={2}
+                      placeholder="Écrire un message à l'équipe… (Entrée pour envoyer)"
+                      className="flex-1 min-w-0 text-sm bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sky-500/50 resize-none"
+                    />
+                    <button type="button" onClick={() => sendMessage(lead.id)} disabled={sendingMsg || !msgDraft.trim()}
+                      className="flex-shrink-0 self-end flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 disabled:opacity-40 text-white text-sm font-semibold transition-colors">
+                      <Send className="w-3.5 h-3.5" /> {sendingMsg ? "…" : "Envoyer"}
+                    </button>
+                  </div>
+                </div>
+
+                {/* ── Onglets : qualification · parcours · pièces · historique ── */}
+                <div>
+                  <div className="flex gap-1 p-0.5 bg-slate-800/60 border border-white/8 rounded-xl mb-3">
+                    {([["qualif", "Qualif"], ["parcours", "Parcours"], ["pieces", "Pièces"], ["histo", "Historique"]] as const).map(([key, label]) => (
+                      <button key={key} type="button" onClick={() => setTab(key)}
+                        className={`flex-1 px-1 py-1.5 rounded-lg text-[11px] font-semibold transition-colors ${tab === key ? "bg-sky-500 text-white" : "text-slate-400 hover:text-white"}`}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Qualification : guide des besoins + note / conversation Alex */}
+                  {tab === "qualif" && (
+                    <div className="space-y-4">
+                      <LeadQualification
+                        key={lead.id}
+                        value={lead.qualification ?? null}
+                        status={lead.status}
+                        onSave={async (q) => { await patchLeadField({ qualification: q }); }}
+                        notes={lead.notes}
+                        onSaveNotes={async (text) => { setSelectedLead(prev => prev ? { ...prev, notes: text } as Lead : null); await patchLeadField({ notes: text }); }}
+                        dateSouhaitee={toLocalDT((lead as Lead & { dateSouhaiteeIntervention?: string | null }).dateSouhaiteeIntervention)}
+                        onSaveDateSouhaitee={async (localValue) => { const iso = localValue ? new Date(localValue).toISOString() : null; setSelectedLead(prev => prev ? { ...prev, dateSouhaiteeIntervention: iso } as Lead : null); await patchLeadField({ dateSouhaiteeIntervention: iso }); }}
+                        consent={(lead as Lead).consentementMarketing}
+                        onSaveConsent={async (v) => { setSelectedLead(prev => prev ? { ...prev, consentementMarketing: v } as Lead : null); await patchLeadField({ consentementMarketing: v }); }}
+                      />
+                      {/* Note interne & conversation Alex (repliée par défaut, peut être longue) */}
+                      <div className="rounded-xl border border-white/10 bg-slate-900/30 overflow-hidden">
+                        <button type="button" onClick={() => setNotesOpen((o) => !o)}
+                          className="w-full flex items-center justify-between gap-2 px-4 py-3 hover:bg-white/[0.02] transition-colors">
+                          <span className="flex items-center gap-2 text-sm font-semibold text-white">
+                            <MessageSquare className="w-4 h-4 text-amber-400" />
+                            Note interne{lead.source === "alex" ? " & conversation Alex" : ""}
+                          </span>
+                          <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform flex-shrink-0 ${notesOpen ? "rotate-180" : ""}`} />
+                        </button>
+                        {!notesOpen && (
+                          <p className="px-4 pb-3 -mt-1 text-xs text-slate-500 truncate">
+                            {lead.notes ? lead.notes.split("\n").find((ln) => ln.trim()) : "Ajouter une note / des indications…"}
+                          </p>
+                        )}
+                        {notesOpen && (
+                          <div className="px-4 pb-4 border-t border-white/8 pt-3">
+                            {editingNotes === lead.id ? (
+                              <>
+                                <textarea value={notesValue} onChange={(e) => setNotesValue(e.target.value)} rows={6} placeholder="Indications sur ce client…" className="w-full text-sm bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2.5 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-amber-500/50 resize-none" autoFocus />
+                                <div className="flex gap-2 mt-2">
+                                  <button onClick={() => saveNotes(lead.id)} disabled={updating === lead.id} className="px-4 py-1.5 bg-sky-500 hover:bg-sky-400 text-white rounded-lg text-xs font-semibold transition-colors disabled:opacity-50">Enregistrer</button>
+                                  <button onClick={() => setEditingNotes(null)} className="px-4 py-1.5 text-slate-500 hover:text-slate-400 text-xs transition-colors">Annuler</button>
+                                </div>
+                              </>
+                            ) : (
+                              <div className="text-slate-200 text-sm bg-amber-500/[0.06] hover:bg-amber-500/[0.1] border border-amber-500/20 rounded-xl px-4 py-3 flex gap-2.5 cursor-pointer transition-colors"
+                                onClick={() => { setEditingNotes(lead.id); setNotesValue(lead.notes ?? ""); }}>
+                                <MessageSquare className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-amber-400/70" />
+                                <span className="whitespace-pre-wrap">{lead.notes || <span className="text-slate-500">Ajouter une note / des indications…</span>}</span>
+                              </div>
+                            )}
                           </div>
-                        </>
-                      ) : (
-                        <div className="text-slate-200 text-sm bg-amber-500/[0.06] hover:bg-amber-500/[0.1] border border-amber-500/20 rounded-xl px-4 py-3 flex gap-2.5 cursor-pointer transition-colors"
-                          onClick={() => { setEditingNotes(lead.id); setNotesValue(lead.notes ?? ""); }}>
-                          <MessageSquare className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-amber-400/70" />
-                          <span className="whitespace-pre-wrap">{lead.notes || <span className="text-slate-500">Ajouter une note / des indications…</span>}</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Parcours client : frise des jalons + tâches */}
+                  {tab === "parcours" && (
+                    <LeadParcours lead={lead} devisHist={devisHist} onSaveTaches={saveTaches} />
+                  )}
+
+                  {/* Pièces jointes : photos du formulaire + pièces internes */}
+                  {tab === "pieces" && (
+                    <div className="space-y-4">
+                      {(lead.photosUrls?.length ?? 0) > 0 && (
+                        <div>
+                          <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide flex items-center gap-1.5">
+                            <Camera className="w-3 h-3" /> Photos du formulaire ({lead.photosUrls!.length})
+                          </p>
+                          <div className="grid grid-cols-3 gap-2">
+                            {lead.photosUrls!.map((url, i) => (
+                              <a key={i} href={url} target="_blank" rel="noopener noreferrer" title={`Photo ${i + 1}`}
+                                className="block aspect-square rounded-lg overflow-hidden bg-slate-900/60 border border-white/10 hover:border-sky-500/50 transition-colors">
+                                <img src={url} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" loading="lazy" />
+                              </a>
+                            ))}
+                          </div>
                         </div>
                       )}
+                      <LeadAttachments key={lead.id} leadId={lead.id} initial={(lead as Lead & { piecesJointes?: string[] | null }).piecesJointes ?? []} />
+                    </div>
+                  )}
+
+                  {/* Historique : fil des messages d'équipe + évènements automatiques */}
+                  {tab === "histo" && (
+                    <div className="space-y-2.5">
+                      {loadingSuivis ? (
+                        <p className="text-slate-600 text-xs">Chargement…</p>
+                      ) : suivis.length === 0 ? (
+                        <p className="text-slate-600 text-xs">Aucune activité pour l&apos;instant.</p>
+                      ) : (() => {
+                        const HISTO_COLLAPSED = 6;
+                        const shown = showAllHistory ? suivis : suivis.slice(0, HISTO_COLLAPSED);
+                        return (
+                          <>
+                            {shown.map((s) => {
+                              const dateStr = new Date(s.createdAt).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+                              return s.auteur ? (
+                                <div key={s.id} className="rounded-xl border border-white/8 bg-slate-800/40 px-3 py-2.5">
+                                  <div className="flex items-center gap-1.5 mb-1">
+                                    <span className="w-5 h-5 rounded-full bg-sky-500/20 text-sky-300 text-[10px] font-bold flex items-center justify-center flex-shrink-0">{s.auteur.charAt(0).toUpperCase()}</span>
+                                    <span className="text-xs font-semibold text-sky-300">Message de {s.auteur.split(" ")[0]}</span>
+                                    <span className="text-slate-600 text-[10px] ml-auto flex-shrink-0">{dateStr}</span>
+                                  </div>
+                                  <p className="text-slate-200 text-sm whitespace-pre-wrap break-words">{s.contenu}</p>
+                                </div>
+                              ) : (
+                                <div key={s.id} className="flex gap-2.5 text-xs">
+                                  <span className="flex-shrink-0 leading-none mt-0.5">{SUIVI_ICONS[s.type] ?? "📝"}</span>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-slate-400 whitespace-pre-wrap break-words">{s.contenu}</p>
+                                    <p className="text-slate-600 text-[10px] mt-0.5">{dateStr}</p>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                            {suivis.length > HISTO_COLLAPSED && (
+                              <button type="button" onClick={() => setShowAllHistory((v) => !v)}
+                                className="w-full text-[11px] text-sky-400 hover:text-sky-300 py-1.5 rounded-lg border border-dashed border-white/10 hover:border-white/20 transition-colors">
+                                {showAllHistory ? "Réduire" : `Voir tout (${suivis.length - HISTO_COLLAPSED} de plus)`}
+                              </button>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>
