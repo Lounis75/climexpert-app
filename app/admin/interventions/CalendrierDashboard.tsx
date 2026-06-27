@@ -374,11 +374,10 @@ function IndispoModal({ techniciens, onClose, onCreated }: { techniciens: CalTec
 
 // ─── Main calendar ────────────────────────────────────────────────────────────
 export default function CalendrierDashboard() {
-  const todayBase = new Date();
-  todayBase.setHours(0, 0, 0, 0);
-
   const [viewMode, setViewMode]           = useState<"semaine" | "mois">("semaine");
   const [monthAnchor, setMonthAnchor]     = useState(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; });
+  // Premier jour de la semaine affichée (vue semaine = 7 jours à partir de cette date, navigable).
+  const [weekAnchor, setWeekAnchor]       = useState(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; });
   const [interventions, setInterventions] = useState<CalIntervention[]>([]);
   const [techniciens, setTechniciens]     = useState<CalTechnicien[]>([]);
   const [rdvs, setRdvs]                   = useState<CalRdv[]>([]);
@@ -398,7 +397,7 @@ export default function CalendrierDashboard() {
   const gridRef = useRef<HTMLDivElement>(null);
 
   const isMonth = viewMode === "mois";
-  const days = Array.from({ length: 7 }, (_, i) => addDays(todayBase, i)); // vue semaine
+  const days = Array.from({ length: 7 }, (_, i) => addDays(weekAnchor, i)); // vue semaine (ancrée sur weekAnchor)
   const monthStart = monthGridStart(monthAnchor);
   const monthDays = Array.from({ length: Math.round((monthGridEnd(monthAnchor).getTime() - monthStart.getTime()) / 86400000) + 1 }, (_, i) => addDays(monthStart, i));
 
@@ -411,8 +410,7 @@ export default function CalendrierDashboard() {
       rangeStart = monthGridStart(monthAnchor);
       rangeEnd = monthGridEnd(monthAnchor);
     } else {
-      const t = new Date(); t.setHours(0, 0, 0, 0);
-      rangeStart = t; rangeEnd = addDays(t, 6);
+      rangeStart = weekAnchor; rangeEnd = addDays(weekAnchor, 6);
     }
     const res = await fetch(`/api/admin/calendrier?start=${fmt(rangeStart)}&end=${fmt(rangeEnd)}`);
     if (res.ok) {
@@ -423,7 +421,7 @@ export default function CalendrierDashboard() {
       setIndispos(d.indispos ?? []);
     }
     setLoading(false);
-  }, [viewMode, monthAnchor]);
+  }, [viewMode, monthAnchor, weekAnchor]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -660,12 +658,19 @@ export default function CalendrierDashboard() {
       {/* Bascule Semaine / Mois (+ navigation mois) */}
       <div className="flex items-center justify-between gap-3 mb-3">
         <div className="flex items-center gap-2">
-          {isMonth && (
+          {isMonth ? (
             <>
               <button onClick={() => setMonthAnchor(addMonths(monthAnchor, -1))} className="p-1.5 rounded-lg bg-slate-800 border border-white/8 text-slate-400 hover:text-white transition-colors"><ChevronLeft className="w-4 h-4" /></button>
               <span className="text-sm font-semibold text-white capitalize min-w-[140px] text-center">{monthAnchor.toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}</span>
               <button onClick={() => setMonthAnchor(addMonths(monthAnchor, 1))} className="p-1.5 rounded-lg bg-slate-800 border border-white/8 text-slate-400 hover:text-white transition-colors"><ChevronRight className="w-4 h-4" /></button>
               <button onClick={() => { const d = new Date(); d.setHours(0, 0, 0, 0); setMonthAnchor(d); }} className="px-3 py-1.5 text-xs rounded-lg bg-slate-800 border border-white/8 text-slate-400 hover:text-white transition-colors">Ce mois</button>
+            </>
+          ) : (
+            <>
+              <button onClick={() => setWeekAnchor(addDays(weekAnchor, -7))} title="Semaine précédente" className="p-1.5 rounded-lg bg-slate-800 border border-white/8 text-slate-400 hover:text-white transition-colors"><ChevronLeft className="w-4 h-4" /></button>
+              <span className="text-sm font-semibold text-white min-w-[150px] text-center">{days[0].toLocaleDateString("fr-FR", { day: "numeric", month: "short" })} – {days[6].toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}</span>
+              <button onClick={() => setWeekAnchor(addDays(weekAnchor, 7))} title="Semaine suivante" className="p-1.5 rounded-lg bg-slate-800 border border-white/8 text-slate-400 hover:text-white transition-colors"><ChevronRight className="w-4 h-4" /></button>
+              <button onClick={() => { const d = new Date(); d.setHours(0, 0, 0, 0); setWeekAnchor(d); }} className="px-3 py-1.5 text-xs rounded-lg bg-slate-800 border border-white/8 text-slate-400 hover:text-white transition-colors">Cette semaine</button>
             </>
           )}
         </div>
