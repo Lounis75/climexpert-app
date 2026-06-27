@@ -27,15 +27,28 @@ const STATUS_CONFIG: Record<LeadStatus, { label: string; color: string; col: str
   perdu:            { label: "Perdu",            color: "bg-slate-500/10 text-slate-400 border-slate-500/30", col: "border-t-slate-500" },
 };
 
-const STATUSES = Object.keys(STATUS_CONFIG) as LeadStatus[];
-// La colonne « Pas de réponse » est retirée du Kanban : un prospect non-répondant reste dans
-// « Nouveau » (file d'appels). On conserve l'entrée dans STATUS_CONFIG pour les libellés hérités,
-// mais elle n'apparaît plus comme colonne, filtre, ou option de statut.
-const BOARD_STATUSES = STATUSES.filter((s) => s !== "pas_de_reponse");
-const STATUS_DOT: Record<LeadStatus, string> = {
-  nouveau: "bg-sky-400", pas_de_reponse: "bg-rose-400", contacté: "bg-amber-400",
-  devis_envoyé: "bg-violet-400", gagné: "bg-emerald-400", perdu: "bg-slate-400",
-};
+// Les colonnes du Kanban sont définies par BOARD_COLUMNS (ci-dessous). « Pas de réponse » et
+// « Perdu » ne sont pas des colonnes : pas-de-réponse reste dans « Nouveau » (file d'appels),
+// perdu est accessible via la carte stat « Perdu » → vue Liste. STATUS_CONFIG garde tous les
+// statuts pour les libellés/couleurs (badges, select de la liste).
+
+// Colonnes du Kanban. « RDV pris » est une colonne VIRTUELLE : ce sont les prospects « contacté »
+// dont la prochaine étape est rdv_pris (pas de statut dédié en base, donc aucune migration).
+// « Perdu » n'est plus une colonne (accessible via la carte stat « Perdu » → vue Liste).
+type BoardColumn = { key: string; status: LeadStatus; label: string; color: string; col: string; dot: string };
+const BOARD_COLUMNS: BoardColumn[] = [
+  { key: "nouveau",      status: "nouveau",      label: "Nouveau",        color: STATUS_CONFIG.nouveau.color,      col: "border-t-sky-500",     dot: "bg-sky-400" },
+  { key: "contacté",     status: "contacté",     label: "Contact établi", color: STATUS_CONFIG.contacté.color,     col: "border-t-amber-500",   dot: "bg-amber-400" },
+  { key: "rdv_pris",     status: "contacté",     label: "RDV pris",       color: "bg-teal-500/10 text-teal-300 border-teal-500/30", col: "border-t-teal-500", dot: "bg-teal-400" },
+  { key: "devis_envoyé", status: "devis_envoyé", label: "Devis envoyé",   color: STATUS_CONFIG.devis_envoyé.color, col: "border-t-violet-500",  dot: "bg-violet-400" },
+  { key: "gagné",        status: "gagné",        label: "Gagné",          color: STATUS_CONFIG.gagné.color,        col: "border-t-emerald-500", dot: "bg-emerald-400" },
+];
+
+// Colonne d'affichage d'un prospect (RDV pris = sous-ensemble de « contacté »).
+function colOfLead(l: Lead): string {
+  if (l.status === "contacté" && (l as Lead & { prochaineEtape?: string | null }).prochaineEtape === "rdv_pris") return "rdv_pris";
+  return l.status;
+}
 
 // Journal d'échanges : type → icône.
 const SUIVI_ICONS: Record<string, string> = { appel: "📞", email: "✉️", sms: "💬", visite: "📍", note: "📝", statut: "🏷️", devis: "📄", rdv: "📅" };
@@ -130,7 +143,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
   const [notesValue, setNotesValue] = useState("");
   const [convertingId, setConvertingId] = useState<string | null>(null);
   const [convertDone, setConvertDone] = useState<Set<string>>(new Set());
-  const [dragOver, setDragOver] = useState<LeadStatus | null>(null);
+  const [dragOver, setDragOver] = useState<string | null>(null); // clé de colonne survolée (statut ou « rdv_pris »)
   const [mergingPanel, setMergingPanel] = useState<{ leadId: string; dupes: Lead[] } | null>(null);
   const [merging, setMerging] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -312,7 +325,10 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
   const filtered = leads.filter((l) => {
     if (favorisOnly && !l.favori) return false;
-    if (statusFilter !== "tous" && l.status !== statusFilter) return false;
+    if (statusFilter !== "tous") {
+      if (statusFilter === "rdv_pris") { if (colOfLead(l) !== "rdv_pris") return false; }
+      else if (l.status !== statusFilter) return false;
+    }
     if (sourceFilter === "téléphone" && l.source !== "téléphone" && l.source !== "whatsapp") return false;
     if (sourceFilter !== "tous" && sourceFilter !== "téléphone" && l.source !== sourceFilter) return false;
     if (typeFilter !== "tous" && l.project !== typeFilter) return false;
@@ -441,7 +457,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
     }
   }
 
-  async function updateStatus(id: string, status: string) {
+  async function updateStatus(id: string, status: string, extra?: { prochaineEtape?: string | null }) {
     const current = leads.find((l) => l.id === id);
     const previous = current?.status;
     setUpdating(id);
@@ -449,7 +465,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
       const res = await fetch("/api/admin/leads", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, status, version: current?.version }), // verrou optimiste
+        body: JSON.stringify({ id, status, ...(extra ?? {}), version: current?.version }), // verrou optimiste
       });
       if (res.status === 401) {
         if (previous) setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status: previous } : l)));
@@ -469,7 +485,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
         const newClientId: string | null = data.lead?.clientId ?? null;
         // Synchronise version + statut + clientId depuis le serveur.
         if (data.lead) applyServerLead(data.lead);
-        else setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status: status as LeadStatus } as Lead : l)));
+        else setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status: status as LeadStatus, ...(extra ?? {}) } as Lead : l)));
         // Compteurs de colonne : -1 à l'ancien statut, +1 au nouveau.
         if (previous && previous !== status) {
           setColCounts((c) => ({ ...c, [previous]: Math.max(0, (c[previous] ?? 0) - 1), [status]: (c[status] ?? 0) + 1 }));
@@ -662,10 +678,10 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
     e.dataTransfer.effectAllowed = "move";
   }
 
-  function onDragOverColumn(e: React.DragEvent, status: LeadStatus) {
+  function onDragOverColumn(e: React.DragEvent, key: string) {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
-    setDragOver(status);
+    setDragOver(key);
   }
 
   function onDragLeaveColumn(e: React.DragEvent) {
@@ -674,7 +690,9 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
     }
   }
 
-  async function onDropColumn(e: React.DragEvent, status: LeadStatus) {
+  // Dépose une carte dans une colonne. « RDV pris » = statut contacté + sous-étape rdv_pris ;
+  // sortir une carte de « RDV pris » vers « Contact établi » retire le sous-statut.
+  async function onDropColumn(e: React.DragEvent, column: BoardColumn) {
     e.preventDefault();
     e.stopPropagation();
     setDragOver(null);
@@ -682,8 +700,10 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
     const id = e.dataTransfer.getData("Text") || e.dataTransfer.getData("text/plain") || dragId.current;
     if (!id) return;
     const lead = leads.find((l) => l.id === id);
-    if (!lead || lead.status === status) return;
-    await updateStatus(id, status);
+    if (!lead || colOfLead(lead) === column.key) return;
+    if (column.key === "rdv_pris") await updateStatus(id, "contacté", { prochaineEtape: "rdv_pris" });
+    else if (column.key === "contacté") await updateStatus(id, "contacté", colOfLead(lead) === "rdv_pris" ? { prochaineEtape: null } : undefined);
+    else await updateStatus(id, column.status);
   }
 
   // ─── Card component ──────────────────────────────────────────────────────────
@@ -810,6 +830,10 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
   const totalCount = Object.values(colCounts).reduce((a, b) => a + b, 0);
   const newCount = colCounts["nouveau"] ?? 0;
+  // Nb de prospects affichés dans la colonne virtuelle « RDV pris » (sous-ensemble de contacté chargé).
+  const rdvLoadedCount = leads.filter((l) => colOfLead(l) === "rdv_pris").length;
+  // Aucun filtre actif : on peut afficher « Charger plus » (pagination serveur par statut).
+  const noColFilters = !search && !favorisOnly && sourceFilter === "tous" && typeFilter === "tous" && secteurFilter === "tous" && actionFilter === "tous" && commercialFilter === "tous";
 
   return (
     <div>
@@ -822,15 +846,36 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
           { label: "Devis",         value: colCounts["devis_envoyé"] ?? 0,                            dot: "bg-violet-400" },
           { label: "Gagné",         value: colCounts["gagné"] ?? 0,                                   dot: "bg-emerald-400" },
           { label: "Perdu",         value: colCounts["perdu"] ?? 0,                                   dot: "bg-slate-400" },
-        ].map(({ label, value, dot }) => (
-          <div key={label} className="bg-slate-800/40 border border-white/8 rounded-xl text-center py-3 px-1">
-            <p className="text-lg font-bold text-white tabular-nums leading-none">{value}</p>
-            <div className="flex items-center justify-center gap-1 mt-1.5">
-              {dot && <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dot}`} />}
-              <p className="text-slate-500 text-[10px] truncate">{label}</p>
+        ].map(({ label, value, dot }) => {
+          // « Perdu » n'a plus de colonne : la carte devient un bouton qui ouvre la liste des perdus.
+          if (label === "Perdu") {
+            const perduActive = statusFilter === "perdu";
+            return (
+              <button
+                key={label}
+                type="button"
+                onClick={() => { if (perduActive) { setStatusFilter("tous"); setView("kanban"); } else { setStatusFilter("perdu"); setView("liste"); } }}
+                title={perduActive ? "Revenir au tableau" : "Voir les prospects perdus"}
+                className={`rounded-xl text-center py-3 px-1 border transition-colors cursor-pointer ${perduActive ? "bg-slate-500/20 border-slate-400/50" : "bg-slate-800/40 border-white/8 hover:border-white/20 hover:bg-slate-800/70"}`}
+              >
+                <p className="text-lg font-bold text-white tabular-nums leading-none">{value}</p>
+                <div className="flex items-center justify-center gap-1 mt-1.5">
+                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dot}`} />
+                  <p className="text-slate-400 text-[10px] truncate">{perduActive ? "Fermer" : "Perdu"}</p>
+                </div>
+              </button>
+            );
+          }
+          return (
+            <div key={label} className="bg-slate-800/40 border border-white/8 rounded-xl text-center py-3 px-1">
+              <p className="text-lg font-bold text-white tabular-nums leading-none">{value}</p>
+              <div className="flex items-center justify-center gap-1 mt-1.5">
+                {dot && <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dot}`} />}
+                <p className="text-slate-500 text-[10px] truncate">{label}</p>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Toolbar */}
@@ -980,16 +1025,29 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
           >
             Tous <span className="tabular-nums opacity-70">{totalCount}</span>
           </button>
-          {BOARD_STATUSES.map((s) => (
-            <button
-              key={s}
-              onClick={() => setStatusFilter(s)}
-              className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${statusFilter === s ? "bg-sky-500 border-sky-500 text-white" : "border-white/10 bg-slate-800/40 text-slate-300"}`}
-            >
-              <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${STATUS_DOT[s]}`} />
-              {STATUS_CONFIG[s].label} <span className="tabular-nums opacity-70">{colCounts[s] ?? 0}</span>
-            </button>
-          ))}
+          {BOARD_COLUMNS.map((c) => {
+            const cnt = c.key === "rdv_pris" ? rdvLoadedCount
+              : c.key === "contacté" ? Math.max(0, (colCounts["contacté"] ?? 0) - rdvLoadedCount)
+              : (colCounts[c.status] ?? 0);
+            return (
+              <button
+                key={c.key}
+                onClick={() => setStatusFilter(c.key)}
+                className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${statusFilter === c.key ? "bg-sky-500 border-sky-500 text-white" : "border-white/10 bg-slate-800/40 text-slate-300"}`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${c.dot}`} />
+                {c.label} <span className="tabular-nums opacity-70">{cnt}</span>
+              </button>
+            );
+          })}
+          {/* Perdu : plus de colonne, mais accessible en filtre (liste). */}
+          <button
+            onClick={() => setStatusFilter("perdu")}
+            className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${statusFilter === "perdu" ? "bg-slate-500 border-slate-500 text-white" : "border-white/10 bg-slate-800/40 text-slate-300"}`}
+          >
+            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-slate-400" />
+            Perdu <span className="tabular-nums opacity-70">{colCounts["perdu"] ?? 0}</span>
+          </button>
         </div>
       )}
 
@@ -1005,37 +1063,45 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
       {view === "kanban" && leads.length > 0 && (
         <div
           className="hidden sm:flex lg:grid lg:grid-cols-5 gap-2 overflow-x-auto lg:overflow-visible snap-x snap-mandatory lg:snap-none pb-2 -mx-4 px-4 sm:mx-0 sm:px-0"
-          style={focusedStatus ? { gridTemplateColumns: BOARD_STATUSES.map((s) => (s === focusedStatus ? "minmax(0,3fr)" : "minmax(0,0.6fr)")).join(" ") } : undefined}
+          style={focusedStatus ? { gridTemplateColumns: BOARD_COLUMNS.map((c) => (c.key === focusedStatus ? "minmax(0,3fr)" : "minmax(0,0.6fr)")).join(" ") } : undefined}
         >
-          {BOARD_STATUSES.map((status) => {
-            const cfg = STATUS_CONFIG[status];
-            const col = filtered.filter((l) => l.status === status);
-            const isOver = dragOver === status;
-            const isCollapsed = !!focusedStatus && focusedStatus !== status; // une AUTRE colonne est agrandie
+          {BOARD_COLUMNS.map((column) => {
+            const col = filtered.filter((l) => colOfLead(l) === column.key);
+            const isOver = dragOver === column.key;
+            const isCollapsed = !!focusedStatus && focusedStatus !== column.key; // une AUTRE colonne est agrandie
+            const statusTotal = colCounts[column.status] ?? 0;
+            // Compteur d'en-tête : RDV pris = sous-ensemble chargé ; Contact établi = total contacté moins RDV pris.
+            const headerCount = favorisOnly ? col.length
+              : column.key === "rdv_pris" ? rdvLoadedCount
+              : column.key === "contacté" ? Math.max(0, statusTotal - rdvLoadedCount)
+              : statusTotal;
+            // Pagination serveur par statut (pas sur la colonne virtuelle RDV pris : ses cartes arrivent en chargeant « contacté »).
+            const loadedStatusTotal = leads.filter((l) => l.status === column.status).length;
+            const canLoadMore = noColFilters && column.key !== "rdv_pris" && loadedStatusTotal < statusTotal;
             return (
               <div
-                key={status}
-                onDragEnter={(e) => { e.preventDefault(); setDragOver(status); }}
-                onDragOver={(e) => onDragOverColumn(e, status)}
+                key={column.key}
+                onDragEnter={(e) => { e.preventDefault(); setDragOver(column.key); }}
+                onDragOver={(e) => onDragOverColumn(e, column.key)}
                 onDragLeave={(e) => onDragLeaveColumn(e)}
-                onDrop={(e) => onDropColumn(e, status)}
-                className={`bg-slate-800/30 border-t-2 rounded-xl transition-all min-w-[80%] sm:min-w-[300px] lg:min-w-0 flex-shrink-0 lg:flex-shrink snap-start ${cfg.col} ${
+                onDrop={(e) => onDropColumn(e, column)}
+                className={`bg-slate-800/30 border-t-2 rounded-xl transition-all min-w-[80%] sm:min-w-[300px] lg:min-w-0 flex-shrink-0 lg:flex-shrink snap-start ${column.col} ${
                   isOver ? "ring-2 ring-sky-500/40 bg-slate-800/60" : "border-white/5"
                 }`}
               >
                 {/* Column header, cliquable : agrandit la colonne et rétrécit les autres */}
                 <button
                   type="button"
-                  onClick={() => setFocusedStatus((f) => (f === status ? null : status))}
-                  title={focusedStatus === status ? "Réduire" : "Agrandir cette colonne"}
-                  className={`w-full px-2.5 py-2 flex items-center justify-between border-b border-white/5 gap-1 cursor-pointer hover:bg-white/[0.04] transition-colors ${focusedStatus === status ? "bg-white/[0.05]" : ""}`}
+                  onClick={() => setFocusedStatus((f) => (f === column.key ? null : column.key))}
+                  title={focusedStatus === column.key ? "Réduire" : "Agrandir cette colonne"}
+                  className={`w-full px-2.5 py-2 flex items-center justify-between border-b border-white/5 gap-1 cursor-pointer hover:bg-white/[0.04] transition-colors ${focusedStatus === column.key ? "bg-white/[0.05]" : ""}`}
                 >
-                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border truncate min-w-0 ${cfg.color}`}>
-                    {cfg.label}
+                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border truncate min-w-0 ${column.color}`}>
+                    {column.label}
                   </span>
                   <span className="flex items-center gap-1 flex-shrink-0">
-                    <span className="text-slate-500 text-xs font-medium">{favorisOnly ? col.length : (colCounts[status] ?? col.length)}</span>
-                    {focusedStatus === status
+                    <span className="text-slate-500 text-xs font-medium">{headerCount}</span>
+                    {focusedStatus === column.key
                       ? <Minimize2 className="w-3 h-3 text-sky-400" />
                       : <Maximize2 className="w-3 h-3 text-slate-600" />}
                   </span>
@@ -1045,40 +1111,40 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                 {isCollapsed ? (
                   <button
                     type="button"
-                    onClick={() => setFocusedStatus(status)}
+                    onClick={() => setFocusedStatus(column.key)}
                     title="Agrandir cette colonne"
                     className="w-full min-h-[120px] flex items-center justify-center text-slate-500 hover:text-slate-200 hover:bg-white/[0.02] transition-colors py-4"
                   >
-                    <span className="[writing-mode:vertical-rl] rotate-180 text-[11px] font-medium tracking-wide whitespace-nowrap">{cfg.label} · {colCounts[status] ?? col.length}</span>
+                    <span className="[writing-mode:vertical-rl] rotate-180 text-[11px] font-medium tracking-wide whitespace-nowrap">{column.label} · {headerCount}</span>
                   </button>
                 ) : (
                 <div
                   className="p-1.5 space-y-1.5 min-h-32"
-                  onDragEnter={(e) => { e.preventDefault(); setDragOver(status); }}
-                  onDragOver={(e) => onDragOverColumn(e, status)}
-                  onDrop={(e) => onDropColumn(e, status)}
+                  onDragEnter={(e) => { e.preventDefault(); setDragOver(column.key); }}
+                  onDragOver={(e) => onDragOverColumn(e, column.key)}
+                  onDrop={(e) => onDropColumn(e, column)}
                 >
                   {col.length === 0 && (
                     <div
                       className={`h-24 rounded-lg border-2 border-dashed transition-all ${
                         isOver ? "border-sky-500/40" : "border-white/5"
                       }`}
-                      onDragEnter={(e) => { e.preventDefault(); setDragOver(status); }}
-                      onDragOver={(e) => onDragOverColumn(e, status)}
-                      onDrop={(e) => onDropColumn(e, status)}
+                      onDragEnter={(e) => { e.preventDefault(); setDragOver(column.key); }}
+                      onDragOver={(e) => onDragOverColumn(e, column.key)}
+                      onDrop={(e) => onDropColumn(e, column)}
                     />
                   )}
                   {col.map((lead) => (
                     <LeadCard key={lead.id} lead={lead} />
                   ))}
                   {/* Charger plus (uniquement hors recherche/filtre, quand il reste des prospects) */}
-                  {!search && !favorisOnly && sourceFilter === "tous" && typeFilter === "tous" && secteurFilter === "tous" && actionFilter === "tous" && commercialFilter === "tous" && col.length < (colCounts[status] ?? 0) && (
+                  {canLoadMore && (
                     <button
-                      onClick={() => loadMore(status)}
-                      disabled={loadingCol === status}
+                      onClick={() => loadMore(column.status)}
+                      disabled={loadingCol === column.status}
                       className="w-full text-[11px] text-slate-400 hover:text-white py-1.5 rounded-lg border border-dashed border-white/10 hover:border-white/20 transition-colors disabled:opacity-50"
                     >
-                      {loadingCol === status ? "Chargement…" : `Charger plus (${Math.max(0, (colCounts[status] ?? 0) - col.length)})`}
+                      {loadingCol === column.status ? "Chargement…" : `Charger plus (${Math.max(0, statusTotal - loadedStatusTotal)})`}
                     </button>
                   )}
                 </div>
