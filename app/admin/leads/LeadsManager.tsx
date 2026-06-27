@@ -880,40 +880,28 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-3 mb-6">
-        {/* Source filter */}
-        <div className="flex gap-2 flex-wrap">
-          {[
-            { key: "tous", label: "Toutes sources" },
-            { key: "alex", label: "Via Alex" },
-            { key: "formulaire", label: "Formulaire" },
-            { key: "téléphone", label: "Tél. / WhatsApp" },
-          ].map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setSourceFilter(key)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                sourceFilter === key
-                  ? "bg-sky-500 border-sky-500 text-white"
-                  : "border-white/10 text-slate-400 hover:text-white hover:border-white/20"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-          {/* ⭐ Filtre favoris */}
-          <button
-            onClick={() => setFavorisOnly((v) => !v)}
-            title="N'afficher que les prospects marqués d'une étoile"
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-              favorisOnly
-                ? "bg-amber-400 border-amber-400 text-slate-900"
-                : "border-white/10 text-slate-400 hover:text-white hover:border-amber-400/40"
-            }`}
-          >
-            <Star className={`w-3.5 h-3.5 ${favorisOnly ? "fill-slate-900" : ""}`} />
-            Favoris
-          </button>
-        </div>
+        {/* Source filter (liste déroulante) */}
+        <select value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)}
+          className={`px-3 py-1.5 rounded-xl border text-xs focus:outline-none focus:border-sky-500/50 ${sourceFilter !== "tous" ? "border-sky-500/40 bg-sky-500/10 text-sky-200" : "border-white/10 bg-slate-800/60 text-white"}`}>
+          <option value="tous">Toutes sources</option>
+          <option value="alex">Via Alex</option>
+          <option value="formulaire">Formulaire</option>
+          <option value="téléphone">Tél. / WhatsApp</option>
+        </select>
+
+        {/* ⭐ Filtre favoris */}
+        <button
+          onClick={() => setFavorisOnly((v) => !v)}
+          title="N'afficher que les prospects marqués d'une étoile"
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+            favorisOnly
+              ? "bg-amber-400 border-amber-400 text-slate-900"
+              : "border-white/10 text-slate-400 hover:text-white hover:border-amber-400/40"
+          }`}
+        >
+          <Star className={`w-3.5 h-3.5 ${favorisOnly ? "fill-slate-900" : ""}`} />
+          Favoris
+        </button>
 
         {/* Filtre type de prestation */}
         <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}
