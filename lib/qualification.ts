@@ -17,6 +17,8 @@ export type Qualification = {
   nbUnites?: string; copropriete?: string; syndic?: string;
   // Dépannage (panne)
   problemeDescription?: string; depannageMarque?: string;
+  // Dépose (retrait d'une clim existante)
+  deposeNbUnites?: string; deposeEmplacementUE?: string; deposeHauteur?: string; deposeMarque?: string; deposeReinstallation?: string; deposeMotif?: string;
   // 💶 Commercial
   plagesHoraires?: string; budget?: string; delai?: string; commentConnu?: string;
   // 📝
@@ -45,6 +47,7 @@ export type QualifGroup = { titre: string; emoji: string; champs: QualifField[] 
 const estEntretien    = (q: Qualification) => q.natureProjet === "Entretien";
 const estInstallation = (q: Qualification) => q.natureProjet === "Installation";
 const estDepannage    = (q: Qualification) => q.natureProjet === "Dépannage";
+const estDepose       = (q: Qualification) => q.natureProjet === "Dépose";
 
 export const QUALIF_GROUPS: QualifGroup[] = [
   {
@@ -57,7 +60,7 @@ export const QUALIF_GROUPS: QualifGroup[] = [
   },
   {
     titre: "Prestation", emoji: "🔧", champs: [
-      { key: "natureProjet", label: "Type de prestation", type: "select", options: ["Installation", "Entretien", "Dépannage"], full: true },
+      { key: "natureProjet", label: "Type de prestation", type: "select", options: ["Installation", "Entretien", "Dépannage", "Dépose"], full: true },
 
       // ── Entretien : on entretient un équipement déjà installé ──
       { key: "entretienNbUnites",      label: "Nombre d'unités",              type: "number", placeholder: "ex : 3",              showIf: estEntretien },
@@ -73,6 +76,14 @@ export const QUALIF_GROUPS: QualifGroup[] = [
       // ── Dépannage : panne à diagnostiquer ──
       { key: "problemeDescription", label: "Description du problème",       type: "textarea", placeholder: "ex : ne refroidit plus, fuite d'eau, code erreur…", showIf: estDepannage },
       { key: "depannageMarque",     label: "Marque / âge de l'équipement", type: "text",     placeholder: "ex : Daikin, ~6 ans", full: true, showIf: estDepannage },
+
+      // ── Dépose : retrait d'une clim existante (ex : refus de syndic, déménagement) ──
+      { key: "deposeNbUnites",       label: "Nombre d'unités à déposer",     type: "number", placeholder: "ex : 1",                    showIf: estDepose },
+      { key: "deposeEmplacementUE",  label: "Emplacement unité extérieure",  type: "select", options: ["Balcon", "Jardin", "Façade", "Toiture", "Cour", "À voir sur place"], showIf: estDepose },
+      { key: "deposeHauteur",        label: "Hauteur / accès",               type: "text",   placeholder: "ex : 3 m, RDC, R+2, nacelle", showIf: estDepose },
+      { key: "deposeMarque",         label: "Marque de l'équipement",        type: "text",   placeholder: "ex : Daikin, Mitsubishi…",  showIf: estDepose },
+      { key: "deposeReinstallation", label: "Réinstallation prévue ?",       type: "select", options: ["Non", "Oui, plus tard (même lieu)", "Oui, ailleurs"], showIf: estDepose },
+      { key: "deposeMotif",          label: "Motif de la dépose",            type: "text",   placeholder: "ex : refus syndic, déménagement, rénovation…", full: true, showIf: estDepose },
     ],
   },
   {
