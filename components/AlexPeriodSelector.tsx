@@ -17,7 +17,8 @@ export default function AlexPeriodSelector({ current }: { current: string }) {
 
   function select(value: string) {
     const params = new URLSearchParams(searchParams.toString());
-    if (value === "all") {
+    // 7j est la valeur par défaut (URL propre) ; les autres périodes sont explicites dans l'URL.
+    if (value === "7d") {
       params.delete("period");
     } else {
       params.set("period", value);

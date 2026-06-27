@@ -36,7 +36,7 @@ export default async function StatistiquesPage({
 }: {
   searchParams: Promise<{ period?: string }>;
 }) {
-  const { period = "all" } = await searchParams;
+  const { period = "7d" } = await searchParams;
   const [s, leadStats] = await Promise.all([getMarketingStats(30), getLeadsPageStats(getSince(period))]);
   const maxVisites = Math.max(...s.visitesParJour.map((d) => d.n), 1);
   const maxLeadsJour = Math.max(...s.leadsParJour.map((d) => d.n), 1);
