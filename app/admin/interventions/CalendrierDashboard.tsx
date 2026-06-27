@@ -403,7 +403,9 @@ export default function CalendrierDashboard() {
   const monthDays = Array.from({ length: Math.round((monthGridEnd(monthAnchor).getTime() - monthStart.getTime()) / 86400000) + 1 }, (_, i) => addDays(monthStart, i));
 
   const load = useCallback(async () => {
-    const fmt = (d: Date) => d.toISOString().slice(0, 10);
+    // Date LOCALE (pas toISOString qui décale en UTC : en UTC+2, le dernier jour de la
+    // semaine passait à la veille → les RDV du dernier jour affiché étaient exclus).
+    const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     let rangeStart: Date, rangeEnd: Date;
     if (viewMode === "mois") {
       rangeStart = monthGridStart(monthAnchor);
