@@ -15,6 +15,7 @@ import { extractPhones } from "@/lib/phone";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 import LeadQualification from "./LeadQualification";
 import LeadParcours from "./LeadParcours";
+import LeadAttachments from "./LeadAttachments";
 import type { LeadTache } from "@/lib/qualification";
 import NouveauDevisModal from "@/components/NouveauDevisModal";
 
@@ -223,6 +224,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
   const [visiteDraft, setVisiteDraft] = useState<string | null>(null); // brouillon d'édition de la visite (null = non modifié)
   const [visiteOpen, setVisiteOpen] = useState(false); // encadré « Visite client » ouvert ?
   const [notesOpen, setNotesOpen] = useState(false);   // note interne / conversation Alex dépliée ?
+  const [showAllHistory, setShowAllHistory] = useState(false); // historique des messages internes déplié ?
   const [rdvDraft, setRdvDraft] = useState<string | null>(null); // brouillon de la date de RDV (null = non modifié)
   const dragId = useRef<string | null>(null);
   const [commerciaux, setCommerciaux] = useState<{ id: string; name: string; prenom: string | null; color: string | null }[]>([]);
@@ -246,7 +248,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
   // Charge l'historique des devis du prospect ouvert (plusieurs liens peuvent coexister).
   useEffect(() => {
-    setVisiteDraft(null); setVisiteOpen(false); setRdvDraft(null); setNotesOpen(false); // reset l'édition (visite/RDV/note) quand on change de prospect
+    setVisiteDraft(null); setVisiteOpen(false); setRdvDraft(null); setNotesOpen(false); setShowAllHistory(false); // reset l'édition (visite/RDV/note/historique) quand on change de prospect
     if (!openLeadId) { setDevisHist([]); return; }
     fetch(`/api/admin/leads/${openLeadId}/devis`)
       .then(r => r.json())
@@ -1632,27 +1634,41 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                       <p className="text-slate-600 text-xs">Chargement…</p>
                     ) : suivis.length === 0 ? (
                       <p className="text-slate-600 text-xs">Aucun message pour l&apos;instant. Écris le premier ci-dessus.</p>
-                    ) : suivis.map((s) => {
-                      const dateStr = new Date(s.createdAt).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-                      return s.auteur ? (
-                        <div key={s.id} className="rounded-xl border border-white/8 bg-slate-800/40 px-3 py-2.5">
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <span className="w-5 h-5 rounded-full bg-sky-500/20 text-sky-300 text-[10px] font-bold flex items-center justify-center flex-shrink-0">{s.auteur.charAt(0).toUpperCase()}</span>
-                            <span className="text-xs font-semibold text-sky-300">Message de {s.auteur.split(" ")[0]}</span>
-                            <span className="text-slate-600 text-[10px] ml-auto flex-shrink-0">{dateStr}</span>
-                          </div>
-                          <p className="text-slate-200 text-sm whitespace-pre-wrap break-words">{s.contenu}</p>
-                        </div>
-                      ) : (
-                        <div key={s.id} className="flex gap-2.5 text-xs">
-                          <span className="flex-shrink-0 leading-none mt-0.5">{SUIVI_ICONS[s.type] ?? "📝"}</span>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-slate-400 whitespace-pre-wrap break-words">{s.contenu}</p>
-                            <p className="text-slate-600 text-[10px] mt-0.5">{dateStr}</p>
-                          </div>
-                        </div>
+                    ) : (() => {
+                      const HISTO_COLLAPSED = 4; // on n'affiche que les + récents, le reste via « Voir tout l'historique »
+                      const shown = showAllHistory ? suivis : suivis.slice(0, HISTO_COLLAPSED);
+                      return (
+                        <>
+                          {shown.map((s) => {
+                            const dateStr = new Date(s.createdAt).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+                            return s.auteur ? (
+                              <div key={s.id} className="rounded-xl border border-white/8 bg-slate-800/40 px-3 py-2.5">
+                                <div className="flex items-center gap-1.5 mb-1">
+                                  <span className="w-5 h-5 rounded-full bg-sky-500/20 text-sky-300 text-[10px] font-bold flex items-center justify-center flex-shrink-0">{s.auteur.charAt(0).toUpperCase()}</span>
+                                  <span className="text-xs font-semibold text-sky-300">Message de {s.auteur.split(" ")[0]}</span>
+                                  <span className="text-slate-600 text-[10px] ml-auto flex-shrink-0">{dateStr}</span>
+                                </div>
+                                <p className="text-slate-200 text-sm whitespace-pre-wrap break-words">{s.contenu}</p>
+                              </div>
+                            ) : (
+                              <div key={s.id} className="flex gap-2.5 text-xs">
+                                <span className="flex-shrink-0 leading-none mt-0.5">{SUIVI_ICONS[s.type] ?? "📝"}</span>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-slate-400 whitespace-pre-wrap break-words">{s.contenu}</p>
+                                  <p className="text-slate-600 text-[10px] mt-0.5">{dateStr}</p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {suivis.length > HISTO_COLLAPSED && (
+                            <button type="button" onClick={() => setShowAllHistory((v) => !v)}
+                              className="w-full text-[11px] text-sky-400 hover:text-sky-300 py-1.5 rounded-lg border border-dashed border-white/10 hover:border-white/20 transition-colors">
+                              {showAllHistory ? "Réduire l'historique" : `Voir tout l'historique (${suivis.length - HISTO_COLLAPSED} de plus)`}
+                            </button>
+                          )}
+                        </>
                       );
-                    })}
+                    })()}
                   </div>
                 </div>
 
@@ -1672,6 +1688,10 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                     </div>
                   </div>
                 )}
+
+                {/* Pièces jointes internes : photos / PDF ajoutés au dossier (propres au prospect) */}
+                <LeadAttachments key={lead.id} leadId={lead.id} initial={(lead as Lead & { piecesJointes?: string[] | null }).piecesJointes ?? []} />
+
                 {/* Qualification des besoins, guide d'appel (mis en avant au Contact établi) */}
                 <LeadQualification
                   key={lead.id}

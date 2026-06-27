@@ -254,6 +254,7 @@ export const leads = pgTable("leads", {
   motifPerdu:          varchar("motif_perdu", { length: 40 }), // "pas_de_business" | "injoignable" | "refus" | "autre"
   archiveLe:           timestamp("archive_le"),        // perdu archivé (sort du Kanban, conservé pour recontact)
   photosUrls:          text("photos_urls").array(),    // photos jointes au formulaire (affichées sur la fiche prospect)
+  piecesJointes:       text("pieces_jointes").array(),  // pièces ajoutées en interne sur le dossier (photos/PDF), propres au lead
 }, (t) => ({
   statusIdx:        index("leads_status_idx").on(t.status),
   sourceIdx:        index("leads_source_idx").on(t.source),
