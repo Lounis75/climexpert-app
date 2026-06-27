@@ -340,9 +340,12 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
     }
     if (actionFilter !== "tous") {
       const a = leadAction(l);
-      const pe = (l as Lead & { prochaineEtape?: string | null }).prochaineEtape;
+      // « Prochaine étape » est un sous-statut de « Contact établi » : on l'ignore dès que le
+      // prospect est passé au devis/gagné, sinon un devis déjà envoyé ressort en « Devis à faire »
+      // (le sous-statut restait collé après l'envoi du devis).
+      const pe = l.status === "contacté" ? (l as Lead & { prochaineEtape?: string | null }).prochaineEtape : null;
       const isRelance = (!!a && a.startsWith("Relance")) || pe === "a_recontacter";
-      const isDevis = pe === "devis_a_faire" || a === "Devis à chiffrer";
+      const isDevis = pe === "devis_a_faire";
       const ok =
         actionFilter === "a_traiter" ? (a !== null || pe === "a_recontacter" || pe === "devis_a_faire") :
         actionFilter === "relance" ? isRelance :
