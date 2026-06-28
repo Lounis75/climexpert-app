@@ -416,6 +416,21 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
     } finally { setSendingMsg(false); }
   }
 
+  // Annule un devis envoyé (en attente) : lien client désactivé + retour en « Contact établi »
+  // si c'était le devis courant, pour pouvoir en renvoyer un nouveau proprement.
+  async function annulerDevis(devisId: string) {
+    const id = selectedLead?.id;
+    if (!id) return;
+    if (!confirm("Annuler ce devis ?\n\nLe lien envoyé au client sera désactivé, et le prospect repassera en « Contact établi » pour que tu puisses lui en renvoyer un nouveau.")) return;
+    try {
+      const res = await fetch(`/api/admin/leads/${id}/devis/annuler`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ devisId }) });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) { alert(d.error ?? "Échec de l'annulation."); return; }
+      setDevisHist((prev) => prev.map((dv) => (dv.id === devisId ? { ...dv, decision: "annule" } : dv)));
+      if (d.leadReset) setSelectedLead((prev) => prev ? ({ ...prev, status: "contacté" as LeadStatus, prochaineEtape: "devis_a_faire", devisDecision: null } as Lead) : null);
+    } catch { alert("Erreur réseau, réessayez."); }
+  }
+
   async function patchLeadField(fields: Record<string, unknown>): Promise<boolean> {
     const id = selectedLead?.id;
     if (!id) return false;
@@ -1838,8 +1853,13 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                             <span className="text-emerald-400 text-xs font-medium flex items-center gap-1 flex-shrink-0"><CheckCircle2 className="w-3.5 h-3.5" /> Accepté</span>
                           ) : dv.decision === "refuse" ? (
                             <span className="text-red-400 text-xs font-medium flex items-center gap-1 flex-shrink-0"><X className="w-3.5 h-3.5" /> Décliné</span>
+                          ) : dv.decision === "annule" ? (
+                            <span className="text-slate-500 text-xs font-medium flex items-center gap-1 flex-shrink-0 line-through"><X className="w-3.5 h-3.5" /> Annulé</span>
                           ) : (
-                            <span className="text-violet-300 text-xs font-medium flex items-center gap-1 flex-shrink-0"><Clock className="w-3.5 h-3.5" /> En attente</span>
+                            <>
+                              <span className="text-violet-300 text-xs font-medium flex items-center gap-1 flex-shrink-0"><Clock className="w-3.5 h-3.5" /> En attente</span>
+                              <button onClick={() => annulerDevis(dv.id)} title="Annuler ce devis" className="text-slate-500 hover:text-red-400 text-xs font-medium flex-shrink-0 transition-colors">Annuler</button>
+                            </>
                           )}
                           {dv.url && <a href={dv.url} target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:text-sky-300 text-xs flex-shrink-0">PDF</a>}
                         </div>

@@ -62,6 +62,13 @@ export default function DevisDecisionClient({
                 <p className="text-slate-600 text-sm">Votre devis est <strong>accepté</strong>. Notre équipe vous contacte très vite pour planifier l&apos;intervention.</p>
                 <a href={`tel:${tel}`} className="inline-flex items-center gap-2 mt-5 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-xl transition-colors"><Phone className="w-4 h-4" /> Nous appeler</a>
               </>
+            ) : result === "annule" ? (
+              <>
+                <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-4"><X className="w-9 h-9 text-amber-600" /></div>
+                <h1 className="text-xl font-bold text-slate-900 mb-2">Ce devis n&apos;est plus d&apos;actualité</h1>
+                <p className="text-slate-600 text-sm">Ce devis a été annulé{clientName ? `, ${clientName}` : ""}. Si votre projet est toujours d&apos;actualité, contactez-nous pour un devis à jour.</p>
+                <a href={`tel:${tel}`} className="inline-flex items-center gap-2 mt-5 px-5 py-2.5 bg-sky-600 hover:bg-sky-500 text-white text-sm font-semibold rounded-xl transition-colors"><Phone className="w-4 h-4" /> Nous appeler</a>
+              </>
             ) : (
               <>
                 <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4"><X className="w-9 h-9 text-slate-500" /></div>
