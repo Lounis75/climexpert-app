@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { leads, suivis, notifications, devisEnvois } from "@/lib/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, and, isNull } from "drizzle-orm";
 import { createClientFromLead } from "@/lib/clients";
 import { createIntervention } from "@/lib/interventions";
 import { Resend } from "resend";
@@ -29,18 +29,39 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, already: true, decision: dejaDecide });
   }
 
+  // Garde-fou : un vieux lien de devis (plusieurs mois) ne doit pas réveiller le prospect.
+  const sentAt = envoi?.envoyeLe ?? lead.devisEnvoyeLe;
+  if (sentAt && Date.now() - new Date(sentAt).getTime() > 60 * 86400000) {
+    return NextResponse.json({ error: "Ce devis a expiré. Contactez-nous pour un devis à jour." }, { status: 410 });
+  }
+
   const motifClean = decision === "refuse" ? (String(motif ?? "").slice(0, 500).trim() || "Non précisé") : null;
   const estDevisCourant = lead.devisToken === token; // ce lien est-il le « devis courant » du prospect ?
+  const dejaConverti = !!lead.clientId;              // déjà un client (un autre devis déjà accepté) ?
   const montantCt = envoi?.montantCt ?? lead.montantDevisCt;
   const montantTxt = montantCt ? ` (${(montantCt / 100).toLocaleString("fr-FR")} €)` : "";
 
-  // Décision enregistrée sur la ligne d'historique (le devis concerné)
+  // ── Réservation ATOMIQUE de la décision (anti double-clic / double onglet / renvoi réseau) ──
+  // Seule la requête qui passe réellement « decision IS NULL » -> valeur exécute les effets de bord.
+  let claimed: boolean;
   if (envoi) {
-    await db.update(devisEnvois).set({ decision, decisionLe: new Date(), motifRefus: motifClean }).where(eq(devisEnvois.id, envoi.id));
+    const upd = await db.update(devisEnvois)
+      .set({ decision, decisionLe: new Date(), motifRefus: motifClean })
+      .where(and(eq(devisEnvois.id, envoi.id), isNull(devisEnvois.decision)))
+      .returning({ id: devisEnvois.id });
+    claimed = upd.length > 0;
+  } else {
+    const upd = await db.update(leads)
+      .set({ devisDecision: decision, devisDecisionLe: new Date(), devisMotifRefus: motifClean })
+      .where(and(eq(leads.id, lead.id), isNull(leads.devisDecision)))
+      .returning({ id: leads.id });
+    claimed = upd.length > 0;
+  }
+  if (!claimed) {
+    return NextResponse.json({ ok: true, already: true, decision });
   }
 
-  // Prospect : sur acceptation -> « gagné » (toujours). Sur refus -> « perdu » seulement si c'est
-  // le devis courant (un autre devis du prospect peut encore être en attente de réponse).
+  // ── Effets de bord (garantis une seule fois grâce à la réservation ci-dessus) ──
   if (decision === "accepte") {
     await db.update(leads).set({
       ...(estDevisCourant ? { devisDecision: "accepte", devisDecisionLe: new Date(), devisMotifRefus: null } : {}),
@@ -48,10 +69,11 @@ export async function POST(req: NextRequest) {
       statutChangeLe: new Date(), relanceNotifieeLe: null,
       version: sql`${leads.version} + 1`, updatedAt: new Date(),
     }).where(eq(leads.id, lead.id));
-    // conversion auto en client (idempotent) + intervention à planifier
+    // Conversion auto en client (idempotente). Intervention créée UNIQUEMENT à la 1re conversion
+    // (évite une 2e intervention si un autre devis avait déjà fait gagner le prospect).
     try {
       const client = await createClientFromLead(lead.id);
-      if (client) {
+      if (client && !dejaConverti) {
         await createIntervention({
           clientId: client.id,
           type: (lead.project ?? "autre"),

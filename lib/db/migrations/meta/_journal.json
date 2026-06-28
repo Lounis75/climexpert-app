@@ -281,6 +281,13 @@
       "when": 1782650641840,
       "tag": "0039_lead_chiffrage_brouillon",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1782657915363,
+      "tag": "0040_audit_indexes_seq_unique",
+      "breakpoints": true
     }
   ]
 }

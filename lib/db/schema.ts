@@ -9,7 +9,9 @@ import {
   numeric,
   date,
   index,
+  uniqueIndex,
   jsonb,
+  pgSequence,
 } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
@@ -182,7 +184,10 @@ export const clients = pgTable("clients", {
   updatedAt:          timestamp("updated_at").defaultNow().notNull(),
   supprimeLe:         timestamp("supprime_le"),
   version:            integer("version").default(0).notNull(), // verrou de concurrence optimiste
-});
+}, (t) => ({
+  // Un prospect ne peut donner qu'UN client actif : garde-fou DB contre les doublons de conversion.
+  leadUnique: uniqueIndex("clients_lead_id_unique").on(t.leadId).where(sql`lead_id is not null and supprime_le is null`),
+}));
 
 // ─── Leads ────────────────────────────────────────────────────────────────────
 
@@ -290,6 +295,10 @@ export const devisEnvois = pgTable("devis_envois", {
 export type DevisEnvoi = typeof devisEnvois.$inferSelect;
 
 // ─── Devis ────────────────────────────────────────────────────────────────────
+
+// Compteur atomique pour les numéros de devis (DEVIS-AAAA-NNN). Remplace le COUNT(*) qui
+// pouvait produire des numéros en double (et restait à 001 si rien n'était inséré dans `devis`).
+export const devisNumberSeq = pgSequence("devis_number_seq", { startWith: 1, increment: 1 });
 
 export const devis = pgTable("devis", {
   id:          text("id").primaryKey().$defaultFn(() => createId()),
@@ -430,7 +439,10 @@ export const suivis = pgTable("suivis", {
   type:           varchar("type", { length: 50 }).notNull(), // "appel"|"email"|"visite"|"note"
   contenu:        text("contenu"),
   createdAt:      timestamp("created_at").defaultNow().notNull(),
-});
+}, (t) => ({
+  // Le Kanban charge les suivis d'un prospect triés par date : index composite (sinon scan complet).
+  leadCreatedIdx: index("suivis_lead_created_idx").on(t.leadId, t.createdAt),
+}));
 
 // ─── SAV Tickets ──────────────────────────────────────────────────────────────
 
@@ -512,6 +524,7 @@ export const evenements = pgTable("evenements", {
 }, (t) => ({
   typeIdx:      index("evenements_type_idx").on(t.type),
   createdAtIdx: index("evenements_created_at_idx").on(t.createdAt),
+  typeCreatedIdx: index("evenements_type_created_idx").on(t.type, t.createdAt), // stats: filtre type + plage de dates
 }));
 
 // ─── Magic link tokens (auth technicien) ─────────────────────────────────────

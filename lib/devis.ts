@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { devis, lignesDevis, clients, leads } from "@/lib/db/schema";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
-import { eq, desc, count } from "drizzle-orm";
+import { eq, desc, count, sql } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 import { randomBytes } from "crypto";
 
@@ -25,8 +25,11 @@ export type LigneInput = {
 
 export async function generateDevisNumber(): Promise<string> {
   const year = new Date().getFullYear();
-  const [{ value }] = await db.select({ value: count() }).from(devis);
-  const n = Number(value) + 1;
+  // Compteur atomique (séquence Postgres) : numéros uniques et croissants, quel que soit le flux
+  // (l'ancien COUNT(*) restait à 001 si rien n'était inséré dans `devis`, d'où des doublons).
+  const res = await db.execute(sql`SELECT nextval('devis_number_seq') AS n`);
+  const rows = (Array.isArray(res) ? res : (res as { rows?: unknown[] }).rows) ?? [];
+  const n = Number((rows[0] as { n: number | string } | undefined)?.n ?? 1);
   return `DEVIS-${year}-${String(n).padStart(3, "0")}`;
 }
 
