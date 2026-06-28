@@ -1,6 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
 import { db } from "@/lib/db";
-import { techniciens } from "@/lib/db/schema";
+import { techniciens, admins, utilisateurs } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
 export interface AdminSession {
@@ -21,6 +21,18 @@ async function technicienEstActif(id: string): Promise<boolean> {
   return !!t && t.active === true && !t.supprimeLe;
 }
 
+// Révocation admin : le sub peut être un id de la table `admins` (login /api/admin/login) OU
+// de la table `utilisateurs` avec le rôle "administrateur" (login unifié /api/auth/login). On
+// vérifie les deux pour ne verrouiller aucun des deux modèles. Désactiver/supprimer le compte
+// (ou retirer le rôle administrateur) coupe l'accès au prochain appel.
+async function adminEstActif(id: string): Promise<boolean> {
+  const [a] = await db.select({ actif: admins.actif, supprimeLe: admins.supprimeLe }).from(admins).where(eq(admins.id, id)).limit(1);
+  if (a) return a.actif === true && !a.supprimeLe;
+  const [u] = await db.select({ actif: utilisateurs.actif, supprimeLe: utilisateurs.supprimeLe, roles: utilisateurs.roles }).from(utilisateurs).where(eq(utilisateurs.id, id)).limit(1);
+  if (u) return u.actif === true && !u.supprimeLe && (u.roles ?? []).includes("administrateur");
+  return false;
+}
+
 function getSecret(): Uint8Array {
   const secret = process.env.NEXTAUTH_SECRET;
   if (!secret) throw new Error("NEXTAUTH_SECRET manquant");
@@ -39,6 +51,7 @@ export async function verifyAdminToken(token: string): Promise<AdminSession | nu
   try {
     const { payload } = await jwtVerify(token, getSecret());
     if (payload.role !== "admin") return null;
+    if (!(await adminEstActif(payload.sub as string))) return null; // révocation immédiate (compte désactivé/supprimé)
     return {
       sub: payload.sub as string,
       email: payload.email as string,
