@@ -57,6 +57,7 @@ const SUIVI_ICONS: Record<string, string> = { appel: "📞", email: "✉️", sm
 // Sous-statut « Prochaine étape » quand le contact est établi (avant l'envoi du devis).
 // "aucune_opportunite" est une action terminale : le prospect passe en "perdu".
 const PROCHAINE_ETAPE: Record<string, { label: string; short: string; emoji: string; color: string }> = {
+  rdv_a_convenir:     { label: "RDV à convenir (client en attente)", short: "RDV à convenir", emoji: "⏳", color: "text-orange-300" },
   rdv_pris:           { label: "Rendez-vous pris",          short: "RDV pris",      emoji: "📅", color: "text-emerald-300" },
   a_recontacter:      { label: "À recontacter",             short: "À recontacter", emoji: "🔁", color: "text-amber-300" },
   en_reflexion:       { label: "Le client doit réfléchir",  short: "Réflexion",     emoji: "🤔", color: "text-slate-300" },
@@ -353,7 +354,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
       const isRelance = (!!a && a.startsWith("Relance")) || pe === "a_recontacter";
       const isDevis = pe === "devis_a_faire";
       const ok =
-        actionFilter === "a_traiter" ? (a !== null || pe === "a_recontacter" || pe === "devis_a_faire") :
+        actionFilter === "a_traiter" ? (a !== null || pe === "a_recontacter" || pe === "devis_a_faire" || pe === "rdv_a_convenir") :
         actionFilter === "relance" ? isRelance :
         actionFilter === "devis" ? isDevis :
         actionFilter === "rdv_pris" ? pe === "rdv_pris" :
