@@ -7,7 +7,7 @@ import {
   Phone, Bot, FileText, MapPin, Wrench,
   MessageSquare, Clock, LayoutList, Columns3, UserPlus, CheckCircle2, Send,
   AlertTriangle, GitMerge, X, Search, Mail, ChevronRight, ChevronDown, Briefcase, Plus,
-  Pencil, Check, ShieldCheck, CalendarPlus, Star, Maximize2, Minimize2, ClipboardPaste, Camera, Pin,
+  Pencil, Check, ShieldCheck, CalendarPlus, Star, Maximize2, Minimize2, ClipboardPaste, Camera, Pin, Calculator,
 } from "lucide-react";
 import type { Lead, LeadStatus } from "@/lib/leads";
 import { detectDuplicates, leadAction } from "@/lib/leads-utils";
@@ -1642,11 +1642,11 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                   </div>
                 )}
 
-                <div className="space-y-5">
+                <div className="space-y-3">
 
                 {/* Statut (élément principal) */}
                 <div>
-                  <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide">Statut</p>
+                  <p className="text-slate-500 text-[11px] font-medium mb-1 uppercase tracking-wide">Statut</p>
                   <select
                     value={lead.status}
                     onChange={(e) => {
@@ -1660,7 +1660,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                       }
                     }}
                     disabled={updating === lead.id}
-                    className={`text-sm font-bold px-4 py-3 rounded-xl border-2 bg-slate-800/60 cursor-pointer transition-opacity appearance-none w-full ${statusCfg.color} ${
+                    className={`text-sm font-bold px-3.5 py-2 rounded-xl border-2 bg-slate-800/60 cursor-pointer transition-opacity appearance-none w-full ${statusCfg.color} ${
                       updating === lead.id ? "opacity-50 cursor-wait" : ""
                     }`}
                   >
@@ -1675,7 +1675,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                 {/* Prochaine étape, quand le contact est établi, avant l'envoi du devis */}
                 {lead.status === "contacté" && (
                   <div>
-                    <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide flex items-center gap-1.5">
+                    <p className="text-slate-500 text-[11px] font-medium mb-1 uppercase tracking-wide flex items-center gap-1.5">
                       <Clock className="w-3 h-3" /> Prochaine étape
                     </p>
                     <select
@@ -1687,7 +1687,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                         setSelectedLead(prev => prev ? { ...prev, prochaineEtape, ...(perdu ? { status: "perdu" as LeadStatus } : {}) } as Lead : null);
                         await patchLeadField({ prochaineEtape });
                       }}
-                      className="w-full text-sm bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2.5 text-slate-200 appearance-none focus:outline-none focus:border-sky-500/50 cursor-pointer"
+                      className="w-full text-sm bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2 text-slate-200 appearance-none focus:outline-none focus:border-sky-500/50 cursor-pointer"
                     >
                       <option value="">- Non précisé</option>
                       {Object.entries(PROCHAINE_ETAPE).map(([val, cfg]) => (
@@ -1719,10 +1719,10 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                               type="datetime-local" step={1800}
                               value={rdvVal}
                               onChange={(e) => setRdvDraft(e.target.value)}
-                              className="flex-1 min-w-0 text-sm bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2.5 text-white [color-scheme:dark] focus:outline-none focus:border-sky-500/50"
+                              className="flex-1 min-w-0 text-sm bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2 text-white [color-scheme:dark] focus:outline-none focus:border-sky-500/50"
                             />
                             <button onClick={saveRdv} disabled={!rdvChanged}
-                              className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-default text-white text-sm font-semibold transition-colors">
+                              className="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-default text-white text-sm font-semibold transition-colors">
                               <Check className="w-4 h-4" /> Enregistrer
                             </button>
                           </div>
@@ -1773,7 +1773,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                     </div>
                   );
                   return (
-                    <button onClick={() => { setVisiteDraft(savedVisite); setVisiteOpen(true); }} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-fuchsia-500/40 text-fuchsia-300 hover:bg-fuchsia-500/10 text-sm font-semibold transition-colors">
+                    <button onClick={() => { setVisiteDraft(savedVisite); setVisiteOpen(true); }} className="w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-dashed border-fuchsia-500/40 text-fuchsia-300 hover:bg-fuchsia-500/10 text-sm font-semibold transition-colors">
                       <Plus className="w-4 h-4" /> Visite client
                     </button>
                   );
@@ -1858,6 +1858,12 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                       {lead.devisUrl && <a href={lead.devisUrl} target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:text-sky-300 text-xs font-medium mt-1 inline-block">Voir le PDF</a>}
                     </div>
                   ) : null}
+
+                  {/* Outil de chiffrage terrain, pré-rempli avec les infos du prospect (client + qualification) */}
+                  <Link href={`/admin/terrain/chiffrage?lead=${lead.id}`} target="_blank" rel="noopener noreferrer"
+                    className="w-full flex items-center justify-center gap-2 py-2.5 mb-2 rounded-lg border border-sky-500/40 text-sky-300 hover:bg-sky-500/10 text-sm font-semibold transition-colors">
+                    <Calculator className="w-4 h-4" /> Faire un chiffrage (outil terrain)
+                  </Link>
 
                   {/* Bouton toujours disponible : 1er devis OU devis supplémentaire (2e lien, etc.) */}
                   <button onClick={() => openDevis(lead)} disabled={!lead.email} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-sky-500 hover:bg-sky-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import type { Catalogue } from "@/lib/catalogue";
+import type { Catalogue, ChiffragePrefill } from "@/lib/catalogue";
 
 // ─── Constantes de dimensionnement (repères pros) ───
 const RATIO: Record<string, number> = { ancien: 125, standard: 100, bbc: 65 };
@@ -64,14 +64,14 @@ function estimateHours(cfg: ReturnType<typeof buildConfig>, install: Install, ro
 const newRoom = (id: number): Room => ({ id, nom: "Salon", surface: 25, hauteur: 2.5, orientation: "ouest", isolation: "standard", baie: false, occupants: 2, combles: false, chaleur: false, distance: 5, evac: true });
 const eur = (n: number, d = 2) => n.toLocaleString("fr-FR", { minimumFractionDigits: d, maximumFractionDigits: d });
 
-export default function ChiffrageTool({ catalogue: initialCatalogue }: { catalogue: Catalogue }) {
+export default function ChiffrageTool({ catalogue: initialCatalogue, prefill }: { catalogue: Catalogue; prefill?: ChiffragePrefill | null }) {
   const [cat, setCat] = useState<Catalogue>(initialCatalogue);
-  const [clientType, setClientType] = useState<"particulier" | "pro">("particulier");
+  const [clientType, setClientType] = useState<"particulier" | "pro">(prefill?.clientType ?? "particulier");
   const [plus2ans, setPlus2ans] = useState(true);
-  const [client, setClient] = useState({ nom: "", tel: "", adr: "", cp: "", ville: "" });
-  const [rooms, setRooms] = useState<Room[]>([newRoom(1)]);
-  const roomSeq = useRef(1);
-  const [install, setInstall] = useState<Install>({ empl: "sol", tableau: 6, nbMurs: 1, murMat: "brique", immeuble: false, faibleDb: false, nacelle: false, compteur: false, depose: false });
+  const [client, setClient] = useState(prefill?.client ?? { nom: "", tel: "", adr: "", cp: "", ville: "" });
+  const [rooms, setRooms] = useState<Room[]>(() => Array.from({ length: prefill?.nbRooms ?? 1 }, (_, i) => newRoom(i + 1)));
+  const roomSeq = useRef(prefill?.nbRooms ?? 1);
+  const [install, setInstall] = useState<Install>({ empl: "sol", tableau: 6, nbMurs: 1, murMat: "brique", immeuble: prefill?.immeuble ?? false, faibleDb: false, nacelle: false, compteur: false, depose: prefill?.depose ?? false });
   const [brand, setBrand] = useState("mitsubishi");
   const [generated, setGenerated] = useState(false);
   const [lines, setLines] = useState<Line[]>([]);
@@ -183,6 +183,9 @@ export default function ChiffrageTool({ catalogue: initialCatalogue }: { catalog
 
       {!generated && (
         <div>
+          {prefill && (
+            <div className="prefill">📋 Pré-rempli depuis le prospect <b>{prefill.client.nom || "—"}</b> ({prefill.nbRooms} pièce{prefill.nbRooms > 1 ? "s" : ""} estimée{prefill.nbRooms > 1 ? "s" : ""}). Vérifie et complète chaque pièce + l&apos;installation sur place.</div>
+          )}
           {/* A. Client */}
           <section className="card">
             <h2><span className="n">A</span> Client et cadre</h2>
@@ -397,6 +400,7 @@ const CT_CSS = `
 .ct .brand .bp{font-size:15px;font-weight:800;color:var(--blue-d);margin-top:5px}
 .ct .brand .bdb{font-size:10px;color:var(--muted);margin-top:2px}
 .ct .legend{font-size:12px;color:var(--muted);margin-top:8px}
+.ct .prefill{background:#E8F5FC;border:1px solid #B9E2F5;border-radius:9px;padding:10px 12px;font-size:13px;color:var(--blue-d);margin-bottom:16px}
 .ct .note{background:var(--warn);border:1px solid #EAD4AE;border-radius:9px;padding:10px 12px;font-size:12.5px;color:#7A4D12;margin-top:10px}
 .ct .note > div{margin:2px 0}
 .ct details.cat{background:#fff;border:1px solid var(--line);border-radius:var(--r);margin-top:16px}

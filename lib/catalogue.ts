@@ -78,3 +78,13 @@ export async function getCatalogue(): Promise<Catalogue> {
 export async function saveCatalogue(c: Catalogue): Promise<void> {
   await r2PutJSON(CATALOGUE_KEY, { ...c, updatedAt: new Date().toISOString() });
 }
+
+// Pré-remplissage de l'outil de chiffrage depuis un prospect (client + qualification).
+export type ChiffragePrefill = {
+  leadId: string;
+  client: { nom: string; tel: string; adr: string; cp: string; ville: string };
+  clientType: "particulier" | "pro";
+  nbRooms: number;
+  immeuble: boolean;
+  depose: boolean;
+};

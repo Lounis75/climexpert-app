@@ -1,11 +1,38 @@
 import AdminHeader from "@/components/AdminHeader";
-import { getCatalogue } from "@/lib/catalogue";
+import { getCatalogue, type ChiffragePrefill } from "@/lib/catalogue";
+import { getLeadById } from "@/lib/leads";
+import type { Lead } from "@/lib/leads";
+import type { Qualification } from "@/lib/qualification";
 import ChiffrageTool from "./ChiffrageTool";
 
 export const dynamic = "force-dynamic";
 
-export default async function ChiffragePage() {
-  const catalogue = await getCatalogue();
+// Construit le pré-remplissage de l'outil à partir d'un prospect (infos client + qualification).
+function buildPrefill(lead: Lead): ChiffragePrefill {
+  const q = (lead.qualification ?? {}) as Qualification;
+  const l = lead as Lead & { address?: string | null; typeClient?: string | null; typeBatiment?: string | null };
+  const loc = lead.location ?? "";
+  const m = loc.match(/(\d{5})\s*(.*)/);
+  const cp = m ? m[1] : "";
+  const ville = m ? m[2].trim() : loc;
+  const nb = parseInt(q.nbUnites || q.entretienNbUnites || q.deposeNbUnites || "", 10) || 1;
+  const immeuble = q.copropriete === "Oui" || q.typeBien === "Appartement" || ["appartement", "copropriete"].includes(l.typeBatiment ?? "");
+  const depose = q.natureProjet === "Dépose" || !!q.deposeNbUnites;
+  const pro = q.clientType === "Professionnel" || l.typeClient === "professionnel";
+  return {
+    leadId: lead.id,
+    client: { nom: lead.name ?? "", tel: lead.phone ?? "", adr: l.address ?? "", cp, ville },
+    clientType: pro ? "pro" : "particulier",
+    nbRooms: Math.min(Math.max(nb, 1), 8),
+    immeuble: !!immeuble,
+    depose: !!depose,
+  };
+}
+
+export default async function ChiffragePage({ searchParams }: { searchParams: Promise<{ lead?: string }> }) {
+  const { lead: leadId } = await searchParams;
+  const [catalogue, lead] = await Promise.all([getCatalogue(), leadId ? getLeadById(leadId) : Promise.resolve(null)]);
+  const prefill = lead ? buildPrefill(lead) : null;
   return (
     <div className="min-h-screen bg-[#080d18]">
       <div className="print:hidden"><AdminHeader /></div>
@@ -14,7 +41,7 @@ export default async function ChiffragePage() {
           <h1 className="text-xl font-bold text-[#0F1B2D]">Chiffrage terrain</h1>
           <p className="text-sm text-[#6A7686]">Le commercial remplit, l&apos;outil dimensionne et chiffre le devis.</p>
         </div>
-        <ChiffrageTool catalogue={catalogue} />
+        <ChiffrageTool catalogue={catalogue} prefill={prefill} />
       </main>
     </div>
   );
