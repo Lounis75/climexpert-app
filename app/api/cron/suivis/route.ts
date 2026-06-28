@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { mailRecipient } from "@/lib/mail";
 import { db } from "@/lib/db";
 import { suivisPlanifies, clients, interventions, notifications } from "@/lib/db/schema";
 import { eq, and, lte, isNull, sql } from "drizzle-orm";
@@ -90,7 +91,7 @@ export async function GET(req: NextRequest) {
     try {
       await resend.emails.send({
         from: "ClimExpert <noreply@climexpert.fr>",
-        to: process.env.EMAIL_TEST_OVERRIDE || clientEmail,
+        to: mailRecipient(clientEmail),
         subject,
         html,
       });

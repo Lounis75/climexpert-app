@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { mailRecipient } from "@/lib/mail";
 import { db } from "@/lib/db";
 import { interventions, clients } from "@/lib/db/schema";
 import { eq, and, isNull, sql } from "drizzle-orm";
@@ -52,7 +53,7 @@ export async function POST(req: NextRequest) {
   }).where(eq(interventions.id, interventionId));
 
   const baseUrl = process.env.NEXT_PUBLIC_URL ?? "https://climexpert.fr";
-  const emailTo = process.env.EMAIL_TEST_OVERRIDE || emailClient;
+  const emailTo = mailRecipient(emailClient);
 
   const creneauxHtml = creneaux
     .map((c, i) => `

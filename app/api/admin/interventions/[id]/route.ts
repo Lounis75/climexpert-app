@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { mailRecipient } from "@/lib/mail";
 import { logError } from "@/lib/observability";
 import { updateInterventionStatus, updateInterventionNotes, deleteIntervention, getInterventionById } from "@/lib/interventions";
 import type { Intervention } from "@/lib/interventions";
@@ -34,7 +35,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       if (client?.email) {
         await resend.emails.send({
           from: "ClimExpert <noreply@climexpert.fr>",
-          to: process.env.EMAIL_TEST_OVERRIDE || client.email,
+          to: mailRecipient(client.email),
           subject: "Votre rendez-vous Clim Expert a été annulé",
           html: `<p>Bonjour ${client.name},</p><p>Votre intervention a été annulée par notre équipe.</p><p>Motif : ${body.motif || "Non précisé"}</p><p>Nous allons vous proposer un nouveau créneau prochainement.</p>`,
         });

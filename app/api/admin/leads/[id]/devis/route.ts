@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { mailRecipient } from "@/lib/mail";
 import { db } from "@/lib/db";
 import { leads, suivis, devisEnvois } from "@/lib/db/schema";
 import { eq, sql, desc } from "drizzle-orm";
@@ -49,8 +50,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Échec du stockage du fichier." }, { status: 500 });
   }
 
-  // 2) Lien public de décision + e-mail au client (PDF joint)
+  // 2) Enregistrement DURABLE du devis (token) AVANT l'e-mail : le lien envoyé reste toujours
+  //    adossé à un enregistrement (sinon un 2e devis pourrait « tuer » le lien du 1er). Erreur propagée.
   const token = randomBytes(32).toString("hex");
+  try {
+    await db.insert(devisEnvois).values({ leadId: id, url, nomFichier: file.name || "devis.pdf", token, montantCt: montantCt ?? null, envoyeLe: new Date() });
+  } catch (e) {
+    logError("devis.envoi.insert", e, { leadId: id });
+    return NextResponse.json({ error: "Échec de l'enregistrement du devis." }, { status: 500 });
+  }
+
+  // 3) Lien public de décision + e-mail au client (PDF joint)
   const baseUrl = process.env.NEXT_PUBLIC_URL ?? "https://climexpert.fr";
   const link = `${baseUrl}/mon-devis/${token}`;
   const montantTxt = montantCt ? `${(montantCt / 100).toLocaleString("fr-FR")} €` : "";
@@ -58,7 +68,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const resend = new Resend(process.env.RESEND_API_KEY);
     await resend.emails.send({
       from: "ClimExpert <noreply@climexpert.fr>",
-      to: process.env.EMAIL_TEST_OVERRIDE || lead.email,
+      to: mailRecipient(lead.email),
       subject: "Votre devis ClimExpert",
       html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
         <h2 style="color:#0f172a;">Bonjour ${lead.name},</h2>
@@ -76,7 +86,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Échec de l'envoi de l'e-mail au client." }, { status: 500 });
   }
 
-  // 3) Tout est OK -> on enregistre l'état "devis envoyé" sur le prospect
+  // 4) Tout est OK -> on enregistre l'état "devis envoyé" sur le prospect
   await db.update(leads).set({
     devisUrl: url,
     devisNomFichier: file.name || "devis.pdf",
@@ -88,11 +98,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     statutChangeLe: new Date(), relanceNotifieeLe: null,
     version: sql`${leads.version} + 1`, updatedAt: new Date(),
   }).where(eq(leads.id, id));
-
-  // Historique : une ligne par devis envoyé (plusieurs liens peuvent coexister)
-  await db.insert(devisEnvois).values({
-    leadId: id, url, nomFichier: file.name || "devis.pdf", token, montantCt: montantCt ?? null, envoyeLe: new Date(),
-  }).catch((e) => logError("devis.envoi.insert", e, { leadId: id }));
 
   await db.insert(suivis).values({
     leadId: id, type: "devis",

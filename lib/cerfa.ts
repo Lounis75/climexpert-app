@@ -2,6 +2,7 @@
 // aux documents de la fiche client, et l'envoie par e-mail au client.
 
 import { generateCerfaPDF, type CerfaData } from "@/lib/cerfa-pdf";
+import { mailRecipient } from "@/lib/mail";
 import { r2PutFile } from "@/lib/r2";
 import { db } from "@/lib/db";
 import { documents } from "@/lib/db/schema";
@@ -35,7 +36,7 @@ export async function finalizeCerfa(opts: {
       const resend = new Resend(process.env.RESEND_API_KEY);
       await resend.emails.send({
         from: "ClimExpert <noreply@climexpert.fr>",
-        to: process.env.EMAIL_TEST_OVERRIDE || opts.clientEmail,
+        to: mailRecipient(opts.clientEmail),
         subject: "Votre attestation d'entretien (CERFA), ClimExpert",
         html: `<p>Bonjour ${opts.clientName},</p>
 <p>Suite à notre passage, veuillez trouver ci-joint votre <strong>fiche d'intervention (CERFA 15497*04)</strong>.</p>

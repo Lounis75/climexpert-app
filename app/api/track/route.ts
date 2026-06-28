@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { evenements } from "@/lib/db/schema";
+import { rateLimit, clientIp } from "@/lib/rate-limit";
 
 const TYPES = new Set(["page_view", "calculateur_complete", "alex_open", "devis_view", "contact_view"]);
 
@@ -49,6 +50,8 @@ export async function POST(req: NextRequest) {
     // Filtre anti-bot : on ignore les crawlers/scripts (200 pour ne pas déclencher de retry client).
     const ua = req.headers.get("user-agent") ?? "";
     if (BOT_UA.test(ua)) return NextResponse.json({ ok: true, skipped: "bot" });
+    // Anti-spam : limite par IP (un vrai visiteur ne dépasse pas ; bloque le gonflage artificiel des stats).
+    if (!rateLimit(`track:${clientIp(req)}`, 80, 5 * 60 * 1000)) return NextResponse.json({ ok: true, skipped: "rate" });
 
     const body = await req.json().catch(() => ({}));
     const type = String(body.type ?? "");

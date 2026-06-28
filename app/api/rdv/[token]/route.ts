@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { mailRecipient } from "@/lib/mail";
 import { db } from "@/lib/db";
 import { interventions, clients, notifications, admins, techniciens } from "@/lib/db/schema";
 import { eq, and, isNull, sql } from "drizzle-orm";
@@ -74,7 +75,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
   if (client?.email) {
     await resend.emails.send({
       from: "ClimExpert <noreply@climexpert.fr>",
-      to: process.env.EMAIL_TEST_OVERRIDE || client.email,
+      to: mailRecipient(client.email),
       subject: "Votre intervention Clim Expert est confirmée",
       html: `<p>Bonjour ${client.name},</p><p>Votre rendez-vous a été confirmé : <strong>${chosen.label}</strong>.</p><p>Adresse : ${interv.address ?? "à confirmer"}</p><p><a href="${process.env.NEXT_PUBLIC_URL}/rdv/${token}/annuler">Annuler ce rendez-vous</a></p>`,
     });

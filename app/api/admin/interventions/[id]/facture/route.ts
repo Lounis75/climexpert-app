@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { mailRecipient } from "@/lib/mail";
 import { db } from "@/lib/db";
 import { interventions, clients, documents } from "@/lib/db/schema";
 import { eq, sql } from "drizzle-orm";
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const portal = client.clientToken ? `${baseUrl}/suivi/${client.clientToken}` : null;
     await resend.emails.send({
       from: "ClimExpert <noreply@climexpert.fr>",
-      to: process.env.EMAIL_TEST_OVERRIDE || client.email,
+      to: mailRecipient(client.email),
       subject: "Votre facture ClimExpert",
       html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
         <h2 style="color:#0f172a;">Bonjour ${client.name},</h2>

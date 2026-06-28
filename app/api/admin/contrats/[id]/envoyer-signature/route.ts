@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { mailRecipient } from "@/lib/mail";
 import { db } from "@/lib/db";
 import { contratsEntretien, clients } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -29,7 +30,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     const resend = new Resend(process.env.RESEND_API_KEY);
     await resend.emails.send({
       from: "ClimExpert <noreply@climexpert.fr>",
-      to: process.env.EMAIL_TEST_OVERRIDE || row.client.email,
+      to: mailRecipient(row.client.email),
       subject: "Votre contrat d'entretien à signer, ClimExpert",
       html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
         <h2 style="color:#0f172a;">Bonjour ${row.client.name},</h2>

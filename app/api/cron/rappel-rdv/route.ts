@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { mailRecipient } from "@/lib/mail";
 import { db } from "@/lib/db";
 import { interventions, clients, techniciens, leads } from "@/lib/db/schema";
 import { eq, and, gte, lte, isNull, ne } from "drizzle-orm";
@@ -20,7 +21,7 @@ const fmtJour = (d: Date) => d.toLocaleDateString("fr-FR", { weekday: "long", da
 const fmtHeure = (d: Date) => d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 
 async function send(to: string, subject: string, html: string) {
-  await resend.emails.send({ from: "ClimExpert <noreply@climexpert.fr>", to: process.env.EMAIL_TEST_OVERRIDE || to, subject, html });
+  await resend.emails.send({ from: "ClimExpert <noreply@climexpert.fr>", to: mailRecipient(to), subject, html });
 }
 
 // Rappel J-1 : la veille, on prévient le client de son intervention / rendez-vous du lendemain.

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { mailRecipient } from "@/lib/mail";
 import { cookies } from "next/headers";
 import { verifyAdminToken, COOKIE_NAME } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -82,8 +83,17 @@ export async function POST(req: NextRequest) {
   try { url = await r2PutFile(key, buf, "application/pdf"); }
   catch (e) { logError("chiffrage.r2", e, { leadId: id }); return NextResponse.json({ error: "Échec du stockage du PDF." }, { status: 500 }); }
 
-  // 5) E-mail avec lien de décision
+  // 5) Enregistrement DURABLE du devis (token) AVANT l'e-mail : le lien envoyé est ainsi toujours
+  //    adossé à un enregistrement (sinon un 2e devis pourrait « tuer » le lien du 1er). Erreur propagée.
   const token = randomBytes(32).toString("hex");
+  try {
+    await db.insert(devisEnvois).values({ leadId: id, url, nomFichier: `${number}.pdf`, token, montantCt, envoyeLe: new Date() });
+  } catch (e) {
+    logError("chiffrage.envoi.insert", e, { leadId: id });
+    return NextResponse.json({ error: "Échec de l'enregistrement du devis." }, { status: 500 });
+  }
+
+  // 6) E-mail avec lien de décision
   const baseUrl = process.env.NEXT_PUBLIC_URL ?? "https://climexpert.fr";
   const link = `${baseUrl}/mon-devis/${token}`;
   const montantTxt = `${(montantCt / 100).toLocaleString("fr-FR")} €`;
@@ -91,7 +101,7 @@ export async function POST(req: NextRequest) {
     const resend = new Resend(process.env.RESEND_API_KEY);
     await resend.emails.send({
       from: "ClimExpert <noreply@climexpert.fr>",
-      to: process.env.EMAIL_TEST_OVERRIDE || email,
+      to: mailRecipient(email),
       subject: "Votre devis ClimExpert",
       html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
         <h2 style="color:#0f172a;">Bonjour ${lead.name},</h2>
@@ -109,7 +119,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Échec de l'envoi de l'e-mail au client." }, { status: 500 });
   }
 
-  // 6) Bascule du prospect en "devis_envoyé" + nettoyage du brouillon
+  // 7) Bascule du prospect en "devis_envoyé" + nettoyage du brouillon
   await db.update(leads).set({
     devisUrl: url, devisNomFichier: `${number}.pdf`, devisEnvoyeLe: new Date(), devisToken: token,
     devisDecision: null, devisDecisionLe: null, devisMotifRefus: null,
@@ -119,8 +129,6 @@ export async function POST(req: NextRequest) {
     version: sql`${leads.version} + 1`, updatedAt: new Date(),
   }).where(eq(leads.id, id));
 
-  await db.insert(devisEnvois).values({ leadId: id, url, nomFichier: `${number}.pdf`, token, montantCt, envoyeLe: new Date() })
-    .catch((e) => logError("chiffrage.envoi.insert", e, { leadId: id }));
   await db.insert(suivis).values({ leadId: id, type: "devis", contenu: `Devis envoyé au client (${montantTxt}) depuis le chiffrage terrain, en attente de sa réponse.` }).catch(() => {});
 
   return NextResponse.json({ ok: true, leadId: id });

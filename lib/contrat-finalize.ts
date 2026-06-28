@@ -4,6 +4,7 @@
 // et par la clôture terrain (rapport technicien).
 
 import { generateContratPDF, type ContratData } from "@/lib/contrat-pdf";
+import { mailRecipient } from "@/lib/mail";
 import { entretienPrix } from "@/lib/contrat-pricing";
 import { r2PutFile } from "@/lib/r2";
 import { db } from "@/lib/db";
@@ -94,7 +95,7 @@ export async function finalizeContrat(opts: {
         : "";
       await resend.emails.send({
         from: "ClimExpert <noreply@climexpert.fr>",
-        to: process.env.EMAIL_TEST_OVERRIDE || opts.client.email,
+        to: mailRecipient(opts.client.email),
         subject: "Votre contrat d'entretien, ClimExpert",
         html: `<p>Bonjour ${opts.client.name},</p>
 <p>Merci de votre confiance. Vous trouverez ci-joint votre <strong>contrat d'entretien annuel</strong>, signé.</p>

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { mailRecipient } from "@/lib/mail";
 import { Resend } from "resend";
 import { getUtilisateurById, setActivationToken } from "@/lib/utilisateurs";
 import { ROLES, isRole } from "@/lib/roles";
@@ -22,7 +23,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     const resend = new Resend(process.env.RESEND_API_KEY);
     await resend.emails.send({
       from: "ClimExpert <noreply@climexpert.fr>",
-      to: [process.env.EMAIL_TEST_OVERRIDE || u.email],
+      to: [mailRecipient(u.email)],
       subject: "Activez votre accès à l'espace ClimExpert",
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
