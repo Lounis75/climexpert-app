@@ -15,10 +15,13 @@ export type Catalogue = {
   brands: Brand[];
   equip: Record<string, EquipItem>;
   annex: Record<string, AnnexItem>;
+  forfaits: Record<string, AnnexItem>; // tarifs des prestations hors installation (entretien/dépannage/dépose)
   moRate: number;       // main d'œuvre €/heure
   marginCoeff: number;  // coefficient appliqué au coût d'achat pour obtenir le prix de vente
   updatedAt?: string;
 };
+
+export type Prestation = "installation" | "entretien" | "depannage" | "depose" | "autre";
 
 // ─── Valeurs par défaut (prix réels relevés le 28 juin 2026) ───
 export const DEFAULT_CATALOGUE: Catalogue = {
@@ -57,6 +60,14 @@ export const DEFAULT_CATALOGUE: Catalogue = {
     compteur:        { label: "Évolution compteur / tableau",       v: 0 },
     depose:          { label: "Dépose ancien matériel",             v: 272.73 },
   },
+  forfaits: {
+    entretien_unite:         { label: "Entretien (par unité)",              v: 90 },
+    entretien_deplacement:   { label: "Déplacement entretien",              v: 0 },
+    entretien_contrat_unite: { label: "Contrat annuel (par unité)",         v: 150 },
+    depannage_diagnostic:    { label: "Diagnostic / déplacement",           v: 90 },
+    depose_unite:            { label: "Dépose (par unité)",                 v: 150 },
+    depose_fluides:          { label: "Évacuation / recyclage des fluides", v: 80 },
+  },
   moRate: 150,
   marginCoeff: 1.265,
 };
@@ -69,6 +80,7 @@ export async function getCatalogue(): Promise<Catalogue> {
     brands: stored.brands ?? DEFAULT_CATALOGUE.brands,
     equip: { ...DEFAULT_CATALOGUE.equip, ...(stored.equip ?? {}) },
     annex: { ...DEFAULT_CATALOGUE.annex, ...(stored.annex ?? {}) },
+    forfaits: { ...DEFAULT_CATALOGUE.forfaits, ...(stored.forfaits ?? {}) },
     moRate: typeof stored.moRate === "number" ? stored.moRate : DEFAULT_CATALOGUE.moRate,
     marginCoeff: typeof stored.marginCoeff === "number" ? stored.marginCoeff : DEFAULT_CATALOGUE.marginCoeff,
     updatedAt: stored.updatedAt,

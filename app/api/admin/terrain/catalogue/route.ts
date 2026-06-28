@@ -28,6 +28,7 @@ export async function PUT(req: NextRequest) {
       brands: c.brands,
       equip: c.equip,
       annex: c.annex,
+      forfaits: c.forfaits ?? {},
       moRate: Number(c.moRate) || 150,
       marginCoeff: Number(c.marginCoeff) || 1.265,
     });
