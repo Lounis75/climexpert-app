@@ -233,6 +233,9 @@ export const leads = pgTable("leads", {
   // Visite client (commerciale, créneau 1h) planifiée sur le prospect, indépendante du statut →
   // affichée au Planning. Sert souvent à caler une visite de métrage avant/après le devis.
   visiteClientLe:      timestamp("visite_client_le"),
+  // Créneau d'installation PROVISOIRE posé dès l'envoi du devis (avant paiement) → affiché au
+  // Planning en couleur « non payé / provisoire ». Devient la vraie intervention à l'acceptation.
+  installPrevuLe:      timestamp("install_prevu_le"),
   // Date souhaitée d'intervention par le client (notée dès l'envoi du devis) →
   // pré-remplit l'intervention créée lors de la conversion en client.
   dateSouhaiteeIntervention: timestamp("date_souhaitee_intervention"),

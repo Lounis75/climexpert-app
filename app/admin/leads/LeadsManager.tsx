@@ -227,6 +227,8 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
   const [showAllHistory, setShowAllHistory] = useState(false); // historique des messages internes déplié ?
   const [tab, setTab] = useState<"qualif" | "parcours" | "pieces" | "histo">("qualif"); // onglet actif de la fiche
   const [rdvDraft, setRdvDraft] = useState<string | null>(null); // brouillon de la date de RDV (null = non modifié)
+  const [installDraft, setInstallDraft] = useState<string | null>(null); // brouillon du créneau d'installation provisoire
+  const [installOpen, setInstallOpen] = useState(false);
   const dragId = useRef<string | null>(null);
   const [commerciaux, setCommerciaux] = useState<{ id: string; name: string; prenom: string | null; color: string | null }[]>([]);
 
@@ -249,7 +251,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
   // Charge l'historique des devis du prospect ouvert (plusieurs liens peuvent coexister).
   useEffect(() => {
-    setVisiteDraft(null); setVisiteOpen(false); setRdvDraft(null); setNotesOpen(false); setShowAllHistory(false); setTab("qualif"); // reset l'édition (visite/RDV/note/historique/onglet) quand on change de prospect
+    setVisiteDraft(null); setVisiteOpen(false); setRdvDraft(null); setInstallDraft(null); setInstallOpen(false); setNotesOpen(false); setShowAllHistory(false); setTab("qualif"); // reset l'édition quand on change de prospect
     if (!openLeadId) { setDevisHist([]); return; }
     fetch(`/api/admin/leads/${openLeadId}/devis`)
       .then(r => r.json())
@@ -1899,6 +1901,48 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                   {!lead.email && (
                     <p className="text-amber-400 text-[11px] mt-2 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Ajoute un e-mail à ce prospect pour pouvoir lui envoyer le devis.</p>
                   )}
+
+                  {/* Pré-positionner l'installation (créneau provisoire, non payé) une fois le devis envoyé */}
+                  {(lead.status === "devis_envoyé" || lead.devisEnvoyeLe) && (() => {
+                    const saved = (lead as Lead & { installPrevuLe?: string | null }).installPrevuLe;
+                    const savedLocal = toLocalDT(saved);
+                    const val = installDraft !== null ? installDraft : savedLocal;
+                    const saveInstall = async () => {
+                      const iso = val ? new Date(val).toISOString() : null;
+                      setSelectedLead(prev => prev ? { ...prev, installPrevuLe: iso } as Lead : null);
+                      await patchLeadField({ installPrevuLe: iso });
+                      setInstallDraft(null); setInstallOpen(false);
+                    };
+                    const removeInstall = async () => {
+                      setSelectedLead(prev => prev ? { ...prev, installPrevuLe: null } as Lead : null);
+                      await patchLeadField({ installPrevuLe: null });
+                      setInstallDraft(null); setInstallOpen(false);
+                    };
+                    if (saved && !installOpen) return (
+                      <div className="flex items-center gap-2 rounded-xl border border-orange-500/30 bg-orange-500/10 px-3 py-2.5 mt-2">
+                        <CalendarPlus className="w-4 h-4 text-orange-300 flex-shrink-0" />
+                        <span className="flex-1 min-w-0 text-sm text-orange-100">Installation provisoire le {new Date(saved).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} · <span className="text-orange-300 font-semibold">non payé</span></span>
+                        <button onClick={() => { setInstallDraft(savedLocal); setInstallOpen(true); }} className="text-slate-300 hover:text-white text-xs font-medium flex-shrink-0">Modifier</button>
+                        <button onClick={removeInstall} title="Retirer le créneau" className="text-slate-400 hover:text-red-400 flex-shrink-0"><X className="w-4 h-4" /></button>
+                      </div>
+                    );
+                    if (installOpen) return (
+                      <div className="rounded-xl border border-orange-500/30 bg-orange-500/[0.06] p-3 mt-2">
+                        <p className="text-orange-300 text-xs font-semibold mb-2 uppercase tracking-wide flex items-center gap-1.5"><CalendarPlus className="w-3 h-3" /> Installation provisoire (créneau 4h, non payé)</p>
+                        <input type="datetime-local" step={1800} value={val} onChange={(e) => setInstallDraft(e.target.value)} autoFocus className="w-full text-sm bg-slate-900/60 border border-white/10 rounded-lg px-3 py-2 text-white [color-scheme:dark] focus:outline-none focus:border-orange-500/50" />
+                        <div className="flex gap-2 mt-2">
+                          <button onClick={saveInstall} disabled={!val} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-orange-500 hover:bg-orange-400 disabled:opacity-40 text-white text-sm font-semibold transition-colors"><Check className="w-4 h-4" /> Enregistrer</button>
+                          <button onClick={() => { setInstallDraft(null); setInstallOpen(false); }} className="px-4 py-2 text-slate-400 hover:text-white text-sm transition-colors">Annuler</button>
+                        </div>
+                        <p className="text-slate-500 text-[10px] mt-1.5">Bloque le créneau au Planning (orange = non payé). Deviendra la vraie intervention quand le devis sera accepté.</p>
+                      </div>
+                    );
+                    return (
+                      <button onClick={() => { setInstallDraft(savedLocal); setInstallOpen(true); }} className="w-full flex items-center justify-center gap-2 py-2 mt-2 rounded-xl border border-dashed border-orange-500/40 text-orange-300 hover:bg-orange-500/10 text-sm font-semibold transition-colors">
+                        <CalendarPlus className="w-4 h-4" /> Pré-positionner l&apos;installation (non payé)
+                      </button>
+                    );
+                  })()}
                 </div>
 
                 </div>{/* ─── fin section suivi (une colonne) ─── */}

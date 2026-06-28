@@ -18,7 +18,7 @@ type CalIntervention = {
 };
 type CalTechnicien = { id: string; name: string; color: string | null; role?: string | null };
 type SimpleClient   = { id: string; name: string; phone: string };
-type CalRdv         = { id: string; leadId?: string; clientName: string; rdvDate: string | null; commercialId: string | null; commercialName: string | null; kind?: "rdv" | "visite"; duree?: number };
+type CalRdv         = { id: string; leadId?: string; clientName: string; rdvDate: string | null; commercialId: string | null; commercialName: string | null; kind?: "rdv" | "visite" | "install"; duree?: number };
 type CalIndispo     = { id: string; technicienId: string; dateDebut: string; dateFin: string; motif: string | null };
 
 // ─── Lookup tables ────────────────────────────────────────────────────────────
@@ -392,7 +392,7 @@ export default function CalendrierDashboard() {
   const [modal, setModal]                 = useState<{ date: Date } | null>(null);
   const [indispoModal, setIndispoModal]   = useState(false);
   // Popup d'action au clic sur un évènement (ouvrir / supprimer).
-  const [eventModal, setEventModal]       = useState<{ kind: "int" | "rdv" | "visite"; id: string; leadId?: string; title: string; sub: string; href: string } | null>(null);
+  const [eventModal, setEventModal]       = useState<{ kind: "int" | "rdv" | "visite" | "install"; id: string; leadId?: string; title: string; sub: string; href: string } | null>(null);
   const nowRef  = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
 
@@ -433,7 +433,7 @@ export default function CalendrierDashboard() {
         if (!confirm("Supprimer définitivement cette intervention ?")) return;
         res = await fetch(`/api/admin/interventions/${ev.id}`, { method: "DELETE" });
       } else {
-        const patch = ev.kind === "visite" ? { visiteClientLe: null } : { rdvDate: null };
+        const patch = ev.kind === "visite" ? { visiteClientLe: null } : ev.kind === "install" ? { installPrevuLe: null } : { rdvDate: null };
         res = await fetch(`/api/admin/leads`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: ev.leadId, ...patch }) });
       }
       if (!res.ok) { alert("La suppression a échoué. Réessayez."); return; }
@@ -751,8 +751,8 @@ export default function CalendrierDashboard() {
             {monthDays.map((d, idx) => {
               const inMonth = d.getMonth() === monthAnchor.getMonth();
               const isToday = isSameDay(d, now);
-              const all: { kind: "int" | "rdv" | "visite"; id: string; leadId?: string; label: string; time: string; start: number; duree: number; type?: string }[] = [
-                ...forDayRdv(d).map((r) => ({ kind: (r.kind ?? "rdv") as "rdv" | "visite", id: r.id, leadId: r.leadId ?? r.id, label: r.clientName, time: r.rdvDate ? fmtHM(new Date(r.rdvDate)) : "", start: r.rdvDate ? new Date(r.rdvDate).getTime() : 0, duree: r.duree ?? 120 })),
+              const all: { kind: "int" | "rdv" | "visite" | "install"; id: string; leadId?: string; label: string; time: string; start: number; duree: number; type?: string }[] = [
+                ...forDayRdv(d).map((r) => ({ kind: (r.kind ?? "rdv") as "rdv" | "visite" | "install", id: r.id, leadId: r.leadId ?? r.id, label: r.clientName, time: r.rdvDate ? fmtHM(new Date(r.rdvDate)) : "", start: r.rdvDate ? new Date(r.rdvDate).getTime() : 0, duree: r.duree ?? 120 })),
                 ...forDay(d).map((i) => ({ kind: "int" as const, id: i.id, label: i.clientName, time: i.scheduledAt ? fmtHM(new Date(i.scheduledAt)) : "", start: i.scheduledAt ? new Date(i.scheduledAt).getTime() : 0, duree: i.duree ?? 120, type: i.type })),
               ];
               return (
@@ -768,12 +768,12 @@ export default function CalendrierDashboard() {
                       return (
                         <Link key={`${ev.kind}-${ev.id}`}
                           href={ev.kind === "int" ? `/admin/interventions/${ev.id}` : `/admin/leads?lead=${ev.leadId ?? ev.id}`}
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEventModal({ kind: ev.kind, id: ev.id, leadId: ev.leadId, title: ev.label, sub: `${ev.time ? ev.time + " · " : ""}${ev.kind === "int" ? "Intervention" : ev.kind === "visite" ? "Visite client" : "RDV commercial"}`, href: ev.kind === "int" ? `/admin/interventions/${ev.id}` : `/admin/leads?lead=${ev.leadId ?? ev.id}` }); }}
-                          draggable={ev.kind !== "visite"}
-                          onDragStart={(e) => { if (ev.kind === "visite") { e.preventDefault(); return; } onEventDragStart(e, ev.id, ev.kind as "int" | "rdv", ev.duree, ev.start); }}
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEventModal({ kind: ev.kind, id: ev.id, leadId: ev.leadId, title: ev.label, sub: `${ev.time ? ev.time + " · " : ""}${ev.kind === "int" ? "Intervention" : ev.kind === "visite" ? "Visite client" : ev.kind === "install" ? "Installation (provisoire, non payé)" : "RDV commercial"}`, href: ev.kind === "int" ? `/admin/interventions/${ev.id}` : `/admin/leads?lead=${ev.leadId ?? ev.id}` }); }}
+                          draggable={ev.kind === "rdv" || ev.kind === "int"}
+                          onDragStart={(e) => { if (ev.kind === "visite" || ev.kind === "install") { e.preventDefault(); return; } onEventDragStart(e, ev.id, ev.kind as "int" | "rdv", ev.duree, ev.start); }}
                           onDragEnd={() => { dragRef.current = null; setDragId(null); }}
-                          className={`block rounded px-1 py-0.5 text-[9px] leading-tight truncate hover:opacity-80 ${ev.kind === "visite" ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"} ${ev.kind === "rdv" ? "bg-amber-500/20 text-amber-300" : ev.kind === "visite" ? "bg-fuchsia-500/20 text-fuchsia-300" : `${cfg.bg} ${cfg.text}`} ${dragId === ev.id ? "opacity-40" : ""}`}>
-                          {ev.time && <span className="opacity-70">{ev.time} </span>}{ev.kind === "rdv" ? "RDV " : ev.kind === "visite" ? "Visite " : ""}{ev.label}
+                          className={`block rounded px-1 py-0.5 text-[9px] leading-tight truncate hover:opacity-80 ${ev.kind === "rdv" || ev.kind === "int" ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"} ${ev.kind === "rdv" ? "bg-amber-500/20 text-amber-300" : ev.kind === "visite" ? "bg-fuchsia-500/20 text-fuchsia-300" : ev.kind === "install" ? "bg-orange-500/20 text-orange-300" : `${cfg.bg} ${cfg.text}`} ${dragId === ev.id ? "opacity-40" : ""}`}>
+                          {ev.time && <span className="opacity-70">{ev.time} </span>}{ev.kind === "rdv" ? "RDV " : ev.kind === "visite" ? "Visite " : ev.kind === "install" ? "Install. " : ""}{ev.label}
                         </Link>
                       );
                     })}
@@ -882,23 +882,29 @@ export default function CalendrierDashboard() {
                             const r = b.rdv;
                             const start = new Date(r.rdvDate!);
                             const pc = showPersonColor ? colorOf(r.commercialId) : null;
-                            const isVisite = r.kind === "visite";
+                            const kind = r.kind ?? "rdv";
+                            const draggable = kind === "rdv";
+                            const sk = kind === "install"
+                              ? { box: "bg-orange-500/15 border-orange-500/50 border-dashed", dot: "bg-orange-400", text: "text-orange-300", short: "Install. · à payer", modalSub: "Installation (provisoire, non payé)" }
+                              : kind === "visite"
+                              ? { box: "bg-fuchsia-500/15 border-fuchsia-500/40", dot: "bg-fuchsia-400", text: "text-fuchsia-300", short: "Visite", modalSub: "Visite client" }
+                              : { box: "bg-amber-500/15 border-amber-500/40", dot: "bg-amber-400", text: "text-amber-300", short: "RDV", modalSub: "RDV commercial" };
                             return (
                               <Link
                                 key={b.key}
                                 href={`/admin/leads?lead=${r.leadId ?? r.id}`}
-                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEventModal({ kind: isVisite ? "visite" : "rdv", id: r.id, leadId: r.leadId ?? r.id, title: r.clientName, sub: `${fmtHM(start)} · ${isVisite ? "Visite client" : "RDV commercial"}${r.commercialName ? ` · ${r.commercialName}` : ""}`, href: `/admin/leads?lead=${r.leadId ?? r.id}` }); }}
-                                draggable={!isVisite}
-                                onDragStart={(e) => { if (isVisite) { e.preventDefault(); return; } onEventDragStart(e, r.id, "rdv", r.duree ?? 120, start.getTime()); }}
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEventModal({ kind, id: r.id, leadId: r.leadId ?? r.id, title: r.clientName, sub: `${fmtHM(start)} · ${sk.modalSub}${r.commercialName ? ` · ${r.commercialName}` : ""}`, href: `/admin/leads?lead=${r.leadId ?? r.id}` }); }}
+                                draggable={draggable}
+                                onDragStart={(e) => { if (!draggable) { e.preventDefault(); return; } onEventDragStart(e, r.id, "rdv", r.duree ?? 120, start.getTime()); }}
                                 onDragEnd={() => { dragRef.current = null; setDragId(null); }}
-                                className={`absolute rounded-lg border px-2 py-1 overflow-hidden z-10 transition-opacity hover:opacity-80 ${isVisite ? "cursor-pointer bg-fuchsia-500/15 border-fuchsia-500/40" : "cursor-grab active:cursor-grabbing bg-amber-500/15 border-amber-500/40"} ${dragId === r.id ? "opacity-40" : ""}`}
+                                className={`absolute rounded-lg border px-2 py-1 overflow-hidden z-10 transition-opacity hover:opacity-80 ${draggable ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"} ${sk.box} ${dragId === r.id ? "opacity-40" : ""}`}
                                 style={{ top: b.top, height: b.height, ...box, ...(pc ? { borderLeftColor: pc, borderLeftWidth: 3 } : {}) }}
                               >
                                 <div className="flex items-start gap-1.5 h-full overflow-hidden">
-                                  <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 mt-[3px] ${isVisite ? "bg-fuchsia-400" : "bg-amber-400"}`} />
+                                  <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 mt-[3px] ${sk.dot}`} />
                                   <div className="flex-1 min-w-0">
-                                    <p className={`text-[10px] font-semibold leading-tight truncate ${isVisite ? "text-fuchsia-300" : "text-amber-300"}`}>{fmtHM(start)} · {r.clientName || (isVisite ? "Visite" : "RDV")}</p>
-                                    {b.height >= 34 && <p className="text-white/70 text-[10px] leading-tight truncate mt-0.5">{isVisite ? "Visite" : "RDV"}{r.commercialName ? ` · ${r.commercialName}` : ""}</p>}
+                                    <p className={`text-[10px] font-semibold leading-tight truncate ${sk.text}`}>{fmtHM(start)} · {r.clientName || sk.short}</p>
+                                    {b.height >= 34 && <p className="text-white/70 text-[10px] leading-tight truncate mt-0.5">{sk.short}{r.commercialName ? ` · ${r.commercialName}` : ""}</p>}
                                   </div>
                                 </div>
                               </Link>

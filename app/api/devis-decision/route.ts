@@ -66,6 +66,7 @@ export async function POST(req: NextRequest) {
     await db.update(leads).set({
       ...(estDevisCourant ? { devisDecision: "accepte", devisDecisionLe: new Date(), devisMotifRefus: null } : {}),
       status: "gagné", gagneLe: new Date(),
+      installPrevuLe: null, // le créneau provisoire devient la vraie intervention ci-dessous
       statutChangeLe: new Date(), relanceNotifieeLe: null,
       version: sql`${leads.version} + 1`, updatedAt: new Date(),
     }).where(eq(leads.id, lead.id));
@@ -74,13 +75,14 @@ export async function POST(req: NextRequest) {
     try {
       const client = await createClientFromLead(lead.id);
       if (client && !dejaConverti) {
+        // Si un créneau d'installation provisoire avait été posé (devis envoyé), l'intervention en hérite.
         await createIntervention({
           clientId: client.id,
           type: (lead.project ?? "autre"),
           status: "planifiée",
-          scheduledAt: null,
+          scheduledAt: lead.installPrevuLe ?? null,
           address: lead.address ?? client.address ?? null,
-          dureeEstimeeMinutes: 120,
+          dureeEstimeeMinutes: lead.installPrevuLe ? 240 : 120,
         });
       }
     } catch (e) { logError("devisDecision.conversion", e, { leadId: lead.id }); }
