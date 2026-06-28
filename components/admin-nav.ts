@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, Contact, ScrollText, Wrench,
-  HeadphonesIcon, HardHat, Briefcase, BarChart2, FileText, Megaphone, CalendarOff, ShieldCheck, Receipt,
+  HeadphonesIcon, HardHat, Briefcase, BarChart2, FileText, Megaphone, CalendarOff, ShieldCheck, Receipt, Calculator,
 } from "lucide-react";
 
 // Configuration de navigation admin partagée entre l'en-tête (desktop) et la
@@ -21,8 +21,9 @@ export const groups = [
   {
     label: "Terrain",
     items: [
-      { href: "/admin/interventions", label: "Interventions", icon: Wrench },
-      { href: "/admin/sav",           label: "SAV",           icon: HeadphonesIcon },
+      { href: "/admin/terrain/chiffrage", label: "Chiffrage devis", icon: Calculator },
+      { href: "/admin/interventions",     label: "Interventions",   icon: Wrench },
+      { href: "/admin/sav",               label: "SAV",             icon: HeadphonesIcon },
     ],
   },
   {
