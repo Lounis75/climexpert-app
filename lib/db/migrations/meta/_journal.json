@@ -295,6 +295,13 @@
       "when": 1782662018400,
       "tag": "0041_lead_install_prevu",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1782668794678,
+      "tag": "0042_install_prevu_duree",
+      "breakpoints": true
     }
   ]
 }

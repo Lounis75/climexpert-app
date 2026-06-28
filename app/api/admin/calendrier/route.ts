@@ -58,8 +58,8 @@ export async function GET(req: NextRequest) {
     db.select({ id: leads.id, clientName: leads.name, visiteClientLe: leads.visiteClientLe, commercialId: leads.commercialId, commercialName: techniciens.name })
       .from(leads).leftJoin(techniciens, eq(leads.commercialId, techniciens.id))
       .where(and(gte(leads.visiteClientLe, startDate), lte(leads.visiteClientLe, endDate), isNull(leads.supprimeLe), isNull(leads.archiveLe), ne(leads.status, "perdu"))),
-    // Créneaux d'installation PROVISOIRES (devis envoyé, pas encore payé) — créneau 4h.
-    db.select({ id: leads.id, clientName: leads.name, installPrevuLe: leads.installPrevuLe, commercialId: leads.commercialId, commercialName: techniciens.name })
+    // Interventions PROVISOIRES (devis envoyé, pas encore payé) — durée choisie (défaut 2h).
+    db.select({ id: leads.id, clientName: leads.name, installPrevuLe: leads.installPrevuLe, duree: leads.installPrevuDureeMin, commercialId: leads.commercialId, commercialName: techniciens.name })
       .from(leads).leftJoin(techniciens, eq(leads.commercialId, techniciens.id))
       .where(and(gte(leads.installPrevuLe, startDate), lte(leads.installPrevuLe, endDate), isNull(leads.supprimeLe), isNull(leads.archiveLe), ne(leads.status, "perdu"))),
   ]);
@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
   const rdvs = [
     ...rdvRows.map((r) => ({ id: r.id, leadId: r.id, clientName: r.clientName, rdvDate: r.rdvDate, commercialId: r.commercialId, commercialName: r.commercialName, kind: "rdv" as const, duree: 120 })),
     ...visiteRows.map((r) => ({ id: `${r.id}::v`, leadId: r.id, clientName: r.clientName, rdvDate: r.visiteClientLe, commercialId: r.commercialId, commercialName: r.commercialName, kind: "visite" as const, duree: 60 })),
-    ...installRows.map((r) => ({ id: `${r.id}::i`, leadId: r.id, clientName: r.clientName, rdvDate: r.installPrevuLe, commercialId: r.commercialId, commercialName: r.commercialName, kind: "install" as const, duree: 240 })),
+    ...installRows.map((r) => ({ id: `${r.id}::i`, leadId: r.id, clientName: r.clientName, rdvDate: r.installPrevuLe, commercialId: r.commercialId, commercialName: r.commercialName, kind: "install" as const, duree: r.duree ?? 120 })),
   ];
 
   return NextResponse.json({ interventions: rows, techniciens: techRows, periodes, rdvs, indispos: indispoRows });

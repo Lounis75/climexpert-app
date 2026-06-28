@@ -768,12 +768,12 @@ export default function CalendrierDashboard() {
                       return (
                         <Link key={`${ev.kind}-${ev.id}`}
                           href={ev.kind === "int" ? `/admin/interventions/${ev.id}` : `/admin/leads?lead=${ev.leadId ?? ev.id}`}
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEventModal({ kind: ev.kind, id: ev.id, leadId: ev.leadId, title: ev.label, sub: `${ev.time ? ev.time + " · " : ""}${ev.kind === "int" ? "Intervention" : ev.kind === "visite" ? "Visite client" : ev.kind === "install" ? "Installation (provisoire, non payé)" : "RDV commercial"}`, href: ev.kind === "int" ? `/admin/interventions/${ev.id}` : `/admin/leads?lead=${ev.leadId ?? ev.id}` }); }}
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEventModal({ kind: ev.kind, id: ev.id, leadId: ev.leadId, title: ev.label, sub: `${ev.time ? ev.time + " · " : ""}${ev.kind === "int" ? "Intervention" : ev.kind === "visite" ? "Visite client" : ev.kind === "install" ? "Intervention (provisoire, non payé)" : "RDV commercial"}`, href: ev.kind === "int" ? `/admin/interventions/${ev.id}` : `/admin/leads?lead=${ev.leadId ?? ev.id}` }); }}
                           draggable={ev.kind === "rdv" || ev.kind === "int"}
                           onDragStart={(e) => { if (ev.kind === "visite" || ev.kind === "install") { e.preventDefault(); return; } onEventDragStart(e, ev.id, ev.kind as "int" | "rdv", ev.duree, ev.start); }}
                           onDragEnd={() => { dragRef.current = null; setDragId(null); }}
                           className={`block rounded px-1 py-0.5 text-[9px] leading-tight truncate hover:opacity-80 ${ev.kind === "rdv" || ev.kind === "int" ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"} ${ev.kind === "rdv" ? "bg-amber-500/20 text-amber-300" : ev.kind === "visite" ? "bg-fuchsia-500/20 text-fuchsia-300" : ev.kind === "install" ? "bg-orange-500/20 text-orange-300" : `${cfg.bg} ${cfg.text}`} ${dragId === ev.id ? "opacity-40" : ""}`}>
-                          {ev.time && <span className="opacity-70">{ev.time} </span>}{ev.kind === "rdv" ? "RDV " : ev.kind === "visite" ? "Visite " : ev.kind === "install" ? "Install. " : ""}{ev.label}
+                          {ev.time && <span className="opacity-70">{ev.time} </span>}{ev.kind === "rdv" ? "RDV " : ev.kind === "visite" ? "Visite " : ev.kind === "install" ? "Interv. " : ""}{ev.label}
                         </Link>
                       );
                     })}
@@ -885,7 +885,7 @@ export default function CalendrierDashboard() {
                             const kind = r.kind ?? "rdv";
                             const draggable = kind === "rdv";
                             const sk = kind === "install"
-                              ? { box: "bg-orange-500/15 border-orange-500/50 border-dashed", dot: "bg-orange-400", text: "text-orange-300", short: "Install. · à payer", modalSub: "Installation (provisoire, non payé)" }
+                              ? { box: "bg-orange-500/15 border-orange-500/50 border-dashed", dot: "bg-orange-400", text: "text-orange-300", short: "Interv. · à payer", modalSub: "Intervention (provisoire, non payé)" }
                               : kind === "visite"
                               ? { box: "bg-fuchsia-500/15 border-fuchsia-500/40", dot: "bg-fuchsia-400", text: "text-fuchsia-300", short: "Visite", modalSub: "Visite client" }
                               : { box: "bg-amber-500/15 border-amber-500/40", dot: "bg-amber-400", text: "text-amber-300", short: "RDV", modalSub: "RDV commercial" };

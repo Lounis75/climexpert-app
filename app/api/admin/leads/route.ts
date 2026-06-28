@@ -128,6 +128,10 @@ export async function PATCH(req: NextRequest) {
       const d = fields.installPrevuLe ? new Date(fields.installPrevuLe) : null;
       allowed.installPrevuLe = d && !isNaN(d.getTime()) ? d : null;
     }
+    if (fields.installPrevuDureeMin !== undefined) {
+      const n = Number(fields.installPrevuDureeMin);
+      allowed.installPrevuDureeMin = Number.isFinite(n) && n > 0 ? Math.round(n) : null;
+    }
     if (fields.dateSouhaiteeIntervention !== undefined) {
       const d = fields.dateSouhaiteeIntervention ? new Date(fields.dateSouhaiteeIntervention) : null;
       allowed.dateSouhaiteeIntervention = d && !isNaN(d.getTime()) ? d : null;

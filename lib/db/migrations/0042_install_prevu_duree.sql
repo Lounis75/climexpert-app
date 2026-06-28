@@ -1,0 +1,1 @@
+ALTER TABLE "leads" ADD COLUMN "install_prevu_duree_min" integer;

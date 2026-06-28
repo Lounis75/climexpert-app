@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
           status: "planifiée",
           scheduledAt: lead.installPrevuLe ?? null,
           address: lead.address ?? client.address ?? null,
-          dureeEstimeeMinutes: lead.installPrevuLe ? 240 : 120,
+          dureeEstimeeMinutes: lead.installPrevuDureeMin ?? 120,
         });
       }
     } catch (e) { logError("devisDecision.conversion", e, { leadId: lead.id }); }

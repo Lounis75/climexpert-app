@@ -236,6 +236,7 @@ export const leads = pgTable("leads", {
   // Créneau d'installation PROVISOIRE posé dès l'envoi du devis (avant paiement) → affiché au
   // Planning en couleur « non payé / provisoire ». Devient la vraie intervention à l'acceptation.
   installPrevuLe:      timestamp("install_prevu_le"),
+  installPrevuDureeMin: integer("install_prevu_duree_min"), // durée du créneau provisoire (min), défaut 120
   // Date souhaitée d'intervention par le client (notée dès l'envoi du devis) →
   // pré-remplit l'intervention créée lors de la conversion en client.
   dateSouhaiteeIntervention: timestamp("date_souhaitee_intervention"),
