@@ -274,6 +274,13 @@
       "when": 1782597727263,
       "tag": "0038_lead_note_epinglee",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1782650641840,
+      "tag": "0039_lead_chiffrage_brouillon",
+      "breakpoints": true
     }
   ]
 }

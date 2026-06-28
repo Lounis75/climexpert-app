@@ -256,6 +256,7 @@ export const leads = pgTable("leads", {
   photosUrls:          text("photos_urls").array(),    // photos jointes au formulaire (affichées sur la fiche prospect)
   piecesJointes:       text("pieces_jointes").array(),  // pièces ajoutées en interne sur le dossier (photos/PDF), propres au lead
   noteEpinglee:        text("note_epinglee"),           // note courte mise en avant dans le cockpit (infos clés appel/visite)
+  chiffrageBrouillon:  jsonb("chiffrage_brouillon"),     // brouillon de devis en cours (outil de chiffrage terrain)
 }, (t) => ({
   statusIdx:        index("leads_status_idx").on(t.status),
   sourceIdx:        index("leads_source_idx").on(t.source),

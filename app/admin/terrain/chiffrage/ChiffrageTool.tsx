@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import type { Catalogue, ChiffragePrefill } from "@/lib/catalogue";
+import type { Catalogue, ChiffragePrefill, ChiffrageClient, ChiffrageDraft } from "@/lib/catalogue";
+import AddressAutocomplete from "@/components/AddressAutocomplete";
 
 // ─── Constantes de dimensionnement (repères pros) ───
 const RATIO: Record<string, number> = { ancien: 125, standard: 100, bbc: 65 };
@@ -64,21 +65,30 @@ function estimateHours(cfg: ReturnType<typeof buildConfig>, install: Install, ro
 const newRoom = (id: number): Room => ({ id, nom: "Salon", surface: 25, hauteur: 2.5, orientation: "ouest", isolation: "standard", baie: false, occupants: 2, combles: false, chaleur: false, distance: 5, evac: true });
 const eur = (n: number, d = 2) => n.toLocaleString("fr-FR", { minimumFractionDigits: d, maximumFractionDigits: d });
 
-export default function ChiffrageTool({ catalogue: initialCatalogue, prefill }: { catalogue: Catalogue; prefill?: ChiffragePrefill | null }) {
+const EMPTY_CLIENT: ChiffrageClient = { nom: "", tel: "", email: "", adr: "", cp: "", ville: "", entreprise: "", siren: "" };
+
+export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, draft }: { catalogue: Catalogue; prefill?: ChiffragePrefill | null; draft?: ChiffrageDraft | null }) {
   const [cat, setCat] = useState<Catalogue>(initialCatalogue);
-  const [clientType, setClientType] = useState<"particulier" | "pro">(prefill?.clientType ?? "particulier");
-  const [plus2ans, setPlus2ans] = useState(true);
-  const [client, setClient] = useState(prefill?.client ?? { nom: "", tel: "", adr: "", cp: "", ville: "" });
-  const [rooms, setRooms] = useState<Room[]>(() => Array.from({ length: prefill?.nbRooms ?? 1 }, (_, i) => newRoom(i + 1)));
-  const roomSeq = useRef(prefill?.nbRooms ?? 1);
-  const [install, setInstall] = useState<Install>({ empl: "sol", tableau: 6, nbMurs: 1, murMat: "brique", immeuble: prefill?.immeuble ?? false, faibleDb: false, nacelle: false, compteur: false, depose: prefill?.depose ?? false });
-  const [brand, setBrand] = useState("mitsubishi");
-  const [generated, setGenerated] = useState(false);
-  const [lines, setLines] = useState<Line[]>([]);
-  const [hours, setHours] = useState(0);
+  const [leadId, setLeadId] = useState<string | null>(prefill?.leadId ?? draft?.leadId ?? null);
+  const [clientType, setClientType] = useState<"particulier" | "pro">(draft?.clientType ?? prefill?.clientType ?? "particulier");
+  const [plus2ans, setPlus2ans] = useState(draft?.plus2ans ?? true);
+  const [client, setClient] = useState<ChiffrageClient>({ ...EMPTY_CLIENT, ...(prefill?.client ?? {}), ...(draft?.client ?? {}) });
+  const [rooms, setRooms] = useState<Room[]>(() => (draft?.rooms?.length ? (draft.rooms as Room[]) : Array.from({ length: prefill?.nbRooms ?? 1 }, (_, i) => newRoom(i + 1))));
+  const roomSeq = useRef(draft?.rooms?.length ? (draft.rooms as Room[]).reduce((m, r) => Math.max(m, r.id), 0) : (prefill?.nbRooms ?? 1));
+  const [install, setInstall] = useState<Install>(draft?.install ? (draft.install as Install) : { empl: "sol", tableau: 6, nbMurs: 1, murMat: "brique", immeuble: prefill?.immeuble ?? false, faibleDb: false, nacelle: false, compteur: false, depose: prefill?.depose ?? false });
+  const [brand, setBrand] = useState(draft?.brand ?? "mitsubishi");
+  const [generated, setGenerated] = useState(draft?.generated ?? false);
+  const [lines, setLines] = useState<Line[]>(draft?.lines ? (draft.lines as Line[]) : []);
+  const [hours, setHours] = useState(() => { const l = (draft?.lines as Line[] | undefined)?.find((x) => x.isMO); return l?.q ?? 0; });
   const [catOpen, setCatOpen] = useState(false);
   const [savingCat, setSavingCat] = useState(false);
   const [catSaved, setCatSaved] = useState(false);
+  // Brouillon + envoi
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [draftMsg, setDraftMsg] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [sendErr, setSendErr] = useState("");
 
   const tvaMat = () => 20;
   const tvaMO = () => (clientType === "pro" || !plus2ans ? 20 : 10);
@@ -177,6 +187,32 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill }: 
     } finally { setSavingCat(false); }
   }
 
+  function currentDraft(): ChiffrageDraft {
+    return { leadId: leadId ?? undefined, clientType, plus2ans, client, rooms, install, brand, lines, generated };
+  }
+  async function saveDraft() {
+    if (!client.nom.trim() && !client.entreprise.trim()) { setDraftMsg("Renseigne au moins le nom du client (ou l'entreprise)."); return; }
+    setSavingDraft(true); setDraftMsg("");
+    try {
+      const res = await fetch("/api/admin/terrain/chiffrage/save-draft", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ leadId, draft: currentDraft() }) });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) { setLeadId(d.leadId); setDraftMsg(d.created ? "✓ Brouillon enregistré, prospect créé" : "✓ Brouillon enregistré"); }
+      else setDraftMsg(d.error ?? "Échec de l'enregistrement.");
+    } catch { setDraftMsg("Erreur réseau."); }
+    finally { setSavingDraft(false); }
+  }
+  async function sendDevis() {
+    if (!client.email.trim()) { setSendErr("Renseigne l'e-mail du client (section A « Client ») pour lui envoyer le devis."); return; }
+    setSending(true); setSendErr("");
+    try {
+      const res = await fetch("/api/admin/terrain/chiffrage/envoyer", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ leadId, clientType, client, lignes: lines }) });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) { setLeadId(d.leadId); setSent(true); }
+      else setSendErr(d.error ?? "Échec de l'envoi.");
+    } catch { setSendErr("Erreur réseau."); }
+    finally { setSending(false); }
+  }
+
   return (
     <div className="ct">
       <style>{CT_CSS}</style>
@@ -195,12 +231,23 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill }: 
               <button className={clientType === "pro" ? "on" : ""} onClick={() => setClientType("pro")}>Professionnel (commerce, bureau)</button>
             </div>
             <label className="chk"><input type="checkbox" checked={plus2ans} onChange={(e) => setPlus2ans(e.target.checked)} /> Logement achevé depuis plus de 2 ans (TVA 10 % sur la pose)</label>
+            {clientType === "pro" && (
+              <div className="grid">
+                <div><label>Entreprise</label><input value={client.entreprise} onChange={(e) => setClient({ ...client, entreprise: e.target.value })} placeholder="Raison sociale" /></div>
+                <div><label>N° SIREN / SIRET</label><input value={client.siren} onChange={(e) => setClient({ ...client, siren: e.target.value })} placeholder="123 456 789 00012" /></div>
+              </div>
+            )}
             <div className="grid">
-              <div><label>Nom du client</label><input value={client.nom} onChange={(e) => setClient({ ...client, nom: e.target.value })} placeholder="Nom Prénom" /></div>
+              <div><label>{clientType === "pro" ? "Contact" : "Nom du client"}</label><input value={client.nom} onChange={(e) => setClient({ ...client, nom: e.target.value })} placeholder="Nom Prénom" /></div>
               <div><label>Téléphone</label><input value={client.tel} onChange={(e) => setClient({ ...client, tel: e.target.value })} placeholder="06 ..." /></div>
             </div>
-            <label>Adresse du chantier</label><input value={client.adr} onChange={(e) => setClient({ ...client, adr: e.target.value })} placeholder="N° et rue" />
-            <div className="grid">
+            <label>E-mail (nécessaire pour envoyer le devis)</label>
+            <input type="email" value={client.email} onChange={(e) => setClient({ ...client, email: e.target.value })} placeholder="client@email.fr" />
+            <label style={{ marginTop: 12 }}>Adresse du chantier</label>
+            <AddressAutocomplete value={client.adr} onChange={(v) => setClient((c) => ({ ...c, adr: v }))}
+              onSelect={(s) => setClient((c) => ({ ...c, adr: s.label, cp: s.postcode, ville: s.city }))}
+              placeholder="Commencez à taper l'adresse…" className="ct-addr-input" />
+            <div className="grid" style={{ marginTop: 12 }}>
               <div><label>Code postal</label><input value={client.cp} onChange={(e) => setClient({ ...client, cp: e.target.value })} placeholder="75015" /></div>
               <div><label>Ville</label><input value={client.ville} onChange={(e) => setClient({ ...client, ville: e.target.value })} placeholder="Paris" /></div>
             </div>
@@ -275,6 +322,10 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill }: 
           </section>
 
           <button className="btn primary" onClick={generate}>Calculer le devis</button>
+          <div className="draftrow">
+            <button className="btn ghost sm" onClick={saveDraft} disabled={savingDraft}>{savingDraft ? "Enregistrement…" : "💾 Enregistrer le brouillon"}</button>
+            {draftMsg && <span className="draftmsg">{draftMsg}</span>}
+          </div>
 
           {/* Catalogue éditable (central, persistant) */}
           <details className="cat" open={catOpen} onToggle={(e) => setCatOpen((e.target as HTMLDetailsElement).open)}>
@@ -347,8 +398,20 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill }: 
             CLIM EXPERT · SAS au capital de 1 000 € · 200 rue de la Croix Nivert, 75015 Paris · SIRET 992 975 862 00010 · TVA FR77 992 975 862<br />
             Assurance décennale : ERGO France, contrat SV75018041T42457, France métropolitaine et DROM · Devis estimatif, à valider après visite technique. Validité 30 jours.
           </div>
-          <button className="btn primary noprint" onClick={() => window.print()} style={{ marginTop: 16 }}>Imprimer / Exporter en PDF</button>
-          <button className="btn ghost sm noprint" onClick={() => setGenerated(false)} style={{ marginTop: 8 }}>Modifier les réponses</button>
+          {sent ? (
+            <div className="sentbox noprint">✓ Devis envoyé au client par e-mail. Le prospect est passé en <b>« Devis envoyé »</b>.{leadId && <> · <a href={`/admin/leads?lead=${leadId}`} target="_blank" rel="noopener noreferrer">Ouvrir la fiche</a></>}</div>
+          ) : (
+            <>
+              <button className="btn primary noprint" onClick={sendDevis} disabled={sending} style={{ marginTop: 16 }}>{sending ? "Envoi en cours…" : "Envoyer le devis au client"}</button>
+              {sendErr && <div className="senderr noprint">{sendErr}</div>}
+            </>
+          )}
+          <div className="actrow noprint">
+            <button className="btn ghost sm" onClick={() => window.print()}>Imprimer / PDF</button>
+            <button className="btn ghost sm" onClick={() => { setGenerated(false); setSent(false); setSendErr(""); }}>Modifier les réponses</button>
+            <button className="btn ghost sm" onClick={saveDraft} disabled={savingDraft}>{savingDraft ? "…" : "💾 Brouillon"}</button>
+          </div>
+          {draftMsg && <div className="draftmsg noprint">{draftMsg}</div>}
         </div>
       )}
 
@@ -401,6 +464,12 @@ const CT_CSS = `
 .ct .brand .bdb{font-size:10px;color:var(--muted);margin-top:2px}
 .ct .legend{font-size:12px;color:var(--muted);margin-top:8px}
 .ct .prefill{background:#E8F5FC;border:1px solid #B9E2F5;border-radius:9px;padding:10px 12px;font-size:13px;color:var(--blue-d);margin-bottom:16px}
+.ct .draftrow{display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap}
+.ct .draftmsg{font-size:12px;color:var(--ok);font-weight:600;margin-top:6px}
+.ct .actrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.ct .sentbox{background:#E6F6EC;border:1px solid #B7E3C6;border-radius:9px;padding:12px 14px;font-size:14px;color:#15613a;margin-top:16px}
+.ct .sentbox a{color:var(--blue-d);font-weight:700}
+.ct .senderr{background:#FDEAEA;border:1px solid #F3C4C4;border-radius:9px;padding:10px 12px;font-size:13px;color:#9B2C2C;margin-top:8px}
 .ct .note{background:var(--warn);border:1px solid #EAD4AE;border-radius:9px;padding:10px 12px;font-size:12.5px;color:#7A4D12;margin-top:10px}
 .ct .note > div{margin:2px 0}
 .ct details.cat{background:#fff;border:1px solid var(--line);border-radius:var(--r);margin-top:16px}

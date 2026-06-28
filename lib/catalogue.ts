@@ -79,12 +79,29 @@ export async function saveCatalogue(c: Catalogue): Promise<void> {
   await r2PutJSON(CATALOGUE_KEY, { ...c, updatedAt: new Date().toISOString() });
 }
 
+export type ChiffrageClient = { nom: string; tel: string; email: string; adr: string; cp: string; ville: string; entreprise: string; siren: string };
+
 // Pré-remplissage de l'outil de chiffrage depuis un prospect (client + qualification).
 export type ChiffragePrefill = {
   leadId: string;
-  client: { nom: string; tel: string; adr: string; cp: string; ville: string };
+  client: ChiffrageClient;
   clientType: "particulier" | "pro";
   nbRooms: number;
   immeuble: boolean;
   depose: boolean;
+};
+
+// État complet sauvegardé en brouillon (restauré tel quel par l'outil). Types souples : l'outil
+// connaît la forme exacte de rooms/install/lines et fait le cast.
+export type ChiffrageDraft = {
+  leadId?: string;
+  clientType: "particulier" | "pro";
+  plus2ans: boolean;
+  client: ChiffrageClient;
+  rooms: unknown[];
+  install: unknown;
+  brand: string;
+  lines?: unknown[];
+  generated?: boolean;
+  savedAt?: string;
 };

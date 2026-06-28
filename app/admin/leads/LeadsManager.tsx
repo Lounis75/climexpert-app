@@ -1859,11 +1859,18 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                     </div>
                   ) : null}
 
-                  {/* Outil de chiffrage terrain, pré-rempli avec les infos du prospect (client + qualification) */}
-                  <Link href={`/admin/terrain/chiffrage?lead=${lead.id}`} target="_blank" rel="noopener noreferrer"
-                    className="w-full flex items-center justify-center gap-2 py-2.5 mb-2 rounded-lg border border-sky-500/40 text-sky-300 hover:bg-sky-500/10 text-sm font-semibold transition-colors">
-                    <Calculator className="w-4 h-4" /> Faire un chiffrage (outil terrain)
-                  </Link>
+                  {/* Outil de chiffrage terrain, pré-rempli avec les infos du prospect (ou reprise d'un brouillon) */}
+                  {(lead as Lead & { chiffrageBrouillon?: unknown }).chiffrageBrouillon ? (
+                    <Link href={`/admin/terrain/chiffrage?lead=${lead.id}`} target="_blank" rel="noopener noreferrer"
+                      className="w-full flex items-center justify-center gap-2 py-2.5 mb-2 rounded-lg border border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 text-sm font-semibold transition-colors">
+                      <Calculator className="w-4 h-4" /> Reprendre le devis (brouillon)
+                    </Link>
+                  ) : (
+                    <Link href={`/admin/terrain/chiffrage?lead=${lead.id}`} target="_blank" rel="noopener noreferrer"
+                      className="w-full flex items-center justify-center gap-2 py-2.5 mb-2 rounded-lg border border-sky-500/40 text-sky-300 hover:bg-sky-500/10 text-sm font-semibold transition-colors">
+                      <Calculator className="w-4 h-4" /> Faire un chiffrage (outil terrain)
+                    </Link>
+                  )}
 
                   {/* Bouton toujours disponible : 1er devis OU devis supplémentaire (2e lien, etc.) */}
                   <button onClick={() => openDevis(lead)} disabled={!lead.email} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-sky-500 hover:bg-sky-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors">
