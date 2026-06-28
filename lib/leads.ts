@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { leads, interventions, suivis, techniciens, type Lead, type NewLead } from "@/lib/db/schema";
+import { leads, interventions, suivis, techniciens, devisEnvois, clients, type Lead, type NewLead } from "@/lib/db/schema";
 import { eq, desc, isNull, and, inArray, notInArray, ne, isNotNull, asc, ilike, or, count, sql, type SQL } from "drizzle-orm";
 
 export type LeadStatus = "nouveau" | "pas_de_reponse" | "contacté" | "devis_envoyé" | "gagné" | "perdu";
@@ -209,8 +209,12 @@ export async function deleteLead(id: string): Promise<void> {
   await db.update(leads).set({ supprimeLe: new Date(), version: sql`${leads.version} + 1` }).where(eq(leads.id, id));
 }
 
-// Fusionne `duplicateId` dans `masterId` : garde les champs du master, complète
-// avec ceux du doublon si vides, concatène les notes, supprime le doublon.
+// Statut le plus « avancé » entre deux prospects (pour ne pas écraser un gagné lors d'une fusion).
+const STATUS_RANK: Record<string, number> = { nouveau: 0, pas_de_reponse: 0, perdu: 1, contacté: 2, devis_envoyé: 3, gagné: 4 };
+
+// Fusionne `duplicateId` dans `masterId` : transfère les enfants (suivis, devis, lien client),
+// complète les champs vides, garde le STATUT le plus avancé, concatène les notes, puis supprime
+// le doublon EN DERNIER (pour rester ré-exécutable en cas d'échec partiel — pas de transaction neon-http).
 export async function mergeLeads(masterId: string, duplicateId: string): Promise<Lead | null> {
   const [master, duplicate] = await Promise.all([
     getLeadById(masterId),
@@ -218,14 +222,32 @@ export async function mergeLeads(masterId: string, duplicateId: string): Promise
   ]);
   if (!master || !duplicate) return null;
 
-  const merged: Partial<Pick<NewLead, "email" | "location" | "project" | "message" | "notes" | "status">> = {
+  // 1) Transfert des enfants du doublon vers le master (AVANT la suppression du doublon).
+  await db.update(suivis).set({ leadId: masterId }).where(eq(suivis.leadId, duplicateId)).catch(() => {});
+  await db.update(devisEnvois).set({ leadId: masterId }).where(eq(devisEnvois.leadId, duplicateId)).catch(() => {});
+  // Lien client : si le doublon est déjà converti et pas le master, on rattache son client au master.
+  let clientIdToKeep = master.clientId ?? null;
+  if (!master.clientId && duplicate.clientId) {
+    clientIdToKeep = duplicate.clientId;
+    await db.update(clients).set({ leadId: masterId }).where(eq(clients.id, duplicate.clientId)).catch(() => {});
+  }
+
+  // 2) Champs fusionnés (master prioritaire, doublon en complément ; statut le plus avancé).
+  const keepDuplicateDevis = !master.devisToken && !!duplicate.devisToken; // récupère le devis du doublon si le master n'en a pas
+  const merged: Partial<NewLead> = {
     email:    master.email    ?? duplicate.email    ?? undefined,
     location: master.location ?? duplicate.location ?? undefined,
+    address:  master.address  ?? duplicate.address  ?? undefined,
     project:  master.project  ?? duplicate.project  ?? undefined,
     message:  master.message  ?? duplicate.message  ?? undefined,
-    status:   master.status !== "nouveau" ? master.status : duplicate.status,
+    status:   ((STATUS_RANK[duplicate.status] ?? 0) > (STATUS_RANK[master.status] ?? 0) ? duplicate.status : master.status),
+    clientId: clientIdToKeep ?? undefined,
+    montantDevisCt: master.montantDevisCt ?? duplicate.montantDevisCt ?? undefined,
+    ...(keepDuplicateDevis ? {
+      devisToken: duplicate.devisToken, devisUrl: duplicate.devisUrl, devisNomFichier: duplicate.devisNomFichier,
+      devisEnvoyeLe: duplicate.devisEnvoyeLe, devisDecision: duplicate.devisDecision, devisDecisionLe: duplicate.devisDecisionLe,
+    } : {}),
   };
-
   const parts = [master.notes, duplicate.notes].filter(Boolean);
   if (parts.length) merged.notes = parts.join("\n---\n");
 
@@ -235,6 +257,7 @@ export async function mergeLeads(masterId: string, duplicateId: string): Promise
     .where(eq(leads.id, masterId))
     .returning();
 
+  // 3) Suppression (douce) du doublon EN DERNIER.
   await db.update(leads).set({ supprimeLe: new Date(), version: sql`${leads.version} + 1` }).where(eq(leads.id, duplicateId));
 
   return updated ?? null;

@@ -3,6 +3,7 @@ import { interventions, clients, techniciens, suivisPlanifies, rapportsIntervent
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import { eq, desc, gte, asc, and, isNull, sql } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
+import { logError } from "@/lib/observability";
 
 export type Intervention = InferSelectModel<typeof interventions>;
 export type Technicien = InferSelectModel<typeof techniciens>;
@@ -154,16 +155,20 @@ export async function updateInterventionNotes(id: string, notes: string, expecte
 }
 
 export async function deleteIntervention(id: string): Promise<void> {
-  // Les tables filles ont des FK ON DELETE no action : il faut supprimer/détacher
-  // leurs lignes avant l'intervention (sinon violation FK -> 500).
   // neon-http ne supporte pas les transactions interactives -> suppressions séquentielles.
-  // Tightly coupled à l'intervention -> suppression :
-  await db.delete(rapportsIntervention).where(eq(rapportsIntervention.interventionId, id));
-  await db.delete(suivisPlanifies).where(eq(suivisPlanifies.interventionId, id));
-  // Indépendants (appartiennent au client) -> on conserve en détachant la référence :
-  await db.update(savTickets).set({ interventionId: null }).where(eq(savTickets.interventionId, id));
-  await db.update(suivis).set({ interventionId: null }).where(eq(suivis.interventionId, id));
-  // Documents (CERFA, facture...) : ils restent sur la fiche client, on retire juste le lien.
-  await db.update(documents).set({ interventionId: null }).where(eq(documents.interventionId, id));
-  await db.delete(interventions).where(eq(interventions.id, id));
+  // Ordre prudent : on DÉTACHE D'ABORD ce qui appartient au client (documents CERFA/facture, SAV,
+  // suivis) pour le préserver même si une étape suivante échoue ; on supprime ENSUITE ce qui est
+  // propre à l'intervention (suivis planifiés, rapport), et l'intervention en dernier. Toute erreur
+  // est journalisée (au lieu d'un échec muet) puis remontée.
+  try {
+    await db.update(documents).set({ interventionId: null }).where(eq(documents.interventionId, id));
+    await db.update(savTickets).set({ interventionId: null }).where(eq(savTickets.interventionId, id));
+    await db.update(suivis).set({ interventionId: null }).where(eq(suivis.interventionId, id));
+    await db.delete(suivisPlanifies).where(eq(suivisPlanifies.interventionId, id));
+    await db.delete(rapportsIntervention).where(eq(rapportsIntervention.interventionId, id));
+    await db.delete(interventions).where(eq(interventions.id, id));
+  } catch (e) {
+    logError("intervention.delete", e, { interventionId: id });
+    throw e;
+  }
 }

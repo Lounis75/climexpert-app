@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { logError } from "@/lib/observability";
 import { updateInterventionStatus, updateInterventionNotes, deleteIntervention, getInterventionById } from "@/lib/interventions";
 import type { Intervention } from "@/lib/interventions";
 import { db } from "@/lib/db";
@@ -168,7 +169,8 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     const { id } = await params;
     await deleteIntervention(id);
     return NextResponse.json({ success: true });
-  } catch {
+  } catch (e) {
+    logError("intervention.delete.route", e);
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
   }
 }
