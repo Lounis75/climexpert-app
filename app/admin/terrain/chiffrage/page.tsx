@@ -1,5 +1,5 @@
 import AdminHeader from "@/components/AdminHeader";
-import { getCatalogue, type ChiffragePrefill, type ChiffrageDraft } from "@/lib/catalogue";
+import { getCatalogue, type ChiffragePrefill, type ChiffrageDraft, type Prestation } from "@/lib/catalogue";
 import { getLeadById } from "@/lib/leads";
 import type { Lead } from "@/lib/leads";
 import type { Qualification } from "@/lib/qualification";
@@ -19,10 +19,13 @@ function buildPrefill(lead: Lead): ChiffragePrefill {
   const immeuble = q.copropriete === "Oui" || q.typeBien === "Appartement" || ["appartement", "copropriete"].includes(l.typeBatiment ?? "");
   const depose = q.natureProjet === "Dépose" || !!q.deposeNbUnites;
   const pro = q.clientType === "Professionnel" || l.typeClient === "professionnel";
+  const PRESTA: Record<string, Prestation> = { Installation: "installation", Entretien: "entretien", "Dépannage": "depannage", "Dépose": "depose" };
+  const prestation: Prestation = PRESTA[q.natureProjet ?? ""] ?? (lead.project === "entretien" ? "entretien" : lead.project === "depannage" ? "depannage" : "installation");
   return {
     leadId: lead.id,
     client: { nom: lead.name ?? "", tel: lead.phone ?? "", email: lead.email ?? "", adr: l.address ?? "", cp, ville, entreprise: l.entreprise ?? "", siren: l.siren ?? "" },
     clientType: pro ? "pro" : "particulier",
+    prestation,
     nbRooms: Math.min(Math.max(nb, 1), 8),
     immeuble: !!immeuble,
     depose: !!depose,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import type { Catalogue, ChiffragePrefill, ChiffrageClient, ChiffrageDraft } from "@/lib/catalogue";
+import type { Catalogue, ChiffragePrefill, ChiffrageClient, ChiffrageDraft, Prestation } from "@/lib/catalogue";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 
 // ─── Constantes de dimensionnement (repères pros) ───
@@ -77,6 +77,12 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
   const roomSeq = useRef(draft?.rooms?.length ? (draft.rooms as Room[]).reduce((m, r) => Math.max(m, r.id), 0) : (prefill?.nbRooms ?? 1));
   const [install, setInstall] = useState<Install>(draft?.install ? (draft.install as Install) : { empl: "sol", tableau: 6, nbMurs: 1, murMat: "brique", immeuble: prefill?.immeuble ?? false, faibleDb: false, nacelle: false, compteur: false, depose: prefill?.depose ?? false });
   const [brand, setBrand] = useState(draft?.brand ?? "mitsubishi");
+  // Type de prestation : installation (dimensionnement) ou entretien/dépannage/dépose/autre (forfaits).
+  const [prestation, setPrestation] = useState<Prestation>(draft?.prestation ?? prefill?.prestation ?? "installation");
+  const [prestaUnits, setPrestaUnits] = useState(draft?.prestaUnits ?? prefill?.nbRooms ?? 1);
+  const [prestaHours, setPrestaHours] = useState(draft?.prestaHours ?? 2);
+  const [prestaContrat, setPrestaContrat] = useState(draft?.prestaContrat ?? false);
+  const [prestaNote, setPrestaNote] = useState(draft?.prestaNote ?? "");
   const [generated, setGenerated] = useState(draft?.generated ?? false);
   const [lines, setLines] = useState<Line[]>(draft?.lines ? (draft.lines as Line[]) : []);
   const [hours, setHours] = useState(() => { const l = (draft?.lines as Line[] | undefined)?.find((x) => x.isMO); return l?.q ?? 0; });
@@ -123,11 +129,39 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
     return out;
   }
 
+  // Lignes par défaut pour les prestations hors installation (forfaits du catalogue, ajustables).
+  function buildPrestaLines(): Line[] {
+    const f = cat.forfaits;
+    const out: Line[] = [];
+    const u = Math.max(1, Math.round(prestaUnits) || 1);
+    if (prestation === "entretien") {
+      if (prestaContrat) out.push({ d: `Contrat d'entretien annuel (${u} unité${u > 1 ? "s" : ""})`, q: u, pu: f.entretien_contrat_unite?.v ?? 0, tva: tvaMO() });
+      else out.push({ d: `Entretien climatisation (${u} unité${u > 1 ? "s" : ""})`, q: u, pu: f.entretien_unite?.v ?? 0, tva: tvaMO() });
+      if ((f.entretien_deplacement?.v ?? 0) > 0) out.push({ d: "Déplacement", q: 1, pu: f.entretien_deplacement.v, tva: tvaMO() });
+    } else if (prestation === "depannage") {
+      out.push({ d: "Diagnostic / déplacement", q: 1, pu: f.depannage_diagnostic?.v ?? 0, tva: tvaMO() });
+      out.push({ d: "Main d'œuvre", q: Math.max(0, prestaHours), pu: cat.moRate, tva: tvaMO(), isMO: true });
+    } else if (prestation === "depose") {
+      out.push({ d: `Dépose climatisation (${u} unité${u > 1 ? "s" : ""})`, q: u, pu: f.depose_unite?.v ?? 0, tva: tvaMO() });
+      if ((f.depose_fluides?.v ?? 0) > 0) out.push({ d: "Évacuation / recyclage des fluides", q: 1, pu: f.depose_fluides.v, tva: tvaMO() });
+      out.push({ d: "Main d'œuvre", q: Math.max(0, prestaHours), pu: cat.moRate, tva: tvaMO(), isMO: true });
+    } else {
+      out.push({ d: prestaNote.trim() || "Prestation", q: 1, pu: 0, tva: tvaMO() });
+      out.push({ d: "Main d'œuvre", q: Math.max(0, prestaHours), pu: cat.moRate, tva: tvaMO(), isMO: true });
+    }
+    return out;
+  }
+
   function generate() {
-    if (rooms.length === 0) { alert("Ajoutez au moins une pièce."); return; }
-    const l = buildLines();
-    setLines(l);
-    setHours(estimateHours(cfg, install, rooms));
+    if (prestation === "installation") {
+      if (rooms.length === 0) { alert("Ajoutez au moins une pièce."); return; }
+      setLines(buildLines());
+      setHours(estimateHours(cfg, install, rooms));
+    } else {
+      const l = buildPrestaLines();
+      setLines(l);
+      setHours(l.find((x) => x.isMO)?.q ?? 0);
+    }
     setGenerated(true);
     window.scrollTo(0, 0);
   }
@@ -149,13 +183,19 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
 
   // Estimation rapide (sticky) avant génération
   const quickTtc = useMemo(() => {
+    if (prestation !== "installation") {
+      let ht = 0, tva = 0;
+      for (const ln of buildPrestaLines()) { const t = ln.q * ln.pu; ht += t; tva += (t * ln.tva) / 100; }
+      return ht + tva;
+    }
     const eq = priceFor(cfg, brand, cat);
     let a = eq.price;
     const td = rooms.reduce((x, r) => x + (r.distance || 0), 0);
     a += cat.annex.liaison_base.v + cat.annex.liaison_m.v * td + cat.annex.goulotte_m.v * td + cat.annex.electricite.v + 75;
     a += rooms.filter((r) => !r.evac).length * cat.annex.pompe.v + estimateHours(cfg, install, rooms) * cat.moRate;
     return a * 1.18;
-  }, [cfg, brand, cat, rooms, install]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prestation, cfg, brand, cat, rooms, install, prestaUnits, prestaHours, prestaContrat, prestaNote]);
 
   const dbHint = useMemo(() => {
     const b = cat.brands.find((x) => x.id === brand);
@@ -167,6 +207,7 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
   }, [cat.brands, brand, install.immeuble, install.faibleDb]);
 
   const notes = useMemo(() => {
+    if (prestation !== "installation") return [];
     const eq = priceFor(cfg, brand, cat);
     const b = cat.brands.find((x) => x.id === brand);
     const out: string[] = [];
@@ -176,7 +217,7 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
     if (install.faibleDb && b && !b.lowNoise) out.push("Faible bruit demandé mais marque d'entrée de gamme : envisager Mitsubishi ou Daikin.");
     if (install.compteur && cat.annex.compteur.v === 0) out.push("Évolution du compteur cochée : renseigner le montant (dépend d'Enedis et de la puissance souscrite).");
     return out;
-  }, [cfg, brand, cat, rooms, install]);
+  }, [prestation, cfg, brand, cat, rooms, install]);
 
   async function saveCatalogue() {
     setSavingCat(true); setCatSaved(false);
@@ -188,7 +229,7 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
   }
 
   function currentDraft(): ChiffrageDraft {
-    return { leadId: leadId ?? undefined, clientType, plus2ans, client, rooms, install, brand, lines, generated };
+    return { leadId: leadId ?? undefined, clientType, plus2ans, client, prestation, prestaUnits, prestaHours, prestaContrat, prestaNote, rooms, install, brand, lines, generated };
   }
   async function saveDraft() {
     if (!client.nom.trim() && !client.entreprise.trim()) { setDraftMsg("Renseigne au moins le nom du client (ou l'entreprise)."); return; }
@@ -220,11 +261,17 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
       {!generated && (
         <div>
           {prefill && (
-            <div className="prefill">📋 Pré-rempli depuis le prospect <b>{prefill.client.nom || "—"}</b> ({prefill.nbRooms} pièce{prefill.nbRooms > 1 ? "s" : ""} estimée{prefill.nbRooms > 1 ? "s" : ""}). Vérifie et complète chaque pièce + l&apos;installation sur place.</div>
+            <div className="prefill">📋 Pré-rempli depuis le prospect <b>{prefill.client.nom || "—"}</b>{prestation === "installation" ? ` (${prefill.nbRooms} pièce${prefill.nbRooms > 1 ? "s" : ""} estimée${prefill.nbRooms > 1 ? "s" : ""})` : ""}. Vérifie et complète sur place.</div>
           )}
           {/* A. Client */}
           <section className="card">
             <h2><span className="n">A</span> Client et cadre</h2>
+            <label>Type de prestation</label>
+            <div className="seg" style={{ marginBottom: 12 }}>
+              {([["installation", "Installation"], ["entretien", "Entretien"], ["depannage", "Dépannage"], ["depose", "Dépose"], ["autre", "Autre"]] as const).map(([v, l]) => (
+                <button key={v} className={prestation === v ? "on" : ""} onClick={() => setPrestation(v)}>{l}</button>
+              ))}
+            </div>
             <label>Type de client</label>
             <div className="seg">
               <button className={clientType === "particulier" ? "on" : ""} onClick={() => setClientType("particulier")}>Particulier</button>
@@ -253,6 +300,7 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
             </div>
           </section>
 
+          {prestation === "installation" && (<>
           {/* B. Pièces */}
           <section className="card">
             <h2><span className="n">B</span> Pièces à climatiser</h2>
@@ -320,6 +368,30 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
             </div>
             <p className="legend">Prix du matériel principal seul, pour la configuration calculée. La pose et les postes annexes sont chiffrés dans le devis.</p>
           </section>
+          </>)}
+
+          {/* Prestations hors installation : entretien / dépannage / dépose / autre (forfaits) */}
+          {prestation !== "installation" && (
+            <section className="card">
+              <h2><span className="n">B</span> {prestation === "entretien" ? "Entretien" : prestation === "depannage" ? "Dépannage" : prestation === "depose" ? "Dépose" : "Prestation"}</h2>
+              {(prestation === "entretien" || prestation === "depose") && (
+                <div className="field"><label>Nombre d&apos;unités{prestation === "depose" ? " à déposer" : " à entretenir"}</label>
+                  <input type="number" min={1} value={prestaUnits} onChange={(e) => setPrestaUnits(parseInt(e.target.value) || 1)} /></div>
+              )}
+              {prestation === "entretien" && (
+                <label className="chk"><input type="checkbox" checked={prestaContrat} onChange={(e) => setPrestaContrat(e.target.checked)} /> Contrat d&apos;entretien annuel (au lieu d&apos;un entretien ponctuel)</label>
+              )}
+              {prestation === "autre" && (
+                <div className="field"><label>Description de la prestation</label>
+                  <input value={prestaNote} onChange={(e) => setPrestaNote(e.target.value)} placeholder="ex : déplacement d'une unité, modification d'installation…" /></div>
+              )}
+              {(prestation === "depannage" || prestation === "depose" || prestation === "autre") && (
+                <div className="field"><label>Main d&apos;œuvre estimée (heures)</label>
+                  <input type="number" min={0} step={0.5} value={prestaHours} onChange={(e) => setPrestaHours(parseFloat(e.target.value) || 0)} /></div>
+              )}
+              <p className="legend">Le devis pré-rempli ci-après (forfaits du catalogue) reste entièrement modifiable, et tu peux ajouter des lignes libres (pièces, etc.).</p>
+            </section>
+          )}
 
           <button className="btn primary" onClick={generate}>Calculer le devis</button>
           <div className="draftrow">
@@ -349,6 +421,13 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
                   <input type="number" step={0.1} value={v.v} onChange={(e) => setCat((c) => ({ ...c, annex: { ...c.annex, [k]: { ...c.annex[k], v: parseFloat(e.target.value) || 0 } } }))} />
                 </div>
               ))}
+              <h3>Forfaits prestations (HT) — entretien / dépannage / dépose</h3>
+              {Object.entries(cat.forfaits ?? {}).map(([k, v]) => (
+                <div className="catrow2" key={k}>
+                  <div className="cl">{v.label}</div>
+                  <input type="number" step={0.1} value={v.v} onChange={(e) => setCat((c) => ({ ...c, forfaits: { ...c.forfaits, [k]: { ...c.forfaits[k], v: parseFloat(e.target.value) || 0 } } }))} />
+                </div>
+              ))}
               <div className="catrow2"><div className="cl">Main d'œuvre (€/heure)</div><input type="number" value={cat.moRate} onChange={(e) => setCat((c) => ({ ...c, moRate: parseFloat(e.target.value) || 0 }))} /></div>
               <div className="catrow2"><div className="cl">Coefficient de marge (coût × ce nombre = vente)</div><input type="number" step={0.001} value={cat.marginCoeff} onChange={(e) => setCat((c) => ({ ...c, marginCoeff: parseFloat(e.target.value) || 0 }))} /></div>
               <button className="btn primary sm" style={{ marginTop: 12 }} onClick={saveCatalogue} disabled={savingCat}>
@@ -368,9 +447,13 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
             <div className="box"><b>Chantier</b><div>{[client.adr, `${client.cp} ${client.ville}`.trim()].filter(Boolean).join(", ") || "—"}</div></div>
           </div>
           <div className="dconf">
-            <span className="pill">{cat.brands.find((x) => x.id === brand)?.name}</span>
-            <span className="pill">{cfg.n} pièce(s)</span>{" "}
-            {rooms.map((r, idx) => `P${idx + 1}: ${classify(roomPower(r))} BTU`).join(" · ")}
+            {prestation === "installation" ? (<>
+              <span className="pill">{cat.brands.find((x) => x.id === brand)?.name}</span>
+              <span className="pill">{cfg.n} pièce(s)</span>{" "}
+              {rooms.map((r, idx) => `P${idx + 1}: ${classify(roomPower(r))} BTU`).join(" · ")}
+            </>) : (
+              <span className="pill">{prestation === "entretien" ? "Entretien" : prestation === "depannage" ? "Dépannage" : prestation === "depose" ? "Dépose" : "Prestation"}</span>
+            )}
           </div>
           <table className="ltbl">
             <thead><tr><th>Désignation</th><th className="num">Qté</th><th className="num">P.U. HT</th><th className="num">TVA</th><th className="num">Total HT</th></tr></thead>

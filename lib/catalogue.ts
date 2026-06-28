@@ -98,6 +98,7 @@ export type ChiffragePrefill = {
   leadId: string;
   client: ChiffrageClient;
   clientType: "particulier" | "pro";
+  prestation: Prestation;
   nbRooms: number;
   immeuble: boolean;
   depose: boolean;
@@ -110,6 +111,11 @@ export type ChiffrageDraft = {
   clientType: "particulier" | "pro";
   plus2ans: boolean;
   client: ChiffrageClient;
+  prestation?: Prestation;
+  prestaUnits?: number;
+  prestaHours?: number;
+  prestaContrat?: boolean;
+  prestaNote?: string;
   rooms: unknown[];
   install: unknown;
   brand: string;
