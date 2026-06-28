@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { X, Plus, Check, ChevronLeft, ChevronRight, ChevronDown, Ban, Trash2, ExternalLink } from "lucide-react";
+import { X, Plus, Check, ChevronLeft, ChevronRight, ChevronDown, Ban, Trash2, ExternalLink, Calculator } from "lucide-react";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 const HOUR_START   = 7;
@@ -646,6 +646,12 @@ export default function CalendrierDashboard() {
               <Link href={eventModal.href} onClick={() => setEventModal(null)} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-white text-sm font-semibold transition-colors">
                 <ExternalLink className="w-4 h-4" /> Ouvrir la fiche
               </Link>
+              {eventModal.leadId && (
+                <Link href={`/admin/terrain/chiffrage?lead=${eventModal.leadId}`} target="_blank" rel="noopener noreferrer" onClick={() => setEventModal(null)}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-sky-500/40 text-sky-300 hover:bg-sky-500/10 text-sm font-semibold transition-colors">
+                  <Calculator className="w-4 h-4" /> Faire un devis
+                </Link>
+              )}
               <button onClick={() => deleteEvent(eventModal)} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 text-sm font-semibold transition-colors">
                 <Trash2 className="w-4 h-4" /> Supprimer
               </button>
