@@ -241,6 +241,8 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
   const [installDraft, setInstallDraft] = useState<string | null>(null); // brouillon du créneau d'intervention provisoire
   const [installOpen, setInstallOpen] = useState(false);
   const [installDuree, setInstallDuree] = useState(120); // durée du créneau provisoire (min), défaut 2h
+  const [rdvConfirmBusy, setRdvConfirmBusy] = useState(false);
+  const [rdvConfirmSent, setRdvConfirmSent] = useState(false); // e-mail de confirmation de RDV envoyé
   const dragId = useRef<string | null>(null);
   const [commerciaux, setCommerciaux] = useState<{ id: string; name: string; prenom: string | null; color: string | null }[]>([]);
 
@@ -263,7 +265,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
   // Charge l'historique des devis du prospect ouvert (plusieurs liens peuvent coexister).
   useEffect(() => {
-    setVisiteDraft(null); setVisiteOpen(false); setRdvDraft(null); setInstallDraft(null); setInstallOpen(false); setNotesOpen(false); setShowAllHistory(false); setTab("qualif"); // reset l'édition quand on change de prospect
+    setVisiteDraft(null); setVisiteOpen(false); setRdvDraft(null); setInstallDraft(null); setInstallOpen(false); setRdvConfirmSent(false); setRdvConfirmBusy(false); setNotesOpen(false); setShowAllHistory(false); setTab("qualif"); // reset l'édition quand on change de prospect
     if (!openLeadId) { setDevisHist([]); return; }
     fetch(`/api/admin/leads/${openLeadId}/devis`)
       .then(r => r.json())
@@ -468,6 +470,20 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
     if (data.lead) applyServerLead(data.lead);
     flashSaved();
     return true;
+  }
+
+  // Envoi MANUEL de l'e-mail de confirmation de RDV au client (bouton dans la fiche).
+  async function sendRdvConfirmation() {
+    const id = selectedLead?.id;
+    if (!id || rdvConfirmBusy) return;
+    setRdvConfirmBusy(true);
+    try {
+      const res = await fetch(`/api/admin/leads/${id}/rdv/confirmer`, { method: "POST" });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) setRdvConfirmSent(true);
+      else alert(d.error ?? "L'e-mail n'a pas pu être envoyé.");
+    } catch { alert("Erreur réseau, réessayez."); }
+    finally { setRdvConfirmBusy(false); }
   }
 
   // ⭐ Marquer / démarquer un prospect comme « intéressant » (optimiste + verrou version).
@@ -1756,9 +1772,23 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                             </button>
                           </div>
                           {savedRdv && rdvDraft === null && (
-                            <p className="text-emerald-400 text-[11px] mt-1.5 flex items-center gap-1">
-                              <CheckCircle2 className="w-3 h-3 flex-shrink-0" /> Rendez-vous le {new Date(savedRdv).toLocaleString("fr-FR", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} · ajouté au Planning
-                            </p>
+                            <>
+                              <p className="text-emerald-400 text-[11px] mt-1.5 flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3 flex-shrink-0" /> Rendez-vous le {new Date(savedRdv).toLocaleString("fr-FR", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} · ajouté au Planning
+                              </p>
+                              {lead.email ? (
+                                rdvConfirmSent ? (
+                                  <p className="text-emerald-400 text-[11px] mt-2 flex items-center gap-1"><CheckCircle2 className="w-3 h-3 flex-shrink-0" /> Confirmation envoyée au client par e-mail</p>
+                                ) : (
+                                  <button onClick={sendRdvConfirmation} disabled={rdvConfirmBusy}
+                                    className="mt-2 w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-sky-500/40 text-sky-300 hover:bg-sky-500/10 disabled:opacity-50 text-sm font-semibold transition-colors">
+                                    <Mail className="w-4 h-4" /> {rdvConfirmBusy ? "Envoi…" : "Envoyer la confirmation au client"}
+                                  </button>
+                                )
+                              ) : (
+                                <p className="text-slate-500 text-[11px] mt-2">Ajoute un e-mail au prospect pour pouvoir lui envoyer la confirmation.</p>
+                              )}
+                            </>
                           )}
                         </div>
                       );
