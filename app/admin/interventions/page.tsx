@@ -1,10 +1,11 @@
 import AdminHeader from "@/components/AdminHeader";
-import { getInterventions, TYPE_LABELS, TYPE_COLORS, STATUS_INTERVENTION } from "@/lib/interventions";
+import { getInterventions, getTechniciens, TYPE_LABELS, TYPE_COLORS, STATUS_INTERVENTION } from "@/lib/interventions";
 import Link from "next/link";
 import { Plus, Wrench, Calendar, User, MapPin, ArrowRight, Handshake } from "lucide-react";
 import ViewToggle from "./ViewToggle";
 import { type PlanningEvent } from "./AgendaMobile";
 import PlanningMobile from "./PlanningMobile";
+import AAffecterSection, { type AAffecterItem } from "./AAffecterSection";
 import { getRendezVous } from "@/lib/leads";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +19,20 @@ function formatDate(d: Date | string | null) {
 
 export default async function AdminInterventionsPage() {
   // Admin = tout : interventions (terrain) + rendez-vous commerciaux (RDV pris).
-  const [list, rdvs] = await Promise.all([getInterventions(), getRendezVous()]);
+  const [list, rdvs, techniciens] = await Promise.all([getInterventions(), getRendezVous(), getTechniciens()]);
+
+  // « À affecter » : devis gagnés (interventions planifiées SANS technicien) en attente d'attribution.
+  // C'est le pont commercial -> production. On les sort des sections datées pour les regrouper en tête.
+  const aAffecter = list.filter((i) => i.status === "planifiée" && !i.technicienId);
+  const aAffecterIds = new Set(aAffecter.map((i) => i.id));
+  const aAffecterItems: AAffecterItem[] = aAffecter.map((i) => ({
+    id: i.id, clientName: i.clientName, type: i.type, address: i.address ?? null,
+    scheduledAt: i.scheduledAt ? new Date(i.scheduledAt).toISOString() : null,
+    dureeMin: i.dureeEstimeeMinutes ?? null,
+  }));
+  const techList = techniciens
+    .filter((t) => !t.supprimeLe)
+    .map((t) => ({ id: t.id, name: t.prenom ? `${t.prenom} ${t.name}` : t.name }));
 
   // Événements unifiés pour l'agenda mobile (interventions + RDV distingués).
   const events: PlanningEvent[] = [
@@ -51,11 +65,13 @@ export default async function AdminInterventionsPage() {
 
   // Vue Liste desktop : interventions + RDV FUSIONNÉS, triés chronologiquement, colorés par type.
   const byStart = (a: PlanningEvent, b: PlanningEvent) => new Date(a.start!).getTime() - new Date(b.start!).getTime();
-  const evDated = events.filter((e) => e.start);
+  // Les interventions « à affecter » vivent dans leur propre boîte, pas dans les sections datées/passées.
+  const listable = events.filter((e) => !aAffecterIds.has(e.id));
+  const evDated = listable.filter((e) => e.start);
   const evToday = evDated.filter((e) => startOfDay(new Date(e.start!)).getTime() === todayStart.getTime()).sort(byStart);
   const evWeek = evDated.filter((e) => { const d = new Date(e.start!); return d >= tomorrowStart && d < nextWeekStart; }).sort(byStart);
   const evUpcoming = evDated.filter((e) => new Date(e.start!) >= nextWeekStart).sort(byStart);
-  const evPast = events.filter((e) => !e.start || new Date(e.start!) < todayStart).sort((a, b) => byStart(b, a));
+  const evPast = listable.filter((e) => !e.start || new Date(e.start!) < todayStart).sort((a, b) => byStart(b, a));
 
   // Carte unifiée : intervention (couleur selon le type) OU rendez-vous commercial (fuchsia).
   function EventSection({ title, items, accent }: { title: string; items: PlanningEvent[]; accent?: string }) {
@@ -155,6 +171,8 @@ export default async function AdminInterventionsPage() {
               </div>
             ) : (
               <div className="space-y-8">
+                {/* Pont commercial -> production : devis gagnés en attente d'un technicien. */}
+                <AAffecterSection items={aAffecterItems} techniciens={techList} />
                 {/* Interventions + RDV commerciaux fusionnés, triés par heure, couleur par type. */}
                 <div className="flex items-center gap-4 flex-wrap text-[11px] text-slate-400">
                   <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-fuchsia-500/70" /> RDV commercial</span>
