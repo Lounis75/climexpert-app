@@ -88,7 +88,8 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
   const [prestaNote, setPrestaNote] = useState(draft?.prestaNote ?? "");
   const [generated, setGenerated] = useState(draft?.generated ?? false);
   const [lines, setLines] = useState<Line[]>(draft?.lines ? (draft.lines as Line[]) : []);
-  const [hours, setHours] = useState(() => { const l = (draft?.lines as Line[] | undefined)?.find((x) => x.isMO); return l?.q ?? 0; });
+  // Heures (interne) : reconstituées depuis le forfait main d'œuvre du brouillon (pu = heures × taux).
+  const [hours, setHours] = useState(() => { const l = (draft?.lines as Line[] | undefined)?.find((x) => x.isMO); return l?.pu ? Math.round(l.pu / (initialCatalogue.moRate || 150)) : 0; });
   const [catOpen, setCatOpen] = useState(false);
   const [savingCat, setSavingCat] = useState(false);
   const [catSaved, setCatSaved] = useState(false);
@@ -128,8 +129,10 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
     out.push({ d: `Électricité (disjoncteur + câble alim ${install.tableau} m + communication)`, q: 1, pu: cat.annex.electricite.v, tva: tvaMat() });
     if (install.compteur) out.push({ d: "Évolution compteur / tableau électrique", q: 1, pu: cat.annex.compteur.v, tva: tvaMat() });
     if (install.depose) out.push({ d: "Dépose et gestion fluides de l'ancien matériel", q: 1, pu: cat.annex.depose.v, tva: tvaMO() });
+    // Main d'œuvre affichée en FORFAIT (1 unité = montant) : le client ne voit pas le nombre d'heures.
+    // Les heures restent un estimateur interne (champ « Main d'œuvre estimée », non imprimé).
     const h = estimateHours(cfg, install, rooms);
-    out.push({ d: "Main d'œuvre (pose, raccordements, tirage au vide, mise en service)", q: h, pu: cat.moRate, tva: tvaMO(), isMO: true });
+    out.push({ d: "Main d'œuvre (pose, raccordements, tirage au vide, mise en service)", q: 1, pu: Math.round(h * cat.moRate), tva: tvaMO(), isMO: true });
     return out;
   }
 
@@ -144,14 +147,14 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
       if ((f.entretien_deplacement?.v ?? 0) > 0) out.push({ d: "Déplacement", q: 1, pu: f.entretien_deplacement.v, tva: tvaMO() });
     } else if (prestation === "depannage") {
       out.push({ d: "Diagnostic / déplacement", q: 1, pu: f.depannage_diagnostic?.v ?? 0, tva: tvaMO() });
-      out.push({ d: "Main d'œuvre", q: Math.max(0, prestaHours), pu: cat.moRate, tva: tvaMO(), isMO: true });
+      out.push({ d: "Main d'œuvre", q: 1, pu: Math.round(Math.max(0, prestaHours) * cat.moRate), tva: tvaMO(), isMO: true });
     } else if (prestation === "depose") {
       out.push({ d: `Dépose climatisation (${u} unité${u > 1 ? "s" : ""})`, q: u, pu: f.depose_unite?.v ?? 0, tva: tvaMO() });
       if ((f.depose_fluides?.v ?? 0) > 0) out.push({ d: "Évacuation / recyclage des fluides", q: 1, pu: f.depose_fluides.v, tva: tvaMO() });
-      out.push({ d: "Main d'œuvre", q: Math.max(0, prestaHours), pu: cat.moRate, tva: tvaMO(), isMO: true });
+      out.push({ d: "Main d'œuvre", q: 1, pu: Math.round(Math.max(0, prestaHours) * cat.moRate), tva: tvaMO(), isMO: true });
     } else {
       out.push({ d: prestaNote.trim() || "Prestation", q: 1, pu: 0, tva: tvaMO() });
-      out.push({ d: "Main d'œuvre", q: Math.max(0, prestaHours), pu: cat.moRate, tva: tvaMO(), isMO: true });
+      out.push({ d: "Main d'œuvre", q: 1, pu: Math.round(Math.max(0, prestaHours) * cat.moRate), tva: tvaMO(), isMO: true });
     }
     return out;
   }
@@ -164,7 +167,7 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
     } else {
       const l = buildPrestaLines();
       setLines(l);
-      setHours(l.find((x) => x.isMO)?.q ?? 0);
+      setHours(Math.max(0, prestaHours));
     }
     setGenerated(true);
     window.scrollTo(0, 0);
@@ -174,9 +177,10 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
     setLines((ls) => ls.map((ln, idx) => (idx === i ? { ...ln, [f]: f === "d" ? v : parseFloat(v) || 0 } : ln)));
   }
   function addFreeLine() { setLines((ls) => [...ls, { d: "Ligne libre", q: 1, pu: 0, tva: tvaMat() }]); }
+  // L'estimateur d'heures (interne) pilote le MONTANT du forfait main d'œuvre (q reste 1).
   function setHoursLine(v: number) {
     setHours(v);
-    setLines((ls) => ls.map((ln) => (ln.isMO ? { ...ln, q: v } : ln)));
+    setLines((ls) => ls.map((ln) => (ln.isMO ? { ...ln, q: 1, pu: Math.round(v * cat.moRate) } : ln)));
   }
 
   const totals = useMemo(() => {
@@ -494,7 +498,7 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
               {lines.map((ln, i) => (
                 <tr key={i}>
                   <td><input value={ln.d} onChange={(e) => patchLine(i, "d", e.target.value)} style={{ width: "100%" }} /></td>
-                  <td className="num"><input className="q" type="number" value={ln.q} onChange={(e) => (ln.isMO ? setHoursLine(parseFloat(e.target.value) || 0) : patchLine(i, "q", e.target.value))} /></td>
+                  <td className="num"><input className="q" type="number" value={ln.q} onChange={(e) => patchLine(i, "q", e.target.value)} /></td>
                   <td className="num"><input className="pu" type="number" value={ln.pu} onChange={(e) => patchLine(i, "pu", e.target.value)} /></td>
                   <td className="num"><select className="tva" value={ln.tva} onChange={(e) => patchLine(i, "tva", e.target.value)}><option value={20}>20</option>{clientType === "particulier" && <option value={10}>10</option>}</select></td>
                   <td className="num">{eur(ln.q * ln.pu)} €</td>
@@ -503,7 +507,7 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
             </tbody>
           </table>
           <button className="btn ghost sm noprint" onClick={addFreeLine} style={{ marginTop: 10 }}>+ Ligne libre</button>
-          <div className="hours noprint"><span>Main d'œuvre estimée :</span><input type="number" min={0} step={0.5} value={hours} onChange={(e) => setHoursLine(parseFloat(e.target.value) || 0)} /><span>heures à {cat.moRate} €/h</span></div>
+          <div className="hours noprint"><span>Main d&apos;œuvre (interne) :</span><input type="number" min={0} step={0.5} value={hours} onChange={(e) => setHoursLine(parseFloat(e.target.value) || 0)} /><span>h × {cat.moRate} €/h = forfait <b>{eur(Math.round(hours * cat.moRate))} €</b> · le client ne voit que le forfait (pas les heures)</span></div>
           <div className="tots">
             <div className="tbar"><span>Total HT</span><span>{eur(totals.ht)} €</span></div>
             <div className="tbar"><span>TVA</span><span>{eur(totals.tva)} €</span></div>
