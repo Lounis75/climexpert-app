@@ -7,6 +7,7 @@ import { savTickets, clients, notifications, admins, logsAlex } from "@/lib/db/s
 import { eq } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
+import { getAlexConsignes, consignesPromptBlock } from "@/lib/alex-consignes";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -334,10 +335,14 @@ export async function POST(req: NextRequest) {
     // Borne la taille de l'historique envoyé au modèle (coût d'entrée + DB)
     const messages = body.messages.slice(-40);
 
+    // Contexte courant pilotable par l'équipe (délai d'intervention en jours, consignes du moment).
+    const consignes = await getAlexConsignes();
+    const baseSystem = mode === "contact" ? CONTACT_SYSTEM_PROMPT : SYSTEM_PROMPT;
+
     const response = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 400,
-      system: mode === "contact" ? CONTACT_SYSTEM_PROMPT : SYSTEM_PROMPT,
+      system: baseSystem + consignesPromptBlock(consignes),
       messages,
     });
 
