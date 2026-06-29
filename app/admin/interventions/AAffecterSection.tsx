@@ -9,11 +9,23 @@ import { TYPE_LABELS, TYPE_COLORS } from "@/lib/interventions-ui";
 export type AAffecterItem = {
   id: string; clientName: string; type: string;
   address: string | null; scheduledAt: string | null; dureeMin: number | null;
+  ageDays: number; montantCt: number | null;
 };
 
 const SELECT = "text-sm bg-slate-900/60 border border-white/10 rounded-lg px-2.5 py-2 text-white focus:outline-none focus:border-sky-500/50";
 
 function dureeTxt(m: number) { return m % 60 === 0 ? `${m / 60} h` : `${Math.floor(m / 60)} h ${m % 60}`; }
+
+// Badge d'ancienneté : neutre < 3 j, ambre 3-6 j, rouge >= 7 j (anti-attente client).
+function AgeBadge({ days }: { days: number }) {
+  const label = days <= 0 ? "aujourd'hui" : days === 1 ? "1 j d'attente" : `${days} j d'attente`;
+  const cls = days >= 7
+    ? "text-red-300 bg-red-500/10 border-red-500/30"
+    : days >= 3
+    ? "text-amber-300 bg-amber-500/10 border-amber-500/30"
+    : "text-slate-400 bg-slate-700/30 border-white/10";
+  return <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full border ${cls}`}>{days >= 7 ? "⚠ " : ""}{label}</span>;
+}
 
 function AffecterCard({ item, techniciens }: { item: AAffecterItem; techniciens: { id: string; name: string }[] }) {
   const router = useRouter();
@@ -46,6 +58,8 @@ function AffecterCard({ item, techniciens }: { item: AAffecterItem; techniciens:
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-white font-semibold text-sm">{item.clientName}</span>
             <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${cfg}`}>{TYPE_LABELS[item.type] ?? item.type}</span>
+            {item.montantCt != null && <span className="text-emerald-300 text-xs font-semibold">{(item.montantCt / 100).toLocaleString("fr-FR")} €</span>}
+            <AgeBadge days={item.ageDays} />
           </div>
           <p className="text-slate-400 text-xs mt-1 flex items-center gap-1.5"><MapPin className="w-3 h-3 flex-shrink-0" />{item.address ?? "Adresse à préciser"}</p>
           <p className="text-slate-500 text-xs mt-0.5">

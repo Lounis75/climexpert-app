@@ -6,7 +6,7 @@ import ViewToggle from "./ViewToggle";
 import { type PlanningEvent } from "./AgendaMobile";
 import PlanningMobile from "./PlanningMobile";
 import AAffecterSection, { type AAffecterItem } from "./AAffecterSection";
-import { getRendezVous } from "@/lib/leads";
+import { getRendezVous, getMontantsDevisByClientIds } from "@/lib/leads";
 
 export const dynamic = "force-dynamic";
 
@@ -25,10 +25,14 @@ export default async function AdminInterventionsPage() {
   // C'est le pont commercial -> production. On les sort des sections datées pour les regrouper en tête.
   const aAffecter = list.filter((i) => i.status === "planifiée" && !i.technicienId);
   const aAffecterIds = new Set(aAffecter.map((i) => i.id));
+  const montants = await getMontantsDevisByClientIds([...new Set(aAffecter.map((i) => i.clientId).filter(Boolean) as string[])]);
+  const nowMs = Date.now();
   const aAffecterItems: AAffecterItem[] = aAffecter.map((i) => ({
     id: i.id, clientName: i.clientName, type: i.type, address: i.address ?? null,
     scheduledAt: i.scheduledAt ? new Date(i.scheduledAt).toISOString() : null,
     dureeMin: i.dureeEstimeeMinutes ?? null,
+    ageDays: Math.max(0, Math.floor((nowMs - new Date(i.createdAt).getTime()) / 86400000)),
+    montantCt: i.clientId ? (montants[i.clientId] ?? null) : null,
   }));
   const techList = techniciens
     .filter((t) => !t.supprimeLe)
@@ -129,6 +133,7 @@ export default async function AdminInterventionsPage() {
           <div>
             <h1 className="text-2xl font-bold text-white mb-1">Interventions</h1>
             <p className="text-slate-400 text-sm">
+              {aAffecter.length > 0 && <span className="text-amber-400 font-semibold">{aAffecter.length} à affecter · </span>}
               {today.length > 0 && <span className="text-amber-400">{today.length} aujourd&apos;hui · </span>}
               {list.filter(i => i.status === "planifiée").length} planifiées au total
             </p>
@@ -143,10 +148,13 @@ export default async function AdminInterventionsPage() {
           </div>
         </div>
 
+        {/* Pont commercial -> production : devis gagnés en attente d'un technicien (mobile + desktop). */}
+        <AAffecterSection items={aAffecterItems} techniciens={techList} />
+
         {/* Mobile (< md) : agenda « façon Apple », interventions + rendez-vous */}
         <div className="md:hidden">
           <PlanningMobile
-            events={events}
+            events={listable}
             emptyTitle="Aucun élément planifié"
             emptySubtitle="Les interventions et rendez-vous apparaîtront ici."
             newHref="/admin/interventions/new"
@@ -158,7 +166,7 @@ export default async function AdminInterventionsPage() {
         <div className="hidden md:block">
         <ViewToggle
           listContent={
-            events.length === 0 ? (
+            listable.length === 0 ? (
               <div className="bg-slate-800/40 border border-white/8 rounded-2xl p-12 text-center">
                 <div className="w-12 h-12 rounded-2xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center mx-auto mb-4">
                   <Wrench className="w-5 h-5 text-sky-400" />
@@ -171,8 +179,6 @@ export default async function AdminInterventionsPage() {
               </div>
             ) : (
               <div className="space-y-8">
-                {/* Pont commercial -> production : devis gagnés en attente d'un technicien. */}
-                <AAffecterSection items={aAffecterItems} techniciens={techList} />
                 {/* Interventions + RDV commerciaux fusionnés, triés par heure, couleur par type. */}
                 <div className="flex items-center gap-4 flex-wrap text-[11px] text-slate-400">
                   <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-fuchsia-500/70" /> RDV commercial</span>

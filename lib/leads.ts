@@ -126,6 +126,17 @@ export async function getEnProductionLeadIdSet(): Promise<Set<string>> {
   return new Set(rows.map((r) => r.id));
 }
 
+/** Montant du devis (centimes) par clientId, pour afficher le montant sur les cartes « à affecter ». */
+export async function getMontantsDevisByClientIds(clientIds: string[]): Promise<Record<string, number>> {
+  if (clientIds.length === 0) return {};
+  const rows = await db.select({ clientId: leads.clientId, montantCt: leads.montantDevisCt })
+    .from(leads)
+    .where(and(inArray(leads.clientId, clientIds), isNull(leads.supprimeLe)));
+  const out: Record<string, number> = {};
+  for (const r of rows) if (r.clientId && r.montantCt != null && out[r.clientId] == null) out[r.clientId] = r.montantCt;
+  return out;
+}
+
 /** Données du Kanban : jusqu'à `cap` prospects les plus récents PAR colonne (statut),
  *  + le total réel par statut. Évite de charger toute la table. */
 export async function getLeadsBoard(cap = 50): Promise<{ leads: Lead[]; counts: Record<string, number>; enProductionCount: number }> {
