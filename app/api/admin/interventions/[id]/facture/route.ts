@@ -81,3 +81,30 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   return NextResponse.json({ ok: true });
 }
+
+// Marquer / démarquer la facture comme « déjà envoyée » HORS système (faite + envoyée depuis le
+// logiciel comptable). On pose juste la date d'envoi, sans PDF ni e-mail (reconnaissable : pas de
+// factureUrl). L'annulation n'est possible que pour un marquage externe (pas un vrai envoi).
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const body = await req.json().catch(() => ({}));
+  const [interv] = await db.select().from(interventions).where(eq(interventions.id, id)).limit(1);
+  if (!interv) return NextResponse.json({ error: "Intervention introuvable" }, { status: 404 });
+
+  if (body.action === "mark_externe") {
+    await db.update(interventions).set({
+      factureEnvoyeeLe: new Date(),
+      version: sql`${interventions.version} + 1`, updatedAt: new Date(),
+    }).where(eq(interventions.id, id));
+    return NextResponse.json({ ok: true });
+  }
+  if (body.action === "unmark") {
+    if (interv.factureUrl) return NextResponse.json({ error: "Cette facture a été envoyée via le système, elle ne peut pas être démarquée ici." }, { status: 400 });
+    await db.update(interventions).set({
+      factureEnvoyeeLe: null,
+      version: sql`${interventions.version} + 1`, updatedAt: new Date(),
+    }).where(eq(interventions.id, id));
+    return NextResponse.json({ ok: true });
+  }
+  return NextResponse.json({ error: "Action inconnue" }, { status: 400 });
+}

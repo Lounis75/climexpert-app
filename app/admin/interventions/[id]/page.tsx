@@ -100,10 +100,18 @@ export default async function InterventionDetailPage({
         )}
 
         {/* Infos */}
-        <div className="grid sm:grid-cols-2 gap-4">
+        {/* Technicien + Créneau côte à côte (qui / quand), le reste en pleine largeur (pas de vides). */}
+        <div className="grid sm:grid-cols-2 gap-3">
           <TechnicienEditor id={i.id} technicienId={i.technicienId ?? null} technicienName={i.technicienName ?? null} techniciens={techList} />
+          {i.scheduledAt && (
+            <CreneauEditor
+              id={i.id}
+              scheduledAt={new Date(i.scheduledAt).toISOString()}
+              dureeMin={i.dureeEstimeeMinutes}
+            />
+          )}
           {chantier && (
-            <Link href={`/admin/clients/${i.clientId}`} className="bg-slate-800/40 border border-white/8 rounded-xl px-4 py-3 flex items-center gap-3 hover:border-amber-500/30 transition-colors">
+            <Link href={`/admin/clients/${i.clientId}`} className="bg-slate-800/40 border border-white/8 rounded-xl px-4 py-3 flex items-center gap-3 hover:border-amber-500/30 transition-colors sm:col-span-2">
               <HardHat className="w-4 h-4 text-amber-400 flex-shrink-0" />
               <div className="min-w-0">
                 <p className="text-xs text-slate-500">Chantier</p>
@@ -120,15 +128,8 @@ export default async function InterventionDetailPage({
               </div>
             </div>
           )}
-          {i.scheduledAt && (
-            <CreneauEditor
-              id={i.id}
-              scheduledAt={new Date(i.scheduledAt).toISOString()}
-              dureeMin={i.dureeEstimeeMinutes}
-            />
-          )}
           {i.completedAt && (
-            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3 flex items-center gap-3">
+            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3 flex items-center gap-3 sm:col-span-2">
               <Wrench className="w-4 h-4 text-emerald-400 flex-shrink-0" />
               <div>
                 <p className="text-xs text-emerald-500">Terminée le</p>

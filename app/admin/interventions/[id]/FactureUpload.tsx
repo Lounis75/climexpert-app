@@ -19,6 +19,21 @@ export default function FactureUpload({ interventionId, factureUrl, factureEnvoy
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [drag, setDrag] = useState(false);
+  const [marking, setMarking] = useState(false);
+
+  // Marquer/démarquer la facture comme déjà envoyée hors système (logiciel comptable).
+  async function markFacture(action: "mark_externe" | "unmark") {
+    setMarking(true);
+    try {
+      const res = await fetch(`/api/admin/interventions/${interventionId}/facture`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error ?? "Échec, réessayez."); return; }
+      router.refresh();
+    } catch { alert("Erreur réseau, réessayez."); }
+    finally { setMarking(false); }
+  }
 
   async function send() {
     if (!file) return;
@@ -43,15 +58,24 @@ export default function FactureUpload({ interventionId, factureUrl, factureEnvoy
           <Receipt className="w-3.5 h-3.5 text-emerald-400" /> Facturation
         </p>
         {factureEnvoyeeLe ? (
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <span className="text-emerald-300 text-sm flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 flex-shrink-0" /> Facture envoyée le {new Date(factureEnvoyeeLe).toLocaleDateString("fr-FR")}
-            </span>
-            <div className="flex items-center gap-3 flex-shrink-0">
-              {factureUrl && <a href={factureUrl} target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:text-sky-300 text-xs font-medium">Voir le PDF</a>}
-              <button onClick={() => { setFile(null); setError(""); setMessage(""); setOpen(true); }} className="text-slate-400 hover:text-white text-xs font-medium">Renvoyer</button>
+          factureUrl ? (
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <span className="text-emerald-300 text-sm flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 flex-shrink-0" /> Facture envoyée le {new Date(factureEnvoyeeLe).toLocaleDateString("fr-FR")}
+              </span>
+              <div className="flex items-center gap-3 flex-shrink-0">
+                <a href={factureUrl} target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:text-sky-300 text-xs font-medium">Voir le PDF</a>
+                <button onClick={() => { setFile(null); setError(""); setMessage(""); setOpen(true); }} className="text-slate-400 hover:text-white text-xs font-medium">Renvoyer</button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <span className="text-emerald-300 text-sm flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 flex-shrink-0" /> Facture déjà envoyée le {new Date(factureEnvoyeeLe).toLocaleDateString("fr-FR")} <span className="text-slate-500">· depuis votre logiciel compta</span>
+              </span>
+              <button onClick={() => markFacture("unmark")} disabled={marking} className="text-slate-400 hover:text-red-400 disabled:opacity-50 text-xs font-medium flex-shrink-0">Annuler</button>
+            </div>
+          )
         ) : (
           <>
             <button
@@ -61,7 +85,14 @@ export default function FactureUpload({ interventionId, factureUrl, factureEnvoy
             >
               <FileText className="w-4 h-4" /> Envoyer la facture au client
             </button>
-            {!hasEmail && <p className="text-amber-400 text-[11px] mt-2">Ce client n&apos;a pas d&apos;e-mail : ajoute-le sur sa fiche pour pouvoir envoyer la facture.</p>}
+            <button
+              onClick={() => markFacture("mark_externe")}
+              disabled={marking}
+              className="w-full mt-2 flex items-center justify-center gap-2 py-2 rounded-xl border border-white/10 text-slate-300 hover:bg-white/5 disabled:opacity-50 text-sm font-medium transition-colors"
+            >
+              <CheckCircle2 className="w-4 h-4" /> {marking ? "…" : "Marquer comme déjà envoyée (logiciel compta)"}
+            </button>
+            {!hasEmail && <p className="text-slate-500 text-[11px] mt-2">Pas d&apos;e-mail client : tu peux quand même la marquer comme déjà envoyée.</p>}
           </>
         )}
       </div>

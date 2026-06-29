@@ -33,7 +33,7 @@ export default function TechnicienEditor({ id, technicienId, technicienName, tec
   }
 
   return (
-    <div className="bg-slate-800/40 border border-white/8 rounded-xl px-4 py-3 sm:col-span-2">
+    <div className="bg-slate-800/40 border border-white/8 rounded-xl px-4 py-3">
       <div className="flex items-start gap-3">
         <User className="w-4 h-4 text-slate-500 flex-shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
