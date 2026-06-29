@@ -47,6 +47,23 @@ function isSameDay(a: Date, b: Date) {
 }
 function topPx(d: Date)             { return Math.max(0, (d.getHours() + d.getMinutes() / 60 - HOUR_START) * PX_PER_HOUR); }
 function heightPx(min: number)      { return Math.max(28, (min / 60) * PX_PER_HOUR); }
+
+// Segment VISIBLE d'un évènement [start, start+duree] sur un jour donné, borné à la fenêtre horaire.
+// Permet à une prestation sur plusieurs jours d'apparaître (clippée) sur CHAQUE journée concernée.
+// contPrev = a commencé un jour précédent ; contNext = se poursuit le lendemain.
+function daySegment(start: Date, durationMin: number, day: Date): { top: number; height: number; contPrev: boolean; contNext: boolean } | null {
+  const dayStart = new Date(day); dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(day); dayEnd.setHours(23, 59, 59, 999);
+  const end = new Date(start.getTime() + Math.max(15, durationMin) * 60000);
+  if (start > dayEnd || end <= dayStart) return null;
+  const startH = start <= dayStart ? HOUR_START : start.getHours() + start.getMinutes() / 60;
+  const endH   = end   >= dayEnd   ? HOUR_END   : end.getHours() + end.getMinutes() / 60;
+  const top    = Math.max(0, (Math.max(startH, HOUR_START) - HOUR_START) * PX_PER_HOUR);
+  const bottom = Math.min((Math.min(endH, HOUR_END) - HOUR_START) * PX_PER_HOUR, TOTAL_HEIGHT);
+  if (bottom - top <= 0) return null;
+  const height = Math.min(Math.max(bottom - top, 28), TOTAL_HEIGHT - top);
+  return { top, height, contPrev: start < dayStart, contNext: end > dayEnd };
+}
 function fmtHM(d: Date)             { return d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }); }
 function fmtISO(d: Date)            { return d.toISOString().slice(0, 16); }
 function snapMinutes(min: number)   { return Math.round(min / 30) * 30; }
@@ -481,8 +498,19 @@ export default function CalendrierDashboard() {
   // Toute personne inconnue (ex. membre supprimé encore référencé) est rattachée à "Non assigné".
   const personKey = (id: string | null) => (id && knownIds.has(id) ? id : "__none__");
   const personMatch = (id: string | null) => selectedPersons === null || selectedPersons.has(personKey(id));
-  const forDay = (d: Date) =>
-    interventions.filter((i) => i.scheduledAt && isSameDay(new Date(i.scheduledAt), d) && i.status !== "annulée" && typeFilter.interventions && personMatch(i.technicienId));
+  // Une intervention apparaît sur tous les jours qu'elle CHEVAUCHE (et plus seulement son jour de
+  // début), pour qu'une prestation sur plusieurs jours s'affiche aussi le(s) lendemain(s).
+  const forDay = (d: Date) => {
+    if (!typeFilter.interventions) return [];
+    const dayStart = new Date(d); dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(d); dayEnd.setHours(23, 59, 59, 999);
+    return interventions.filter((i) => {
+      if (!i.scheduledAt || i.status === "annulée" || !personMatch(i.technicienId)) return false;
+      const s = new Date(i.scheduledAt);
+      const e = new Date(s.getTime() + Math.max(15, i.duree ?? 60) * 60000);
+      return s <= dayEnd && e > dayStart;
+    });
+  };
   const forDayRdv = (d: Date) =>
     rdvs.filter((r) => r.rdvDate && isSameDay(new Date(r.rdvDate), d) && typeFilter.rdv && personMatch(r.commercialId));
 
@@ -518,7 +546,7 @@ export default function CalendrierDashboard() {
 
   // Bloc d'évènement positionné dans une colonne-jour.
   type DayBlock =
-    | { k: "int"; key: string; top: number; height: number; ev: CalIntervention }
+    | { k: "int"; key: string; top: number; height: number; ev: CalIntervention; contPrev?: boolean; contNext?: boolean }
     | { k: "rdv"; key: string; top: number; height: number; rdv: CalRdv };
   type Placed = DayBlock & { col: number; cols: number };
 
@@ -549,8 +577,9 @@ export default function CalendrierDashboard() {
     const blocks: DayBlock[] = [];
     for (const ev of forDay(d)) {
       if (!ev.scheduledAt) continue;
-      const top = topPx(new Date(ev.scheduledAt)); if (top > TOTAL_HEIGHT) continue;
-      blocks.push({ k: "int", key: `i-${ev.id}`, top, height: heightPx(ev.duree ?? 60), ev });
+      const seg = daySegment(new Date(ev.scheduledAt), ev.duree ?? 60, d);
+      if (!seg) continue;
+      blocks.push({ k: "int", key: `i-${ev.id}`, top: seg.top, height: seg.height, ev, contPrev: seg.contPrev, contNext: seg.contNext });
     }
     for (const r of forDayRdv(d)) {
       if (!r.rdvDate) continue;
@@ -921,8 +950,8 @@ export default function CalendrierDashboard() {
                               key={b.key}
                               href={`/admin/interventions/${ev.id}`}
                               onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEventModal({ kind: "int", id: ev.id, title: ev.clientName, sub: `${fmtHM(start)} · ${ev.type}`, href: `/admin/interventions/${ev.id}` }); }}
-                              draggable
-                              onDragStart={(e) => onEventDragStart(e, ev.id, "int", dur, start.getTime())}
+                              draggable={!b.contPrev}
+                              onDragStart={(e) => { if (b.contPrev) { e.preventDefault(); return; } onEventDragStart(e, ev.id, "int", dur, start.getTime()); }}
                               onDragEnd={() => { dragRef.current = null; setDragId(null); }}
                               className={`absolute rounded-lg border px-2 py-1 overflow-hidden z-10 transition-opacity hover:opacity-80 cursor-grab active:cursor-grabbing ${c.bg} ${c.border} ${dragId === ev.id ? "opacity-40" : ""}`}
                               style={{ top: b.top, height: b.height, ...box, ...(pc ? { borderLeftColor: pc, borderLeftWidth: 3 } : {}) }}
@@ -931,10 +960,10 @@ export default function CalendrierDashboard() {
                                 <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 mt-[3px] ${c.dot}`} />
                                 <div className="flex-1 min-w-0">
                                   {isShort ? (
-                                    <p className={`text-[10px] font-semibold leading-tight truncate ${c.text}`}>{fmtHM(start)} · {ev.clientName}</p>
+                                    <p className={`text-[10px] font-semibold leading-tight truncate ${c.text}`}>{b.contPrev ? "⤷ " : `${fmtHM(start)} · `}{ev.clientName}{b.contNext ? " →" : ""}</p>
                                   ) : (
                                     <>
-                                      <p className={`text-[10px] font-semibold leading-tight ${c.text}`}>{fmtHM(start)}{dur !== 60 ? ` · ${dur < 60 ? dur + "min" : dur / 60 + "h"}` : ""}</p>
+                                      <p className={`text-[10px] font-semibold leading-tight ${c.text}`}>{b.contPrev ? "Suite ⤷" : `${fmtHM(start)}${dur !== 60 ? ` · ${dur < 60 ? dur + "min" : dur / 60 + "h"}` : ""}`}{b.contNext ? " →" : ""}</p>
                                       <p className="text-white/85 text-[11px] font-medium leading-tight truncate mt-0.5">{ev.clientName}</p>
                                       <p className={`text-[10px] leading-tight truncate opacity-70 ${c.text}`}>{TYPE_LABELS[ev.type] ?? ev.type}{ev.technicienName ? ` · ${ev.technicienName}` : ""}</p>
                                     </>
