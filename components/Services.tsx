@@ -18,7 +18,7 @@ const services = [
       "Installation soignée et discrète",
     ],
     priceLabel: "À partir de",
-    priceAmount: "1 500 €",
+    priceAmount: "3 000 €",
     priceTTC: true,
     priceUnit: "",
     priceNote: "selon configuration",

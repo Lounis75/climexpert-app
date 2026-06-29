@@ -39,11 +39,11 @@ function calcResult(surface: number, height: number, rooms: number, isoId: strin
   const exp = EXPOSURE.find(e => e.id === expId)!;
   const kw  = surface * (height / 2.5) * (iso.watt / 1000) * exp.factor;
 
-  if (rooms === 1 && kw <= 3.5) return { system: "Monosplit",           kwRaw: kw, priceMin: 1500, priceMax: 2500,  color: "sky"     };
-  if (rooms <= 2 && kw <= 7)    return { system: "Multisplit 2 pièces", kwRaw: kw, priceMin: 2800, priceMax: 4000,  color: "emerald" };
-  if (rooms <= 3 && kw <= 9)    return { system: "Multisplit 3 pièces", kwRaw: kw, priceMin: 3800, priceMax: 5500,  color: "emerald" };
-  if (rooms <= 6 && kw <= 14)   return { system: "Multisplit 4-6 p.",   kwRaw: kw, priceMin: 4500, priceMax: 8000,  color: "emerald" };
-                                 return { system: "Gainable / PAC",      kwRaw: kw, priceMin: 4000, priceMax: 10000, color: "amber"   };
+  if (rooms === 1 && kw <= 3.5) return { system: "Monosplit",           kwRaw: kw, priceMin: 3000, priceMax: 4500,  color: "sky"     };
+  if (rooms <= 2 && kw <= 7)    return { system: "Multisplit 2 pièces", kwRaw: kw, priceMin: 5000, priceMax: 7000,  color: "emerald" };
+  if (rooms <= 3 && kw <= 9)    return { system: "Multisplit 3 pièces", kwRaw: kw, priceMin: 7000, priceMax: 10000, color: "emerald" };
+  if (rooms <= 6 && kw <= 14)   return { system: "Multisplit 4-6 p.",   kwRaw: kw, priceMin: 9000, priceMax: 15000, color: "emerald" };
+                                 return { system: "Gainable / PAC",      kwRaw: kw, priceMin: 7000, priceMax: 15000, color: "amber"   };
 }
 
 function kwLabel(kw: number) { return `${(Math.round(kw * 2) / 2).toLocaleString("fr-FR")} kW`; }
@@ -860,8 +860,8 @@ export default function CalculateurClient() {
             <div className="space-y-2">
               {[
                 { q: "Comment calculer la puissance d'une climatisation ?", a: "La puissance dépend de la surface, de la hauteur sous plafond, de l'isolation et de l'exposition solaire. Règle : 35 W/m² (bien isolé), 45 W/m² (moyen), 60 W/m² (mal isolé). Notre calculateur applique ces normes thermiques françaises automatiquement." },
-                { q: "Quel est le prix d'une climatisation en Île-de-France ?", a: "À partir de 1 500 € TTC pour un monosplit (1 pièce), 2 800–5 500 € pour un multisplit (2-3 pièces), 4 000–10 000 € pour un gainable. Tous les prix incluent le matériel, la pose et la mise en service." },
-                { q: "Monosplit ou multisplit : quelle solution choisir ?", a: "Le monosplit est idéal pour une seule pièce (à partir de 1 500 €). Le multisplit connecte 2 à 6 pièces sur une seule unité extérieure, il revient moins cher par pièce à partir de 2 unités." },
+                { q: "Quel est le prix d'une climatisation en Île-de-France ?", a: "À partir de 3 000 € TTC pour un monosplit (1 pièce), 5 000–10 000 € pour un multisplit (2-3 pièces), 7 000–15 000 € pour un gainable. Tous les prix incluent le matériel, la pose et la mise en service. Un devis précis vient affiner l'estimation." },
+                { q: "Monosplit ou multisplit : quelle solution choisir ?", a: "Le monosplit est idéal pour une seule pièce (à partir de 3 000 €). Le multisplit connecte 2 à 6 pièces sur une seule unité extérieure, il revient moins cher par pièce à partir de 2 unités." },
                 { q: "La climatisation réversible peut-elle chauffer en hiver ?", a: "Oui, tous nos systèmes sont réversibles. En mode chauffage, ils sont 3 à 5 fois plus efficaces qu'un radiateur électrique. Ils fonctionnent jusqu'à -15°C pour les modèles récents." },
                 { q: "Y a-t-il des aides financières disponibles ?", a: "Les PAC air-eau sont éligibles à MaPrimeRénov' (jusqu'à 4 000 €) et aux CEE (300–800 €). Pour les splits, des CEE sont disponibles (150–300 €). Nos techniciens RGE gèrent les dossiers." },
               ].map(({ q, a }) => (

@@ -22,10 +22,10 @@ const EXPOSURE = [
 ];
 
 function getRecommendation(kw: number, rooms: number) {
-  if (rooms === 1 && kw <= 3.5) return { system: "Monosplit", kw: `${Math.ceil(kw * 2) / 2} kW`, price: "1 500 – 2 500 € TTC", color: "sky" };
-  if (rooms <= 3 && kw <= 9) return { system: "Multisplit", kw: `${Math.round(kw)} kW total`, price: "2 800 – 5 500 € TTC", color: "emerald" };
-  if (kw > 9) return { system: "Gainable ou PAC", kw: `${Math.round(kw)} kW total`, price: "4 000 – 10 000 € TTC", color: "amber" };
-  return { system: "Multisplit", kw: `${Math.round(kw)} kW total`, price: "2 800 – 6 000 € TTC", color: "emerald" };
+  if (rooms === 1 && kw <= 3.5) return { system: "Monosplit", kw: `${Math.ceil(kw * 2) / 2} kW`, price: "3 000 – 4 500 € TTC", color: "sky" };
+  if (rooms <= 3 && kw <= 9) return { system: "Multisplit", kw: `${Math.round(kw)} kW total`, price: "7 000 – 10 000 € TTC", color: "emerald" };
+  if (kw > 9) return { system: "Gainable ou PAC", kw: `${Math.round(kw)} kW total`, price: "9 000 – 15 000 € TTC", color: "amber" };
+  return { system: "Multisplit", kw: `${Math.round(kw)} kW total`, price: "5 000 – 8 000 € TTC", color: "emerald" };
 }
 
 const colorMap: Record<string, { bg: string; border: string; text: string; badge: string }> = {

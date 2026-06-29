@@ -49,28 +49,28 @@ const systems = [
   {
     name: "Monosplit",
     ideal: "1 pièce",
-    price: "1 500 – 2 500 €",
+    price: "3 000 – 4 500 €",
     pros: ["Prix d'entrée accessible", "Installation simple", "Idéal studio ou chambre"],
     cons: ["1 seule pièce couverte", "Unité extérieure visible"],
   },
   {
     name: "Multisplit",
     ideal: "2 à 4 pièces",
-    price: "2 800 – 6 000 €",
+    price: "5 000 – 10 000 €",
     pros: ["1 seule unité extérieure", "Chaque pièce réglée indépendamment", "Économique à l'usage"],
     cons: ["Coût initial plus élevé", "Installation plus complexe"],
   },
   {
     name: "Gainable",
     ideal: "Toute la maison",
-    price: "4 000 – 10 000 €",
+    price: "7 000 – 15 000 €",
     pros: ["Totalement invisible", "Diffusion homogène", "Discret et silencieux"],
     cons: ["Nécessite un faux-plafond", "Coût élevé", "Maintenance plus technique"],
   },
   {
     name: "PAC air-eau",
     ideal: "Maison individuelle",
-    price: "8 000 – 15 000 €",
+    price: "9 000 – 15 000 €",
     pros: ["Chauffage + ECS + climatisation", "Éligible MaPrimeRénov'", "Très économique"],
     cons: ["Investissement important", "Travaux de plomberie requis"],
   },
@@ -80,7 +80,7 @@ const criteria = [
   {
     icon: Euro,
     title: "Votre budget",
-    desc: "Comptez entre 1 500 € et 15 000 € selon le type de système. Pensez au coût total sur 10 ans : un système plus cher à l'achat peut être plus économique à l'usage.",
+    desc: "Comptez entre 3 000 € et 15 000 € selon le type de système. Pensez au coût total sur 10 ans : un système plus cher à l'achat peut être plus économique à l'usage.",
   },
   {
     icon: ThumbsUp,
@@ -130,7 +130,7 @@ const faqItems = [
   {
     question: "Quelle climatisation choisir pour un appartement à Paris ?",
     answer:
-      "Pour un appartement parisien, le monosplit (1 pièce) ou le multisplit (plusieurs pièces) sont les solutions les plus adaptées. Le gainable est possible si vous avez un faux-plafond. La PAC air-eau est plutôt réservée aux maisons individuelles. Comptez entre 1 500 € et 5 000 € selon le nombre de pièces à climatiser.",
+      "Pour un appartement parisien, le monosplit (1 pièce) ou le multisplit (plusieurs pièces) sont les solutions les plus adaptées. Le gainable est possible si vous avez un faux-plafond. La PAC air-eau est plutôt réservée aux maisons individuelles. Comptez entre 3 000 € et 10 000 € selon le nombre de pièces à climatiser.",
   },
   {
     question: "La climatisation réversible peut-elle remplacer le chauffage ?",
@@ -436,11 +436,11 @@ export default async function GuidePage() {
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {[
-                          ["Monosplit", "1 unité intérieure", "1 500 – 2 500 €"],
-                          ["Multisplit 2 têtes", "2 unités intérieures", "2 800 – 4 500 €"],
-                          ["Multisplit 3 têtes", "3 unités intérieures", "4 000 – 6 500 €"],
-                          ["Gainable", "Toute la surface", "4 000 – 10 000 €"],
-                          ["PAC air-eau", "Maison individuelle", "8 000 – 15 000 €"],
+                          ["Monosplit", "1 unité intérieure", "3 000 – 4 500 €"],
+                          ["Multisplit 2 têtes", "2 unités intérieures", "5 000 – 7 000 €"],
+                          ["Multisplit 3 têtes", "3 unités intérieures", "7 000 – 10 000 €"],
+                          ["Gainable", "Toute la surface", "7 000 – 15 000 €"],
+                          ["PAC air-eau", "Maison individuelle", "9 000 – 15 000 €"],
                         ].map(([sys, config, price]) => (
                           <tr key={sys} className="hover:bg-slate-50 transition-colors">
                             <td className="px-5 py-3.5 font-medium text-slate-900">{sys}</td>
