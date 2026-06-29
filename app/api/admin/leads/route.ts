@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { name, phone, source, project, location, address, email, notes, consentementMarketing, typeClient } = body;
+    const { name, phone, source, project, location, address, email, notes, consentementMarketing, typeClient, entreprise, siren } = body;
     if (!name?.trim() || !phone?.trim()) {
       return NextResponse.json({ error: "Nom et téléphone requis" }, { status: 400 });
     }
@@ -64,6 +64,9 @@ export async function POST(req: NextRequest) {
       consentementMarketing: consentementMarketing === true,
       consentementLe: consentementMarketing === true ? new Date() : undefined,
       typeClient: ["professionnel", "sous_traitance"].includes(typeClient) ? typeClient : "particulier",
+      // Raison sociale + SIREN : conservés uniquement pour un professionnel.
+      entreprise: typeClient === "professionnel" ? (entreprise?.trim() || undefined) : undefined,
+      siren: typeClient === "professionnel" ? (siren?.trim() || undefined) : undefined,
     });
     return NextResponse.json({ lead });
   } catch (e) {

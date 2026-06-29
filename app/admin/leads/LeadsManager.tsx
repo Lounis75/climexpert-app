@@ -223,7 +223,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
     } catch { setDevisError("Erreur réseau, réessayez."); }
     finally { setDevisSending(false); }
   }
-  const [addForm, setAddForm] = useState({ name: "", phone: "", source: "téléphone", project: "", location: "", address: "", email: "", notes: "", consentementMarketing: false, typeClient: "particulier" });
+  const [addForm, setAddForm] = useState({ name: "", phone: "", source: "téléphone", project: "", location: "", address: "", email: "", notes: "", consentementMarketing: false, typeClient: "particulier", entreprise: "", siren: "" });
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState("");
   const [editingLead, setEditingLead] = useState(false);
@@ -652,7 +652,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
         const { lead } = await res.json();
         setLeads((prev) => [lead, ...prev]);
         setShowAddModal(false);
-        setAddForm({ name: "", phone: "", source: "téléphone", project: "", location: "", address: "", email: "", notes: "", consentementMarketing: false, typeClient: "particulier" });
+        setAddForm({ name: "", phone: "", source: "téléphone", project: "", location: "", address: "", email: "", notes: "", consentementMarketing: false, typeClient: "particulier", entreprise: "", siren: "" });
       } else {
         const data = await res.json();
         setAddError(data.error ?? "Erreur lors de la création.");
@@ -2387,10 +2387,36 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                 </div>
               </div>
 
+              {/* Professionnel : raison sociale + SIREN (le « Nom » reste le contact) */}
+              {addForm.typeClient === "professionnel" && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-slate-400 text-xs font-medium block mb-1">Entreprise</label>
+                    <input
+                      type="text"
+                      value={addForm.entreprise}
+                      onChange={e => setAddForm(f => ({ ...f, entreprise: e.target.value }))}
+                      placeholder="Raison sociale"
+                      className="w-full bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-sky-500/50"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-slate-400 text-xs font-medium block mb-1">N° SIREN / SIRET</label>
+                    <input
+                      type="text"
+                      value={addForm.siren}
+                      onChange={e => setAddForm(f => ({ ...f, siren: e.target.value }))}
+                      placeholder="123 456 789 00012"
+                      className="w-full bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-sky-500/50"
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Nom + Téléphone */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-slate-400 text-xs font-medium block mb-1">Nom *</label>
+                  <label className="text-slate-400 text-xs font-medium block mb-1">{addForm.typeClient === "professionnel" ? "Contact *" : "Nom *"}</label>
                   <input
                     type="text"
                     value={addForm.name}
