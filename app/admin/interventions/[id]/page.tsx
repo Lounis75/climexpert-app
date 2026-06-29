@@ -3,11 +3,12 @@ import { getInterventionById, getTechniciens, TYPE_LABELS, TYPE_COLORS, STATUS_I
 import { getChantierById } from "@/lib/chantiers";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, User, Wrench, FileText, Image as ImageIcon, Briefcase, HardHat } from "lucide-react";
+import { ArrowLeft, Wrench, FileText, Image as ImageIcon, Briefcase, HardHat } from "lucide-react";
 import InterventionActions from "./InterventionActions";
 import CopyableContact from "@/components/CopyableContact";
 import BriefingPhotos from "./BriefingPhotos";
 import CreneauEditor from "./CreneauEditor";
+import TechnicienEditor from "./TechnicienEditor";
 import FactureUpload from "./FactureUpload";
 
 export const dynamic = "force-dynamic";
@@ -100,15 +101,7 @@ export default async function InterventionDetailPage({
 
         {/* Infos */}
         <div className="grid sm:grid-cols-2 gap-4">
-          {i.technicienName && (
-            <div className="bg-slate-800/40 border border-white/8 rounded-xl px-4 py-3 flex items-center gap-3">
-              <User className="w-4 h-4 text-slate-500 flex-shrink-0" />
-              <div>
-                <p className="text-xs text-slate-500">Technicien</p>
-                <p className="text-white text-sm font-medium">{i.technicienName}</p>
-              </div>
-            </div>
-          )}
+          <TechnicienEditor id={i.id} technicienId={i.technicienId ?? null} technicienName={i.technicienName ?? null} techniciens={techList} />
           {chantier && (
             <Link href={`/admin/clients/${i.clientId}`} className="bg-slate-800/40 border border-white/8 rounded-xl px-4 py-3 flex items-center gap-3 hover:border-amber-500/30 transition-colors">
               <HardHat className="w-4 h-4 text-amber-400 flex-shrink-0" />
