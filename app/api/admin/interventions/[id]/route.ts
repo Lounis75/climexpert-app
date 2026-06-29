@@ -126,7 +126,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
           await db.insert(notifications).values({
             id: createId(), adminId: body.technicienId, type: "nouvelle_intervention",
             titre: "Nouvelle intervention planifiée",
-            contenu: body.scheduledAt ? `Le ${new Date(body.scheduledAt).toLocaleString("fr-FR")}` : "Date à confirmer",
+            contenu: body.scheduledAt ? `Le ${new Date(body.scheduledAt).toLocaleString("fr-FR", { timeZone: "Europe/Paris" })}` : "Date à confirmer",
             refType: "intervention", refId: id,
           });
         } catch (e) { console.error("[planifier] notif technicien:", e); }

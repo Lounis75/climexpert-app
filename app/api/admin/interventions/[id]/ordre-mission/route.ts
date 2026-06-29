@@ -18,10 +18,10 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
     // Créneau lisible
     const start = i.scheduledAt ? new Date(i.scheduledAt) : null;
     const dureeMin = i.dureeEstimeeMinutes ?? 0;
-    const fmtT = (d: Date) => d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+    const fmtT = (d: Date) => d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Paris" });
     let creneau = "-";
     if (start) {
-      const jour = start.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+      const jour = start.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Paris" });
       const fin = dureeMin > 0 ? ` – ${fmtT(new Date(start.getTime() + dureeMin * 60000))}` : "";
       creneau = `${jour} · ${fmtT(start)}${fin}`;
     }

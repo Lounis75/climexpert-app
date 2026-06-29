@@ -29,8 +29,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!lead.rdvDate) return NextResponse.json({ error: "Aucun rendez-vous n'est posé sur ce prospect." }, { status: 400 });
 
   const d = new Date(lead.rdvDate);
-  const jour = d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-  const heure = d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  // Fuseau forcé : le serveur (Vercel) tourne en UTC ; sans timeZone l'heure serait décalée de 2h.
+  const jour = d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Paris" });
+  const heure = d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Paris" });
   const lieu = (lead.address || lead.location || "").trim();
   const prenom = (lead.name || "").trim().split(" ")[0] || "";
 

@@ -190,7 +190,7 @@ export async function PATCH(req: NextRequest) {
         hist.push({ type: "devis", contenu: `Devis chiffré : ${(allowed.montantDevisCt / 100).toLocaleString("fr-FR")} €` });
       }
       if (allowed.rdvDate instanceof Date && (!before || !before.rdvDate || +new Date(before.rdvDate) !== +allowed.rdvDate)) {
-        hist.push({ type: "rdv", contenu: `RDV pris : ${allowed.rdvDate.toLocaleString("fr-FR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}` });
+        hist.push({ type: "rdv", contenu: `RDV pris : ${allowed.rdvDate.toLocaleString("fr-FR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Paris" })}` });
       }
       for (const h of hist) await db.insert(suivis).values({ leadId: id, type: h.type, contenu: h.contenu });
     } catch (e) { logError("leads.autoHist", e, { leadId: id }); }

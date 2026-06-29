@@ -17,8 +17,8 @@ function tomorrowRange(): { start: Date; end: Date } {
   const end = new Date(start); end.setHours(23, 59, 59, 999);
   return { start, end };
 }
-const fmtJour = (d: Date) => d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
-const fmtHeure = (d: Date) => d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+const fmtJour = (d: Date) => d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/Paris" });
+const fmtHeure = (d: Date) => d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Paris" });
 
 async function send(to: string, subject: string, html: string) {
   await resend.emails.send({ from: "ClimExpert <noreply@climexpert.fr>", to: mailRecipient(to), subject, html });

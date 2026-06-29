@@ -19,9 +19,10 @@ async function envoiConfirmationIntervention(clientId: string, type: string, sta
     const email = (client?.email || "").trim();
     if (!email) return;
     const end = new Date(start.getTime() + Math.max(30, dureeMin) * 60000);
-    const jour = start.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-    const h1 = start.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-    const h2 = end.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+    // Fuseau forcé : le serveur (Vercel) tourne en UTC ; sans timeZone l'heure serait décalée de 2h.
+    const jour = start.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Paris" });
+    const h1 = start.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Paris" });
+    const h2 = end.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Paris" });
     const lieu = (address || client?.address || "").trim();
     const prenom = (client?.name || "").trim().split(" ")[0] || "";
     const label = TYPE_LABELS[type] ?? "Intervention";
