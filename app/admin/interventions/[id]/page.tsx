@@ -9,6 +9,7 @@ import CopyableContact from "@/components/CopyableContact";
 import BriefingPhotos from "./BriefingPhotos";
 import CreneauEditor from "./CreneauEditor";
 import TechnicienEditor from "./TechnicienEditor";
+import EnvoyerConfirmationClient from "./EnvoyerConfirmationClient";
 import FactureUpload from "./FactureUpload";
 
 export const dynamic = "force-dynamic";
@@ -140,6 +141,9 @@ export default async function InterventionDetailPage({
           {/* Contact client regroupé : téléphone · adresse · e-mail, copiables */}
           <CopyableContact phone={i.clientPhone} address={i.address || i.clientAddress} email={i.clientEmail} />
         </div>
+
+        {/* Envoi manuel de la confirmation d'intervention au client */}
+        <EnvoyerConfirmationClient id={i.id} hasEmail={!!i.clientEmail} hasSchedule={!!i.scheduledAt} />
 
         {/* Notes */}
         <div className="bg-slate-800/40 border border-white/8 rounded-2xl p-5">
