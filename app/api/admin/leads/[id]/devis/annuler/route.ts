@@ -40,6 +40,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     await db.update(leads).set({
       status: "contacté", prochaineEtape: "devis_a_faire",
       devisDecision: null, devisDecisionLe: null, devisMotifRefus: null,
+      installPrevuLe: null, installPrevuDureeMin: null, // le créneau provisoire n'a plus lieu d'être
       statutChangeLe: new Date(), relanceNotifieeLe: null,
       version: sql`${leads.version} + 1`, updatedAt: new Date(),
     }).where(eq(leads.id, id));

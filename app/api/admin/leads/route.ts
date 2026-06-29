@@ -86,7 +86,12 @@ export async function PATCH(req: NextRequest) {
     if (fields.notes !== undefined)        allowed.notes = fields.notes;
     if (fields.noteEpinglee !== undefined) allowed.noteEpinglee = (typeof fields.noteEpinglee === "string" ? fields.noteEpinglee.slice(0, 1000) : null) || null;
     if (fields.favori !== undefined)       allowed.favori = !!fields.favori;
-    if (fields.qualification !== undefined) allowed.qualification = fields.qualification;
+    // La qualification est un objet JSON (clé/valeur). On refuse tout ce qui n'est pas un objet
+    // simple (null/tableau/primitive) pour ne pas corrompre le JSONB ni casser formatQualification.
+    if (fields.qualification !== undefined) {
+      const q = fields.qualification;
+      allowed.qualification = (q && typeof q === "object" && !Array.isArray(q)) ? q : null;
+    }
     if (fields.taches !== undefined)       allowed.taches = Array.isArray(fields.taches) ? fields.taches.slice(0, 50) : [];
     if (fields.status)                     allowed.status = fields.status as LeadStatus;
     if (fields.clientId)                   allowed.clientId = fields.clientId;

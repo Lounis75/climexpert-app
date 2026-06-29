@@ -11,6 +11,7 @@ import { generateDevisNumber } from "@/lib/devis";
 import { computeDevisLignes, clientAddressLine, renderDevisPdf, type RawLine } from "@/lib/devis-pdf";
 import { r2PutFile } from "@/lib/r2";
 import { resolveLeadId } from "@/lib/chiffrage-server";
+import { escapeHtml } from "@/lib/escape-html";
 import { logError } from "@/lib/observability";
 
 export const runtime = "nodejs";
@@ -89,9 +90,9 @@ export async function POST(req: NextRequest) {
       to: mailRecipient(email),
       subject: "Votre devis ClimExpert",
       html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
-        <h2 style="color:#0f172a;">Bonjour ${lead.name},</h2>
+        <h2 style="color:#0f172a;">Bonjour ${escapeHtml(lead.name)},</h2>
         <p>Suite à notre échange, vous trouverez ci-joint votre <strong>devis</strong> d'un montant de <strong>${montantTxt}</strong>.</p>
-        ${message ? `<p>${message.replace(/\n/g, "<br>")}</p>` : ""}
+        ${message ? `<p>${escapeHtml(message).replace(/\n/g, "<br>")}</p>` : ""}
         <p>Pour <strong>valider</strong> ou <strong>décliner</strong> votre devis, c'est en 1 clic :</p>
         <p><a href="${link}" style="background:#0ea5e9;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:bold;">Voir mon devis et répondre</a></p>
         <p style="color:#64748b;font-size:12px;">Lien personnel, merci de ne pas le transférer.</p>
@@ -114,7 +115,7 @@ export async function POST(req: NextRequest) {
     version: sql`${leads.version} + 1`, updatedAt: new Date(),
   }).where(eq(leads.id, id));
 
-  await db.insert(suivis).values({ leadId: id, type: "devis", contenu: `Devis envoyé au client (${montantTxt}) depuis le chiffrage terrain, en attente de sa réponse.` }).catch(() => {});
+  await db.insert(suivis).values({ leadId: id, type: "devis", contenu: `Devis envoyé au client (${montantTxt}) depuis le chiffrage terrain, en attente de sa réponse.` }).catch((e) => logError("chiffrage.suivi", e, { leadId: id }));
 
   return NextResponse.json({ ok: true, leadId: id });
 }

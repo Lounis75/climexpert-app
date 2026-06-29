@@ -32,7 +32,9 @@ export default function DevisDecisionClient({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { setError(data.error ?? "Une erreur est survenue, réessayez."); return; }
-      setResult(d); setView("done");
+      // Vérité serveur : si le devis avait déjà été tranché (rejeu réseau, autre onglet), on affiche
+      // la décision réellement enregistrée en base, pas celle qu'on vient de cliquer.
+      setResult(data.decision ?? d); setView("done");
     } catch { setError("Erreur réseau, réessayez."); }
     finally { setLoading(false); }
   }
@@ -58,7 +60,7 @@ export default function DevisDecisionClient({
             {result === "accepte" ? (
               <>
                 <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4"><Check className="w-9 h-9 text-emerald-600" /></div>
-                <h1 className="text-xl font-bold text-slate-900 mb-2">Merci {clientName} !</h1>
+                <h1 className="text-xl font-bold text-slate-900 mb-2">Merci{clientName ? ` ${clientName}` : ""} !</h1>
                 <p className="text-slate-600 text-sm">Votre devis est <strong>accepté</strong>. Notre équipe vous contacte très vite pour planifier l&apos;intervention.</p>
                 <a href={`tel:${tel}`} className="inline-flex items-center gap-2 mt-5 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-xl transition-colors"><Phone className="w-4 h-4" /> Nous appeler</a>
               </>
@@ -80,7 +82,7 @@ export default function DevisDecisionClient({
           </div>
         ) : (
           <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8">
-            <h1 className="text-xl font-bold text-slate-900">Bonjour {clientName},</h1>
+            <h1 className="text-xl font-bold text-slate-900">Bonjour{clientName ? ` ${clientName}` : ""},</h1>
             <p className="text-slate-600 text-sm mt-1.5">Voici votre devis. Prenez le temps de le consulter, puis donnez-nous votre réponse.</p>
 
             <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4 flex items-center justify-between gap-3">

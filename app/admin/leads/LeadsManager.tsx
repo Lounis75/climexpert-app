@@ -667,8 +667,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
       if (res.ok) {
         const { lead } = await res.json();
         setLeads((prev) => [lead, ...prev]);
-        setShowAddModal(false);
-        setAddForm({ name: "", phone: "", source: "téléphone", project: "", location: "", address: "", email: "", notes: "", consentementMarketing: false, typeClient: "particulier", entreprise: "", siren: "" });
+        closeAddModal();
       } else {
         const data = await res.json();
         setAddError(data.error ?? "Erreur lors de la création.");
@@ -676,6 +675,14 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
     } finally {
       setAdding(false);
     }
+  }
+
+  // Ferme la modale d'ajout ET réinitialise le formulaire (évite la persistance des données d'un
+  // prospect à l'autre : doublons accidentels, consentement/e-mail d'un autre client encore visibles).
+  function closeAddModal() {
+    setShowAddModal(false);
+    setAddError("");
+    setAddForm({ name: "", phone: "", source: "téléphone", project: "", location: "", address: "", email: "", notes: "", consentementMarketing: false, typeClient: "particulier", entreprise: "", siren: "" });
   }
 
   function startEditLead(lead: Lead) {
@@ -2352,7 +2359,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowAddModal(false)} />
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={closeAddModal} />
           <div className="relative w-full max-w-md bg-slate-900 border border-white/12 rounded-2xl shadow-2xl overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
@@ -2360,7 +2367,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                 <h2 className="text-white font-semibold text-sm">Ajouter un lead</h2>
                 <p className="text-slate-500 text-xs mt-0.5">Contact téléphone ou WhatsApp</p>
               </div>
-              <button onClick={() => setShowAddModal(false)} className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-500 hover:text-white hover:bg-white/8 transition-colors">
+              <button onClick={closeAddModal} className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-500 hover:text-white hover:bg-white/8 transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -2556,7 +2563,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
               <div className="flex gap-2 pt-1">
                 <button
                   type="button"
-                  onClick={() => setShowAddModal(false)}
+                  onClick={closeAddModal}
                   className="flex-1 px-4 py-2.5 border border-white/10 text-slate-400 hover:text-white rounded-xl text-sm font-medium transition-colors"
                 >
                   Annuler

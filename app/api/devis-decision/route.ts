@@ -5,6 +5,7 @@ import { eq, sql, and, isNull } from "drizzle-orm";
 import { createClientFromLead } from "@/lib/clients";
 import { createIntervention } from "@/lib/interventions";
 import { Resend } from "resend";
+import { escapeHtml } from "@/lib/escape-html";
 import { logError } from "@/lib/observability";
 
 export const runtime = "nodejs";
@@ -100,7 +101,7 @@ export async function POST(req: NextRequest) {
     contenu: decision === "accepte"
       ? "✅ Devis ACCEPTÉ par le client."
       : `❌ Devis décliné par le client. Motif : ${motifClean}.`,
-  }).catch(() => {});
+  }).catch((e) => logError("devisDecision.suivi", e, { leadId: lead.id }));
 
   // Notification cloche (admin) — adminId null = visible par les admins (cf. notifs terrain).
   await db.insert(notifications).values({
@@ -110,7 +111,7 @@ export async function POST(req: NextRequest) {
       ? `${lead.name} a accepté son devis${montantTxt}. Passé en « gagné », fiche client créée.`
       : `${lead.name} a décliné son devis${montantTxt}. Motif : ${motifClean}.`,
     refType: "lead", refId: lead.id,
-  }).catch(() => {});
+  }).catch((e) => logError("devisDecision.notif", e, { leadId: lead.id }));
 
   // E-mail au gérant (au cas où il n'est pas connecté à ce moment-là)
   try {
@@ -122,10 +123,10 @@ export async function POST(req: NextRequest) {
       subject: decision === "accepte" ? `✅ Devis accepté, ${lead.name}` : `❌ Devis décliné, ${lead.name}`,
       html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
         <h2 style="color:#0f172a;">${decision === "accepte" ? "Bonne nouvelle, un devis accepté !" : "Un devis a été décliné"}</h2>
-        <p><strong>${lead.name}</strong>${montantTxt}<br>${lead.phone}${lead.email ? ` &middot; ${lead.email}` : ""}</p>
+        <p><strong>${escapeHtml(lead.name)}</strong>${montantTxt}<br>${escapeHtml(lead.phone)}${lead.email ? ` &middot; ${escapeHtml(lead.email)}` : ""}</p>
         ${decision === "accepte"
           ? "<p>Le prospect est passé en « gagné » et la fiche client a été créée. Pense à planifier l'intervention.</p>"
-          : `<p>Motif indiqué : <strong>${motifClean}</strong>. Tu peux le rappeler pour comprendre ou renégocier.</p>`}
+          : `<p>Motif indiqué : <strong>${escapeHtml(motifClean)}</strong>. Tu peux le rappeler pour comprendre ou renégocier.</p>`}
         <p style="color:#94a3b8;font-size:12px;">Notification automatique ClimExpert</p>
       </div>`,
     });

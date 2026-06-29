@@ -192,7 +192,7 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
     const eq = priceFor(cfg, brand, cat);
     let a = eq.price;
     const td = rooms.reduce((x, r) => x + (r.distance || 0), 0);
-    a += cat.annex.liaison_base.v + cat.annex.liaison_m.v * td + cat.annex.goulotte_m.v * td + cat.annex.electricite.v + 75;
+    a += cat.annex.liaison_base.v + cat.annex.liaison_m.v * td + Math.max(cat.annex.goulotte_min.v, Math.round(cat.annex.goulotte_m.v * td)) + cat.annex.electricite.v + 75;
     a += rooms.filter((r) => !r.evac).length * cat.annex.pompe.v + estimateHours(cfg, install, rooms) * cat.moRate;
     // Mélange TVA approx : tout à 20 % pour un pro (ou logement < 2 ans), sinon pose à 10 %.
     return a * (clientType === "pro" || !plus2ans ? 1.20 : 1.18);

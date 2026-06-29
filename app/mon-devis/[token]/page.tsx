@@ -41,7 +41,7 @@ export default async function Page({ params }: { params: Promise<{ token: string
       token={token}
       clientName={clientName}
       devisUrl={devisUrl}
-      montant={montantCt ? montantCt / 100 : null}
+      montant={montantCt != null ? montantCt / 100 : null}
       decision={decision}
     />
   );

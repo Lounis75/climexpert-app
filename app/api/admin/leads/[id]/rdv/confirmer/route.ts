@@ -6,6 +6,7 @@ import { leads, suivis } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { Resend } from "resend";
 import { mailRecipient } from "@/lib/mail";
+import { escapeHtml } from "@/lib/escape-html";
 import { logError } from "@/lib/observability";
 
 export const runtime = "nodejs";
@@ -41,12 +42,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       subject: `Confirmation de votre rendez-vous, le ${jour}`,
       html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#0f172a;">
         <h2 style="color:#0284c7;">Votre rendez-vous est confirmé</h2>
-        <p>Bonjour${prenom ? ` ${prenom}` : ""},</p>
+        <p>Bonjour${prenom ? ` ${escapeHtml(prenom)}` : ""},</p>
         <p>Nous vous confirmons votre rendez-vous avec <strong>ClimExpert</strong> :</p>
         <table style="border-collapse:collapse;margin:16px 0;">
           <tr><td style="padding:6px 12px 6px 0;color:#64748b;">Date</td><td style="padding:6px 0;font-weight:bold;">${jour}</td></tr>
           <tr><td style="padding:6px 12px 6px 0;color:#64748b;">Heure</td><td style="padding:6px 0;font-weight:bold;">${heure}</td></tr>
-          ${lieu ? `<tr><td style="padding:6px 12px 6px 0;color:#64748b;">Adresse</td><td style="padding:6px 0;font-weight:bold;">${lieu}</td></tr>` : ""}
+          ${lieu ? `<tr><td style="padding:6px 12px 6px 0;color:#64748b;">Adresse</td><td style="padding:6px 0;font-weight:bold;">${escapeHtml(lieu)}</td></tr>` : ""}
         </table>
         <p>Si vous avez un empêchement ou une question, contactez-nous au <strong>06 67 43 27 67</strong> ou répondez à cet e-mail.</p>
         <p>À très bientôt,<br>L'équipe ClimExpert</p>
