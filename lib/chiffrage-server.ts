@@ -32,9 +32,9 @@ export async function resolveLeadId(
   const id = createId();
   const location = [client.cp?.trim(), client.ville?.trim()].filter(Boolean).join(" ").trim() || null;
   const pro = clientType === "pro";
-  // `project` est un enum côté schéma (pas de "depose" → "autre"). On valide avant insertion.
-  const PROJECTS = ["installation", "entretien", "depannage", "autre", "contrat-pro"] as const;
-  const rawProj = opts?.project === "depose" ? "autre" : (opts?.project || "installation");
+  // `project` est un enum côté schéma. On valide avant insertion (fallback sur "installation").
+  const PROJECTS = ["installation", "entretien", "depannage", "depose", "autre", "contrat-pro"] as const;
+  const rawProj = opts?.project || "installation";
   const project = (PROJECTS as readonly string[]).includes(rawProj) ? (rawProj as typeof PROJECTS[number]) : "installation";
   await db.insert(leads).values({
     id,

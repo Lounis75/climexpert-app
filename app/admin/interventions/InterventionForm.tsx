@@ -11,6 +11,7 @@ const TYPES = [
   { value: "installation",  label: "Installation" },
   { value: "entretien",     label: "Entretien" },
   { value: "depannage",     label: "Dépannage" },
+  { value: "depose",        label: "Dépose" },
   { value: "contrat-pro",   label: "Contrat pro" },
   { value: "autre",         label: "Autre" },
 ];
@@ -41,7 +42,7 @@ export default function InterventionForm({
     : "";
   // Type pré-rempli via ?type=<projet du prospect> (entretien / installation / dépannage…).
   const typeParam = searchParams.get("type");
-  const preType = typeParam && ["installation", "entretien", "depannage", "contrat-pro", "autre"].includes(typeParam) ? typeParam : "installation";
+  const preType = typeParam && ["installation", "entretien", "depannage", "depose", "contrat-pro", "autre"].includes(typeParam) ? typeParam : "installation";
   const [clientId, setClientId] = useState(preClient?.id ?? "");
   const [type, setType] = useState(preType);
   const [sousContrat, setSousContrat] = useState<boolean | null>(null);

@@ -161,6 +161,7 @@ export default async function AdminInterventionsPage() {
                   <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-sky-500/70" /> Installation</span>
                   <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-500/70" /> Entretien</span>
                   <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-red-500/70" /> Dépannage</span>
+                  <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-orange-500/70" /> Dépose</span>
                 </div>
                 <EventSection title="AUJOURD'HUI" items={evToday} accent="text-amber-400" />
                 <EventSection title="CETTE SEMAINE" items={evWeek} accent="text-sky-400" />

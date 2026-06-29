@@ -46,6 +46,7 @@ export const projectTypeEnum = pgEnum("project_type", [
   "installation",
   "entretien",
   "depannage",
+  "depose",
   "contrat-pro",
   "autre",
 ]);

@@ -2485,7 +2485,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
               <div>
                 <label className="text-slate-400 text-xs font-medium block mb-1.5">Type de projet</label>
                 <div className="flex flex-wrap gap-1.5">
-                  {[["installation", "Installation"], ["entretien", "Entretien"], ["depannage", "Dépannage"], ["contrat-pro", "Contrat pro"], ["autre", "Autre"]].map(([val, lbl]) => (
+                  {[["installation", "Installation"], ["entretien", "Entretien"], ["depannage", "Dépannage"], ["depose", "Dépose"], ["contrat-pro", "Contrat pro"], ["autre", "Autre"]].map(([val, lbl]) => (
                     <button
                       key={val}
                       type="button"

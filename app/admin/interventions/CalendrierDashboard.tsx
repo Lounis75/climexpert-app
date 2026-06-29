@@ -26,12 +26,13 @@ const TYPE_COLORS: Record<string, { bg: string; border: string; text: string; do
   installation:  { bg: "bg-sky-500/15",     border: "border-sky-500/40",     text: "text-sky-300",     dot: "bg-sky-400" },
   entretien:     { bg: "bg-emerald-500/15", border: "border-emerald-500/40", text: "text-emerald-300", dot: "bg-emerald-400" },
   depannage:     { bg: "bg-red-500/15",     border: "border-red-500/40",     text: "text-red-300",     dot: "bg-red-400" },
+  depose:        { bg: "bg-orange-500/15",  border: "border-orange-500/40",  text: "text-orange-300",  dot: "bg-orange-400" },
   "contrat-pro": { bg: "bg-violet-500/15",  border: "border-violet-500/40",  text: "text-violet-300",  dot: "bg-violet-400" },
   autre:         { bg: "bg-slate-500/15",   border: "border-slate-500/40",   text: "text-slate-300",   dot: "bg-slate-400" },
 };
 const TYPE_LABELS: Record<string, string> = {
   installation: "Installation", entretien: "Entretien",
-  depannage: "Dépannage", "contrat-pro": "Contrat pro", autre: "Autre",
+  depannage: "Dépannage", depose: "Dépose", "contrat-pro": "Contrat pro", autre: "Autre",
 };
 const DAYS_FR   = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
 const MONTHS_FR = ["jan", "fév", "mar", "avr", "mai", "jun", "jul", "aoû", "sep", "oct", "nov", "déc"];

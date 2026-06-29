@@ -6,6 +6,7 @@ export const TYPE_LABELS: Record<string, string> = {
   installation: "Installation",
   entretien:    "Entretien",
   depannage:    "Dépannage",
+  depose:       "Dépose",
   "contrat-pro": "Contrat pro",
   autre:        "Autre",
 };
@@ -14,6 +15,7 @@ export const TYPE_COLORS: Record<string, string> = {
   installation:  "bg-sky-500/10 text-sky-400 border-sky-500/30",
   entretien:     "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
   depannage:     "bg-red-500/10 text-red-400 border-red-500/30",
+  depose:        "bg-orange-500/10 text-orange-400 border-orange-500/30",
   "contrat-pro": "bg-violet-500/10 text-violet-400 border-violet-500/30",
   autre:         "bg-slate-500/10 text-slate-400 border-slate-500/30",
 };
