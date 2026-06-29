@@ -35,20 +35,28 @@ function classify(w: number): number {
   for (const [kw, btu] of CLASSES) if (w <= kw * 1.05) return btu;
   return 24000;
 }
+const BTU_SHORT: Record<number, string> = { 9000: "9", 12000: "12", 18000: "18", 24000: "24" };
 function buildConfig(rooms: Room[]) {
   const classes = rooms.map((r) => classify(roomPower(r)));
   const n = classes.length;
   let key: string;
-  if (n === 1) key = "mono_" + classes[0];
-  else if (n === 2) { const s = [...classes].sort((a, b) => a - b).join("_"); key = s === "9000_9000" ? "bi_9_9" : s === "9000_12000" ? "bi_9_12" : "bi_custom"; }
-  else if (n === 3) { const s = [...classes].sort((a, b) => a - b).join("_"); key = s === "9000_9000_12000" ? "tri_9_9_12" : "tri_custom"; }
-  else key = "multi_custom";
+  if (n === 1) {
+    key = "mono_" + classes[0];
+  } else {
+    // Clé dynamique à partir des calibres triés (ex. bi_9_12, bi_12_12, tri_9_12_12). Évite le
+    // mélange ad hoc de combinaisons "custom" qui tombaient sur un secours sous-évalué.
+    const code = [...classes].sort((a, b) => a - b).map((c) => BTU_SHORT[c] ?? String(c)).join("_");
+    key = (n === 2 ? "bi_" : n === 3 ? "tri_" : "multi_") + code;
+  }
   return { classes, n, key };
 }
 function priceFor(cfg: ReturnType<typeof buildConfig>, brand: string, cat: Catalogue) {
   if (cat.equip[cfg.key]) return { label: cat.equip[cfg.key].label, price: cat.equip[cfg.key].p[brand] ?? 0, exact: true };
+  // Secours pour une combinaison non répertoriée (gros calibres 24 000, 4 unités et +) : dans ce
+  // catalogue un multi-split coûte PLUS que la somme des mono-splits (groupe extérieur multi),
+  // d'où un coefficient > 1. L'ancien 0,82 sous-évaluait et rendait les gros configs moins chers.
   const sum = cfg.classes.reduce((a, b) => { const k = "mono_" + b; return a + (cat.equip[k] ? cat.equip[k].p[brand] : 1000); }, 0);
-  return { label: "Multi-split " + cfg.classes.map((b) => b + " BTU").join(" + "), price: Math.round(sum * 0.82), exact: false };
+  return { label: "Multi-split " + cfg.classes.map((b) => b + " BTU").join(" + "), price: Math.round(sum * 1.5), exact: false };
 }
 function estimateHours(cfg: ReturnType<typeof buildConfig>, install: Install, rooms: Room[]): number {
   if (cfg.key === "monobloc_eau") return 12;
