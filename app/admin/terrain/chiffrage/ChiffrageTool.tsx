@@ -70,6 +70,9 @@ const EMPTY_CLIENT: ChiffrageClient = { nom: "", tel: "", email: "", adr: "", cp
 export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, draft }: { catalogue: Catalogue; prefill?: ChiffragePrefill | null; draft?: ChiffrageDraft | null }) {
   const [cat, setCat] = useState<Catalogue>(initialCatalogue);
   const [leadId, setLeadId] = useState<string | null>(prefill?.leadId ?? draft?.leadId ?? null);
+  // Client existant rattaché (devis lancé depuis « Nouveau devis ») : transporté tel quel pour
+  // qu'à l'acceptation le devis se rattache au client sans créer de doublon de fiche.
+  const clientIdRef = prefill?.clientId ?? draft?.clientId ?? null;
   const [clientType, setClientType] = useState<"particulier" | "pro">(draft?.clientType ?? prefill?.clientType ?? "particulier");
   const [plus2ans, setPlus2ans] = useState(draft?.plus2ans ?? true);
   const [client, setClient] = useState<ChiffrageClient>({ ...EMPTY_CLIENT, ...(prefill?.client ?? {}), ...(draft?.client ?? {}) });
@@ -231,7 +234,7 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
   }
 
   function currentDraft(): ChiffrageDraft {
-    return { leadId: leadId ?? undefined, clientType, plus2ans, client, prestation, prestaUnits, prestaHours, prestaContrat, prestaNote, rooms, install, brand, lines, generated };
+    return { leadId: leadId ?? undefined, clientId: clientIdRef, clientType, plus2ans, client, prestation, prestaUnits, prestaHours, prestaContrat, prestaNote, rooms, install, brand, lines, generated };
   }
   async function saveDraft() {
     if (!client.nom.trim() && !client.entreprise.trim()) { setDraftMsg("Renseigne au moins le nom du client (ou l'entreprise)."); return; }
@@ -259,7 +262,7 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
     if (!client.email.trim()) { setSendErr("Renseigne l'e-mail du client (section A « Client ») pour lui envoyer le devis."); return; }
     setSending(true); setSendErr("");
     try {
-      const res = await fetch("/api/admin/terrain/chiffrage/envoyer", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ leadId, clientType, client, lignes: lines, description: devisTitle() }) });
+      const res = await fetch("/api/admin/terrain/chiffrage/envoyer", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ leadId, clientId: clientIdRef, clientType, client, lignes: lines, description: devisTitle(), project: prestation }) });
       const d = await res.json().catch(() => ({}));
       if (res.ok) { setLeadId(d.leadId); setSent(true); }
       else setSendErr(d.error ?? "Échec de l'envoi.");

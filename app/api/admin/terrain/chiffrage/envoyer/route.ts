@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
   if (rawLines.length === 0) return NextResponse.json({ error: "Aucune ligne de devis." }, { status: 400 });
 
   // 1) Prospect (existant ou créé), e-mail requis pour l'envoi
-  const { id } = await resolveLeadId(body.leadId, client, clientType);
+  const { id } = await resolveLeadId(body.leadId, client, clientType, { clientId: body.clientId, project: body.project });
   const [lead] = await db.select().from(leads).where(eq(leads.id, id)).limit(1);
   if (!lead) return NextResponse.json({ error: "Prospect introuvable" }, { status: 404 });
   const email = (lead.email || client.email || "").trim();

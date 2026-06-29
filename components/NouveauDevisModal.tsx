@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, X, CheckCircle2, Search } from "lucide-react";
+import { FileText, X, CheckCircle2, Search, Calculator } from "lucide-react";
 
 const PROJECTS: [string, string][] = [
   ["installation", "Installation"], ["entretien", "Entretien"], ["depannage", "Dépannage"], ["contrat-pro", "Contrat pro"], ["autre", "Autre"],
@@ -52,6 +52,24 @@ export default function NouveauDevisModal({ presetClient, triggerClassName, trig
     setMode("client"); setSelectedClient(presetClient ?? null); setClientQuery(""); setClientResults([]);
     setContact({ name: "", phone: "", email: "", address: "" }); setProject(""); setMontant(""); setMessage("");
     setFile(null); setError(""); setDone(false);
+  }
+
+  // Bascule vers l'outil de chiffrage terrain, en pré-remplissant ce qu'on connaît déjà.
+  // Client existant -> ?client=<id> (rattaché, pas de doublon) ; nouveau contact -> champs en query.
+  function goToChiffrage() {
+    const p = new URLSearchParams();
+    if (project) p.set("prestation", project);
+    const cli = presetClient ?? selectedClient;
+    if (mode === "client" && cli) {
+      p.set("client", cli.id);
+    } else if (mode === "contact") {
+      if (contact.name.trim()) p.set("nom", contact.name.trim());
+      if (contact.phone.trim()) p.set("tel", contact.phone.trim());
+      if (contact.email.trim()) p.set("email", contact.email.trim());
+      if (contact.address.trim()) p.set("adr", contact.address.trim());
+    }
+    const qs = p.toString();
+    router.push(`/admin/terrain/chiffrage${qs ? `?${qs}` : ""}`);
   }
 
   async function send() {
@@ -151,6 +169,12 @@ export default function NouveauDevisModal({ presetClient, triggerClassName, trig
                     </select>
                     <input type="number" min="0" value={montant} onChange={(e) => setMontant(e.target.value)} placeholder="Montant TTC (€)" className={inp} />
                   </div>
+
+                  <button type="button" onClick={goToChiffrage} disabled={mode === "client" && !(presetClient || selectedClient)}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-violet-500/40 text-violet-200 hover:bg-violet-500/10 disabled:opacity-40 text-sm font-semibold transition-colors">
+                    <Calculator className="w-4 h-4" /> Chiffrer avec l&apos;outil terrain
+                  </button>
+                  <div className="flex items-center gap-2 text-slate-500 text-[11px]"><span className="flex-1 h-px bg-white/10" />ou joindre un PDF déjà prêt<span className="flex-1 h-px bg-white/10" /></div>
 
                   <label
                     onDragOver={(e) => { e.preventDefault(); setDrag(true); }}

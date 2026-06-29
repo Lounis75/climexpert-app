@@ -95,7 +95,8 @@ export type ChiffrageClient = { nom: string; tel: string; email: string; adr: st
 
 // Pré-remplissage de l'outil de chiffrage depuis un prospect (client + qualification).
 export type ChiffragePrefill = {
-  leadId: string;
+  leadId?: string; // prospect d'origine (si on chiffre depuis une fiche)
+  clientId?: string | null; // client existant rattaché (devis depuis « Nouveau devis ») → pas de doublon
   client: ChiffrageClient;
   clientType: "particulier" | "pro";
   prestation: Prestation;
@@ -108,6 +109,7 @@ export type ChiffragePrefill = {
 // connaît la forme exacte de rooms/install/lines et fait le cast.
 export type ChiffrageDraft = {
   leadId?: string;
+  clientId?: string | null;
   clientType: "particulier" | "pro";
   plus2ans: boolean;
   client: ChiffrageClient;
