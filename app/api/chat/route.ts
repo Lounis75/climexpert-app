@@ -3,8 +3,8 @@ import { Resend } from "resend";
 import { NextRequest, NextResponse } from "next/server";
 import { createLead } from "@/lib/leads";
 import { db } from "@/lib/db";
-import { savTickets, clients, notifications, admins, logsAlex } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { savTickets, clients, notifications, admins, logsAlex, leads, suivis } from "@/lib/db/schema";
+import { eq, sql } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 import { getAlexConsignes, consignesPromptBlock } from "@/lib/alex-consignes";
@@ -304,6 +304,51 @@ async function sendLeadEmails(lead: LeadData, messages: ChatMessage[]) {
   });
 }
 
+// Met à jour un prospect EXISTANT à partir de la qualification Alex (portail / lien personnel),
+// au lieu d'en créer un nouveau. Remplit projet/localisation/notes, passe en "contacté" + "RDV à
+// convenir", trace la conversation et notifie l'équipe ("prospect qualifié").
+async function updateLeadFromQualif(existing: typeof leads.$inferSelect, lead: LeadData, messages: ChatMessage[]) {
+  const VALID_PROJECTS = ["installation", "entretien", "depannage", "depose", "contrat-pro", "autre"] as const;
+  const normalized = lead.project ? lead.project.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim() : "";
+  const project = (VALID_PROJECTS as readonly string[]).includes(normalized) ? (normalized as typeof VALID_PROJECTS[number]) : undefined;
+
+  const transcript = buildTranscript(messages);
+  const noteAjout = [
+    "Qualifié par Alex (portail de qualification).",
+    lead.estimate ? `Estimation : ${lead.estimate}` : "",
+    lead.notes ? `Détails : ${lead.notes}` : "",
+    transcript ? `\n--- Conversation Alex ---\n${transcript}` : "",
+  ].filter(Boolean).join("\n");
+  const newNotes = [existing.notes, noteAjout].filter(Boolean).join("\n\n").slice(0, 8000);
+
+  try {
+    await db.update(leads).set({
+      ...(project ? { project } : {}),
+      ...(lead.location ? { location: lead.location } : {}),
+      ...(lead.address ? { address: lead.address } : {}),
+      ...(lead.email ? { email: lead.email } : {}),
+      notes: newNotes,
+      status: existing.status === "nouveau" ? "contacté" : existing.status,
+      prochaineEtape: "rdv_a_convenir",
+      qualifLe: new Date(),
+      statutChangeLe: new Date(),
+      relanceNotifieeLe: null,
+      version: sql`${leads.version} + 1`,
+      updatedAt: new Date(),
+    }).where(eq(leads.id, existing.id));
+  } catch (e) {
+    console.error("[chat] échec updateLeadFromQualif:", e);
+    return;
+  }
+  await db.insert(suivis).values({ leadId: existing.id, type: "note", contenu: noteAjout.slice(0, 4000) }).catch(() => {});
+  await db.insert(notifications).values({
+    type: "lead_qualifie",
+    titre: `Prospect qualifié par Alex : ${existing.name}`,
+    contenu: `${existing.name} a décrit son besoin via le lien.${lead.estimate ? ` Estimation : ${lead.estimate}.` : ""} À recontacter pour caler un rendez-vous.`,
+    refType: "lead", refId: existing.id,
+  }).catch(() => {});
+}
+
 // Mode « contact » : Alex aide le visiteur à DÉCRIRE SON BESOIN depuis le formulaire de
 // contact (les coordonnées sont déjà saisies). Il ne crée AUCUN lead / créneau / SAV -
 // c'est le formulaire qui crée le lead à l'envoi. Prompt isolé + court-circuit.
@@ -324,7 +369,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Trop de messages, patientez quelques instants." }, { status: 429 });
     }
 
-    const body: { messages: ChatMessage[]; sessionId?: string; mode?: string } = await req.json();
+    const body: { messages: ChatMessage[]; sessionId?: string; mode?: string; qualifToken?: string } = await req.json();
     const sid = body.sessionId ?? "unknown";
     const mode = body.mode;
 
@@ -332,17 +377,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Messages invalides" }, { status: 400 });
     }
 
+    // Mode « qualif » : conversation rattachée à un prospect EXISTANT via son lien personnel (SMS).
+    // Alex connaît déjà son identité et met à jour SA fiche au lieu d'en créer une nouvelle.
+    const qualifToken = typeof body.qualifToken === "string" ? body.qualifToken : null;
+    const [qualifLead] = qualifToken
+      ? await db.select().from(leads).where(eq(leads.qualifToken, qualifToken)).limit(1)
+      : [];
+
     // Borne la taille de l'historique envoyé au modèle (coût d'entrée + DB)
     const messages = body.messages.slice(-40);
 
     // Contexte courant pilotable par l'équipe (délai d'intervention en jours, consignes du moment).
     const consignes = await getAlexConsignes();
     const baseSystem = mode === "contact" ? CONTACT_SYSTEM_PROMPT : SYSTEM_PROMPT;
+    let extraSystem = consignesPromptBlock(consignes);
+    if (qualifLead) {
+      extraSystem += `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nPROSPECT DÉJÀ IDENTIFIÉ (qualification via lien personnel envoyé par l'équipe)\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nCe client t'a été adressé par ClimExpert suite à SON APPEL. Tu connais déjà : nom = ${qualifLead.name ?? "?"}, téléphone = ${qualifLead.phone ?? "?"}${qualifLead.location ? `, ville = ${qualifLead.location}` : ""}${qualifLead.project ? `, projet pressenti = ${qualifLead.project}` : ""}. NE REDEMANDE JAMAIS son nom ni son téléphone. Concentre-toi sur la qualification du BESOIN : type de projet exact, nombre de pièces, surface, budget approximatif réaliste, délai souhaité, accès. Sois chaleureux et efficace, puis conclus dès que tu as l'essentiel (n'as pas besoin de redemander les coordonnées avant LEAD_READY).`;
+    }
 
     const response = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 400,
-      system: baseSystem + consignesPromptBlock(consignes),
+      system: baseSystem + extraSystem,
       messages,
     });
 
@@ -433,6 +489,12 @@ export async function POST(req: NextRequest) {
 
         const lead: LeadData = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
         const message = messageMatch ? messageMatch[1].trim() : "Votre demande est bien enregistrée. Notre équipe vous contacte très prochainement !";
+
+        // Mode qualif : on MET À JOUR le prospect existant (pas de doublon) + notif "qualifié".
+        if (qualifLead && lead) {
+          await updateLeadFromQualif(qualifLead, lead, messages);
+          return NextResponse.json({ message, leadComplete: true, lead });
+        }
 
         if (lead?.phone) {
           // Log lead_complete

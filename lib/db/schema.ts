@@ -267,6 +267,8 @@ export const leads = pgTable("leads", {
   piecesJointes:       text("pieces_jointes").array(),  // pièces ajoutées en interne sur le dossier (photos/PDF), propres au lead
   noteEpinglee:        text("note_epinglee"),           // note courte mise en avant dans le cockpit (infos clés appel/visite)
   chiffrageBrouillon:  jsonb("chiffrage_brouillon"),     // brouillon de devis en cours (outil de chiffrage terrain)
+  qualifToken:         varchar("qualif_token", { length: 64 }).unique(), // lien personnel de qualification par Alex (SMS)
+  qualifLe:            timestamp("qualif_le"),            // date où Alex a qualifié le prospect via le portail
 }, (t) => ({
   statusIdx:        index("leads_status_idx").on(t.status),
   sourceIdx:        index("leads_source_idx").on(t.source),

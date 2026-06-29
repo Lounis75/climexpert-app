@@ -126,6 +126,12 @@ export async function getEnProductionLeadIdSet(): Promise<Set<string>> {
   return new Set(rows.map((r) => r.id));
 }
 
+/** Prospect rattaché à un lien personnel de qualification Alex (portail public /qualif/[token]). */
+export async function getLeadByQualifToken(token: string): Promise<Lead | null> {
+  const [l] = await db.select().from(leads).where(and(eq(leads.qualifToken, token), isNull(leads.supprimeLe))).limit(1);
+  return l ?? null;
+}
+
 /** Montant du devis (centimes) par clientId, pour afficher le montant sur les cartes « à affecter ». */
 export async function getMontantsDevisByClientIds(clientIds: string[]): Promise<Record<string, number>> {
   if (clientIds.length === 0) return {};
