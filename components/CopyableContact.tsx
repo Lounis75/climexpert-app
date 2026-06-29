@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Phone, Mail, Copy, Check } from "lucide-react";
+import { Phone, Mail, MapPin, Copy, Check } from "lucide-react";
 
-function CopyRow({ icon: Icon, value, href }: { icon: typeof Phone; value: string; href: string }) {
+function CopyRow({ icon: Icon, value, href }: { icon: typeof Phone; value: string; href?: string }) {
   const [copied, setCopied] = useState(false);
   async function copy() {
     try {
@@ -15,7 +15,9 @@ function CopyRow({ icon: Icon, value, href }: { icon: typeof Phone; value: strin
   return (
     <div className="flex items-center gap-2 min-w-0">
       <Icon className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />
-      <a href={href} className="text-slate-200 text-sm hover:text-sky-300 transition-colors truncate">{value}</a>
+      {href
+        ? <a href={href} target={href.startsWith("http") ? "_blank" : undefined} rel="noopener noreferrer" className="text-slate-200 text-sm hover:text-sky-300 transition-colors truncate">{value}</a>
+        : <span className="text-slate-200 text-sm truncate">{value}</span>}
       <button
         type="button"
         onClick={copy}
@@ -28,14 +30,15 @@ function CopyRow({ icon: Icon, value, href }: { icon: typeof Phone; value: strin
   );
 }
 
-/** Affiche email + téléphone avec un bouton « copier » sur chaque ligne. */
-export default function CopyableContact({ email, phone }: { email?: string | null; phone?: string | null }) {
-  if (!email && !phone) return null;
+/** Regroupe le contact client : téléphone, adresse, e-mail (dans cet ordre), copiables. */
+export default function CopyableContact({ email, phone, address }: { email?: string | null; phone?: string | null; address?: string | null }) {
+  if (!email && !phone && !address) return null;
   return (
     <div className="bg-slate-800/40 border border-white/8 rounded-xl px-4 py-3 sm:col-span-2">
       <p className="text-xs text-slate-500 mb-2">Contact client</p>
       <div className="space-y-2">
         {phone && <CopyRow icon={Phone} value={phone} href={`tel:${phone}`} />}
+        {address && <CopyRow icon={MapPin} value={address} href={`https://maps.google.com/?q=${encodeURIComponent(address)}`} />}
         {email && <CopyRow icon={Mail} value={email} href={`mailto:${email}`} />}
       </div>
     </div>
