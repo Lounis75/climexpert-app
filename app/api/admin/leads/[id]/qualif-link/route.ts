@@ -31,7 +31,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   const baseUrl = process.env.NEXT_PUBLIC_URL ?? "https://climexpert.fr";
   const link = `${baseUrl}/qualif/${token}`;
   const prenom = (lead.name || "").trim().split(" ")[0] || "";
-  const sms = `Bonjour${prenom ? ` ${prenom}` : ""}, ici ClimExpert. Suite à votre appel et à un afflux de demandes, on met tout en œuvre pour vous répondre vite. Pour gagner du temps, décrivez votre besoin en 2 min ici, notre assistant vous donne une première estimation : ${link} À très vite !`;
+  const sms = `Bonjour${prenom ? ` ${prenom}` : ""}, c'est Alex de ClimExpert. Suite à votre appel et à un afflux de demandes, on met tout en œuvre pour vous répondre au plus vite. Pour gagner du temps, décrivez votre besoin en 2 minutes ici, je vous donnerai une première estimation : ${link} À très vite !`;
 
   return NextResponse.json({ token, link, sms, phone: lead.phone ?? "" });
 }
