@@ -235,6 +235,8 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
   const [qualifLink, setQualifLink] = useState<{ link: string; sms: string; phone: string } | null>(null); // lien + SMS de qualification Alex
   const [qualifBusy, setQualifBusy] = useState(false);
   const [smsCopied, setSmsCopied] = useState(false);
+  const [qualifEmailBusy, setQualifEmailBusy] = useState(false);
+  const [qualifEmailSent, setQualifEmailSent] = useState(false);
   const [visiteDraft, setVisiteDraft] = useState<string | null>(null); // brouillon d'édition de la visite (null = non modifié)
   const [visiteOpen, setVisiteOpen] = useState(false); // encadré « Visite client » ouvert ?
   const [notesOpen, setNotesOpen] = useState(false);   // note interne / conversation Alex dépliée ?
@@ -268,7 +270,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
   // Charge l'historique des devis du prospect ouvert (plusieurs liens peuvent coexister).
   useEffect(() => {
-    setVisiteDraft(null); setVisiteOpen(false); setRdvDraft(null); setInstallDraft(null); setInstallOpen(false); setRdvConfirmSent(false); setRdvConfirmBusy(false); setQualifLink(null); setQualifBusy(false); setSmsCopied(false); setNotesOpen(false); setShowAllHistory(false); setTab("qualif"); // reset l'édition quand on change de prospect
+    setVisiteDraft(null); setVisiteOpen(false); setRdvDraft(null); setInstallDraft(null); setInstallOpen(false); setRdvConfirmSent(false); setRdvConfirmBusy(false); setQualifLink(null); setQualifBusy(false); setSmsCopied(false); setQualifEmailBusy(false); setQualifEmailSent(false); setNotesOpen(false); setShowAllHistory(false); setTab("qualif"); // reset l'édition quand on change de prospect
     if (!openLeadId) { setDevisHist([]); return; }
     fetch(`/api/admin/leads/${openLeadId}/devis`)
       .then(r => r.json())
@@ -505,6 +507,19 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
   async function copySms() {
     if (!qualifLink) return;
     try { await navigator.clipboard.writeText(qualifLink.sms); setSmsCopied(true); setTimeout(() => setSmsCopied(false), 2000); } catch { /* presse-papiers indisponible */ }
+  }
+  // Envoi DIRECT du lien de qualification par e-mail au client (depuis la fiche, sans copier-coller).
+  async function sendQualifEmail() {
+    const id = selectedLead?.id;
+    if (!id || qualifEmailBusy) return;
+    setQualifEmailBusy(true);
+    try {
+      const res = await fetch(`/api/admin/leads/${id}/qualif-email`, { method: "POST" });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) setQualifEmailSent(true);
+      else alert(d.error ?? "L'e-mail n'a pas pu être envoyé.");
+    } catch { alert("Erreur réseau, réessayez."); }
+    finally { setQualifEmailBusy(false); }
   }
 
   // ⭐ Marquer / démarquer un prospect comme « intéressant » (optimiste + verrou version).
@@ -1685,6 +1700,40 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                 </>
                 )}
 
+                {/* ─── Qualification Alex : priorité, juste sous la fiche client et au-dessus du premier contact ─── */}
+                <div className="mb-5">
+                  <p className="text-violet-300 text-xs font-semibold mb-2 uppercase tracking-wide flex items-center gap-1.5">
+                    <Bot className="w-3.5 h-3.5" /> Qualification Alex
+                  </p>
+                  {!qualifLink ? (
+                    <button onClick={genQualifLink} disabled={qualifBusy} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-violet-500/40 text-violet-200 hover:bg-violet-500/10 disabled:opacity-50 text-sm font-semibold transition-colors">
+                      <Bot className="w-4 h-4" /> {qualifBusy ? "Génération…" : "Faire qualifier par Alex"}
+                    </button>
+                  ) : (
+                    <div className="rounded-xl border border-violet-500/30 bg-violet-500/[0.06] p-3 space-y-2.5">
+                      <p className="text-slate-400 text-[11px]">Le client décrit son besoin, Alex le qualifie et remplit la fiche. Le SMS est le plus simple (gratuit, depuis ton téléphone).</p>
+                      <textarea readOnly value={qualifLink.sms} rows={4} onFocus={(e) => e.currentTarget.select()} className="w-full bg-slate-900/60 border border-white/10 rounded-lg px-3 py-2 text-white text-xs resize-none [color-scheme:dark]" />
+                      <div className="flex gap-2">
+                        <button onClick={copySms} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-violet-500 hover:bg-violet-400 text-white text-sm font-semibold transition-colors">
+                          {smsCopied ? <><Check className="w-4 h-4" /> Copié</> : <><Copy className="w-4 h-4" /> Copier le SMS</>}
+                        </button>
+                        {qualifLink.phone && <a href={`sms:${qualifLink.phone}?&body=${encodeURIComponent(qualifLink.sms)}`} className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-white/10 text-slate-300 hover:bg-white/5 text-sm font-medium">Messages</a>}
+                      </div>
+                      <div className="flex items-center gap-2 text-slate-500 text-[11px]"><span className="flex-1 h-px bg-white/10" />ou par e-mail<span className="flex-1 h-px bg-white/10" /></div>
+                      {qualifEmailSent ? (
+                        <p className="text-emerald-400 text-xs flex items-center gap-1.5"><Check className="w-3.5 h-3.5 flex-shrink-0" /> Lien envoyé par e-mail au client</p>
+                      ) : lead.email ? (
+                        <button onClick={sendQualifEmail} disabled={qualifEmailBusy} className="w-full flex items-center justify-center gap-2 py-2 rounded-lg border border-white/10 text-slate-200 hover:bg-white/5 disabled:opacity-50 text-sm font-medium transition-colors">
+                          <Mail className="w-4 h-4" /> {qualifEmailBusy ? "Envoi…" : "Envoyer le lien par e-mail"}
+                        </button>
+                      ) : (
+                        <p className="text-slate-500 text-[11px]">Pas d&apos;e-mail sur la fiche pour l&apos;envoi direct.</p>
+                      )}
+                      <a href={qualifLink.link} target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:text-sky-300 text-[11px] block truncate">{qualifLink.link}</a>
+                    </div>
+                  )}
+                </div>
+
                 {/* ─── Suivi commercial sur 2 colonnes (panneau large) ─── */}
                 {/* Premier contact : file d'appels (uniquement tant que le prospect est "nouveau") */}
                 {lead.status === "nouveau" && (
@@ -1865,30 +1914,6 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                     </button>
                   );
                 })()}
-
-                {/* ─── Qualification Alex : lien personnel + SMS prêt (envoyé depuis le tél du gérant) ─── */}
-                <div>
-                  <p className="text-violet-300 text-xs font-semibold mb-2 uppercase tracking-wide flex items-center gap-1.5">
-                    <Bot className="w-3.5 h-3.5" /> Qualification Alex
-                  </p>
-                  {!qualifLink ? (
-                    <button onClick={genQualifLink} disabled={qualifBusy} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-violet-500/40 text-violet-200 hover:bg-violet-500/10 disabled:opacity-50 text-sm font-semibold transition-colors">
-                      <Bot className="w-4 h-4" /> {qualifBusy ? "Génération…" : "Faire qualifier par Alex (SMS)"}
-                    </button>
-                  ) : (
-                    <div className="rounded-xl border border-violet-500/30 bg-violet-500/[0.06] p-3 space-y-2">
-                      <p className="text-slate-400 text-[11px]">Copie ce SMS et envoie-le depuis ton téléphone (gratuit). Le client décrit son besoin, Alex le qualifie et remplit la fiche.</p>
-                      <textarea readOnly value={qualifLink.sms} rows={4} onFocus={(e) => e.currentTarget.select()} className="w-full bg-slate-900/60 border border-white/10 rounded-lg px-3 py-2 text-white text-xs resize-none [color-scheme:dark]" />
-                      <div className="flex gap-2">
-                        <button onClick={copySms} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-violet-500 hover:bg-violet-400 text-white text-sm font-semibold transition-colors">
-                          {smsCopied ? <><Check className="w-4 h-4" /> Copié</> : <><Copy className="w-4 h-4" /> Copier le SMS</>}
-                        </button>
-                        {qualifLink.phone && <a href={`sms:${qualifLink.phone}?&body=${encodeURIComponent(qualifLink.sms)}`} className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-white/10 text-slate-300 hover:bg-white/5 text-sm font-medium">Messages</a>}
-                      </div>
-                      <a href={qualifLink.link} target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:text-sky-300 text-[11px] block truncate">{qualifLink.link}</a>
-                    </div>
-                  )}
-                </div>
 
                 {/* ─── Note épinglée : infos clés mises en avant (appel, visite, accès…), juste au-dessus du devis ─── */}
                 <div>
