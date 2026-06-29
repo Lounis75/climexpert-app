@@ -302,6 +302,13 @@
       "when": 1782668794678,
       "tag": "0042_install_prevu_duree",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1782737800437,
+      "tag": "0043_devis_accepte_ip",
+      "breakpoints": true
     }
   ]
 }

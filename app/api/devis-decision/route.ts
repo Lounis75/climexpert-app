@@ -6,6 +6,7 @@ import { createClientFromLead } from "@/lib/clients";
 import { createIntervention } from "@/lib/interventions";
 import { Resend } from "resend";
 import { escapeHtml } from "@/lib/escape-html";
+import { clientIp } from "@/lib/rate-limit";
 import { logError } from "@/lib/observability";
 
 export const runtime = "nodejs";
@@ -44,10 +45,12 @@ export async function POST(req: NextRequest) {
 
   // ── Réservation ATOMIQUE de la décision (anti double-clic / double onglet / renvoi réseau) ──
   // Seule la requête qui passe réellement « decision IS NULL » -> valeur exécute les effets de bord.
+  // Preuve du « bon pour accord » en ligne : IP du client capturée au moment du clic « J'accepte ».
+  const acceptIp = decision === "accepte" ? clientIp(req) : null;
   let claimed: boolean;
   if (envoi) {
     const upd = await db.update(devisEnvois)
-      .set({ decision, decisionLe: new Date(), motifRefus: motifClean })
+      .set({ decision, decisionLe: new Date(), motifRefus: motifClean, accepteIp: acceptIp })
       .where(and(eq(devisEnvois.id, envoi.id), isNull(devisEnvois.decision)))
       .returning({ id: devisEnvois.id });
     claimed = upd.length > 0;

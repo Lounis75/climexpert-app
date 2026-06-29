@@ -147,7 +147,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
   const [loadingSuivis, setLoadingSuivis] = useState(false);
   const [msgDraft, setMsgDraft] = useState("");        // message interne en cours de rédaction
   const [sendingMsg, setSendingMsg] = useState(false);
-  const [devisHist, setDevisHist] = useState<{ id: string; url: string; montantCt: number | null; envoyeLe: string; decision: string | null; decisionLe: string | null; motifRefus: string | null }[]>([]);
+  const [devisHist, setDevisHist] = useState<{ id: string; url: string; montantCt: number | null; envoyeLe: string; decision: string | null; decisionLe: string | null; motifRefus: string | null; accepteIp: string | null }[]>([]);
   const [search, setSearch] = useState("");
   const [view, setView] = useState<"kanban" | "liste">("kanban");
   const [updating, setUpdating] = useState<string | null>(null);
@@ -1895,24 +1895,29 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                   {devisHist.length > 0 ? (
                     <div className="space-y-1.5 mb-3">
                       {devisHist.map((dv, idx) => (
-                        <div key={dv.id} className="flex items-center gap-2 text-sm rounded-lg bg-slate-900/40 border border-white/8 px-2.5 py-2">
-                          <span className="flex-1 min-w-0">
-                            <span className="text-slate-300">Devis {devisHist.length - idx}</span>
-                            <span className="text-slate-500 text-xs ml-1.5">{new Date(dv.envoyeLe).toLocaleDateString("fr-FR")}{dv.montantCt ? ` · ${(dv.montantCt / 100).toLocaleString("fr-FR")} €` : ""}</span>
-                          </span>
-                          {dv.decision === "accepte" ? (
-                            <span className="text-emerald-400 text-xs font-medium flex items-center gap-1 flex-shrink-0"><CheckCircle2 className="w-3.5 h-3.5" /> Accepté</span>
-                          ) : dv.decision === "refuse" ? (
-                            <span className="text-red-400 text-xs font-medium flex items-center gap-1 flex-shrink-0"><X className="w-3.5 h-3.5" /> Décliné</span>
-                          ) : dv.decision === "annule" ? (
-                            <span className="text-slate-500 text-xs font-medium flex items-center gap-1 flex-shrink-0 line-through"><X className="w-3.5 h-3.5" /> Annulé</span>
-                          ) : (
-                            <>
-                              <span className="text-violet-300 text-xs font-medium flex items-center gap-1 flex-shrink-0"><Clock className="w-3.5 h-3.5" /> En attente</span>
-                              <button onClick={() => annulerDevis(dv.id)} title="Annuler ce devis" className="text-slate-500 hover:text-red-400 text-xs font-medium flex-shrink-0 transition-colors">Annuler</button>
-                            </>
+                        <div key={dv.id} className="rounded-lg bg-slate-900/40 border border-white/8 px-2.5 py-2">
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="flex-1 min-w-0">
+                              <span className="text-slate-300">Devis {devisHist.length - idx}</span>
+                              <span className="text-slate-500 text-xs ml-1.5">{new Date(dv.envoyeLe).toLocaleDateString("fr-FR")}{dv.montantCt ? ` · ${(dv.montantCt / 100).toLocaleString("fr-FR")} €` : ""}</span>
+                            </span>
+                            {dv.decision === "accepte" ? (
+                              <span className="text-emerald-400 text-xs font-medium flex items-center gap-1 flex-shrink-0"><CheckCircle2 className="w-3.5 h-3.5" /> Accepté</span>
+                            ) : dv.decision === "refuse" ? (
+                              <span className="text-red-400 text-xs font-medium flex items-center gap-1 flex-shrink-0"><X className="w-3.5 h-3.5" /> Décliné</span>
+                            ) : dv.decision === "annule" ? (
+                              <span className="text-slate-500 text-xs font-medium flex items-center gap-1 flex-shrink-0 line-through"><X className="w-3.5 h-3.5" /> Annulé</span>
+                            ) : (
+                              <>
+                                <span className="text-violet-300 text-xs font-medium flex items-center gap-1 flex-shrink-0"><Clock className="w-3.5 h-3.5" /> En attente</span>
+                                <button onClick={() => annulerDevis(dv.id)} title="Annuler ce devis" className="text-slate-500 hover:text-red-400 text-xs font-medium flex-shrink-0 transition-colors">Annuler</button>
+                              </>
+                            )}
+                            {dv.url && <a href={dv.url} target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:text-sky-300 text-xs flex-shrink-0">PDF</a>}
+                          </div>
+                          {dv.decision === "accepte" && (dv.decisionLe || dv.accepteIp) && (
+                            <p className="text-emerald-400/60 text-[10px] mt-1">Bon pour accord en ligne{dv.decisionLe ? ` le ${new Date(dv.decisionLe).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}` : ""}{dv.accepteIp ? ` · IP ${dv.accepteIp}` : ""}</p>
                           )}
-                          {dv.url && <a href={dv.url} target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:text-sky-300 text-xs flex-shrink-0">PDF</a>}
                         </div>
                       ))}
                     </div>

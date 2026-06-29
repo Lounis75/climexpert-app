@@ -103,6 +103,7 @@ export default function DevisDecisionClient({
                 <button onClick={() => setView("refus")} disabled={loading} className="flex items-center justify-center gap-2 py-3.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold rounded-xl transition-colors">
                   <X className="w-5 h-5" /> Décliner
                 </button>
+                <p className="sm:col-span-2 text-center text-xs text-slate-400">En cliquant sur « J&apos;accepte ce devis », vous donnez votre <strong className="text-slate-500">bon pour accord</strong> (vaut signature).</p>
               </div>
             ) : (
               <div className="mt-6">

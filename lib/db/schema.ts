@@ -288,9 +288,10 @@ export const devisEnvois = pgTable("devis_envois", {
   token:       varchar("token", { length: 100 }).notNull().unique(),
   montantCt:   integer("montant_ct"),
   envoyeLe:    timestamp("envoye_le").defaultNow().notNull(),
-  decision:    varchar("decision", { length: 20 }),     // null | "accepte" | "refuse"
+  decision:    varchar("decision", { length: 20 }),     // null | "accepte" | "refuse" | "annule"
   decisionLe:  timestamp("decision_le"),
   motifRefus:  text("motif_refus"),
+  accepteIp:   varchar("accepte_ip", { length: 50 }),    // IP du client au clic « J'accepte » (preuve du bon pour accord en ligne)
   createdAt:   timestamp("created_at").defaultNow().notNull(),
 }, (t) => ({
   leadIdx:  index("devis_envois_lead_id_idx").on(t.leadId),
