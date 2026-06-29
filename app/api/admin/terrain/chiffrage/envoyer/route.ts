@@ -50,7 +50,9 @@ export async function POST(req: NextRequest) {
     designation: String(ln.d ?? ""),
     quantite: Number(ln.q) || 0,
     prixUnitaireCt: Math.round((Number(ln.pu) || 0) * 100),
-    tvaRate: String(ln.tva ?? "10"),
+    // Un professionnel est TOUJOURS à 20 % (pas de TVA réduite) : on l'impose côté serveur,
+    // quoi que l'outil ait envoyé. Le taux par défaut est le taux normal (20 %).
+    tvaRate: clientType === "pro" ? "20" : String(ln.tva ?? "20"),
   }));
   let totalHtCt = 0, totalTtcCt = 0;
   for (const l of lignes) { const ht = l.quantite * l.prixUnitaireCt; totalHtCt += ht; totalTtcCt += ht + Math.round(ht * (parseFloat(l.tvaRate) / 100)); }

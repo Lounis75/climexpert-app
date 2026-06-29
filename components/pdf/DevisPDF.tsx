@@ -154,14 +154,14 @@ export default function DevisPDF({
 
         {lignes.map((l, i) => {
           const ht = l.quantite * l.prixUnitaireCt;
-          const tva = Math.round(ht * (Number(l.tvaRate ?? 10) / 100));
+          const tva = Math.round(ht * (Number(l.tvaRate ?? 20) / 100));
           const ttc = ht + tva;
           return (
             <View key={l.id} style={[styles.tableRow, i % 2 === 1 ? styles.tableRowAlt : {}]}>
               <Text style={[styles.cellText, styles.cellDesig]}>{l.designation}</Text>
               <Text style={[styles.cellText, styles.cellQty]}>{l.quantite}</Text>
               <Text style={[styles.cellText, styles.cellPu]}>{euros(l.prixUnitaireCt)}</Text>
-              <Text style={[styles.cellText, styles.cellTva]}>{String(l.tvaRate ?? 10)}%</Text>
+              <Text style={[styles.cellText, styles.cellTva]}>{String(l.tvaRate ?? 20)}%</Text>
               <Text style={[styles.cellText, styles.cellTtc]}>{euros(ttc)}</Text>
             </View>
           );

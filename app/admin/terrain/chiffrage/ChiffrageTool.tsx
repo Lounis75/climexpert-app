@@ -193,9 +193,10 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
     const td = rooms.reduce((x, r) => x + (r.distance || 0), 0);
     a += cat.annex.liaison_base.v + cat.annex.liaison_m.v * td + cat.annex.goulotte_m.v * td + cat.annex.electricite.v + 75;
     a += rooms.filter((r) => !r.evac).length * cat.annex.pompe.v + estimateHours(cfg, install, rooms) * cat.moRate;
-    return a * 1.18;
+    // Mélange TVA approx : tout à 20 % pour un pro (ou logement < 2 ans), sinon pose à 10 %.
+    return a * (clientType === "pro" || !plus2ans ? 1.20 : 1.18);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prestation, cfg, brand, cat, rooms, install, prestaUnits, prestaHours, prestaContrat, prestaNote]);
+  }, [prestation, cfg, brand, cat, rooms, install, prestaUnits, prestaHours, prestaContrat, prestaNote, clientType, plus2ans]);
 
   const dbHint = useMemo(() => {
     const b = cat.brands.find((x) => x.id === brand);
@@ -275,9 +276,12 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
             <label>Type de client</label>
             <div className="seg">
               <button className={clientType === "particulier" ? "on" : ""} onClick={() => setClientType("particulier")}>Particulier</button>
-              <button className={clientType === "pro" ? "on" : ""} onClick={() => setClientType("pro")}>Professionnel (commerce, bureau)</button>
+              <button className={clientType === "pro" ? "on" : ""} onClick={() => { setClientType("pro"); setLines((ls) => ls.map((ln) => (ln.tva === 10 ? { ...ln, tva: 20 } : ln))); }}>Professionnel (commerce, bureau)</button>
             </div>
-            <label className="chk"><input type="checkbox" checked={plus2ans} onChange={(e) => setPlus2ans(e.target.checked)} /> Logement achevé depuis plus de 2 ans (TVA 10 % sur la pose)</label>
+            {/* TVA réduite 10 % réservée aux particuliers (logement > 2 ans). Un pro est toujours à 20 %. */}
+            {clientType === "particulier"
+              ? <label className="chk"><input type="checkbox" checked={plus2ans} onChange={(e) => setPlus2ans(e.target.checked)} /> Logement achevé depuis plus de 2 ans (TVA 10 % sur la pose)</label>
+              : <p className="legend" style={{ marginTop: 8 }}>Professionnel : <b>TVA 20 %</b> (pas de taux réduit).</p>}
             {clientType === "pro" && (
               <div className="grid">
                 <div><label>Entreprise</label><input value={client.entreprise} onChange={(e) => setClient({ ...client, entreprise: e.target.value })} placeholder="Raison sociale" /></div>
@@ -463,7 +467,7 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
                   <td><input value={ln.d} onChange={(e) => patchLine(i, "d", e.target.value)} style={{ width: "100%" }} /></td>
                   <td className="num"><input className="q" type="number" value={ln.q} onChange={(e) => (ln.isMO ? setHoursLine(parseFloat(e.target.value) || 0) : patchLine(i, "q", e.target.value))} /></td>
                   <td className="num"><input className="pu" type="number" value={ln.pu} onChange={(e) => patchLine(i, "pu", e.target.value)} /></td>
-                  <td className="num"><select className="tva" value={ln.tva} onChange={(e) => patchLine(i, "tva", e.target.value)}><option value={20}>20</option><option value={10}>10</option></select></td>
+                  <td className="num"><select className="tva" value={ln.tva} onChange={(e) => patchLine(i, "tva", e.target.value)}><option value={20}>20</option>{clientType === "particulier" && <option value={10}>10</option>}</select></td>
                   <td className="num">{eur(ln.q * ln.pu)} €</td>
                 </tr>
               ))}
