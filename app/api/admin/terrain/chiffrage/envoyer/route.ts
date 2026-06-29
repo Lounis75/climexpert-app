@@ -6,11 +6,9 @@ import { db } from "@/lib/db";
 import { leads, suivis, devisEnvois } from "@/lib/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { randomBytes } from "crypto";
-import { createElement } from "react";
-import { renderToBuffer } from "@react-pdf/renderer";
 import { Resend } from "resend";
-import DevisPDF from "@/components/pdf/DevisPDF";
 import { generateDevisNumber } from "@/lib/devis";
+import { computeDevisLignes, clientAddressLine, renderDevisPdf, type RawLine } from "@/lib/devis-pdf";
 import { r2PutFile } from "@/lib/r2";
 import { resolveLeadId } from "@/lib/chiffrage-server";
 import { logError } from "@/lib/observability";
@@ -21,8 +19,6 @@ async function session() {
   const t = (await cookies()).get(COOKIE_NAME)?.value;
   return t ? verifyAdminToken(t) : null;
 }
-
-type RawLine = { d: string; q: number; pu: number; tva: number };
 
 // Génère le PDF du devis à partir du chiffrage, l'envoie au client et bascule le prospect en
 // "devis_envoyé" (réutilise exactement le flux existant : R2 + devisEnvois + e-mail + statut).
@@ -44,36 +40,23 @@ export async function POST(req: NextRequest) {
   const email = (lead.email || client.email || "").trim();
   if (!email) return NextResponse.json({ error: "Renseigne l'e-mail du client pour pouvoir lui envoyer le devis." }, { status: 400 });
 
-  // 2) Lignes + totaux (centimes)
-  const lignes = rawLines.map((ln, i) => ({
-    id: String(i),
-    designation: String(ln.d ?? ""),
-    quantite: Number(ln.q) || 0,
-    prixUnitaireCt: Math.round((Number(ln.pu) || 0) * 100),
-    // Un professionnel est TOUJOURS à 20 % (pas de TVA réduite) : on l'impose côté serveur,
-    // quoi que l'outil ait envoyé. Le taux par défaut est le taux normal (20 %).
-    tvaRate: clientType === "pro" ? "20" : String(ln.tva ?? "20"),
-  }));
-  let totalHtCt = 0, totalTtcCt = 0;
-  for (const l of lignes) { const ht = l.quantite * l.prixUnitaireCt; totalHtCt += ht; totalTtcCt += ht + Math.round(ht * (parseFloat(l.tvaRate) / 100)); }
+  // 2) Lignes + totaux (centimes) — calcul partagé avec l'aperçu PDF
+  const { lignes, totalHtCt, totalTtcCt } = computeDevisLignes(rawLines, clientType);
   const montantCt = totalTtcCt;
+  const clientAddress = clientAddressLine(client) || lead.address || lead.location || null;
+  const description = String(body.description ?? "").trim() || null;
 
-  // 3) PDF du devis (même composant que le reste du CRM)
+  // 3) PDF du devis (même composant + même calcul que l'aperçu)
   let buf: Buffer;
   let number: string;
   try {
     number = await generateDevisNumber();
     const created = new Date();
     const valid = new Date(created.getTime() + 30 * 86400000);
-    const pdf = await renderToBuffer(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      createElement(DevisPDF as any, {
-        number, createdAt: created.toISOString(), validUntil: valid.toISOString(),
-        clientName: lead.name, description: null, lignes, totalHtCt, totalTtcCt,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      }) as any,
-    );
-    buf = Buffer.from(pdf);
+    buf = await renderDevisPdf({
+      number, createdAt: created.toISOString(), validUntil: valid.toISOString(),
+      clientName: lead.name, clientAddress, description, lignes, totalHtCt, totalTtcCt,
+    });
   } catch (e) {
     logError("chiffrage.pdf", e, { leadId: id });
     return NextResponse.json({ error: "Échec de la génération du PDF." }, { status: 500 });

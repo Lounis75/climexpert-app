@@ -95,6 +95,7 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [sendErr, setSendErr] = useState("");
+  const [pdfBusy, setPdfBusy] = useState(false);
 
   const tvaMat = () => 20;
   const tvaMO = () => (clientType === "pro" || !plus2ans ? 20 : 10);
@@ -243,16 +244,41 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
     } catch { setDraftMsg("Erreur réseau."); }
     finally { setSavingDraft(false); }
   }
+  // Objet du devis (titre du PDF), dérivé de la prestation.
+  function devisTitle(): string {
+    if (prestation === "installation") {
+      const b = cat.brands.find((x) => x.id === brand)?.name ?? "";
+      return `Installation de climatisation${b ? " " + b : ""} (${cfg.n} pièce${cfg.n > 1 ? "s" : ""})`;
+    }
+    if (prestation === "entretien") return prestaContrat ? "Contrat d'entretien climatisation" : "Entretien de climatisation";
+    if (prestation === "depannage") return "Dépannage climatisation";
+    if (prestation === "depose") return "Dépose de climatisation";
+    return "Prestation";
+  }
   async function sendDevis() {
     if (!client.email.trim()) { setSendErr("Renseigne l'e-mail du client (section A « Client ») pour lui envoyer le devis."); return; }
     setSending(true); setSendErr("");
     try {
-      const res = await fetch("/api/admin/terrain/chiffrage/envoyer", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ leadId, clientType, client, lignes: lines }) });
+      const res = await fetch("/api/admin/terrain/chiffrage/envoyer", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ leadId, clientType, client, lignes: lines, description: devisTitle() }) });
       const d = await res.json().catch(() => ({}));
       if (res.ok) { setLeadId(d.leadId); setSent(true); }
       else setSendErr(d.error ?? "Échec de l'envoi.");
     } catch { setSendErr("Erreur réseau."); }
     finally { setSending(false); }
+  }
+  // Téléchargement / impression du PDF (vrai document serveur, identique à celui envoyé au client).
+  async function downloadPdf() {
+    if (pdfBusy) return;
+    setPdfBusy(true);
+    try {
+      const res = await fetch("/api/admin/terrain/chiffrage/pdf", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ leadId, clientType, client, lignes: lines, description: devisTitle() }) });
+      if (!res.ok) { const d = await res.json().catch(() => ({})); alert(d.error ?? "Échec de la génération du PDF."); return; }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank", "noopener,noreferrer");
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch { alert("Erreur réseau, réessaie."); }
+    finally { setPdfBusy(false); }
   }
 
   return (
@@ -494,7 +520,7 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
             </>
           )}
           <div className="actrow noprint">
-            <button className="btn ghost sm" onClick={() => window.print()}>Imprimer / PDF</button>
+            <button className="btn ghost sm" onClick={downloadPdf} disabled={pdfBusy}>{pdfBusy ? "Génération…" : "Imprimer / PDF"}</button>
             <button className="btn ghost sm" onClick={() => { setGenerated(false); setSent(false); setSendErr(""); }}>Modifier les réponses</button>
             <button className="btn ghost sm" onClick={saveDraft} disabled={savingDraft}>{savingDraft ? "…" : "💾 Brouillon"}</button>
           </div>
