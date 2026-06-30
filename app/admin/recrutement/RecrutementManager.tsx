@@ -6,12 +6,12 @@ import { Plus, Pencil, Trash2, Check, X, Briefcase, Eye, EyeOff } from "lucide-r
 const CONTRATS = ["CDI", "CDD", "Intérim", "Alternance", "Stage", "Freelance"];
 
 type Offre = {
-  id: string; titre: string; contrat: string; lieu: string | null;
+  id: string; titre: string; resume: string | null; contrat: string; lieu: string | null;
   description: string; profil: string | null; actif: boolean; ordre: number;
 };
-type Draft = { id?: string; titre: string; contrat: string; lieu: string; description: string; profil: string; actif: boolean; ordre: number };
+type Draft = { id?: string; titre: string; resume: string; contrat: string; lieu: string; description: string; profil: string; actif: boolean; ordre: number };
 
-const EMPTY: Draft = { titre: "", contrat: "CDI", lieu: "Île-de-France", description: "", profil: "", actif: true, ordre: 0 };
+const EMPTY: Draft = { titre: "", resume: "", contrat: "CDI", lieu: "Île-de-France", description: "", profil: "", actif: true, ordre: 0 };
 const inp = "w-full bg-slate-900/60 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-slate-600 focus:outline-none focus:border-sky-500/50";
 
 export default function RecrutementManager({ initial }: { initial: Offre[] }) {
@@ -51,6 +51,10 @@ export default function RecrutementManager({ initial }: { initial: Offre[] }) {
         <div className="bg-slate-800/40 border border-white/8 rounded-2xl p-5 space-y-3">
           <p className="text-white font-semibold text-sm flex items-center gap-2"><Briefcase className="w-4 h-4 text-sky-400" /> {draft.id ? "Modifier l'annonce" : "Nouvelle annonce"}</p>
           <input value={draft.titre} onChange={(e) => setDraft({ ...draft, titre: e.target.value })} placeholder="Intitulé du poste (ex. Technicien frigoriste H/F)" className={inp} />
+          <div>
+            <input value={draft.resume} onChange={(e) => setDraft({ ...draft, resume: e.target.value })} maxLength={300} placeholder="Synthèse en 1 ligne (affichée dans la liste repliée)" className={inp} />
+            <p className="text-slate-500 text-[11px] mt-1">Ex. : « Pose et mise en service de clim/PAC en IDF, équipe terrain. » Si vide, on prend le début de la description.</p>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <select value={draft.contrat} onChange={(e) => setDraft({ ...draft, contrat: e.target.value })} className={inp}>
               {CONTRATS.map((c) => <option key={c} value={c} className="bg-slate-800">{c}</option>)}
@@ -88,13 +92,13 @@ export default function RecrutementManager({ initial }: { initial: Offre[] }) {
                   {!o.actif && <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-700/50 text-slate-400 border border-white/10">Masquée</span>}
                 </div>
                 <p className="text-slate-400 text-xs mt-1">{o.lieu}</p>
-                <p className="text-slate-500 text-xs mt-1 line-clamp-2">{o.description}</p>
+                <p className="text-slate-500 text-xs mt-1 line-clamp-2">{o.resume || o.description}</p>
               </div>
               <div className="flex items-center gap-1 flex-shrink-0">
                 <button onClick={() => call({ action: "toggle", id: o.id, actif: !o.actif })} disabled={busy} title={o.actif ? "Masquer" : "Afficher"} className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors">
                   {o.actif ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                 </button>
-                <button onClick={() => { setError(""); setDraft({ id: o.id, titre: o.titre, contrat: o.contrat, lieu: o.lieu ?? "", description: o.description, profil: o.profil ?? "", actif: o.actif, ordre: o.ordre }); }} title="Modifier" className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><Pencil className="w-4 h-4" /></button>
+                <button onClick={() => { setError(""); setDraft({ id: o.id, titre: o.titre, resume: o.resume ?? "", contrat: o.contrat, lieu: o.lieu ?? "", description: o.description, profil: o.profil ?? "", actif: o.actif, ordre: o.ordre }); }} title="Modifier" className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors"><Pencil className="w-4 h-4" /></button>
                 <button onClick={() => { if (confirm("Supprimer cette annonce ?")) call({ action: "delete", id: o.id }); }} disabled={busy} title="Supprimer" className="p-2 rounded-lg text-slate-400 hover:text-red-400 hover:bg-white/5 transition-colors"><Trash2 className="w-4 h-4" /></button>
               </div>
             </div>

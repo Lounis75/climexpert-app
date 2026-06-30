@@ -3,7 +3,7 @@ import { offresEmploi } from "@/lib/db/schema";
 import { and, asc, desc, eq, isNull } from "drizzle-orm";
 
 export type Offre = typeof offresEmploi.$inferSelect;
-export type NewOffre = Partial<Pick<Offre, "titre" | "contrat" | "lieu" | "description" | "profil" | "actif" | "ordre">>;
+export type NewOffre = Partial<Pick<Offre, "titre" | "resume" | "contrat" | "lieu" | "description" | "profil" | "actif" | "ordre">>;
 
 export const CONTRATS = ["CDI", "CDD", "Intérim", "Alternance", "Stage", "Freelance"] as const;
 
@@ -29,6 +29,7 @@ export async function getOffreById(id: string): Promise<Offre | null> {
 export async function createOffre(data: NewOffre): Promise<Offre> {
   const [o] = await db.insert(offresEmploi).values({
     titre: (data.titre ?? "").trim() || "Poste",
+    resume: data.resume ?? null,
     contrat: data.contrat ?? "CDI",
     lieu: data.lieu ?? "Île-de-France",
     description: (data.description ?? "").trim(),
@@ -41,7 +42,7 @@ export async function createOffre(data: NewOffre): Promise<Offre> {
 
 export async function updateOffre(id: string, data: NewOffre): Promise<void> {
   const patch: Record<string, unknown> = { updatedAt: new Date() };
-  for (const k of ["titre", "contrat", "lieu", "description", "profil", "actif", "ordre"] as const) {
+  for (const k of ["titre", "resume", "contrat", "lieu", "description", "profil", "actif", "ordre"] as const) {
     if (data[k] !== undefined) patch[k] = data[k];
   }
   await db.update(offresEmploi).set(patch).where(eq(offresEmploi.id, id));

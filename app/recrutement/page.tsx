@@ -62,7 +62,7 @@ export default async function RecrutementPage() {
 
         {/* Postes + candidature */}
         <div id="postes">
-          <RecrutementClient offres={offres.map((o) => ({ id: o.id, titre: o.titre, contrat: o.contrat, lieu: o.lieu, description: o.description, profil: o.profil }))} />
+          <RecrutementClient offres={offres.map((o) => ({ id: o.id, titre: o.titre, resume: o.resume, contrat: o.contrat, lieu: o.lieu, description: o.description, profil: o.profil }))} />
         </div>
       </main>
       <Footer />

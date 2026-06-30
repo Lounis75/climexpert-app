@@ -330,6 +330,13 @@
       "when": 1782798704416,
       "tag": "0046_offres_emploi",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1782814562954,
+      "tag": "0047_offre_resume",
+      "breakpoints": true
     }
   ]
 }

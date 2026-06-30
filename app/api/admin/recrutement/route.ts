@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
     if (body.action === "create" || body.action === "update") {
       const data = {
         titre: String(body.titre ?? "").slice(0, 200),
+        resume: body.resume != null ? String(body.resume).slice(0, 300) : null,
         contrat: cleanContrat(body.contrat),
         lieu: String(body.lieu ?? "Île-de-France").slice(0, 120),
         description: String(body.description ?? "").slice(0, 6000),

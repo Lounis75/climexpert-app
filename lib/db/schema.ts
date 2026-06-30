@@ -523,6 +523,7 @@ export const logsAlex = pgTable("logs_alex", {
 export const offresEmploi = pgTable("offres_emploi", {
   id:          text("id").primaryKey().$defaultFn(() => createId()),
   titre:       varchar("titre", { length: 200 }).notNull(),
+  resume:      varchar("resume", { length: 300 }),  // synthèse 1 ligne affichée carte repliée
   contrat:     varchar("contrat", { length: 40 }).default("CDI").notNull(), // CDI | CDD | Intérim | Alternance | Stage | Freelance
   lieu:        varchar("lieu", { length: 120 }).default("Île-de-France"),
   description: text("description").notNull(),  // missions

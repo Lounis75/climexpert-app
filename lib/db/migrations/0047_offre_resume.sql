@@ -1,0 +1,1 @@
+ALTER TABLE "offres_emploi" ADD COLUMN "resume" varchar(300);

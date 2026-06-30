@@ -1,9 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Briefcase, MapPin, X, CheckCircle2, Paperclip, Send } from "lucide-react";
+import { Briefcase, MapPin, X, CheckCircle2, Paperclip, Send, ChevronDown } from "lucide-react";
 
-type Offre = { id: string; titre: string; contrat: string; lieu: string | null; description: string; profil: string | null };
+type Offre = { id: string; titre: string; resume: string | null; contrat: string; lieu: string | null; description: string; profil: string | null };
+
+// Synthèse affichée carte repliée : le résumé saisi, sinon le début de la description.
+function teaserOf(o: Offre): string {
+  if (o.resume?.trim()) return o.resume.trim();
+  const firstPara = o.description.split(/\n\s*\n/)[0].replace(/\s+/g, " ").trim();
+  return firstPara.length > 160 ? `${firstPara.slice(0, 160).trim()}…` : firstPara;
+}
 
 const inp = "w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-slate-800 text-sm placeholder-slate-400 focus:outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100";
 
@@ -14,6 +21,11 @@ export default function RecrutementClient({ offres }: { offres: Offre[] }) {
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
+  const [openIds, setOpenIds] = useState<Set<string>>(new Set());
+
+  function toggle(id: string) {
+    setOpenIds((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  }
 
   function open(poste: string) {
     setApplyFor(poste); setForm({ nom: "", email: "", telephone: "", message: "" }); setCv(null); setDone(false); setError("");
@@ -51,27 +63,41 @@ export default function RecrutementClient({ offres }: { offres: Offre[] }) {
           </div>
         ) : (
           <div className="space-y-4">
-            {offres.map((o) => (
-              <div key={o.id} className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6">
-                <div className="flex items-start justify-between gap-4 flex-wrap">
-                  <div className="min-w-0">
-                    <h3 className="text-lg font-bold text-slate-900">{o.titre}</h3>
-                    <div className="flex items-center gap-3 mt-1.5 text-sm text-slate-500">
-                      <span className="inline-flex items-center gap-1 font-semibold text-sky-600 bg-sky-50 border border-sky-100 rounded-full px-2.5 py-0.5">{o.contrat}</span>
-                      {o.lieu && <span className="inline-flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {o.lieu}</span>}
+            {offres.map((o) => {
+              const isOpen = openIds.has(o.id);
+              return (
+                <div key={o.id} className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <button onClick={() => toggle(o.id)} className="text-left min-w-0 flex-1 group" aria-expanded={isOpen}>
+                      <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <span className="min-w-0">{o.titre}</span>
+                        <ChevronDown className={`w-4 h-4 text-slate-400 flex-shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                      </h3>
+                      <div className="flex items-center gap-3 mt-1.5 text-sm text-slate-500">
+                        <span className="inline-flex items-center gap-1 font-semibold text-sky-600 bg-sky-50 border border-sky-100 rounded-full px-2.5 py-0.5">{o.contrat}</span>
+                        {o.lieu && <span className="inline-flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {o.lieu}</span>}
+                      </div>
+                      {!isOpen && <p className="text-slate-600 text-sm mt-2.5 leading-relaxed line-clamp-2">{teaserOf(o)}</p>}
+                    </button>
+                    <button onClick={() => open(o.titre)} className="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-white text-sm font-semibold transition-colors flex-shrink-0">Postuler</button>
+                  </div>
+
+                  {isOpen ? (
+                    <div className="mt-4 pt-4 border-t border-slate-100">
+                      <p className="text-slate-600 text-sm whitespace-pre-wrap leading-relaxed">{o.description}</p>
+                      {o.profil && (
+                        <div className="mt-3 pt-3 border-t border-slate-100">
+                          <p className="text-slate-500 text-xs font-semibold uppercase tracking-wide mb-1">Profil recherché</p>
+                          <p className="text-slate-600 text-sm whitespace-pre-wrap leading-relaxed">{o.profil}</p>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                  <button onClick={() => open(o.titre)} className="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-white text-sm font-semibold transition-colors flex-shrink-0">Postuler</button>
+                  ) : (
+                    <button onClick={() => toggle(o.id)} className="text-sky-600 hover:text-sky-700 text-sm font-semibold mt-3">Voir le détail du poste →</button>
+                  )}
                 </div>
-                <p className="text-slate-600 text-sm mt-4 whitespace-pre-wrap leading-relaxed">{o.description}</p>
-                {o.profil && (
-                  <div className="mt-3 pt-3 border-t border-slate-100">
-                    <p className="text-slate-500 text-xs font-semibold uppercase tracking-wide mb-1">Profil recherché</p>
-                    <p className="text-slate-600 text-sm whitespace-pre-wrap leading-relaxed">{o.profil}</p>
-                  </div>
-                )}
-              </div>
-            ))}
+              );
+            })}
             <div className="text-center pt-2">
               <button onClick={() => open("Candidature spontanée")} className="text-sky-600 hover:text-sky-700 text-sm font-semibold">Aucun ne correspond ? Envoyer une candidature spontanée</button>
             </div>
