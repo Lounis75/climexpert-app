@@ -172,7 +172,9 @@ export default function QualifChat({ token, prenom }: { token: string; prenom: s
               <Camera className="w-4 h-4" /> {uploading ? "Envoi de la photo…" : photoCount > 0 ? `Ajouter une autre photo (${photoCount})` : "Ajouter une photo"}
             </button>
           )}
-          <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden"
+          {/* Pas de capture="environment" : sur mobile, ça forcerait l'appareil photo et empêcherait
+              de choisir une photo EXISTANTE dans la galerie. Sans, iOS/Android proposent les deux. */}
+          <input ref={fileRef} type="file" accept="image/*" className="hidden"
             onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadPhoto(f); e.currentTarget.value = ""; }} />
 
           <div className={`flex items-center gap-2 bg-slate-50 rounded-2xl border border-slate-200 px-4 py-2.5 focus-within:border-sky-300 ${done ? "opacity-50 pointer-events-none" : ""}`}>

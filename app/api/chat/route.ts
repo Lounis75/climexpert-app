@@ -24,6 +24,8 @@ RÈGLES ABSOLUES :
 6. Ne donne JAMAIS le numéro de téléphone de l'entreprise, le but est que ce soit eux qui le laissent.
 7. Quand un prospect pose une question FAQ, réponds brièvement puis enchaîne naturellement vers la qualification.
 8. N'utilise JAMAIS de tiret cadratin (—) ni de tiret demi-cadratin (–) dans tes réponses : remplace-les par une virgule, un deux-points ou des parenthèses.
+9. PÉRIMÈTRE (TRÈS IMPORTANT) : ClimExpert intervient UNIQUEMENT sur des climatisations FIXES (monosplit, multisplit, gainable, PAC air-air et air-eau). Nous ne prenons PAS en charge les climatiseurs MOBILES / PORTABLES (monobloc sur roulettes, "clim mobile", climatiseur d'appoint, monobloc de fenêtre), ni installation, ni entretien, ni dépannage. Dès que tu identifies une clim mobile/portable, dis-le poliment et clairement au client ("Nous sommes spécialisés dans les climatisations fixes installées, nous ne prenons malheureusement pas en charge les climatiseurs mobiles/portables. Le mieux est de voir avec le SAV de votre fabricant ou votre magasin d'achat."), puis ARRÊTE : ne demande pas ses coordonnées, ne donne pas d'estimation, et n'émets PAS LEAD_READY.
+10. PROMESSES : ne dis JAMAIS "nous privilégions nos clients" ni que le prospect est prioritaire (c'est un nouveau contact, pas un client existant). Ne promets PAS de délai de rappel chiffré ("sous 24h", "sous 48h"...) : dis simplement que l'équipe reprend contact "rapidement" / "dès que possible". N'invente aucune garantie de délai d'intervention : si on te demande, base-toi uniquement sur le délai indiqué dans les consignes ci-dessous.
 
 SÉQUENCE DE QUALIFICATION, INSTALLATION / DÉPANNAGE (dans cet ordre) :
 Étape 1, Type de projet : installation / entretien / dépannage / dépose (retrait d'une clim existante) ?
@@ -213,7 +215,7 @@ LEAD_READY
 {"name":"[prénom nom]","phone":"[téléphone]","email":"[email ou vide]","project":"[installation/entretien/depannage/depose/contrat-pro/autre, en minuscules SANS accent]","property":"[type de bien]","location":"[ville/CP]","address":"[adresse complète : numéro, rue, code postal, ville]","estimate":"[fourchette €]","notes":"[tout détail utile : nombre d'unités, accessibilité, photos envoyées, HORS IDF si applicable]","refuseContact":false,"typeClient":"[particulier OU professionnel, 'professionnel' si local pro/entreprise/société/contrat-pro, sinon 'particulier']"}
 MESSAGE
 [Ton message de confirmation chaleureux. Termine TOUJOURS par cette information sur le consentement (formulée naturellement) : "Sauf indication contraire de votre part, nous conservons vos coordonnées pour vous recontacter, uniquement par les équipes ClimExpert, jamais de revente à des tiers."
-En IDF : "Parfait Thomas ! Votre demande est bien enregistrée, un technicien ClimExpert vous rappelle sous 24h. Sauf indication contraire de votre part, nous conservons vos coordonnées pour vous recontacter, uniquement par les équipes ClimExpert (jamais de revente à des tiers)."
+En IDF : "Parfait Thomas ! Votre demande est bien enregistrée, un technicien ClimExpert reprend contact avec vous rapidement pour la suite. Sauf indication contraire de votre part, nous conservons vos coordonnées pour vous recontacter, uniquement par les équipes ClimExpert (jamais de revente à des tiers)."
 Hors IDF : "Parfait Thomas ! Votre demande est bien enregistrée, un technicien commercial va reprendre contact avec vous pour établir un devis précis. Sauf indication contraire de votre part, nous conservons vos coordonnées pour vous recontacter, uniquement par les équipes ClimExpert (jamais de revente à des tiers)."
 IMPORTANT : si la personne dit explicitement qu'elle ne veut PAS être recontactée pour des offres / démarchage, mets "refuseContact":true dans le JSON (le rappel pour SA demande en cours reste assuré).]`;
 
@@ -324,9 +326,18 @@ async function updateLeadFromQualif(existing: typeof leads.$inferSelect, lead: L
   ].filter(Boolean).join("\n");
   const newNotes = [existing.notes, noteAjout].filter(Boolean).join("\n\n").slice(0, 8000);
 
+  // Le nom de la fiche est-il un simple placeholder (vide, ou égal au numéro de téléphone) ?
+  // Dans ce cas on le remplace par le nom collecté par Alex ; sinon on garde le nom existant.
+  const onlyDigits = (s: string | null | undefined) => (s ?? "").replace(/\D/g, "");
+  const nameIsPlaceholder = !existing.name?.trim()
+    || onlyDigits(existing.name) === onlyDigits(existing.phone)
+    || /^\+?[\d\s().-]{6,}$/.test(existing.name.trim());
+
   try {
     await db.update(leads).set({
       ...(project ? { project } : {}),
+      ...(lead.name?.trim() && nameIsPlaceholder ? { name: lead.name.trim() } : {}),
+      ...(lead.phone?.trim() && !existing.phone?.trim() ? { phone: lead.phone.trim() } : {}),
       ...(lead.location ? { location: lead.location } : {}),
       ...(lead.address ? { address: lead.address } : {}),
       ...(lead.email ? { email: lead.email } : {}),
@@ -344,10 +355,11 @@ async function updateLeadFromQualif(existing: typeof leads.$inferSelect, lead: L
     return;
   }
   await db.insert(suivis).values({ leadId: existing.id, type: "note", contenu: noteAjout.slice(0, 4000) }).catch(() => {});
+  const displayName = (lead.name?.trim() && nameIsPlaceholder ? lead.name.trim() : existing.name?.trim()) || lead.name?.trim() || existing.phone || "Prospect";
   await db.insert(notifications).values({
     type: "lead_qualifie",
-    titre: `Prospect qualifié par Alex : ${existing.name}`,
-    contenu: `${existing.name} a décrit son besoin via le lien.${lead.estimate ? ` Estimation : ${lead.estimate}.` : ""} À recontacter pour caler un rendez-vous.`,
+    titre: `Prospect qualifié par Alex : ${displayName}`,
+    contenu: `${displayName} a décrit son besoin via le lien.${lead.estimate ? ` Estimation : ${lead.estimate}.` : ""} À recontacter pour caler un rendez-vous.`,
     refType: "lead", refId: existing.id,
   }).catch(() => {});
 }
@@ -363,6 +375,7 @@ RÈGLES :
 - Reste chaleureux, simple et professionnel. Vouvoiement.
 - Dès que tu as assez d'éléments (3-4 réponses suffisent), termine par un RÉCAPITULATIF clair du besoin en 3 à 5 phrases, à la première personne du client, SANS aucune coordonnée, prêt à être collé dans le formulaire. Commence ce récapitulatif par "Voici votre demande :".
 - Ne propose pas de rendez-vous ni de créneaux, ne demande pas de confirmation d'envoi : c'est le formulaire qui s'en charge.
+- PÉRIMÈTRE : ClimExpert ne prend PAS en charge les climatiseurs mobiles / portables (monobloc sur roulettes, "clim mobile", climatiseur d'appoint). Si le client décrit une clim mobile/portable, dis-lui poliment que nous sommes spécialisés dans les climatisations fixes installées et que nous ne traitons pas les appareils mobiles, oriente-le vers le SAV de son fabricant, et n'établis PAS de récapitulatif de besoin.
 - N'utilise JAMAIS de tiret cadratin (—) ni de tiret demi-cadratin (–) : remplace-les par une virgule, un deux-points ou des parenthèses.`;
 
 export async function POST(req: NextRequest) {
