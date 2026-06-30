@@ -12,7 +12,9 @@ export default function ChatBotLoader() {
   // Alex est l'assistant du SITE PUBLIC. Dans le back-office (admin/technicien/
   // commercial) et sur les écrans de connexion, on ne l'affiche pas, sinon il se
   // superpose à l'assistant dédié de l'admin. (Évite deux widgets de chat.)
-  if (pathname && /^\/(admin|technicien|commercial|connexion|activer)(\/|$)/.test(pathname)) {
+  // ... et sur le portail de qualification (/q, /qualif) où le prospect EST déjà en conversation
+  // plein écran avec Alex : pas de bulle flottante redondante.
+  if (pathname && /^\/(admin|technicien|commercial|connexion|activer|q|qualif)(\/|$)/.test(pathname)) {
     return null;
   }
   return <ChatBot />;
