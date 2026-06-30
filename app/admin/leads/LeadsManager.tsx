@@ -1728,7 +1728,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                   ) : (
                     <div className="rounded-xl border border-violet-500/30 bg-violet-500/[0.06] p-3 space-y-2.5">
                       <p className="text-slate-400 text-[11px]">Le client décrit son besoin, Alex le qualifie et remplit la fiche. Le SMS est le plus simple (gratuit, depuis ton téléphone).</p>
-                      <textarea readOnly value={qualifLink.sms} rows={4} onFocus={(e) => e.currentTarget.select()} className="w-full bg-slate-900/60 border border-white/10 rounded-lg px-3 py-2 text-white text-xs resize-none [color-scheme:dark]" />
+                      <textarea readOnly value={qualifLink.sms} rows={7} onFocus={(e) => e.currentTarget.select()} className="w-full bg-slate-900/60 border border-white/10 rounded-lg px-3 py-2 text-white text-xs resize-none [color-scheme:dark]" />
                       <div className="flex gap-2">
                         <button onClick={copySms} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-violet-500 hover:bg-violet-400 text-white text-sm font-semibold transition-colors">
                           {smsCopied ? <><Check className="w-4 h-4" /> Copié</> : <><Copy className="w-4 h-4" /> Copier le SMS</>}
