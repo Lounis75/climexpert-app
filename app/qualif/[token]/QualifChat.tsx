@@ -125,15 +125,20 @@ export default function QualifChat({ token, prenom }: { token: string; prenom: s
             </div>
           )}
 
-          {/* Réponses rapides cliquables (mobile-first) */}
+          {/* Réponses rapides cliquables (mobile-first) + petit indice "on peut cliquer" */}
           {lastOptions.length > 0 && (
-            <div className="flex flex-wrap gap-2 pt-1">
-              {lastOptions.map((opt) => (
-                <button key={opt} onClick={() => sendMessage(opt)}
-                  className="px-3.5 py-2 rounded-full bg-white border border-sky-200 text-sky-700 text-sm font-medium hover:bg-sky-50 active:scale-95 transition-all shadow-sm">
-                  {opt}
-                </button>
-              ))}
+            <div className="pt-1">
+              <p className="text-slate-400 text-[11px] mb-1.5 flex items-center gap-1">
+                <span className="animate-bounce">👇</span> Touchez une réponse, ou écrivez la vôtre
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {lastOptions.map((opt) => (
+                  <button key={opt} onClick={() => sendMessage(opt)}
+                    className="px-3.5 py-2 rounded-full bg-sky-500 text-white text-sm font-medium hover:bg-sky-400 active:scale-95 transition-all shadow-sm shadow-sky-500/30">
+                    {opt}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
