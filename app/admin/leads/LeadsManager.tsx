@@ -2175,7 +2175,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                       {(lead.photosUrls?.length ?? 0) > 0 && (
                         <div>
                           <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide flex items-center gap-1.5">
-                            <Camera className="w-3 h-3" /> Photos du formulaire ({lead.photosUrls!.length})
+                            <Camera className="w-3 h-3" /> Photos du client ({lead.photosUrls!.length})
                           </p>
                           <div className="grid grid-cols-3 gap-2">
                             {lead.photosUrls!.map((url, i) => (
