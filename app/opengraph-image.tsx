@@ -5,123 +5,102 @@ export const alt = "ClimExpert, Climatisation Île-de-France";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
+// Carte sociale (Open Graph / LinkedIn / WhatsApp...). Couleurs SOLIDES uniquement : le moteur de
+// rendu (Satori) ne gère pas le texte en dégradé découpé, ni bien les emojis. Logo dessiné en divs.
 export default function OgImage() {
+  const pills = ["Devis gratuit", "Intervention 48h", "RGE certifié", "7j/7"];
   return new ImageResponse(
     (
       <div
         style={{
-          background: "#0B1120",
           width: "100%",
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          alignItems: "flex-start",
-          justifyContent: "center",
-          padding: "80px",
+          justifyContent: "space-between",
+          padding: "72px 80px",
+          background: "linear-gradient(135deg, #0a1020 0%, #0e1d38 55%, #0a1428 100%)",
           fontFamily: "sans-serif",
+          position: "relative",
         }}
       >
-        {/* Grid pattern overlay */}
+        {/* Halo lumineux */}
         <div
           style={{
             position: "absolute",
-            inset: 0,
-            backgroundImage:
-              "linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)",
-            backgroundSize: "40px 40px",
-          }}
-        />
-        {/* Glow */}
-        <div
-          style={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            width: 600,
-            height: 600,
+            top: -160,
+            right: -120,
+            width: 640,
+            height: 640,
             borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(14,165,233,0.12) 0%, transparent 70%)",
+            background: "radial-gradient(circle, rgba(14,165,233,0.25) 0%, rgba(14,165,233,0) 70%)",
           }}
         />
+        {/* Liseré bas */}
+        <div style={{ position: "absolute", left: 0, bottom: 0, width: "100%", height: 8, background: "linear-gradient(90deg, #0EA5E9 0%, #38BDF8 100%)" }} />
 
-        {/* Logo */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 16,
-            marginBottom: 40,
-          }}
-        >
+        {/* Logo + marque */}
+        <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
           <div
             style={{
-              width: 56,
-              height: 56,
-              borderRadius: 14,
-              background: "#0EA5E9",
+              width: 66,
+              height: 66,
+              borderRadius: 16,
+              background: "linear-gradient(135deg, #38BDF8 0%, #0EA5E9 100%)",
               display: "flex",
-              alignItems: "center",
+              flexDirection: "column",
               justifyContent: "center",
-              fontSize: 28,
+              alignItems: "flex-start",
+              padding: "0 17px",
+              boxShadow: "0 10px 34px rgba(14,165,233,0.45)",
             }}
           >
-            ❄️
+            <div style={{ width: 32, height: 5, borderRadius: 3, background: "#fff", marginBottom: 6 }} />
+            <div style={{ width: 24, height: 5, borderRadius: 3, background: "#fff", marginBottom: 6 }} />
+            <div style={{ width: 15, height: 5, borderRadius: 3, background: "#fff" }} />
           </div>
-          <span style={{ color: "#fff", fontSize: 36, fontWeight: 700 }}>
-            Clim<span style={{ color: "#38BDF8" }}>Expert</span>
-          </span>
+          <div style={{ display: "flex", color: "#fff", fontSize: 40, fontWeight: 700 }}>
+            <span>Clim</span>
+            <span style={{ color: "#38BDF8" }}>Expert</span>
+          </div>
         </div>
 
-        {/* Headline */}
-        <h1
-          style={{
-            color: "#fff",
-            fontSize: 64,
-            fontWeight: 800,
-            lineHeight: 1.1,
-            margin: 0,
-            marginBottom: 24,
-            maxWidth: 900,
-          }}
-        >
-          Climatisation{" "}
-          <span
-            style={{
-              background: "linear-gradient(135deg, #38BDF8 0%, #0EA5E9 100%)",
-              WebkitBackgroundClip: "text",
-              color: "transparent",
-            }}
-          >
-            haut de gamme
-          </span>
-          <br />
-          en Île-de-France
-        </h1>
-
-        {/* Sub */}
-        <p style={{ color: "#94A3B8", fontSize: 28, margin: 0, marginBottom: 48 }}>
-          Installation · Entretien · Dépannage, Techniciens RGE certifiés
-        </p>
-
-        {/* Pills */}
-        <div style={{ display: "flex", gap: 16 }}>
-          {["Devis gratuit", "Intervention 48h", "7j/7"].map((label) => (
-            <div
-              key={label}
-              style={{
-                padding: "12px 24px",
-                borderRadius: 50,
-                background: "rgba(14,165,233,0.15)",
-                border: "1px solid rgba(14,165,233,0.3)",
-                color: "#38BDF8",
-                fontSize: 22,
-                fontWeight: 600,
-              }}
-            >
-              {label}
+        {/* Titre + sous-titre */}
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <div style={{ display: "flex", flexDirection: "column", color: "#fff", fontSize: 78, fontWeight: 800, lineHeight: 1.04 }}>
+            <span>Climatisation</span>
+            <div style={{ display: "flex" }}>
+              <span style={{ color: "#fff" }}>en&nbsp;</span>
+              <span style={{ color: "#38BDF8" }}>Île-de-France</span>
             </div>
-          ))}
+          </div>
+          <p style={{ color: "#9fb2c9", fontSize: 31, margin: 0, marginTop: 26 }}>
+            Installation · Entretien · Dépannage · Dépose
+          </p>
+        </div>
+
+        {/* Pills + URL */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", gap: 16 }}>
+            {pills.map((label) => (
+              <div
+                key={label}
+                style={{
+                  display: "flex",
+                  padding: "12px 26px",
+                  borderRadius: 50,
+                  background: "rgba(56,189,248,0.12)",
+                  border: "1px solid rgba(56,189,248,0.35)",
+                  color: "#7dd3fc",
+                  fontSize: 23,
+                  fontWeight: 600,
+                }}
+              >
+                {label}
+              </div>
+            ))}
+          </div>
+          <span style={{ color: "#64748b", fontSize: 26, fontWeight: 600 }}>climexpert.fr</span>
         </div>
       </div>
     ),
