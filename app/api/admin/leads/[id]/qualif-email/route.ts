@@ -39,8 +39,8 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       subject: "Décrivez votre besoin en 2 minutes, ClimExpert",
       html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#0f172a;">
         <h2 style="color:#0284c7;">Bonjour${prenom ? ` ${escapeHtml(prenom)}` : ""},</h2>
-        <p>C'est <strong>Alex de ClimExpert</strong>. Suite à votre appel et à un afflux de demandes, on met tout en œuvre pour vous répondre au plus vite.</p>
-        <p>Pour gagner du temps, décrivez votre besoin en 2 minutes, je vous donnerai une première estimation :</p>
+        <p>C'est <strong>Alex de ClimExpert</strong>. Suite à votre demande et à un afflux de demandes, on met tout en œuvre pour vous répondre au plus vite. Veuillez nous excuser.</p>
+        <p>Pour gagner du temps, décrivez votre besoin en 2 minutes :</p>
         <p style="text-align:center;margin:24px 0;">
           <a href="${link}" style="background:#0ea5e9;color:white;padding:13px 26px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:bold;">Décrire mon besoin</a>
         </p>

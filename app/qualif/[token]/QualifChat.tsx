@@ -26,7 +26,7 @@ function parseDirectives(content: string): { text: string; options: string[]; ph
 export default function QualifChat({ token, prenom }: { token: string; prenom: string }) {
   const [messages, setMessages] = useState<Message[]>([{
     role: "assistant",
-    content: `Bonjour${prenom ? ` ${prenom}` : ""} 👋 Je suis Alex, l'assistant de ClimExpert. Merci de votre appel ! Pour préparer au mieux votre intervention, dites-moi de quel type de projet il s'agit.\nOPTIONS: Installation | Entretien | Dépannage | Dépose | Autre`,
+    content: `Bonjour${prenom ? ` ${prenom}` : ""} 👋 Je suis Alex, l'assistant de ClimExpert. Merci de nous avoir contactés ! Pour préparer au mieux votre intervention, dites-moi de quel type de projet il s'agit.\nOPTIONS: Installation | Entretien | Dépannage | Dépose | Autre`,
   }]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);

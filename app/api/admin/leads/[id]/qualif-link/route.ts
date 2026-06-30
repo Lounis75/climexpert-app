@@ -25,7 +25,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   const token = await ensureQualifToken(id, lead.qualifToken);
   const link = qualifLink(token);
   const prenom = (lead.name || "").trim().split(" ")[0] || "";
-  const sms = `Bonjour${prenom ? ` ${prenom}` : ""}, c'est Alex de ClimExpert. Suite à votre appel et à un afflux de demandes, on met tout en œuvre pour vous répondre au plus vite. Pour gagner du temps, décrivez votre besoin en 2 minutes ici, je vous donnerai une première estimation : ${link} À très vite !`;
+  const sms = `Bonjour${prenom ? ` ${prenom}` : ""}, c'est Alex de ClimExpert. Suite à votre demande et à un afflux de demandes, on met tout en œuvre pour vous répondre au plus vite. Veuillez nous excuser. Pour gagner du temps, décrivez votre besoin en 2 minutes ici : ${link} À très vite !`;
 
   return NextResponse.json({ token, link, sms, phone: lead.phone ?? "" });
 }
