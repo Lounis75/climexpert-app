@@ -49,6 +49,8 @@ export default function Footer() {
           <p className="font-semibold mb-3 text-xs uppercase tracking-wider text-slate-500">Entreprise</p>
           <ul className="space-y-2 text-sm">
             <li><Link href="/qui-sommes-nous" className="text-slate-400 hover:text-white transition-colors">Qui sommes-nous</Link></li>
+            <li><Link href="/recrutement" className="text-sky-400/90 hover:text-sky-300 transition-colors font-medium">Nous recrutons</Link></li>
+            <li><Link href="/rse" className="text-slate-400 hover:text-white transition-colors">Politique RSE</Link></li>
             <li><Link href="/mentions-legales" className="text-slate-400 hover:text-white transition-colors">Mentions légales</Link></li>
             <li><Link href="/politique-confidentialite" className="text-slate-400 hover:text-white transition-colors">Politique de confidentialité</Link></li>
             <li><Link href="/cgv" className="text-slate-400 hover:text-white transition-colors">CGV</Link></li>

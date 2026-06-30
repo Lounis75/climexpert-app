@@ -32,6 +32,7 @@ export const groups = [
       { href: "/admin/salaries",         label: "Salariés & accès",   icon: Users },
       { href: "/admin/commerciaux",      label: "Commerciaux",        icon: Briefcase },
       { href: "/admin/techniciens",      label: "Techniciens",        icon: HardHat },
+      { href: "/admin/recrutement",      label: "Recrutement",        icon: Briefcase },
       { href: "/admin/indisponibilites", label: "Congés / Indispo",   icon: CalendarOff },
       { href: "/admin/securite",         label: "Sécurité (2FA)",     icon: ShieldCheck },
     ],

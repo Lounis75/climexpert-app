@@ -519,6 +519,23 @@ export const logsAlex = pgTable("logs_alex", {
   sessionIdx:   index("logs_alex_session_id_idx").on(t.sessionId),
 }));
 
+// ─── Offres d'emploi (page publique « Nous recrutons », gérées depuis l'admin) ──
+export const offresEmploi = pgTable("offres_emploi", {
+  id:          text("id").primaryKey().$defaultFn(() => createId()),
+  titre:       varchar("titre", { length: 200 }).notNull(),
+  contrat:     varchar("contrat", { length: 40 }).default("CDI").notNull(), // CDI | CDD | Intérim | Alternance | Stage | Freelance
+  lieu:        varchar("lieu", { length: 120 }).default("Île-de-France"),
+  description: text("description").notNull(),  // missions
+  profil:      text("profil"),                 // profil recherché
+  actif:       boolean("actif").default(true).notNull(),
+  ordre:       integer("ordre").default(0).notNull(),
+  createdAt:   timestamp("created_at").defaultNow().notNull(),
+  updatedAt:   timestamp("updated_at").defaultNow().notNull(),
+  supprimeLe:  timestamp("supprime_le"),
+}, (t) => ({
+  actifIdx: index("offres_emploi_actif_idx").on(t.actif),
+}));
+
 // ─── Événements analytics (visites, calculateur, Alex…) ──────────────────────
 
 export const evenements = pgTable("evenements", {
