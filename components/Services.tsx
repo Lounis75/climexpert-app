@@ -41,7 +41,7 @@ const services = [
       "Rapport d'intervention détaillé",
     ],
     priceLabel: "À partir de",
-    priceAmount: "180 €",
+    priceAmount: "200 €",
     priceTTC: true,
     priceUnit: "/ unité",
     priceNote: "par an, tout inclus",

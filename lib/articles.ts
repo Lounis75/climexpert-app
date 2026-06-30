@@ -546,7 +546,7 @@ export const articles: Article[] = [
           {
             heading: "Éviter les pannes coûteuses",
             content: [
-              "La majorité des pannes évitables de climatisation sont dues à un manque d'entretien : bac de condensats débordant (fuite au plafond), compresseur surchargé par manque de gaz, carte électronique grillée par surtension. Une intervention préventive à partir de 180 € TTC évite souvent une panne à 800-1 500 €.",
+              "La majorité des pannes évitables de climatisation sont dues à un manque d'entretien : bac de condensats débordant (fuite au plafond), compresseur surchargé par manque de gaz, carte électronique grillée par surtension. Une intervention préventive à partir de 200 € TTC évite souvent une panne à 800-1 500 €.",
             ],
           },
           {
@@ -572,7 +572,7 @@ export const articles: Article[] = [
         },
       },
       {
-        heading: "Ce que comprend notre entretien à partir de 180 € TTC",
+        heading: "Ce que comprend notre entretien à partir de 200 € TTC",
         list: [
           "Nettoyage et désinfection des filtres intérieurs",
           "Nettoyage de l'évaporateur (unité intérieure)",
@@ -585,7 +585,7 @@ export const articles: Article[] = [
           "Rapport d'intervention signé avec état de l'équipement",
         ],
         highlight:
-          "Le tarif démarre à 180 € TTC pour la 1ère unité (Paris intramuros), puis 60 € TTC par unité supplémentaire. Pour un multisplit 3 têtes, l'entretien complet démarre à 300 € TTC.",
+          "Le tarif démarre à 200 € TTC pour la 1ère unité (Paris intramuros), puis 60 € TTC par unité supplémentaire. Pour un multisplit 3 têtes, l'entretien complet démarre à 320 € TTC.",
       },
       {
         heading: "Ce que vous pouvez faire vous-même entre deux entretiens",
@@ -1155,7 +1155,7 @@ export const articles: Article[] = [
       {
         question: "La marque influence-t-elle le prix de l'entretien annuel ?",
         answer:
-          "Non. Notre contrat d'entretien à partir de 180 € TTC/an (1 unité, Paris intramuros) s'applique à toutes les marques. L'entretien est identique quel que soit le fabricant. En revanche, le coût des réparations peut varier : les pièces Daikin et Mitsubishi sont moins chères et plus facilement disponibles.",
+          "Non. Notre contrat d'entretien à partir de 200 € TTC/an (1 unité, Paris intramuros) s'applique à toutes les marques. L'entretien est identique quel que soit le fabricant. En revanche, le coût des réparations peut varier : les pièces Daikin et Mitsubishi sont moins chères et plus facilement disponibles.",
       },
     ],
     relatedSlugs: [
@@ -1168,7 +1168,7 @@ export const articles: Article[] = [
     slug: "nettoyage-climatisation-paris",
     title: "Nettoyage Climatisation Paris : Prix, Fréquence et Guide Complet 2026",
     metaTitle: "Nettoyage Climatisation Paris, Prix & Guide 2026 | ClimExpert",
-    metaDescription: "Nettoyage climatisation à Paris à partir de 180 € TTC. Fréquence recommandée, étapes de la prestation, ce qui est inclus. Techniciens RGE certifiés, intervention sous 48h.",
+    metaDescription: "Nettoyage climatisation à Paris à partir de 200 € TTC. Fréquence recommandée, étapes de la prestation, ce qui est inclus. Techniciens RGE certifiés, intervention sous 48h.",
     keywords: "nettoyage climatisation paris, entretien clim paris, nettoyage clim prix, nettoyage filtre climatisation, entretien climatisation ile-de-france",
     date: "2026-06-16",
     readTime: 6,
@@ -1198,11 +1198,11 @@ export const articles: Article[] = [
       {
         heading: "Prix du nettoyage climatisation à Paris en 2026",
         content: [
-          "Le tarif d'un nettoyage climatisation à Paris intramuros varie selon le prestataire et le nombre d'unités. Chez ClimExpert, nos tarifs sont les suivants : 180 € TTC pour la première unité intérieure (comprend le déplacement et le rapport), +60 € TTC par unité supplémentaire dans la même intervention.",
+          "Le tarif d'un nettoyage climatisation à Paris intramuros varie selon le prestataire et le nombre d'unités. Chez ClimExpert, nos tarifs sont les suivants : 200 € TTC pour la première unité intérieure (comprend le déplacement et le rapport), +60 € TTC par unité supplémentaire dans la même intervention.",
           "Des majorations peuvent s'appliquer selon l'accessibilité de l'installation (hauteur, encombrement) et la distance depuis nos équipes. Une unité en toiture ou dans une cage technique compte comme une unité avec accessibilité difficile.",
           "Méfiez-vous des offres à 49-80 € qui ne comprennent souvent qu'un rinçage rapide des filtres sans démontage de l'évaporateur ni contrôle frigorigène. Un vrai nettoyage professionnel prend entre 45 minutes et 1h30 par unité.",
         ],
-        highlight: "Tarif ClimExpert Paris : à partir de 180 € TTC pour 1 unité, déplacement, nettoyage complet et rapport inclus.",
+        highlight: "Tarif ClimExpert Paris : à partir de 200 € TTC pour 1 unité, déplacement, nettoyage complet et rapport inclus.",
       },
       {
         heading: "Ce que comprend un nettoyage professionnel de climatisation",

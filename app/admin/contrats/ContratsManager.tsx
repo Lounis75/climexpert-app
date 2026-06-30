@@ -119,7 +119,7 @@ export default function ContratsManager({
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     const { name, value } = e.target;
-    // Quand le nb d'unités change, auto-suggère le prix total officiel (180 + 60/supp),
+    // Quand le nb d'unités change, auto-suggère le prix total officiel (200 + 60/supp),
     // l'admin reste libre de l'ajuster ensuite.
     if (name === "units") {
       setForm((p) => ({ ...p, units: value, prixUnitaireEuros: String(contratTotalEuros(Number(value) || 1)) }));

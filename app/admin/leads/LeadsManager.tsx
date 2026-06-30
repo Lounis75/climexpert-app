@@ -890,11 +890,16 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
         {/* Repère qualification Alex : lien envoyé (violet) ou client déjà qualifié (vert) */}
         {(() => {
           const l = lead as Lead & { qualifToken?: string | null; qualifLe?: string | null };
-          if (l.qualifLe) return (
-            <span className="inline-flex items-center gap-1 mt-1.5 ml-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-400/40" title="Le client a été qualifié par Alex via le lien">
-              <Bot className="w-3 h-3" /> Qualifié par Alex
-            </span>
-          );
+          if (l.qualifLe) {
+            const d = new Date(l.qualifLe);
+            const jour = d.toLocaleDateString("fr-FR", { day: "numeric", month: "short", timeZone: "Europe/Paris" });
+            const heure = d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Paris" }).replace(":", "h");
+            return (
+              <span className="inline-flex items-center gap-1 mt-1.5 ml-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-400/40" title={`Le client a répondu à Alex et a été qualifié le ${jour} à ${heure}`}>
+                <Bot className="w-3 h-3" /> Répondu {jour} · {heure}
+              </span>
+            );
+          }
           if (l.qualifToken) return (
             <span className="inline-flex items-center gap-1 mt-1.5 ml-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-violet-500/15 text-violet-300 border border-violet-400/40" title="Lien de qualification Alex généré/envoyé, en attente de la réponse du client">
               <Bot className="w-3 h-3" /> Alex envoyé

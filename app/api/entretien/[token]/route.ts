@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { clients, contratsEntretien, notifications, admins } from "@/lib/db/schema";
 import { eq, and, isNull, sql } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
-import { contratTotalCt } from "@/lib/contrat-pricing";
+import { contratTotalCt, contratTotalEuros } from "@/lib/contrat-pricing";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       id: contratId,
       clientId: client.id,
       units,
-      prixUnitaireCt: contratTotalCt(units), // total annuel : 180 + (units-1)*60
+      prixUnitaireCt: contratTotalCt(units), // total annuel : 200 + (units-1)*60
       startDate: today,
       nextVisit,
     })
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       adminId: admin.id,
       type: "nouveau_contrat",
       titre: `Nouveau contrat entretien, ${client.name}`,
-      contenu: `${units} unité(s), ${180 + (units - 1) * 60} € TTC/an`,
+      contenu: `${units} unité(s), ${contratTotalEuros(units)} € TTC/an`,
       refType: "contrat",
       refId: contratId,
     });

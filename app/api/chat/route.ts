@@ -78,6 +78,7 @@ Planchers "à partir de" (pose incluse, matériel d'entrée de gamme et installa
 - Appartement 60m² / 3 pièces : multisplit 3 têtes, à partir de 7 000 € TTC pose incluse
 - Le multisplit revient moins cher par pièce à partir de 2 unités, mais le prix TOTAL augmente avec chaque unité.
 - Entretien annuel : à partir de 200 € TTC pour 1 unité à Paris intramuros. +60 € TTC par unité supplémentaire. Majoration selon la distance (au-delà de Paris intramuros) et selon l'accessibilité de l'unité (hauteur, encombrement, accès difficile). Donner une fourchette, pas un prix fixe.
+- Entretien : si le dernier entretien/nettoyage date de plus de 3 ans (ou n'a jamais été fait), +100 € sur la PREMIÈRE intervention (remise à niveau d'un appareil très encrassé). Demander depuis quand l'appareil n'a pas été entretenu et le mentionner si concerné.
 - Dépannage : sur devis, diagnostic offert si réparation acceptée
 - Dépose (retrait d'une clim existante, récupération et recyclage des fluides frigorigènes OBLIGATOIRES et compris) : à partir de 250 € TTC pour 1 unité, selon le nombre d'unités et l'accès
 - Les prix incluent toujours le matériel, la main-d'œuvre, les raccordements et la mise en service. Aucun frais caché.
@@ -143,6 +144,7 @@ Planchers "à partir de" (pose incluse, matériel d'entrée de gamme et installa
 - Fréquence entretien : annuel, idéalement au printemps avant la saison chaude.
 - Nettoyer les filtres soi-même : possible, mais pour un entretien optimal faire appel à des professionnels.
 - Contrat entretien : à partir de 200 € TTC (1 unité, Paris intramuros), +60 € TTC/unité supplémentaire, majoration selon distance et accessibilité. Comprend : nettoyage des filtres, de l'évaporateur, du condenseur, vérification pompe de relevage, vérification absence de fuites, vérification électrique, test modes chaud et froid, rapport d'intervention signé.
+- Entretien, remise à niveau : si le dernier entretien date de plus de 3 ans (ou jamais fait), +100 € sur la première intervention (appareil très encrassé).
 
 ◆ CERTIFICATIONS & CONFIANCE
 - Certifications : techniciens certifiés fluides frigorigènes catégorie I (attestation de capacité) et RGE Qualibat, obligatoire pour manipuler les frigorigènes et indispensable pour les aides de l'État.

@@ -2,6 +2,7 @@
 import { useState, use } from "react";
 import { Wind, CheckCircle2, Shield, Wrench, Phone, Star } from "lucide-react";
 import Link from "next/link";
+import { contratTotalEuros } from "@/lib/contrat-pricing";
 
 const BENEFITS = [
   { icon: Wrench,       text: "Nettoyage complet filtres, évaporateur et condenseur" },
@@ -17,7 +18,7 @@ export default function EntretienPage({ params }: { params: Promise<{ token: str
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
 
-  const price = 180 + (units - 1) * 60;
+  const price = contratTotalEuros(units);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

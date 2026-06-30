@@ -243,7 +243,7 @@ export default function EntretienPage() {
                   Souscrire un contrat
                 </a>
               </div>
-              <p className="text-slate-500 text-xs mt-5">+60 € TTC/unité supplémentaire · Paris intramuros · Majoration selon distance et accessibilité. Professionnels : TVA 20 % (182 € HT avec contrat, 228 € HT sans contrat).</p>
+              <p className="text-slate-500 text-xs mt-5">+60 € TTC/unité supplémentaire · Paris intramuros · Majoration selon distance et accessibilité · Si le dernier entretien date de plus de 3 ans (ou jamais réalisé) : +100 € sur la première intervention (remise à niveau). Professionnels : TVA 20 % (182 € HT avec contrat, 228 € HT sans contrat).</p>
             </div>
           </div>
         </section>

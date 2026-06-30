@@ -90,7 +90,7 @@ const serviceSchema = {
   offers: {
     "@type": "AggregateOffer",
     priceCurrency: "EUR",
-    lowPrice: "180",
+    lowPrice: "200",
     highPrice: "15000",
   },
   url: "https://climexpert.fr/tarifs",

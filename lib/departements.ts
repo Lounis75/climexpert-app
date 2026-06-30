@@ -203,7 +203,7 @@ export const DEPARTEMENTS: Departement[] = [
     faqItems: [
       {
         q: "Quel est le prix d'un nettoyage climatisation en Essonne ?",
-        a: "Le nettoyage et l'entretien climatisation en Essonne coûte à partir de 180 € TTC pour 1 unité, avec +60 € TTC par unité supplémentaire. Le tarif peut varier selon la distance depuis Paris et l'accessibilité de l'installation. La prestation comprend le nettoyage des filtres, de l'évaporateur et du condenseur, le contrôle du circuit frigorigène et un rapport d'intervention signé.",
+        a: "Le nettoyage et l'entretien climatisation en Essonne coûte à partir de 200 € TTC pour 1 unité, avec +60 € TTC par unité supplémentaire. Le tarif peut varier selon la distance depuis Paris et l'accessibilité de l'installation. La prestation comprend le nettoyage des filtres, de l'évaporateur et du condenseur, le contrôle du circuit frigorigène et un rapport d'intervention signé.",
       },
       {
         q: "Proposez-vous des solutions climatisation pour les entreprises de l'Essonne ?",
