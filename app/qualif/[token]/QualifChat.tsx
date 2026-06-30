@@ -8,13 +8,19 @@ type Message = { role: "user" | "assistant"; content: string };
 const COMPANY_PHONE = "06 67 43 27 67";
 function genSessionId() { return Math.random().toString(36).slice(2) + Date.now().toString(36); }
 
-// Alex peut suggérer des réponses cliquables via une ligne "OPTIONS: a | b | c" en fin de message.
-function parseOptions(content: string): { text: string; options: string[] } {
-  const m = content.match(/\n?\s*OPTIONS\s*:\s*(.+?)\s*$/i);
-  if (!m || m.index === undefined) return { text: content, options: [] };
-  const options = m[1].split("|").map((s) => s.trim()).filter(Boolean).slice(0, 6);
-  const text = content.slice(0, m.index).trim();
-  return { text: text || content, options };
+// Alex pilote l'interface : "OPTIONS: a | b | c" -> boutons cliquables ; "[[PHOTO]]" -> propose
+// l'ajout de photo (uniquement quand il le décide, vers la fin). On retire ces marqueurs du texte affiché.
+function parseDirectives(content: string): { text: string; options: string[]; photo: boolean } {
+  let text = content;
+  const photo = /\[\[PHOTO\]\]/i.test(text);
+  if (photo) text = text.replace(/\[\[PHOTO\]\]/gi, "").trim();
+  let options: string[] = [];
+  const m = text.match(/\n?\s*OPTIONS\s*:\s*(.+?)\s*$/i);
+  if (m && m.index !== undefined) {
+    options = m[1].split("|").map((s) => s.trim()).filter(Boolean).slice(0, 6);
+    text = text.slice(0, m.index).trim() || text;
+  }
+  return { text, options, photo };
 }
 
 export default function QualifChat({ token, prenom }: { token: string; prenom: string }) {
@@ -85,8 +91,10 @@ export default function QualifChat({ token, prenom }: { token: string; prenom: s
   const lastOptions = (() => {
     const last = messages[messages.length - 1];
     if (!last || last.role !== "assistant" || loading || done) return [];
-    return parseOptions(last.content).options;
+    return parseDirectives(last.content).options;
   })();
+  // Le bouton photo n'apparaît QUE quand Alex l'a proposé (marqueur [[PHOTO]]), pas en permanence.
+  const photoInvited = messages.some((m) => m.role === "assistant" && /\[\[PHOTO\]\]/i.test(m.content));
 
   return (
     <div className="flex flex-col h-[100dvh] bg-slate-50">
@@ -107,7 +115,7 @@ export default function QualifChat({ token, prenom }: { token: string; prenom: s
       <main className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
         <div className="max-w-xl w-full mx-auto space-y-3">
           {messages.map((msg, i) => {
-            const { text } = msg.role === "assistant" ? parseOptions(msg.content) : { text: msg.content };
+            const { text } = msg.role === "assistant" ? parseDirectives(msg.content) : { text: msg.content };
             return (
               <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${msg.role === "user" ? "bg-sky-500 text-white rounded-tr-sm" : "bg-white border border-slate-200 text-slate-800 rounded-tl-sm"}`}>
@@ -157,11 +165,11 @@ export default function QualifChat({ token, prenom }: { token: string; prenom: s
 
       <footer className="flex-shrink-0 border-t border-slate-200 bg-white px-3 py-3">
         <div className="max-w-xl mx-auto">
-          {/* Bouton photo bien visible (mobile : ouvre l'appareil photo) */}
-          {!done && (
+          {/* Bouton photo : visible UNIQUEMENT quand Alex l'a proposé (vers la fin), pas en permanence */}
+          {photoInvited && !done && (
             <button onClick={() => fileRef.current?.click()} disabled={uploading}
-              className="w-full mb-2 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-sky-200 bg-sky-50 text-sky-700 text-sm font-semibold hover:bg-sky-100 disabled:opacity-50 active:scale-[0.99] transition-all">
-              <Camera className="w-4 h-4" /> {uploading ? "Envoi de la photo…" : photoCount > 0 ? `Ajouter une autre photo (${photoCount})` : "Ajouter une photo de l'installation"}
+              className="w-full mb-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-sky-500 text-white text-sm font-semibold hover:bg-sky-400 disabled:opacity-50 active:scale-[0.99] transition-all shadow-sm shadow-sky-500/30">
+              <Camera className="w-4 h-4" /> {uploading ? "Envoi de la photo…" : photoCount > 0 ? `Ajouter une autre photo (${photoCount})` : "Ajouter une photo"}
             </button>
           )}
           <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden"
