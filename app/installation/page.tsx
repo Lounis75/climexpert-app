@@ -10,7 +10,7 @@ import PageCTA from "@/components/PageCTA";
 export const metadata: Metadata = {
   title: "Installation Climatisation Île-de-France",
   description:
-    "Installation de climatisation monosplit, multisplit, gainable et PAC en Île-de-France. Techniciens RGE certifiés. Devis gratuit, pose à partir de 1 500 €.",
+    "Installation de climatisation monosplit, multisplit, gainable et PAC en Île-de-France. Techniciens RGE certifiés. Devis gratuit, pose à partir de 3 000 €.",
   keywords:
     "installation climatisation ile-de-france, pose climatisation paris, installer clim appartement, prix installation climatisation, climatisation monosplit paris",
   alternates: {
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Installation Climatisation Île-de-France, ClimExpert",
     description:
-      "Pose de climatisation par des techniciens RGE certifiés. Devis gratuit, à partir de 1 500 €.",
+      "Pose de climatisation par des techniciens RGE certifiés. Devis gratuit, à partir de 3 000 €.",
     url: "https://climexpert.fr/installation",
     images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "ClimExpert, Installation climatisation Île-de-France" }],
   },
@@ -29,19 +29,19 @@ const systems = [
   {
     name: "Monosplit",
     desc: "1 unité intérieure + 1 unité extérieure. Idéal pour climatiser une seule pièce. La solution la plus répandue pour les appartements.",
-    price: "À partir de 1 500 €",
+    price: "À partir de 3 000 €",
     best: "Appartements, studios",
   },
   {
     name: "Multisplit",
     desc: "Plusieurs unités intérieures reliées à une seule unité extérieure. Parfait pour climatiser plusieurs pièces avec un seul compresseur.",
-    price: "À partir de 2 800 €",
+    price: "À partir de 5 000 €",
     best: "Maisons, grands appartements",
   },
   {
     name: "Gainable",
     desc: "Système intégré dans les faux-plafonds, totalement invisible. La solution premium pour un résultat discret et une diffusion homogène.",
-    price: "À partir de 4 000 €",
+    price: "À partir de 7 000 €",
     best: "Maisons, locaux pro",
   },
   {
@@ -79,7 +79,7 @@ const faqItems = [
   {
     question: "Quel est le prix d'une installation de climatisation en Île-de-France ?",
     answer:
-      "Le prix d'une installation dépend du type de système et du nombre d'unités. Comptez à partir de 1 500 € pour un monosplit (1 pièce), entre 2 800 € et 5 000 € pour un multisplit (2-3 pièces), et à partir de 4 000 € pour un système gainable. Ces prix incluent le matériel et la main-d'œuvre.",
+      "Le prix d'une installation dépend du type de système et du nombre d'unités. Comptez à partir de 3 000 € pour un monosplit (1 pièce), entre 5 000 € et 10 000 € pour un multisplit (2-3 pièces), et à partir de 7 000 € pour un système gainable. Ces prix incluent le matériel et la main-d'œuvre.",
   },
   {
     question: "Combien de temps dure une installation ?",
@@ -138,10 +138,10 @@ const serviceSchema = {
     highPrice: "15000",
     offerCount: "4",
     offers: [
-      { "@type": "Offer", name: "Monosplit", price: "1500", priceCurrency: "EUR" },
-      { "@type": "Offer", name: "Multisplit", price: "2800", priceCurrency: "EUR" },
-      { "@type": "Offer", name: "Gainable", price: "4000", priceCurrency: "EUR" },
-      { "@type": "Offer", name: "PAC air-eau", price: "8000", priceCurrency: "EUR" },
+      { "@type": "Offer", name: "Monosplit", price: "3000", priceCurrency: "EUR" },
+      { "@type": "Offer", name: "Multisplit", price: "5000", priceCurrency: "EUR" },
+      { "@type": "Offer", name: "Gainable", price: "7000", priceCurrency: "EUR" },
+      { "@type": "Offer", name: "PAC air-eau", price: "9000", priceCurrency: "EUR" },
     ],
   },
   url: "https://climexpert.fr/installation",

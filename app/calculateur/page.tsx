@@ -40,7 +40,7 @@ const faqSchema = {
       name: "Quel est le prix d'une climatisation en Île-de-France ?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "À partir de 1 500 € TTC pour un monosplit (1 pièce), 2 800 – 5 500 € pour un multisplit (2-3 pièces), et 4 000 – 10 000 € pour un système gainable. Ces prix incluent le matériel et la pose par des techniciens RGE certifiés. La pose seule représente environ 30 à 40 % du prix total.",
+        text: "À partir de 3 000 € TTC pour un monosplit (1 pièce), 5 000 – 10 000 € pour un multisplit (2-3 pièces), et 7 000 – 15 000 € pour un système gainable. Ces prix incluent le matériel et la pose par des techniciens RGE certifiés. La pose seule représente environ 30 à 40 % du prix total.",
       },
     },
     {
@@ -48,7 +48,7 @@ const faqSchema = {
       name: "Monosplit ou multisplit : quelle solution choisir ?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Le monosplit (1 unité intérieure) est idéal pour une seule pièce, salon, chambre ou bureau, à partir de 1 500 €. Le multisplit (2 à 6 unités intérieures sur une seule unité extérieure) convient aux logements multi-pièces et revient moins cher par pièce à partir de 2 unités, à partir de 2 800 €. Pour une maison entière, un système gainable ou une PAC air-air peut être plus adapté.",
+        text: "Le monosplit (1 unité intérieure) est idéal pour une seule pièce, salon, chambre ou bureau, à partir de 3 000 €. Le multisplit (2 à 6 unités intérieures sur une seule unité extérieure) convient aux logements multi-pièces et revient moins cher par pièce à partir de 2 unités, à partir de 5 000 €. Pour une maison entière, un système gainable ou une PAC air-air peut être plus adapté.",
       },
     },
     {

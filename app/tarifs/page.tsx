@@ -7,13 +7,13 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Tarifs Climatisation Île-de-France 2026, Prix Installation & Entretien",
   description:
-    "Découvrez les prix d'installation climatisation en Île-de-France : monosplit à partir de 1 500 €, multisplit à partir de 2 800 €, entretien à partir de 200 €. Devis gratuit sous 24h.",
+    "Découvrez les prix d'installation climatisation en Île-de-France : monosplit à partir de 3 000 €, multisplit à partir de 5 000 €, entretien à partir de 200 €. Devis gratuit sous 24h.",
   keywords:
     "prix climatisation ile-de-france, tarif installation climatisation, coût climatisation paris, tarif entretien climatisation, prix monosplit multisplit gainable",
   alternates: { canonical: "https://climexpert.fr/tarifs" },
   openGraph: {
     title: "Tarifs Climatisation Île-de-France 2026, ClimExpert",
-    description: "Prix installation, entretien et dépannage climatisation en IDF. Monosplit à partir de 1 500 €.",
+    description: "Prix installation, entretien et dépannage climatisation en IDF. Monosplit à partir de 3 000 €.",
     url: "https://climexpert.fr/tarifs",
     images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
   },
@@ -37,7 +37,7 @@ const faqSchema = {
       name: "Quel est le prix d'une installation climatisation en Île-de-France ?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Les tarifs d'installation varient selon le système : monosplit à partir de 1 500 € TTC, multisplit 2 pièces à partir de 2 800 € TTC, multisplit 3 pièces à partir de 3 800 € TTC, gainable à partir de 4 000 € TTC. Ces prix incluent le matériel, la main-d'œuvre, les raccordements et la mise en service.",
+        text: "Les tarifs d'installation varient selon le système : monosplit à partir de 3 000 € TTC, multisplit 2 pièces à partir de 5 000 € TTC, multisplit 3 pièces à partir de 7 000 € TTC, gainable à partir de 7 000 € TTC. Ces prix incluent le matériel, la main-d'œuvre, les raccordements et la mise en service.",
       },
     },
     {
@@ -100,7 +100,7 @@ const TARIFS = [
   {
     system: "Monosplit",
     desc: "1 pièce, salon, chambre, bureau",
-    price: "1 500 – 2 500 €",
+    price: "3 000 – 4 500 €",
     details: ["1 unité intérieure", "1 unité extérieure", "jusqu'à 35 m²", "Pose incluse"],
     color: "sky",
     popular: false,
@@ -108,7 +108,7 @@ const TARIFS = [
   {
     system: "Multisplit 2 pièces",
     desc: "Salon + chambre ou 2 pièces",
-    price: "2 800 – 4 000 €",
+    price: "5 000 – 7 000 €",
     details: ["2 unités intérieures", "1 unité extérieure compacte", "jusqu'à 60 m²", "Pose incluse"],
     color: "emerald",
     popular: true,
@@ -116,7 +116,7 @@ const TARIFS = [
   {
     system: "Multisplit 3 pièces",
     desc: "Appartement ou maison 3 pièces",
-    price: "3 800 – 5 500 €",
+    price: "7 000 – 10 000 €",
     details: ["3 unités intérieures", "1 unité extérieure puissante", "jusqu'à 90 m²", "Pose incluse"],
     color: "emerald",
     popular: false,
@@ -124,7 +124,7 @@ const TARIFS = [
   {
     system: "Multisplit 4–6 pièces",
     desc: "Grande maison, appartement familial",
-    price: "4 500 – 8 000 €",
+    price: "9 000 – 15 000 €",
     details: ["4 à 6 unités intérieures", "1 unité extérieure haute capacité", "jusqu'à 180 m²", "Pose incluse"],
     color: "violet",
     popular: false,
@@ -132,7 +132,7 @@ const TARIFS = [
   {
     system: "Gainable",
     desc: "Maison avec faux-plafond ou combles",
-    price: "4 000 – 10 000 €",
+    price: "7 000 – 15 000 €",
     details: ["1 unité gainable centralisée", "Diffusion invisible", "Toute surface", "Étude technique incluse"],
     color: "amber",
     popular: false,
