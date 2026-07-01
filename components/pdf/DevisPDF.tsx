@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
 
 function euros(ct: number | null | undefined) {
   if (!ct) return "0,00 €";
-  return (ct / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
+  return (ct / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" }).replace(/[\u202f\u00a0]/g, " ");
 }
 function fmtDate(d: string) {
   return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });

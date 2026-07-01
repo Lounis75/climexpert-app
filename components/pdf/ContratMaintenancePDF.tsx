@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
 });
 
 function euros(ct: number) {
-  return (ct / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
+  return (ct / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" }).replace(/[\u202f\u00a0]/g, " ");
 }
 
 function formatDate(dateStr: string) {
