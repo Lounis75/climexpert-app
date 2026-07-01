@@ -583,7 +583,7 @@ const CT_CSS = `
 .ct .btn.primary:hover{background:var(--blue-d)}
 .ct .btn.ghost{background:#fff;color:var(--blue-d);border:1px solid var(--blue)}
 .ct .btn.sm{padding:7px 12px;font-size:13px;width:auto}
-.ct .brands{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.ct .brands{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
 .ct .brand{border:1px solid var(--line);border-radius:10px;padding:10px 6px;cursor:pointer;text-align:center;background:#fff}
 .ct .brand.on{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue) inset}
 .ct .brand .bn{font-size:13px;font-weight:800;color:var(--navy)}
@@ -603,7 +603,7 @@ const CT_CSS = `
 .ct details.cat{background:#fff;border:1px solid var(--line);border-radius:var(--r);margin-top:16px}
 .ct details.cat summary{padding:14px 16px;font-size:13px;text-transform:uppercase;letter-spacing:.8px;color:var(--blue-d);font-weight:700;cursor:pointer}
 .ct .catbody{padding:0 16px 16px}
-.ct .catrow,.ct .catrow.head{display:grid;grid-template-columns:1.3fr repeat(5,1fr);gap:6px;align-items:center;margin-bottom:5px}
+.ct .catrow,.ct .catrow.head{display:grid;grid-template-columns:1.3fr repeat(6,1fr);gap:6px;align-items:center;margin-bottom:5px}
 .ct .catrow2{display:grid;grid-template-columns:1fr 110px;gap:8px;align-items:center;margin-bottom:5px}
 .ct .catrow .cl,.ct .catrow2 .cl{font-size:12px;color:var(--ink)}
 .ct .catrow.head .ch{font-size:10px;text-transform:uppercase;color:var(--muted);text-align:center;font-weight:700}

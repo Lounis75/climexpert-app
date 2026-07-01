@@ -30,24 +30,25 @@ export const DEFAULT_CATALOGUE: Catalogue = {
     { id: "atlantic",   name: "Atlantic",   pos: "Entrée-moyen", db: "~48-52 dB", lowNoise: false },
     { id: "lg",         name: "LG",         pos: "Moyen",        db: "~46-49 dB", lowNoise: true },
     { id: "mitsubishi", name: "Mitsubishi", pos: "Moyen-haut",   db: "~46-49 dB", lowNoise: true },
+    { id: "samsung",    name: "Samsung",    pos: "Moyen-haut",   db: "~46-49 dB", lowNoise: true },
     { id: "daikin",     name: "Daikin",     pos: "Haut",         db: "~45-48 dB", lowNoise: true },
   ],
   equip: {
-    mono_9000:    { label: "Mono-split mural 2,5 kW / 9 000 BTU",  p: { hisense: 582,  atlantic: 784,  lg: 784,  mitsubishi: 736,  daikin: 894 } },
-    mono_12000:   { label: "Mono-split mural 3,5 kW / 12 000 BTU", p: { hisense: 708,  atlantic: 961,  lg: 961,  mitsubishi: 886,  daikin: 1088 } },
-    mono_18000:   { label: "Mono-split mural 5 kW / 18 000 BTU",   p: { hisense: 961,  atlantic: 1240, lg: 1265, mitsubishi: 1240, daikin: 1379 } },
-    mono_24000:   { label: "Mono-split mural 7 kW / 24 000 BTU",   p: { hisense: 1240, atlantic: 1645, lg: 1708, mitsubishi: 1898, daikin: 1834 } },
-    bi_9_9:       { label: "Bi-split 9 000 + 9 000 BTU",           p: { hisense: 1550, atlantic: 1750, lg: 1750, mitsubishi: 1999, daikin: 2300 } },
-    bi_9_12:      { label: "Bi-split 9 000 + 12 000 BTU",          p: { hisense: 2300, atlantic: 2600, lg: 2600, mitsubishi: 2990, daikin: 3300 } },
-    bi_12_12:     { label: "Bi-split 12 000 + 12 000 BTU",         p: { hisense: 2426, atlantic: 2777, lg: 2777, mitsubishi: 3140, daikin: 3494 } },
-    bi_9_18:      { label: "Bi-split 9 000 + 18 000 BTU",          p: { hisense: 2553, atlantic: 2879, lg: 2904, mitsubishi: 3344, daikin: 3591 } },
-    bi_12_18:     { label: "Bi-split 12 000 + 18 000 BTU",         p: { hisense: 2679, atlantic: 3056, lg: 3081, mitsubishi: 3494, daikin: 3785 } },
-    bi_18_18:     { label: "Bi-split 18 000 + 18 000 BTU",         p: { hisense: 2932, atlantic: 3335, lg: 3385, mitsubishi: 3848, daikin: 4076 } },
-    tri_9_9_9:    { label: "Tri-split 9 000 × 3 BTU",              p: { hisense: 2774, atlantic: 3023, lg: 3073, mitsubishi: 3490, daikin: 3796 } },
-    tri_9_9_12:   { label: "Tri-split 9 000 + 9 000 + 12 000 BTU", p: { hisense: 2900, atlantic: 3200, lg: 3250, mitsubishi: 3640, daikin: 3990 } },
-    tri_9_12_12:  { label: "Tri-split 9 000 + 12 000 + 12 000 BTU", p: { hisense: 3026, atlantic: 3377, lg: 3427, mitsubishi: 3790, daikin: 4184 } },
-    tri_12_12_12: { label: "Tri-split 12 000 × 3 BTU",            p: { hisense: 3152, atlantic: 3554, lg: 3604, mitsubishi: 3940, daikin: 4378 } },
-    monobloc_eau: { label: "Monobloc à eau 3 kW (Airwell)",        p: { hisense: 3000, atlantic: 3000, lg: 3000, mitsubishi: 3000, daikin: 3000 } },
+    mono_9000:    { label: "Mono-split mural 2,5 kW / 9 000 BTU",  p: { hisense: 582,  atlantic: 784,  lg: 784,  mitsubishi: 736,  daikin: 894, samsung: 820 } },
+    mono_12000:   { label: "Mono-split mural 3,5 kW / 12 000 BTU", p: { hisense: 708,  atlantic: 961,  lg: 961,  mitsubishi: 886,  daikin: 1088, samsung: 1010 } },
+    mono_18000:   { label: "Mono-split mural 5 kW / 18 000 BTU",   p: { hisense: 961,  atlantic: 1240, lg: 1265, mitsubishi: 1240, daikin: 1379, samsung: 1300 } },
+    mono_24000:   { label: "Mono-split mural 7 kW / 24 000 BTU",   p: { hisense: 1240, atlantic: 1645, lg: 1708, mitsubishi: 1898, daikin: 1834, samsung: 1790 } },
+    bi_9_9:       { label: "Bi-split 9 000 + 9 000 BTU",           p: { hisense: 1550, atlantic: 1750, lg: 1750, mitsubishi: 1999, daikin: 2300, samsung: 2050 } },
+    bi_9_12:      { label: "Bi-split 9 000 + 12 000 BTU",          p: { hisense: 2300, atlantic: 2600, lg: 2600, mitsubishi: 2990, daikin: 3300, samsung: 2950 } },
+    bi_12_12:     { label: "Bi-split 12 000 + 12 000 BTU",         p: { hisense: 2426, atlantic: 2777, lg: 2777, mitsubishi: 3140, daikin: 3494, samsung: 3150 } },
+    bi_9_18:      { label: "Bi-split 9 000 + 18 000 BTU",          p: { hisense: 2553, atlantic: 2879, lg: 2904, mitsubishi: 3344, daikin: 3591, samsung: 3350 } },
+    bi_12_18:     { label: "Bi-split 12 000 + 18 000 BTU",         p: { hisense: 2679, atlantic: 3056, lg: 3081, mitsubishi: 3494, daikin: 3785, samsung: 3500 } },
+    bi_18_18:     { label: "Bi-split 18 000 + 18 000 BTU",         p: { hisense: 2932, atlantic: 3335, lg: 3385, mitsubishi: 3848, daikin: 4076, samsung: 3850 } },
+    tri_9_9_9:    { label: "Tri-split 9 000 × 3 BTU",              p: { hisense: 2774, atlantic: 3023, lg: 3073, mitsubishi: 3490, daikin: 3796, samsung: 3500 } },
+    tri_9_9_12:   { label: "Tri-split 9 000 + 9 000 + 12 000 BTU", p: { hisense: 2900, atlantic: 3200, lg: 3250, mitsubishi: 3640, daikin: 3990, samsung: 3680 } },
+    tri_9_12_12:  { label: "Tri-split 9 000 + 12 000 + 12 000 BTU", p: { hisense: 3026, atlantic: 3377, lg: 3427, mitsubishi: 3790, daikin: 4184, samsung: 3820 } },
+    tri_12_12_12: { label: "Tri-split 12 000 × 3 BTU",            p: { hisense: 3152, atlantic: 3554, lg: 3604, mitsubishi: 3940, daikin: 4378, samsung: 3980 } },
+    monobloc_eau: { label: "Monobloc à eau 3 kW (Airwell)",        p: { hisense: 3000, atlantic: 3000, lg: 3000, mitsubishi: 3000, daikin: 3000, samsung: 3000 } },
   },
   annex: {
     liaison_base:    { label: "Liaison frigorifique (base)",        v: 60 },
@@ -83,9 +84,22 @@ export const DEFAULT_CATALOGUE: Catalogue = {
 export async function getCatalogue(): Promise<Catalogue> {
   const stored = (await r2GetJSON(CATALOGUE_KEY)) as Partial<Catalogue> | null;
   if (!stored) return DEFAULT_CATALOGUE;
+  // Union des marques : celles enregistrées + toute marque par défaut absente (ex. ajout Samsung
+  // alors qu'un catalogue perso existait déjà). On garde l'ordre enregistré puis on ajoute le reste.
+  const storedBrands = stored.brands ?? DEFAULT_CATALOGUE.brands;
+  const brands = [...storedBrands];
+  for (const b of DEFAULT_CATALOGUE.brands) if (!brands.some((x) => x.id === b.id)) brands.push(b);
+  // Équipements : défauts + surcharges enregistrées, en garantissant un prix pour CHAQUE marque
+  // (backfill depuis le défaut, pour que les nouvelles marques ne soient pas à 0).
+  const equip: Record<string, EquipItem> = {};
+  for (const key of new Set([...Object.keys(DEFAULT_CATALOGUE.equip), ...Object.keys(stored.equip ?? {})])) {
+    const def = DEFAULT_CATALOGUE.equip[key];
+    const ov = (stored.equip ?? {})[key];
+    equip[key] = ov ? { label: ov.label ?? def?.label ?? key, p: { ...(def?.p ?? {}), ...ov.p } } : def;
+  }
   return {
-    brands: stored.brands ?? DEFAULT_CATALOGUE.brands,
-    equip: { ...DEFAULT_CATALOGUE.equip, ...(stored.equip ?? {}) },
+    brands,
+    equip,
     annex: { ...DEFAULT_CATALOGUE.annex, ...(stored.annex ?? {}) },
     forfaits: { ...DEFAULT_CATALOGUE.forfaits, ...(stored.forfaits ?? {}) },
     moRate: typeof stored.moRate === "number" ? stored.moRate : DEFAULT_CATALOGUE.moRate,
