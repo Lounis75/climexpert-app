@@ -431,6 +431,10 @@ export const interventions = pgTable("interventions", {
   clientConfirmation:     varchar("client_confirmation", { length: 20 }),     // "confirme" | "probleme"
   clientConfirmationLe:   timestamp("client_confirmation_le"),
   clientConfirmationMsg:  text("client_confirmation_msg"),                     // message du client si problème
+  // ── Suivi de chantier (installation) visible par le client dans son espace ──
+  acompteRecuLe:          timestamp("acompte_recu_le"),      // acompte 30% reçu (déclenche la commande matériel)
+  materielCommandeLe:     timestamp("materiel_commande_le"), // commande matériel (auto = acompte reçu)
+  materielRecuLe:         timestamp("materiel_recu_le"),     // matériel reçu (déclenche la planification)
   annulePar:              varchar("annule_par", { length: 20 }),   // "client"|"admin"|"technicien"
   motifAnnulation:        text("motif_annulation"),
   interventionOrigineId:  text("intervention_origine_id"),         // si report

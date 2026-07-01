@@ -11,6 +11,7 @@ import CreneauEditor from "./CreneauEditor";
 import TechnicienEditor from "./TechnicienEditor";
 import EnvoyerConfirmationClient from "./EnvoyerConfirmationClient";
 import FactureUpload from "./FactureUpload";
+import SuiviChantier from "./SuiviChantier";
 import { db } from "@/lib/db";
 import { rapportsIntervention } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -135,6 +136,18 @@ export default async function InterventionDetailPage({
             </div>
           </div>
         ) : null}
+
+        {/* Suivi de chantier (installations) : acompte -> commande matériel -> réception */}
+        {i.type === "installation" && (
+          <SuiviChantier
+            interventionId={i.id}
+            initial={{
+              acompteRecuLe: i.acompteRecuLe ? new Date(i.acompteRecuLe).toISOString() : null,
+              materielCommandeLe: i.materielCommandeLe ? new Date(i.materielCommandeLe).toISOString() : null,
+              materielRecuLe: i.materielRecuLe ? new Date(i.materielRecuLe).toISOString() : null,
+            }}
+          />
+        )}
 
         {/* Facturation : disponible une fois l'intervention terminée */}
         {i.status === "terminée" && (

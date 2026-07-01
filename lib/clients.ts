@@ -6,6 +6,9 @@ import { randomBytes } from "crypto";
 import { createChantier, getChantierByLead } from "@/lib/chantiers";
 import { logError } from "@/lib/observability";
 import { formatQualification } from "@/lib/qualification";
+import { Resend } from "resend";
+import { mailRecipient } from "@/lib/mail";
+import { escapeHtml } from "@/lib/escape-html";
 
 const PROJECT_LABEL: Record<string, string> = {
   installation: "Installation", entretien: "Entretien", depannage: "Dépannage",
@@ -145,6 +148,31 @@ export async function createClientFromLead(leadId: string): Promise<Client | nul
     }
   } catch (e) {
     logError("chantier.autoCreate", e, { leadId: lead.id, clientId: client.id });
+  }
+
+  // E-mail de bienvenue : ouverture de l'espace client (suivi du chantier par lien simple).
+  // Non bloquant : un échec d'envoi ne doit pas empêcher la conversion.
+  if (client.email) {
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_URL ?? "https://climexpert.fr";
+      const link = `${baseUrl}/suivi/${client.clientToken}`;
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      await resend.emails.send({
+        from: "ClimExpert <noreply@climexpert.fr>",
+        to: mailRecipient(client.email),
+        subject: "Bienvenue chez ClimExpert, votre espace client est ouvert",
+        html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#0f172a;">
+          <h2 style="color:#0284c7;">Merci pour votre confiance, ${escapeHtml(client.name)} !</h2>
+          <p>Votre devis est signé : votre <strong>espace client</strong> est ouvert. Vous y suivez l'avancement de votre chantier en temps réel, de la commande du matériel à la mise en service.</p>
+          <p><a href="${link}" style="background:#0ea5e9;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:bold;">Accéder à mon espace client</a></p>
+          <p style="color:#64748b;font-size:13px;">Prochaine étape : dès réception de votre acompte (30 %), nous commandons le matériel dimensionné pour votre projet.</p>
+          <p style="color:#64748b;font-size:12px;">Lien personnel, conservez cet e-mail pour revenir à votre espace quand vous voulez.</p>
+          <p style="color:#94a3b8;font-size:12px;">L'équipe ClimExpert &middot; contact@climexpert.fr</p>
+        </div>`,
+      });
+    } catch (e) {
+      logError("client.welcome.email", e, { clientId: client.id });
+    }
   }
 
   return client;

@@ -4,6 +4,7 @@ import { clients, interventions, factures, savTickets, techniciens, documents, r
 import { eq, and, isNull, desc } from "drizzle-orm";
 import { Wind, Wrench, FileText, HeadphonesIcon, CalendarDays, CheckCircle2, Clock, AlertTriangle, Shield, Download, Camera } from "lucide-react";
 import Link from "next/link";
+import TimelineChantier from "@/components/TimelineChantier";
 
 const TYPE_LABELS: Record<string, string> = {
   installation: "Installation", entretien: "Entretien",
@@ -54,6 +55,9 @@ export default async function SuiviPage({ params }: { params: Promise<{ token: s
         scheduledAt: interventions.scheduledAt,
         address:     interventions.address,
         techName:    techniciens.name,
+        acompteRecuLe:      interventions.acompteRecuLe,
+        materielCommandeLe: interventions.materielCommandeLe,
+        materielRecuLe:     interventions.materielRecuLe,
       })
       .from(interventions)
       .leftJoin(techniciens, eq(interventions.technicienId, techniciens.id))
@@ -139,6 +143,12 @@ export default async function SuiviPage({ params }: { params: Promise<{ token: s
             </div>
           )}
         </div>
+
+        {/* Suivi de chantier (installation en cours) */}
+        {(() => {
+          const chantier = clientInterventions.find((i) => i.type === "installation");
+          return chantier ? <TimelineChantier iv={chantier} /> : null;
+        })()}
 
         {/* Garantie */}
         {client.garantieExpireLe && (
