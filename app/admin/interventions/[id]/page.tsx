@@ -3,7 +3,7 @@ import { getInterventionById, getTechniciens, TYPE_LABELS, TYPE_COLORS, STATUS_I
 import { getChantierById } from "@/lib/chantiers";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Wrench, FileText, Image as ImageIcon, Briefcase, HardHat } from "lucide-react";
+import { ArrowLeft, Wrench, FileText, Image as ImageIcon, Briefcase, HardHat, CheckCircle2, AlertTriangle } from "lucide-react";
 import InterventionActions from "./InterventionActions";
 import CopyableContact from "@/components/CopyableContact";
 import BriefingPhotos from "./BriefingPhotos";
@@ -89,6 +89,27 @@ export default async function InterventionDetailPage({
         >
           <FileText className="w-4 h-4 text-sky-400" /> Ordre de mission (PDF)
         </a>
+
+        {/* Réponse du client à la demande de confirmation de RDV */}
+        {i.clientConfirmation === "confirme" && (
+          <div className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-4 flex items-start gap-3">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-emerald-300 font-semibold text-sm">Rendez-vous confirmé par le client</p>
+              {i.clientConfirmationLe && <p className="text-slate-400 text-xs mt-0.5 capitalize">Le {formatDateLong(i.clientConfirmationLe)}</p>}
+            </div>
+          </div>
+        )}
+        {i.clientConfirmation === "probleme" && (
+          <div className="rounded-xl border border-amber-400/40 bg-amber-500/10 p-4 flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <p className="text-amber-300 font-semibold text-sm">Problème signalé par le client</p>
+              {i.clientConfirmationMsg && <p className="text-slate-100 text-sm mt-1">« {i.clientConfirmationMsg} »</p>}
+              <p className="text-slate-400 text-xs mt-1">{i.clientConfirmationLe && <span className="capitalize">Le {formatDateLong(i.clientConfirmationLe)} · </span>}À recontacter pour convenir d&apos;un nouveau créneau.</p>
+            </div>
+          </div>
+        )}
 
         {/* Facturation : disponible une fois l'intervention terminée */}
         {i.status === "terminée" && (

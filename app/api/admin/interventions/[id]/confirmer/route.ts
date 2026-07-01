@@ -20,6 +20,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   if (!i.scheduledAt) return NextResponse.json({ error: "Cette intervention n'a pas de date planifiée." }, { status: 400 });
 
   const res = await sendInterventionConfirmation({
+    interventionId: i.id,
     clientId: i.clientId,
     type: i.type,
     start: new Date(i.scheduledAt),

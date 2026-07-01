@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
       status: "planifiée",
     });
     // Confirmation au client (best-effort : ne bloque pas la planification si l'e-mail échoue).
-    await sendInterventionConfirmation({ clientId, type, start: parsedDate, dureeMin: Number.isFinite(duree) && duree > 0 ? Math.round(duree) : 120, address: address || null });
+    await sendInterventionConfirmation({ interventionId: i.id, clientId, type, start: parsedDate, dureeMin: Number.isFinite(duree) && duree > 0 ? Math.round(duree) : 120, address: address || null });
     return NextResponse.json({ intervention: i }, { status: 201 });
   } catch (err) {
     console.error("[POST /api/admin/interventions]", err);

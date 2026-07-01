@@ -26,6 +26,7 @@ export async function GET(req: NextRequest) {
         address:       interventions.address,
         technicienId:  interventions.technicienId,
         duree:         interventions.dureeEstimeeMinutes,
+        confirmation:  interventions.clientConfirmation,
         clientName:    clients.name,
         technicienName: techniciens.name,
       })

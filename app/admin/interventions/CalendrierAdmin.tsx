@@ -23,7 +23,7 @@ const MONTHS_FR_LONG = ["janvier", "février", "mars", "avril", "mai", "juin", "
 type CalIntervention = {
   id: string; type: string; status: string; scheduledAt: string | null;
   address: string | null; technicienId: string | null; duree: number | null;
-  clientName: string; technicienName: string | null;
+  confirmation: string | null; clientName: string; technicienName: string | null;
 };
 type CalTechnicien = { id: string; name: string; color: string | null };
 type CalPeriode    = { id: string; nom: string; dateDebut: string; dateFin: string; maxInterventionsSemaine: number; note: string | null };
@@ -263,6 +263,8 @@ export default function CalendrierAdmin() {
                       <div className="flex items-center gap-1 mb-0.5">
                         <Wrench className="w-2.5 h-2.5 flex-shrink-0" />
                         <span className="font-semibold truncate">{TYPE_LABELS[i.type] ?? i.type}</span>
+                        {i.confirmation === "confirme" && <span title="Confirmé par le client" className="ml-auto flex-shrink-0 w-2 h-2 rounded-full bg-emerald-400" />}
+                        {i.confirmation === "probleme" && <span title="Problème signalé par le client" className="ml-auto flex-shrink-0 w-2 h-2 rounded-full bg-amber-400 animate-pulse" />}
                       </div>
                       <p className="truncate text-white/70">{i.clientName}</p>
                       {i.technicienName && <p className="truncate opacity-60">{i.technicienName}</p>}

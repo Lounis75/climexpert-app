@@ -344,6 +344,13 @@
       "when": 1782885384470,
       "tag": "0048_revues_devis",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1782886943959,
+      "tag": "0049_rdv_confirmation",
+      "breakpoints": true
     }
   ]
 }

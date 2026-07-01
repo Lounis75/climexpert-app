@@ -426,6 +426,11 @@ export const interventions = pgTable("interventions", {
   rdvToken:               varchar("rdv_token", { length: 100 }).unique(),
   rdvTokenChoix:          integer("rdv_token_choix"),              // 1|2|3, choix sélectionné
   rdvTokenCreneaux:       text("rdv_token_creneaux"),              // JSON: 3 créneaux proposés
+  // ── Confirmation du RDV par le client (bouton dans l'e-mail de confirmation) ──
+  confirmToken:           varchar("confirm_token", { length: 100 }).unique(), // lien public de confirmation
+  clientConfirmation:     varchar("client_confirmation", { length: 20 }),     // "confirme" | "probleme"
+  clientConfirmationLe:   timestamp("client_confirmation_le"),
+  clientConfirmationMsg:  text("client_confirmation_msg"),                     // message du client si problème
   annulePar:              varchar("annule_par", { length: 20 }),   // "client"|"admin"|"technicien"
   motifAnnulation:        text("motif_annulation"),
   interventionOrigineId:  text("intervention_origine_id"),         // si report
