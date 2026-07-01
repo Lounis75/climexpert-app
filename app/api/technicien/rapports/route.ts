@@ -5,7 +5,7 @@ import { eq, and, sql } from "drizzle-orm";
 import { verifyTechnicienToken, TECH_COOKIE_NAME, verifyAdminToken, COOKIE_NAME } from "@/lib/auth";
 import { createId } from "@paralleldrive/cuid2";
 import { contratTotalCt } from "@/lib/contrat-pricing";
-import { finalizeCerfa } from "@/lib/cerfa";
+import { finalizeCerfa, requestCerfaSignature } from "@/lib/cerfa";
 import { finalizeContrat } from "@/lib/contrat-finalize";
 import type { CerfaData } from "@/lib/cerfa-pdf";
 import { SIGNATURE_GERANT_DATAURL, GERANT_NOM, GERANT_QUALITE } from "@/lib/signature-gerant";
@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
     // Attestation CERFA (fiche d'intervention fluides) : données saisies + signature DU CLIENT
     cerfa,                  // objet partiel CerfaData (nature, équipement, fuites, observations…)
     cerfaClientSignature,   // data URL PNG : signature du client (détenteur) au stylet
+    cerfaEnvoiSignature,    // true = client absent : envoyer l'attestation par e-mail pour signature à distance
   } = body;
 
   if (!interventionId) return NextResponse.json({ error: "interventionId requis" }, { status: 400 });
@@ -193,13 +194,19 @@ export async function POST(req: NextRequest) {
           signatureDataUrl: cerfaClientSignature,
         },
       };
-      await finalizeCerfa({
-        clientId: interv.clientId,
-        interventionId,
-        clientName: client?.name ?? "Client",
-        clientEmail: client?.email,
-        cerfa: cerfaData,
-      });
+      if (cerfaEnvoiSignature) {
+        // Client absent : on envoie l'attestation par e-mail pour signature à distance (le PDF
+        // officiel sera généré et envoyé une fois le client signataire). L'intervention reste terminée.
+        await requestCerfaSignature({ rapportId: rapport.id, cerfa: cerfaData, clientName: client?.name ?? "Client", clientEmail: client?.email });
+      } else {
+        await finalizeCerfa({
+          clientId: interv.clientId,
+          interventionId,
+          clientName: client?.name ?? "Client",
+          clientEmail: client?.email,
+          cerfa: cerfaData,
+        });
+      }
     } catch (e) {
       console.error("[rapport] CERFA:", e);
     }

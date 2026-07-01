@@ -624,6 +624,13 @@ export const rapportsIntervention = pgTable("rapports_intervention", {
   // Entretien annuel : obligatoire à la clôture (le technicien DOIT répondre)
   entretienAnnuelPropose: boolean("entretien_annuel_propose"),  // null = non répondu
   entretienAnnuelAccepte: boolean("entretien_annuel_accepte"),  // si proposé : client a accepté ?
+  // ── Signature à distance de l'attestation CERFA (client absent le jour de la clôture) ──
+  cerfaData:                jsonb("cerfa_data"),                        // snapshot CerfaData (gérant pré-signé) pour finaliser à la signature
+  cerfaSignatureToken:      varchar("cerfa_signature_token", { length: 64 }).unique(), // lien public de signature
+  cerfaSignatureDemandeeLe: timestamp("cerfa_signature_demandee_le"),   // date d'envoi de la demande
+  cerfaClientSigneLe:       timestamp("cerfa_client_signe_le"),         // date de signature du client
+  cerfaSignatureIp:         varchar("cerfa_signature_ip", { length: 64 }), // piste d'audit
+  cerfaAttestationUrl:      text("cerfa_attestation_url"),              // PDF finalisé (R2)
   dateSoumission:       timestamp("date_soumission").defaultNow().notNull(),
 });
 

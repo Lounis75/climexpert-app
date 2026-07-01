@@ -11,6 +11,9 @@ import CreneauEditor from "./CreneauEditor";
 import TechnicienEditor from "./TechnicienEditor";
 import EnvoyerConfirmationClient from "./EnvoyerConfirmationClient";
 import FactureUpload from "./FactureUpload";
+import { db } from "@/lib/db";
+import { rapportsIntervention } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +45,9 @@ export default async function InterventionDetailPage({
   const status = STATUS_INTERVENTION[i.status] ?? STATUS_INTERVENTION.planifiée;
   const typeColor = TYPE_COLORS[i.type] ?? TYPE_COLORS.autre;
   const chantier = i.chantierId ? await getChantierById(i.chantierId) : null;
+  const [rapportSig] = await db
+    .select({ demandee: rapportsIntervention.cerfaSignatureDemandeeLe, signe: rapportsIntervention.cerfaClientSigneLe })
+    .from(rapportsIntervention).where(eq(rapportsIntervention.interventionId, id)).limit(1);
 
   return (
     <div className="min-h-screen bg-[#080d18]">
@@ -110,6 +116,25 @@ export default async function InterventionDetailPage({
             </div>
           </div>
         )}
+
+        {/* Attestation d'entretien (CERFA) envoyée pour signature à distance */}
+        {rapportSig?.signe ? (
+          <div className="rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-4 flex items-start gap-3">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-emerald-300 font-semibold text-sm">Attestation signée par le client</p>
+              <p className="text-slate-400 text-xs mt-0.5 capitalize">Le {formatDateLong(rapportSig.signe)}</p>
+            </div>
+          </div>
+        ) : rapportSig?.demandee ? (
+          <div className="rounded-xl border border-amber-400/40 bg-amber-500/10 p-4 flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-amber-300 font-semibold text-sm">Attestation envoyée au client pour signature</p>
+              <p className="text-slate-400 text-xs mt-0.5">En attente de sa signature. <span className="capitalize">Demande envoyée le {formatDateLong(rapportSig.demandee)}.</span></p>
+            </div>
+          </div>
+        ) : null}
 
         {/* Facturation : disponible une fois l'intervention terminée */}
         {i.status === "terminée" && (

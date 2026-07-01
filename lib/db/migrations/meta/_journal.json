@@ -351,6 +351,13 @@
       "when": 1782886943959,
       "tag": "0049_rdv_confirmation",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1782891407252,
+      "tag": "0050_cerfa_signature_distance",
+      "breakpoints": true
     }
   ]
 }

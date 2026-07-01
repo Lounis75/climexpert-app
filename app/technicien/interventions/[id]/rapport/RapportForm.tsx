@@ -9,10 +9,12 @@ export default function RapportForm({
   interventionId,
   isVisiteTechnique,
   returnTo,
+  clientHasEmail = false,
 }: {
   interventionId: string;
   isVisiteTechnique: boolean;
   returnTo?: string; // où revenir après clôture (admin: fiche intervention admin)
+  clientHasEmail?: boolean; // le client a-t-il un e-mail (pour proposer la signature à distance)
 }) {
   const router = useRouter();
   const backHref = returnTo ?? `/technicien/interventions/${interventionId}`;
@@ -44,6 +46,8 @@ export default function RapportForm({
   // Attestation CERFA (fiche d'intervention fluides frigorigènes) : TOUJOURS obligatoire.
   const cerfaActif = true;
   const [cerfaSig, setCerfaSig]           = useState<string | null>(null);
+  // Signature du CERFA : "tablette" (client présent) ou "envoi" (client absent -> lien e-mail).
+  const [cerfaMode, setCerfaMode]         = useState<"tablette" | "envoi">("tablette");
   // Photos obligatoires : au moins 1 par unité (ext. + int.).
   const minPhotos = Math.max(1, (parseInt(nbExt || "0") || 0) + (parseInt(nbInt || "0") || 0));
   const [cEquipId, setCEquipId]           = useState("");
@@ -113,8 +117,8 @@ export default function RapportForm({
       setError("Le client doit signer le contrat d'entretien.");
       return;
     }
-    if (!cerfaSig) {
-      setError("Le CERFA est obligatoire : faites signer le client.");
+    if (cerfaMode === "tablette" && !cerfaSig) {
+      setError("Le CERFA est obligatoire : faites signer le client, ou choisissez « Envoyer par e-mail pour signature ».");
       return;
     }
     setSubmitting(true);
@@ -164,7 +168,8 @@ export default function RapportForm({
         }),
         // Attestation CERFA (générée + envoyée au client + posée sur sa fiche à la clôture)
         ...(cerfaActif && {
-          cerfaClientSignature: cerfaSig,
+          cerfaClientSignature: cerfaMode === "tablette" ? cerfaSig : undefined,
+          cerfaEnvoiSignature: cerfaMode === "envoi",
           cerfa: {
             equipement: { identification: cEquipId, fluide: cFluide, chargeKg: cCharge, tonnageCO2: cTonnage },
             nature: { maintenance: cNatMaint, controleEtanchPeriodique: cNatCtrl },
@@ -604,9 +609,28 @@ export default function RapportForm({
               </div>
 
               <div>
-                <p className="text-sm font-semibold text-slate-900 mb-1 flex items-center gap-1.5"><PenLine className="w-4 h-4 text-sky-600" /> Signature du client</p>
-                <p className="text-xs text-slate-500 mb-2">Faites signer le client au stylet : il atteste l&apos;entretien de son installation. (ClimExpert est déjà signataire.)</p>
-                <SignaturePad onChange={setCerfaSig} />
+                <p className="text-sm font-semibold text-slate-900 mb-2 flex items-center gap-1.5"><PenLine className="w-4 h-4 text-sky-600" /> Signature du client</p>
+                <div className="flex gap-2 mb-3">
+                  <button type="button" onClick={() => setCerfaMode("tablette")}
+                    className={`flex-1 py-2.5 rounded-xl border text-xs font-semibold transition-colors ${cerfaMode === "tablette" ? "bg-sky-50 border-sky-300 text-sky-700" : "bg-white border-slate-200 text-slate-500"}`}>
+                    Signer sur la tablette
+                  </button>
+                  <button type="button" onClick={() => { if (clientHasEmail) setCerfaMode("envoi"); }} disabled={!clientHasEmail}
+                    className={`flex-1 py-2.5 rounded-xl border text-xs font-semibold transition-colors ${cerfaMode === "envoi" ? "bg-sky-50 border-sky-300 text-sky-700" : "bg-white border-slate-200 text-slate-500"} ${!clientHasEmail ? "opacity-50 cursor-not-allowed" : ""}`}>
+                    Envoyer par e-mail
+                  </button>
+                </div>
+                {cerfaMode === "tablette" ? (
+                  <>
+                    <p className="text-xs text-slate-500 mb-2">Faites signer le client au stylet : il atteste l&apos;entretien de son installation. (ClimExpert est déjà signataire.)</p>
+                    <SignaturePad onChange={setCerfaSig} />
+                  </>
+                ) : (
+                  <p className="text-xs text-slate-600 bg-sky-50 border border-sky-100 rounded-xl p-3 leading-relaxed">
+                    Le client recevra un e-mail avec un lien pour lire et signer son attestation. L&apos;intervention est clôturée maintenant ; l&apos;attestation officielle signée lui sera envoyée dès qu&apos;il aura signé.
+                    {!clientHasEmail && <span className="block mt-1 text-amber-600">Aucun e-mail client enregistré : renseignez-le pour utiliser cette option.</span>}
+                  </p>
+                )}
               </div>
             </div>
           )}

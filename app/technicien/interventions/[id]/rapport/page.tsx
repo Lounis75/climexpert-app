@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { verifyTechnicienToken, TECH_COOKIE_NAME } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { interventions } from "@/lib/db/schema";
+import { interventions, clients } from "@/lib/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import RapportForm from "./RapportForm";
@@ -15,8 +15,9 @@ export default async function RapportPage({ params }: { params: Promise<{ id: st
   if (!session) redirect("/technicien/login");
 
   const [interv] = await db
-    .select({ id: interventions.id, type: interventions.type })
+    .select({ id: interventions.id, type: interventions.type, clientEmail: clients.email })
     .from(interventions)
+    .leftJoin(clients, eq(interventions.clientId, clients.id))
     .where(and(eq(interventions.id, id), eq(interventions.technicienId, session.sub), isNull(interventions.supprimeLe)))
     .limit(1);
 
@@ -24,5 +25,5 @@ export default async function RapportPage({ params }: { params: Promise<{ id: st
 
   const isVisiteTechnique = interv.type === "autre"; // adapter si type visite technique
 
-  return <RapportForm interventionId={id} isVisiteTechnique={isVisiteTechnique} />;
+  return <RapportForm interventionId={id} isVisiteTechnique={isVisiteTechnique} clientHasEmail={!!interv.clientEmail?.trim()} />;
 }
