@@ -193,6 +193,7 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
     setLines((ls) => ls.map((ln, idx) => (idx === i ? { ...ln, [f]: f === "d" ? v : parseFloat(v) || 0 } : ln)));
   }
   function addFreeLine() { setLines((ls) => [...ls, { d: "Ligne libre", q: 1, pu: 0, tva: tvaMat() }]); }
+  function removeLine(i: number) { setLines((ls) => ls.filter((_, idx) => idx !== i)); }
   // L'estimateur d'heures (interne) pilote le MONTANT du forfait main d'œuvre (q reste 1).
   function setHoursLine(v: number) {
     setHours(v);
@@ -524,7 +525,7 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
             )}
           </div>
           <table className="ltbl">
-            <thead><tr><th>Désignation</th><th className="num">Qté</th><th className="num">P.U. HT</th><th className="num">TVA</th><th className="num">Total HT</th></tr></thead>
+            <thead><tr><th>Désignation</th><th className="num">Qté</th><th className="num">P.U. HT</th><th className="num">TVA</th><th className="num">Total HT</th><th className="noprint"></th></tr></thead>
             <tbody>
               {lines.map((ln, i) => (
                 <tr key={i}>
@@ -533,6 +534,7 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
                   <td className="num"><input className="pu" type="number" value={ln.pu} onChange={(e) => patchLine(i, "pu", e.target.value)} /></td>
                   <td className="num"><select className="tva" value={ln.tva} onChange={(e) => patchLine(i, "tva", e.target.value)}><option value={20}>20</option>{clientType === "particulier" && <option value={10}>10</option>}</select></td>
                   <td className="num">{eur(ln.q * ln.pu)} €</td>
+                  <td className="noprint"><button type="button" onClick={() => removeLine(i)} title="Supprimer la ligne" aria-label="Supprimer la ligne" style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer", fontSize: 20, lineHeight: 1, padding: "0 6px" }}>×</button></td>
                 </tr>
               ))}
             </tbody>
