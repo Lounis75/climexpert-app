@@ -39,7 +39,10 @@ export async function POST(req: NextRequest) {
 
   const motifClean = decision === "refuse" ? (String(motif ?? "").slice(0, 500).trim() || "Non précisé") : null;
   const estDevisCourant = lead.devisToken === token; // ce lien est-il le « devis courant » du prospect ?
-  const dejaConverti = !!lead.clientId;              // déjà un client (un autre devis déjà accepté) ?
+  // « Déjà gagné » = ce prospect avait DÉJÀ été remporté par un devis précédent (gagneLe posé).
+  // On se base là-dessus (et non sur clientId) : un « Nouveau devis » vers un client existant crée
+  // un lead avec clientId MAIS jamais gagné → il doit quand même générer l'intervention à la signature.
+  const dejaGagne = !!lead.gagneLe;
   const montantCt = envoi?.montantCt ?? lead.montantDevisCt;
   const montantTxt = montantCt ? ` (${(montantCt / 100).toLocaleString("fr-FR")} €)` : "";
 
@@ -78,7 +81,7 @@ export async function POST(req: NextRequest) {
     // (évite une 2e intervention si un autre devis avait déjà fait gagner le prospect).
     try {
       const client = await createClientFromLead(lead.id);
-      if (client && !dejaConverti) {
+      if (client && !dejaGagne) {
         // Si un créneau d'installation provisoire avait été posé (devis envoyé), l'intervention en hérite.
         await createIntervention({
           clientId: client.id,
