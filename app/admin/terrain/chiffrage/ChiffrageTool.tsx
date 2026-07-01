@@ -108,6 +108,14 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
   const [sent, setSent] = useState(false);
   const [sendErr, setSendErr] = useState("");
   const [pdfBusy, setPdfBusy] = useState(false);
+  // Avis d'expert avant envoi
+  const [revueOpen, setRevueOpen] = useState(false);
+  const [revuePhotos, setRevuePhotos] = useState<File[]>([]);
+  const [revueNote, setRevueNote] = useState("");
+  const [revueBusy, setRevueBusy] = useState(false);
+  const [revueErr, setRevueErr] = useState("");
+  const [revueSent, setRevueSent] = useState(false);
+  const revueFileRef = useRef<HTMLInputElement>(null);
 
   const tvaMat = () => 20;
   const tvaMO = () => (clientType === "pro" || !plus2ans ? 20 : 10);
@@ -280,6 +288,21 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
       else setSendErr(d.error ?? "Échec de l'envoi.");
     } catch { setSendErr("Erreur réseau."); }
     finally { setSending(false); }
+  }
+  // Demande d'avis d'expert : le devis + photos partent à un admin qui valide (envoi client) ou corrige.
+  async function submitRevue() {
+    if (revuePhotos.length === 0) { setRevueErr("Ajoutez au moins une photo de l'installation."); return; }
+    setRevueBusy(true); setRevueErr("");
+    try {
+      const fd = new FormData();
+      fd.append("payload", JSON.stringify({ leadId, clientId: clientIdRef, clientType, client, lignes: lines, description: devisTitle(), project: prestation, note: revueNote }));
+      revuePhotos.forEach((f) => fd.append("photos", f));
+      const res = await fetch("/api/admin/terrain/chiffrage/revue", { method: "POST", body: fd });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) { setRevueSent(true); setRevueOpen(false); }
+      else setRevueErr(d.error ?? "Échec de la demande.");
+    } catch { setRevueErr("Erreur réseau."); }
+    finally { setRevueBusy(false); }
   }
   // Téléchargement / impression du PDF (vrai document serveur, identique à celui envoyé au client).
   async function downloadPdf() {
@@ -528,12 +551,41 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
           </div>
           {sent ? (
             <div className="sentbox noprint">✓ Devis envoyé au client par e-mail. Le prospect est passé en <b>« Devis envoyé »</b>.{leadId && <> · <a href={`/admin/leads?lead=${leadId}`} target="_blank" rel="noopener noreferrer">Ouvrir la fiche</a></>}</div>
+          ) : revueSent ? (
+            <div className="sentbox noprint">✓ Demande d&apos;avis envoyée à un expert avec les photos. Il pourra corriger si besoin, puis valider (envoi au client). Vous serez notifié.</div>
           ) : (
             <>
               <button className="btn primary noprint" onClick={sendDevis} disabled={sending} style={{ marginTop: 16 }}>{sending ? "Envoi en cours…" : "Envoyer le devis au client"}</button>
+              <button className="btn ghost noprint" onClick={() => { setRevueErr(""); setRevueOpen(true); }} disabled={sending} style={{ marginTop: 8, width: "100%" }}>Demander l&apos;avis d&apos;un expert avant l&apos;envoi</button>
               {sendErr && <div className="senderr noprint">{sendErr}</div>}
             </>
           )}
+          {revueOpen && (
+            <div className="noprint" style={{ position: "fixed", inset: 0, zIndex: 90, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, background: "rgba(15,23,42,.55)" }} onClick={() => setRevueOpen(false)}>
+              <div style={{ background: "#fff", borderRadius: 16, maxWidth: 470, width: "100%", padding: 20, boxShadow: "0 20px 60px rgba(0,0,0,.3)", maxHeight: "90vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
+                <h3 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 800, color: "#0f172a" }}>Demander l&apos;avis d&apos;un expert</h3>
+                <p style={{ margin: "0 0 14px", fontSize: 13, color: "#64748b" }}>Le devis part à un administrateur pour relecture avant envoi. Joignez des photos de l&apos;installation : il pourra corriger si besoin, puis valider (ce qui enverra le devis au client).</p>
+                <button type="button" className="btn ghost" style={{ width: "100%" }} onClick={() => revueFileRef.current?.click()}>+ Ajouter des photos ({revuePhotos.length})</button>
+                {revuePhotos.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+                    {revuePhotos.map((f, i) => (
+                      <span key={i} style={{ fontSize: 11, background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 6, padding: "3px 6px", color: "#334155", display: "inline-flex", gap: 4, alignItems: "center" }}>
+                        {f.name.length > 18 ? f.name.slice(0, 16) + "…" : f.name}
+                        <button type="button" onClick={() => setRevuePhotos((p) => p.filter((_, j) => j !== i))} style={{ border: "none", background: "none", cursor: "pointer", color: "#94a3b8", fontWeight: 700 }}>×</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <textarea value={revueNote} onChange={(e) => setRevueNote(e.target.value)} rows={3} placeholder="Message à l'expert (facultatif) : point de vigilance, doute sur un prix…" style={{ width: "100%", marginTop: 10, padding: "8px 10px", fontSize: 13, border: "1px solid #cbd5e1", borderRadius: 8, resize: "none", boxSizing: "border-box" }} />
+                {revueErr && <p style={{ color: "#dc2626", fontSize: 13, margin: "8px 0 0" }}>{revueErr}</p>}
+                <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                  <button className="btn primary" onClick={submitRevue} disabled={revueBusy} style={{ flex: 1 }}>{revueBusy ? "Envoi…" : "Envoyer la demande"}</button>
+                  <button className="btn ghost" onClick={() => setRevueOpen(false)} disabled={revueBusy}>Annuler</button>
+                </div>
+              </div>
+            </div>
+          )}
+          <input ref={revueFileRef} type="file" accept="image/*" multiple style={{ display: "none" }} onChange={(e) => { const fs = Array.from(e.target.files ?? []); setRevuePhotos((p) => [...p, ...fs]); e.currentTarget.value = ""; }} />
           <div className="actrow noprint">
             <button className="btn ghost sm" onClick={downloadPdf} disabled={pdfBusy}>{pdfBusy ? "Génération…" : "Imprimer / PDF"}</button>
             <button className="btn ghost sm" onClick={() => { setGenerated(false); setSent(false); setSendErr(""); }}>Modifier les réponses</button>

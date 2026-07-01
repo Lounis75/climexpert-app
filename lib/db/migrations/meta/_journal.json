@@ -337,6 +337,13 @@
       "when": 1782814562954,
       "tag": "0047_offre_resume",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1782885384470,
+      "tag": "0048_revues_devis",
+      "breakpoints": true
     }
   ]
 }

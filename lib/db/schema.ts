@@ -67,6 +67,13 @@ export const devisStatusEnum = pgEnum("devis_status", [
   "expiré",
 ]);
 
+// Demande d'avis d'expert avant envoi d'un devis au client (contrôle qualité).
+export const revueDevisStatusEnum = pgEnum("revue_devis_status", [
+  "en_attente", // en attente qu'un expert (admin) l'examine
+  "validee",    // validée par l'expert -> devis envoyé au client
+  "annulee",    // annulée / rejetée par l'expert
+]);
+
 export const factureStatusEnum = pgEnum("facture_status", [
   "en_attente",
   "payée",
@@ -340,6 +347,35 @@ export const lignesDevis = pgTable("lignes_devis", {
   tvaRate:          numeric("tva_rate", { precision: 5, scale: 2 }).default("5.5"),
   ordre:            integer("ordre").default(0).notNull(),
 });
+
+// ─── Revues de devis (avis d'expert avant envoi) ──────────────────────────────
+// Un commercial/technicien demande l'avis d'un expert (admin) avant d'envoyer le devis. Il joint
+// des photos de l'installation. L'expert examine, peut modifier les lignes, puis valide (ce qui
+// envoie le devis au client) ou annule.
+export const revuesDevis = pgTable("revues_devis", {
+  id:            text("id").primaryKey().$defaultFn(() => createId()),
+  leadId:        text("lead_id").references(() => leads.id),
+  clientId:      text("client_id"),
+  clientType:    varchar("client_type", { length: 20 }).default("particulier").notNull(),
+  project:       varchar("project", { length: 40 }),
+  description:   text("description"),                 // intitulé du devis
+  lignes:        jsonb("lignes").notNull(),          // RawLine[] (snapshot éditable par l'expert)
+  clientSnapshot: jsonb("client_snapshot"),          // coordonnées client pour l'envoi
+  photosUrls:    text("photos_urls").array(),        // photos de l'installation (obligatoires)
+  noteDemande:   text("note_demande"),               // message du demandeur à l'expert
+  demandeParId:  text("demande_par_id"),
+  demandeParNom: varchar("demande_par_nom", { length: 200 }),
+  status:        revueDevisStatusEnum("status").default("en_attente").notNull(),
+  noteExpert:    text("note_expert"),                // commentaire de l'expert
+  revueParId:    text("revue_par_id"),
+  revueParNom:   varchar("revue_par_nom", { length: 200 }),
+  revueLe:       timestamp("revue_le"),
+  montantEnvoyeCt: integer("montant_envoye_ct"),
+  createdAt:     timestamp("created_at").defaultNow().notNull(),
+  updatedAt:     timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  statusIdx: index("revues_devis_status_idx").on(t.status),
+}));
 
 // ─── Factures ─────────────────────────────────────────────────────────────────
 
