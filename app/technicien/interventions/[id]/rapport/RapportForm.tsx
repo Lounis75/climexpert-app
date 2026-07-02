@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Upload, X, CheckCircle2, AlertTriangle, ChevronLeft, Camera, PenLine } from "lucide-react";
 import Link from "next/link";
@@ -70,6 +70,75 @@ export default function RapportForm({
   // [12] dénomination ADR/RID (déchet)
   const [adr, setAdr]                     = useState({ un1078: false, un1078Autres: "", un3161: false, un3161Autres: "" });
 
+  // ── Brouillon local (terrain) ────────────────────────────────────────────────
+  // Safari iPad peut purger l'onglet (mémoire faible, aller-retour appareil photo) : sans
+  // sauvegarde, 15 minutes de saisie CERFA + signatures disparaissent. Tout l'état sérialisable
+  // est sauvegardé dans localStorage (clé par intervention), restauré à l'ouverture, purgé à la
+  // clôture réussie. Les fichiers photo non téléversés ne survivent pas (non sérialisables) ;
+  // les photos DÉJÀ téléversées sont restaurées par leur URL.
+  const draftKey = `rapport-draft-${interventionId}`;
+  const [draftRestored, setDraftRestored] = useState(false);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(draftKey);
+      if (!raw) return;
+      const d = JSON.parse(raw);
+      if (typeof d.conforme === "boolean") setConforme(d.conforme);
+      if (d.entretienPropose !== undefined) setEntretienPropose(d.entretienPropose);
+      if (d.entretienAccepte !== undefined) setEntretienAccepte(d.entretienAccepte);
+      if (d.signature) setSignature(d.signature);
+      if (d.notes) setNotes(d.notes);
+      if (d.dureeH) setDureeH(d.dureeH);
+      if (d.dureeM) setDureeM(d.dureeM);
+      if (d.nbExt) setNbExt(d.nbExt);
+      if (d.nbInt) setNbInt(d.nbInt);
+      if (d.dimensions) setDimensions(d.dimensions);
+      if (d.typeMur) setTypeMur(d.typeMur);
+      if (d.distanceGroupes) setDistanceGroupes(d.distanceGroupes);
+      if (d.contraintesElec) setContraintesElec(d.contraintesElec);
+      if (d.equipReco) setEquipReco(d.equipReco);
+      if (d.difficulte) setDifficulte(d.difficulte);
+      if (d.cerfaSig) setCerfaSig(d.cerfaSig);
+      if (d.cerfaMode) setCerfaMode(d.cerfaMode);
+      if (d.cEquipId) setCEquipId(d.cEquipId);
+      if (d.cFluide) setCFluide(d.cFluide);
+      if (d.cCharge) setCCharge(d.cCharge);
+      if (d.cTonnage) setCTonnage(d.cTonnage);
+      if (typeof d.cNatMaint === "boolean") setCNatMaint(d.cNatMaint);
+      if (typeof d.cNatCtrl === "boolean") setCNatCtrl(d.cNatCtrl);
+      if (d.cDetecteur) setCDetecteur(d.cDetecteur);
+      if (d.cSysteme) setCSysteme(d.cSysteme);
+      if (d.cFuites) setCFuites(d.cFuites);
+      if (d.cQuantite) setCQuantite(d.cQuantite);
+      if (d.cFreq) setCFreq(d.cFreq);
+      if (Array.isArray(d.cFuitesList) && d.cFuitesList.length) setCFuitesList(d.cFuitesList);
+      if (d.mn) setMn((prev) => ({ ...prev, ...d.mn }));
+      if (d.cDestination) setCDestination(d.cDestination);
+      if (d.adr) setAdr((prev) => ({ ...prev, ...d.adr }));
+      if (Array.isArray(d.photoUrls) && d.photoUrls.length) {
+        setPhotos(d.photoUrls.map((url: string) => ({ file: new File([], "photo.jpg", { type: "image/jpeg" }), preview: url, url })));
+      }
+      setDraftRestored(true);
+    } catch { /* brouillon illisible : on repart de zéro */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Sauvegarde débouncée à chaque changement (pas de tableau de deps : chaque rendu réarme le timer).
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try {
+        localStorage.setItem(draftKey, JSON.stringify({
+          conforme, entretienPropose, entretienAccepte, signature, notes, dureeH, dureeM, nbExt, nbInt,
+          dimensions, typeMur, distanceGroupes, contraintesElec, equipReco, difficulte,
+          cerfaSig, cerfaMode, cEquipId, cFluide, cCharge, cTonnage, cNatMaint, cNatCtrl, cDetecteur,
+          cSysteme, cFuites, cQuantite, cFreq, cFuitesList, mn, cDestination, adr,
+          photoUrls: photos.filter((p) => p.url).map((p) => p.url),
+        }));
+      } catch { /* localStorage plein/indisponible : tant pis, pas bloquant */ }
+    }, 800);
+    return () => clearTimeout(t);
+  });
+
   async function addPhotos(files: FileList | File[]) {
     const newPhotos = Array.from(files).slice(0, 12 - photos.length);
     for (const f of newPhotos) {
@@ -95,6 +164,9 @@ export default function RapportForm({
       if (!res.ok || !data.url) {
         throw new Error(data.error ?? "Échec de l'envoi d'une photo. Vérifiez le format (JPG/PNG, <5 Mo) et réessayez.");
       }
+      // Mémorise l'URL sur la photo : en cas d'échec plus loin (réseau chantier), le
+      // prochain essai NE re-téléverse PAS les photos déjà parties (le `if (p.url)` ci-dessus).
+      setPhotos((prev) => prev.map((x) => (x.preview === p.preview ? { ...x, url: data.url } : x)));
       urls.push(data.url);
     }
     return urls;
@@ -198,6 +270,8 @@ export default function RapportForm({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Erreur");
 
+      // Clôture réussie : le brouillon local n'a plus de raison d'être.
+      try { localStorage.removeItem(draftKey); } catch {}
       router.replace(backHref);
     } catch (err: any) {
       setError(err.message);
@@ -208,6 +282,18 @@ export default function RapportForm({
 
   return (
     <div className="space-y-5">
+      {draftRestored && (
+        <div className="bg-sky-50 border border-sky-200 rounded-xl px-4 py-3 text-sm text-sky-800 flex items-center justify-between gap-3">
+          <span>Brouillon restauré : votre saisie précédente a été récupérée.</span>
+          <button
+            type="button"
+            onClick={() => { try { localStorage.removeItem(draftKey); } catch {}; window.location.reload(); }}
+            className="text-sky-600 hover:text-sky-800 text-xs font-semibold flex-shrink-0 underline"
+          >
+            Repartir de zéro
+          </button>
+        </div>
+      )}
       <div className="flex items-center gap-3">
         <Link href={backHref} className="p-2 bg-white border border-slate-200 rounded-xl">
           <ChevronLeft className="w-4 h-4 text-slate-600" />
@@ -382,7 +468,7 @@ export default function RapportForm({
                   <button
                     type="button"
                     onClick={() => removePhoto(i)}
-                    className="absolute top-1 right-1 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center"
+                    aria-label="Supprimer cette photo" className="absolute top-1 right-1 w-8 h-8 bg-black/60 rounded-full flex items-center justify-center"
                   >
                     <X className="w-3 h-3 text-white" />
                   </button>
@@ -532,7 +618,7 @@ export default function RapportForm({
                     <span className="text-[11px] text-slate-500 w-14 flex-shrink-0">{row.fam}</span>
                     <div className="flex gap-1 flex-wrap">
                       {row.opts.map(([val, lbl]) => (
-                        <button key={val} type="button" onClick={() => setCQuantite(cQuantite === val ? "" : val)} className={`px-2 py-1.5 rounded-lg border text-[11px] ${cQuantite === val ? "bg-sky-50 border-sky-300 text-sky-700" : "bg-white border-slate-200 text-slate-500"}`}>{lbl}</button>
+                        <button key={val} type="button" onClick={() => setCQuantite(cQuantite === val ? "" : val)} className={`px-3 py-2.5 rounded-lg border text-xs ${cQuantite === val ? "bg-sky-50 border-sky-300 text-sky-700" : "bg-white border-slate-200 text-slate-500"}`}>{lbl}</button>
                       ))}
                     </div>
                   </div>
@@ -550,7 +636,7 @@ export default function RapportForm({
                     <span className="text-[11px] text-slate-500 w-24 flex-shrink-0">{row.lbl}</span>
                     <div className="flex gap-1">
                       {row.opts.map(([val, lbl]) => (
-                        <button key={val} type="button" onClick={() => setCFreq(cFreq === val ? "" : val)} className={`px-2.5 py-1.5 rounded-lg border text-[11px] ${cFreq === val ? "bg-sky-50 border-sky-300 text-sky-700" : "bg-white border-slate-200 text-slate-500"}`}>{lbl}</button>
+                        <button key={val} type="button" onClick={() => setCFreq(cFreq === val ? "" : val)} className={`px-3 py-2.5 rounded-lg border text-xs ${cFreq === val ? "bg-sky-50 border-sky-300 text-sky-700" : "bg-white border-slate-200 text-slate-500"}`}>{lbl}</button>
                       ))}
                     </div>
                   </div>

@@ -433,7 +433,12 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
         const { suivi } = await res.json();
         setSuivis((prev) => [suivi, ...prev]);
         setMsgDraft("");
+      } else {
+        const d = await res.json().catch(() => ({}));
+        alert(d.error ?? "La note n'a pas pu être enregistrée, réessayez.");
       }
+    } catch {
+      alert("Erreur réseau : la note n'a pas été enregistrée.");
     } finally { setSendingMsg(false); }
   }
 
@@ -442,7 +447,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
   async function annulerDevis(devisId: string) {
     const id = selectedLead?.id;
     if (!id) return;
-    if (!confirm("Annuler ce devis ?\n\nLe lien envoyé au client sera désactivé, et le prospect repassera en « Contact établi » pour que tu puisses lui en renvoyer un nouveau.")) return;
+    if (!confirm("Annuler ce devis ?\n\nLe lien envoyé au client sera désactivé, et le prospect repassera en « Contact établi » pour pouvoir lui en renvoyer un nouveau.")) return;
     try {
       const res = await fetch(`/api/admin/leads/${id}/devis/annuler`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ devisId }) });
       const d = await res.json().catch(() => ({}));
@@ -647,7 +652,14 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
         else setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, notes: notesValue } : l)));
         setEditingNotes(null);
         flashSaved();
-      } else { setSaveFlash("idle"); }
+      } else {
+        setSaveFlash("idle");
+        const d = await res.json().catch(() => ({}));
+        alert(d.error ?? "Les notes n'ont pas pu être enregistrées, réessayez.");
+      }
+    } catch {
+      setSaveFlash("idle");
+      alert("Erreur réseau : les notes n'ont pas été enregistrées.");
     } finally {
       setUpdating(null);
     }
@@ -660,7 +672,11 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
       // createClientFromLead côté serveur : copie TOUTES les données (adresse incluse),
       // lie le lead, marque "gagné". Idempotent → zéro doublon.
       const res = await fetch(`/api/admin/leads/${lead.id}/convert`, { method: "POST" });
-      if (!res.ok) return;
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        alert(d.error ?? "La conversion en client a échoué, réessayez.");
+        return;
+      }
       const { client } = await res.json();
 
       setLeads((prev) =>
@@ -673,6 +689,8 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
         prev && prev.id === lead.id ? { ...prev, status: "gagné" as LeadStatus, clientId: client.id } : prev
       );
       setConvertDone((prev) => new Set(prev).add(lead.id));
+    } catch {
+      alert("Erreur réseau : la conversion en client n'a pas abouti.");
     } finally {
       setConvertingId(null);
     }
@@ -693,7 +711,12 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
           .map((l) => (l.id === masterId ? lead : l))
         );
         setMergingPanel(null);
+      } else {
+        const d = await res.json().catch(() => ({}));
+        alert(d.error ?? "La fusion a échoué, rien n'a été perdu : réessayez.");
       }
+    } catch {
+      alert("Erreur réseau : la fusion n'a pas abouti, rien n'a été perdu.");
     } finally {
       setMerging(false);
     }

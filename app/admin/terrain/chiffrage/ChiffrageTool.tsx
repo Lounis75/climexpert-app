@@ -524,6 +524,7 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
               <span className="pill">{prestation === "entretien" ? "Entretien" : prestation === "depannage" ? "Dépannage" : prestation === "depose" ? "Dépose" : "Prestation"}</span>
             )}
           </div>
+          <div className="ltbl-scroll">
           <table className="ltbl">
             <thead><tr><th>Désignation</th><th className="num">Qté</th><th className="num">P.U. HT</th><th className="num">TVA</th><th className="num">Total HT</th><th className="noprint"></th></tr></thead>
             <tbody>
@@ -539,6 +540,7 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
               ))}
             </tbody>
           </table>
+          </div>
           <button className="btn ghost sm noprint" onClick={addFreeLine} style={{ marginTop: 10 }}>+ Ligne libre</button>
           <div className="hours noprint"><span>Main d&apos;œuvre (interne) :</span><input type="number" min={0} step={0.5} value={hours} onChange={(e) => setHoursLine(parseFloat(e.target.value) || 0)} /><span>h × {cat.moRate} €/h = forfait <b>{eur(Math.round(hours * cat.moRate))} €</b> · le client ne voit que le forfait (pas les heures)</span></div>
           <div className="tots">
@@ -668,7 +670,8 @@ const CT_CSS = `
 .ct .dmeta .box b{display:block;font-size:11px;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
 .ct .dconf{margin-bottom:12px}
 .ct .pill{display:inline-block;background:#E8F5FC;color:var(--blue-d);border-radius:20px;padding:3px 11px;font-size:12px;font-weight:700;margin-right:4px}
-.ct table.ltbl{width:100%;border-collapse:collapse;font-size:14px}
+.ct .ltbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.ct table.ltbl{width:100%;min-width:520px;border-collapse:collapse;font-size:14px}
 .ct .ltbl th,.ct .ltbl td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
 .ct .ltbl th{font-size:11px;text-transform:uppercase;color:var(--muted)}
 .ct .ltbl td.num,.ct .ltbl th.num{text-align:right;white-space:nowrap}

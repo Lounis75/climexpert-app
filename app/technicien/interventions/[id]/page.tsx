@@ -90,7 +90,18 @@ export default async function InterventionDetailPage({ params }: { params: Promi
         {(row.address || row.codePostal) && (
           <div className="flex items-start gap-3">
             <MapPin className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
-            <p className="text-sm text-slate-700">{[row.address, row.codePostal].filter(Boolean).join(", ")}</p>
+            <div className="min-w-0">
+              <p className="text-sm text-slate-700">{[row.address, row.codePostal].filter(Boolean).join(", ")}</p>
+              {/* maps.apple.com ouvre Plans sur iPhone/iPad et redirige vers Google Maps ailleurs. */}
+              <a
+                href={`https://maps.apple.com/?daddr=${encodeURIComponent([row.address, row.codePostal].filter(Boolean).join(", "))}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-sky-600 hover:text-sky-700 text-sm font-semibold mt-1"
+              >
+                Itinéraire →
+              </a>
+            </div>
           </div>
         )}
       </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  Wind, LayoutDashboard, LogOut, Bell, CheckCheck, ChevronDown, AlertTriangle,
+  Wind, LayoutDashboard, LogOut, Bell, CheckCheck, ChevronDown, AlertTriangle, Users, Wrench,
 } from "lucide-react";
 import AdminChatBot from "./AdminChatBot";
 import MobileTabBar from "./MobileTabBar";
@@ -122,11 +122,29 @@ export default function AdminHeader() {
 
   async function openDropdown() {
     if (!open) {
-      const res = await fetch("/api/admin/notifications");
-      const d = await res.json();
-      setNotifs(d.notifications ?? []);
+      try {
+        const res = await fetch("/api/admin/notifications");
+        const d = await res.json();
+        setNotifs(d.notifications ?? []);
+      } catch { /* réseau : on ouvre quand même la cloche (vide) au lieu de rester bloqué */ }
     }
     setOpen((v) => !v);
+  }
+
+  // Chaque notification mène à la fiche concernée (avant : simple texte, il fallait
+  // aller chercher l'élément soi-même).
+  function notifHref(n: { refType?: string | null; refId?: string | null }): string | null {
+    if (!n.refId) return null;
+    switch (n.refType) {
+      case "lead":         return `/admin/leads?lead=${n.refId}`;
+      case "intervention": return `/admin/interventions`;
+      case "client":       return `/admin/clients/${n.refId}`;
+      case "contrat":      return `/admin/contrats`;
+      case "devis":        return `/admin/devis`;
+      case "sav":          return `/admin/sav`;
+      case "facture":      return `/admin/facturation`;
+      default:             return null;
+    }
   }
 
   async function markAllRead() {
@@ -172,6 +190,27 @@ export default function AdminHeader() {
             <LayoutDashboard className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Dashboard</span>
           </Link>
+
+          {/* Raccourcis directs vers les 2 pages utilisées toute la journée (avant : 2 clics
+              via les menus déroulants). */}
+          {[
+            { href: "/admin/leads", label: "Prospects", icon: Users },
+            { href: "/admin/interventions", label: "Interventions", icon: Wrench },
+          ].map((s) => {
+            const active = pathname.startsWith(s.href);
+            return (
+              <Link
+                key={s.href}
+                href={s.href}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors border whitespace-nowrap ${
+                  active ? "bg-sky-500/15 text-sky-400 border-sky-500/30" : "text-slate-400 hover:text-white border-transparent hover:border-white/10"
+                }`}
+              >
+                <s.icon className="w-3.5 h-3.5" />
+                <span className="hidden lg:inline">{s.label}</span>
+              </Link>
+            );
+          })}
 
           {/* Grouped dropdowns */}
           {groups.map((g) => (
@@ -223,17 +262,28 @@ export default function AdminHeader() {
                   {notifs.length === 0 ? (
                     <p className="text-slate-500 text-xs text-center py-8">Aucune notification</p>
                   ) : (
-                    notifs.map((n) => (
-                      <div key={n.id} className={`px-4 py-3 flex gap-3 ${!n.lu ? "bg-sky-500/5" : ""}`}>
-                        <span className="text-sm flex-shrink-0 mt-0.5">{TYPE_ICONS[n.type] ?? "🔔"}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className={`text-xs font-medium ${!n.lu ? "text-white" : "text-slate-300"}`}>{n.titre}</p>
-                          {n.contenu && <p className="text-slate-500 text-xs mt-0.5 truncate">{n.contenu}</p>}
-                          <p className="text-slate-600 text-[10px] mt-1">{timeAgo(n.createdAt)}</p>
-                        </div>
-                        {!n.lu && <span className="w-1.5 h-1.5 rounded-full bg-sky-400 flex-shrink-0 mt-1.5" />}
-                      </div>
-                    ))
+                    notifs.map((n) => {
+                      const href = notifHref(n);
+                      const inner = (
+                        <>
+                          <span className="text-sm flex-shrink-0 mt-0.5">{TYPE_ICONS[n.type] ?? "🔔"}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-xs font-medium ${!n.lu ? "text-white" : "text-slate-300"}`}>{n.titre}</p>
+                            {n.contenu && <p className="text-slate-500 text-xs mt-0.5 truncate">{n.contenu}</p>}
+                            <p className="text-slate-600 text-[10px] mt-1">{timeAgo(n.createdAt)}</p>
+                          </div>
+                          {!n.lu && <span className="w-1.5 h-1.5 rounded-full bg-sky-400 flex-shrink-0 mt-1.5" />}
+                        </>
+                      );
+                      const cls = `px-4 py-3 flex gap-3 ${!n.lu ? "bg-sky-500/5" : ""}`;
+                      return href ? (
+                        <Link key={n.id} href={href} onClick={() => setOpen(false)} className={`${cls} hover:bg-white/5 transition-colors`}>
+                          {inner}
+                        </Link>
+                      ) : (
+                        <div key={n.id} className={cls}>{inner}</div>
+                      );
+                    })
                   )}
                 </div>
               </div>
