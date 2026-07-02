@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { Upload, X, CheckCircle2, AlertTriangle, ChevronLeft, Camera, PenLine } from "lucide-react";
 import Link from "next/link";
 import SignaturePad from "@/components/SignaturePad";
+import { compressImage } from "@/lib/compress-image";
 
 export default function RapportForm({
   interventionId,
@@ -141,7 +142,8 @@ export default function RapportForm({
 
   async function addPhotos(files: FileList | File[]) {
     const newPhotos = Array.from(files).slice(0, 12 - photos.length);
-    for (const f of newPhotos) {
+    for (const raw of newPhotos) {
+      const f = await compressImage(raw); // allège la photo avant tout upload (4G chantier)
       const preview = URL.createObjectURL(f);
       setPhotos((prev) => [...prev, { file: f, preview }]);
     }

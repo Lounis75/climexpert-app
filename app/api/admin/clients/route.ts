@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getClients, getClientsPaginated, getClientActions, createClient, updateClient, deleteClient } from "@/lib/clients";
+import { getClients, getClientsLight, getClientsPaginated, getClientActions, createClient, updateClient, deleteClient } from "@/lib/clients";
 import { logError } from "@/lib/observability";
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    // Sans paramètre "page" → liste complète (rétro-compat : menus déroulants, calendrier).
+    // ?fields=light : id + nom + coordonnées seulement (menus déroulants, calendrier). Évite de
+    // rapatrier toutes les colonnes (notes, SIRET...) de tous les clients pour un simple select.
+    if (searchParams.get("fields") === "light") {
+      return NextResponse.json({ clients: await getClientsLight() });
+    }
+    // Sans paramètre "page" → liste complète (rétro-compat).
     if (!searchParams.has("page")) {
       const data = await getClients();
       return NextResponse.json({ clients: data });

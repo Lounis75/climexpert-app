@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Send, Zap, CheckCircle2, Phone, Camera } from "lucide-react";
+import { compressImage } from "@/lib/compress-image";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -175,7 +176,7 @@ export default function QualifChat({ token, prenom }: { token: string; prenom: s
           {/* Pas de capture="environment" : sur mobile, ça forcerait l'appareil photo et empêcherait
               de choisir une photo EXISTANTE dans la galerie. Sans, iOS/Android proposent les deux. */}
           <input ref={fileRef} type="file" accept="image/*" className="hidden"
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadPhoto(f); e.currentTarget.value = ""; }} />
+            onChange={async (e) => { const f = e.target.files?.[0]; e.currentTarget.value = ""; if (f) uploadPhoto(await compressImage(f)); }} />
 
           <div className={`flex items-center gap-2 bg-slate-50 rounded-2xl border border-slate-200 px-4 py-2.5 focus-within:border-sky-300 ${done ? "opacity-50 pointer-events-none" : ""}`}>
             <input ref={inputRef} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKey}

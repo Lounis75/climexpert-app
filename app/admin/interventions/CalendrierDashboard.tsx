@@ -93,7 +93,7 @@ function QuickAddModal({
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetch("/api/admin/clients")
+    fetch("/api/admin/clients?fields=light")
       .then((r) => r.json())
       .then((d) => setClients(d.clients ?? []));
     searchRef.current?.focus();

@@ -30,6 +30,17 @@ export async function getClients(): Promise<Client[]> {
   return db.select().from(clients).where(isNull(clients.supprimeLe)).orderBy(desc(clients.createdAt));
 }
 
+export type ClientLight = { id: string; name: string; phone: string | null; email: string | null; address: string | null; city: string | null };
+
+/** Liste allégée (id + nom + coordonnées) pour les menus déroulants / le calendrier :
+ *  quelques colonnes au lieu de toute la fiche client. */
+export async function getClientsLight(): Promise<ClientLight[]> {
+  return db.select({
+    id: clients.id, name: clients.name, phone: clients.phone,
+    email: clients.email, address: clients.address, city: clients.city,
+  }).from(clients).where(isNull(clients.supprimeLe)).orderBy(desc(clients.createdAt));
+}
+
 export type ClientsPage = { items: Client[]; total: number; page: number; pageSize: number };
 
 /** Liste paginée + recherche serveur (nom / téléphone / ville). Évite de charger

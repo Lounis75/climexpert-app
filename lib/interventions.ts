@@ -21,6 +21,12 @@ export type InterventionWithRefs = Intervention & {
 export { TYPE_LABELS, TYPE_COLORS, STATUS_INTERVENTION } from "./interventions-ui";
 
 export async function getInterventions(): Promise<InterventionWithRefs[]> {
+  // Fenêtre glissante : on ne charge PAS tout l'historique (payload qui grossit sans fin avec
+  // les années). Les 90 derniers jours + le futur couvrent l'agenda et la section « passées »
+  // récente. Les « à affecter » (planifiée sans date) doivent rester visibles quelle que soit
+  // la date, donc on inclut aussi les interventions sans scheduledAt. + filtre supprimeLe.
+  const depuis = new Date();
+  depuis.setDate(depuis.getDate() - 90);
   const rows = await db
     .select({
       intervention: interventions,
@@ -30,6 +36,10 @@ export async function getInterventions(): Promise<InterventionWithRefs[]> {
     .from(interventions)
     .leftJoin(clients, eq(interventions.clientId, clients.id))
     .leftJoin(techniciens, eq(interventions.technicienId, techniciens.id))
+    .where(and(
+      isNull(interventions.supprimeLe),
+      sql`(${interventions.scheduledAt} is null or ${interventions.scheduledAt} >= ${depuis})`,
+    ))
     .orderBy(asc(interventions.scheduledAt));
 
   return rows.map((r) => ({

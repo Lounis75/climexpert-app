@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { compressImage } from "@/lib/compress-image";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Phone, Mail, CheckCircle2, ArrowRight, MapPin, Camera, X, Loader2, ChevronRight, Home, MessageCircle } from "lucide-react";
@@ -47,12 +48,12 @@ export default function DevisClient() {
     return () => window.removeEventListener("alex-besoin", handler);
   }, []);
 
-  function addPhotos(files: FileList | null) {
+  async function addPhotos(files: FileList | null) {
     if (!files) return;
-    const newPhotos: PhotoFile[] = Array.from(files).slice(0, 5 - photos.length).map((file) => ({
-      file,
-      preview: URL.createObjectURL(file),
-      uploading: false,
+    const raws = Array.from(files).slice(0, 5 - photos.length);
+    const newPhotos: PhotoFile[] = await Promise.all(raws.map(async (raw) => {
+      const file = await compressImage(raw); // allège avant upload (mobile)
+      return { file, preview: URL.createObjectURL(file), uploading: false };
     }));
     setPhotos((prev) => [...prev, ...newPhotos].slice(0, 5));
   }

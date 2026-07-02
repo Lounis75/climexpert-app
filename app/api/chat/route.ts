@@ -415,10 +415,17 @@ INTERFACE MOBILE À BOUTONS (très important) : le client est sur son téléphon
 PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE quand tu le proposes. Propose-le UNE SEULE FOIS, vers la FIN de la qualification (juste avant de conclure), et SEULEMENT pour une INSTALLATION (inutile pour un entretien ou un dépannage). Justifie le gain de temps, par exemple : "Pour gagner du temps et éviter peut-être un déplacement, vous pouvez ajouter une ou deux photos : l'emplacement souhaité, le mur, l'unité extérieure, et votre tableau électrique (ça nous dit si une simple ligne électrique suffit)." Pour faire apparaître le bouton, termine CE message précis par une ligne contenant uniquement [[PHOTO]]. Ne mets [[PHOTO]] sur aucun autre message. Le client peut refuser : dans ce cas, conclus normalement.`;
     }
 
+    // Prompt caching : le gros prompt système STATIQUE (~4500 tokens, identique à chaque tour et
+    // entre visiteurs) est marqué cache_control -> relu à ~0,1x du prix au lieu d'être refacturé
+    // plein tarif à chaque message. La partie dynamique (consignes + prospect identifié) reste
+    // hors cache, après.
     const response = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 400,
-      system: baseSystem + extraSystem,
+      system: [
+        { type: "text", text: baseSystem, cache_control: { type: "ephemeral" } },
+        ...(extraSystem ? [{ type: "text" as const, text: extraSystem }] : []),
+      ],
       messages,
     });
 

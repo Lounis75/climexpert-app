@@ -46,8 +46,10 @@ export async function POST(req: NextRequest) {
     const response = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 800,
-      system: SYSTEM_PROMPT,
-      messages: messages.map((m: { role: string; content: string }) => ({
+      // Prompt système caché (facturé ~0,1x en relecture) + historique borné aux 30 derniers
+      // messages (coût qui ne grimpe pas indéfiniment sur une longue conversation).
+      system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
+      messages: messages.slice(-30).map((m: { role: string; content: string }) => ({
         role: m.role as "user" | "assistant",
         content: m.content,
       })),

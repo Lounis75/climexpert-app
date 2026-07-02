@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { verifyAdminToken, COOKIE_NAME } from "@/lib/auth";
 import { createOffre, updateOffre, deleteOffre, getOffres, CONTRATS } from "@/lib/emplois";
 import { logError } from "@/lib/observability";
+import { revalidatePath } from "next/cache";
 
 export const runtime = "nodejs";
 
@@ -25,6 +26,10 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   if (!body) return NextResponse.json({ error: "Données invalides" }, { status: 400 });
 
+  // Après toute modification d'offre, on purge le cache ISR de la page publique (mise à jour
+  // immédiate au lieu d'attendre la revalidation de 5 min).
+  const done = (offres: unknown) => { revalidatePath("/recrutement"); return NextResponse.json({ offres }); };
+
   try {
     if (body.action === "create" || body.action === "update") {
       const data = {
@@ -46,17 +51,17 @@ export async function POST(req: NextRequest) {
       } else {
         await createOffre(data);
       }
-      return NextResponse.json({ offres: await getOffres() });
+      return done(await getOffres());
     }
     if (body.action === "toggle") {
       if (!body.id) return NextResponse.json({ error: "id requis" }, { status: 400 });
       await updateOffre(String(body.id), { actif: body.actif === true });
-      return NextResponse.json({ offres: await getOffres() });
+      return done(await getOffres());
     }
     if (body.action === "delete") {
       if (!body.id) return NextResponse.json({ error: "id requis" }, { status: 400 });
       await deleteOffre(String(body.id));
-      return NextResponse.json({ offres: await getOffres() });
+      return done(await getOffres());
     }
     return NextResponse.json({ error: "Action inconnue" }, { status: 400 });
   } catch (e) {

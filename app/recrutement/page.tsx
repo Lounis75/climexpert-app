@@ -5,7 +5,7 @@ import { getOffresActives } from "@/lib/emplois";
 import RecrutementClient from "./RecrutementClient";
 import { HeartHandshake, GraduationCap, MapPin, TrendingUp } from "lucide-react";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300; // ISR : page marketing, offres qui changent rarement (CDN, TTFB ~50ms)
 
 export const metadata: Metadata = {
   title: "Nous recrutons, ClimExpert | Emplois climatisation en Île-de-France",

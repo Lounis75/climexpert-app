@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { notifications } from "@/lib/db/schema";
 import type { InferSelectModel } from "drizzle-orm";
-import { eq, and, isNull, desc } from "drizzle-orm";
+import { eq, and, isNull, desc, count } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 
 export type Notification = InferSelectModel<typeof notifications>;
@@ -10,11 +10,13 @@ export type Notification = InferSelectModel<typeof notifications>;
 // sont destinées à un technicien (table polymorphe) et ne doivent PAS apparaître
 // dans la cloche admin.
 export async function getUnreadCount(): Promise<number> {
-  const rows = await db
-    .select({ id: notifications.id })
+  // COUNT(*) en base (index admin_id, lu) au lieu de rapatrier toutes les lignes puis .length :
+  // coût constant quel que soit le volume, appelé à chaque page admin.
+  const [row] = await db
+    .select({ n: count() })
     .from(notifications)
     .where(and(eq(notifications.lu, false), isNull(notifications.adminId)));
-  return rows.length;
+  return Number(row?.n ?? 0);
 }
 
 export async function getRecentNotifications(limit = 15): Promise<Notification[]> {

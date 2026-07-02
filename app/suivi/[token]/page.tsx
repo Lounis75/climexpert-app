@@ -5,6 +5,7 @@ import { eq, and, isNull, desc } from "drizzle-orm";
 import { Wind, Wrench, FileText, HeadphonesIcon, CalendarDays, CheckCircle2, Clock, AlertTriangle, Shield, Download, Camera } from "lucide-react";
 import Link from "next/link";
 import TimelineChantier from "@/components/TimelineChantier";
+import Image from "next/image";
 
 const TYPE_LABELS: Record<string, string> = {
   installation: "Installation", entretien: "Entretien",
@@ -246,8 +247,9 @@ export default async function SuiviPage({ params }: { params: Promise<{ token: s
             </h2>
             <div className="grid grid-cols-3 gap-2">
               {clientPhotos.map((url, i) => (
-                <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-xl overflow-hidden bg-slate-100 block">
-                  <img src={url} alt={`Photo intervention ${i + 1}`} className="w-full h-full object-cover" />
+                <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="relative aspect-square rounded-xl overflow-hidden bg-slate-100 block">
+                  {/* next/image : vignette AVIF ~30-60 Ko au lieu de la photo pleine taille (jusqu'à plusieurs Mo) */}
+                  <Image src={url} alt={`Photo intervention ${i + 1}`} fill sizes="(max-width: 640px) 33vw, 200px" className="object-cover" />
                 </a>
               ))}
             </div>
