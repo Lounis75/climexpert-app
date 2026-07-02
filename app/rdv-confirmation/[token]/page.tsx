@@ -44,7 +44,7 @@ export default async function RdvConfirmationPage({ params, searchParams }: { pa
           {invalid ? (
             <div className="text-center py-6">
               <p className="text-slate-700 font-semibold">Ce lien n&apos;est plus valide.</p>
-              <p className="text-slate-500 text-sm mt-1">Contactez-nous au 06 67 43 27 67 si besoin.</p>
+              <p className="text-slate-500 text-sm mt-1">Contactez-nous au <a href="tel:+33667432767" className="font-semibold text-sky-600">06 67 43 27 67</a> si besoin.</p>
             </div>
           ) : (
             <>

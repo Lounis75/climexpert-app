@@ -72,7 +72,7 @@ export default function RdvConfirmClient({ token, already, preAction }: { token:
           {error && <p className="text-red-600 text-sm">{error}</p>}
           <div className="flex gap-2">
             <button
-              onClick={() => send("probleme", [raison, message.trim()].filter(Boolean).join(" — "))}
+              onClick={() => send("probleme", [raison, message.trim()].filter(Boolean).join(" : "))}
               disabled={busy || (!raison && !message.trim())}
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-white font-semibold transition-colors">
               <Send className="w-4 h-4" /> {busy ? "Envoi…" : "Envoyer"}

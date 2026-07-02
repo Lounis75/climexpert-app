@@ -124,22 +124,34 @@ export default function RecrutementClient({ offres }: { offres: Offre[] }) {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <input value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} placeholder="Prénom et nom *" className={inp} />
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <input type="tel" value={form.telephone} onChange={(e) => setForm({ ...form, telephone: e.target.value })} placeholder="Téléphone *" className={inp} />
-                    <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="E-mail *" className={inp} />
+                  <div>
+                    <label htmlFor="cand-nom" className="block text-xs font-semibold text-slate-700 mb-1">Prénom et nom *</label>
+                    <input id="cand-nom" value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} placeholder="Jean Dupont" className={inp} />
                   </div>
-                  <textarea value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} rows={3} placeholder="Votre message (facultatif)…" className={`${inp} resize-none`} />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label htmlFor="cand-tel" className="block text-xs font-semibold text-slate-700 mb-1">Téléphone *</label>
+                      <input id="cand-tel" type="tel" value={form.telephone} onChange={(e) => setForm({ ...form, telephone: e.target.value })} placeholder="06 00 00 00 00" className={inp} />
+                    </div>
+                    <div>
+                      <label htmlFor="cand-email" className="block text-xs font-semibold text-slate-700 mb-1">E-mail *</label>
+                      <input id="cand-email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="jean@exemple.fr" className={inp} />
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="cand-msg" className="block text-xs font-semibold text-slate-700 mb-1">Votre message (facultatif)</label>
+                    <textarea id="cand-msg" value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} rows={3} placeholder="Un mot sur votre parcours, vos chantiers récents…" className={`${inp} resize-none`} />
+                  </div>
                   <label className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-dashed border-slate-300 cursor-pointer hover:border-sky-400 transition-colors text-sm">
                     <Paperclip className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                    <span className={cv ? "text-slate-800 truncate" : "text-slate-500"}>{cv ? cv.name : "Joindre mon CV (PDF, JPG) — facultatif"}</span>
+                    <span className={cv ? "text-slate-800 truncate" : "text-slate-500"}>{cv ? cv.name : "Joindre mon CV (PDF, JPG), facultatif"}</span>
                     <input type="file" accept="application/pdf,image/jpeg,image/png" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) setCv(f); }} />
                   </label>
                   {error && <p className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
                   <button onClick={submit} disabled={sending} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-white text-sm font-semibold transition-colors">
                     <Send className="w-4 h-4" /> {sending ? "Envoi…" : "Envoyer ma candidature"}
                   </button>
-                  <p className="text-slate-400 text-[11px] text-center">Vos données ne servent qu&apos;au recrutement ClimExpert, jamais transmises à des tiers.</p>
+                  <p className="text-slate-500 text-[11px] text-center">Vos données ne servent qu&apos;au recrutement ClimExpert, jamais transmises à des tiers.</p>
                 </div>
               )}
             </div>

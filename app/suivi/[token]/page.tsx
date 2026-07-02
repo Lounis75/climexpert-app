@@ -58,6 +58,8 @@ export default async function SuiviPage({ params }: { params: Promise<{ token: s
         acompteRecuLe:      interventions.acompteRecuLe,
         materielCommandeLe: interventions.materielCommandeLe,
         materielRecuLe:     interventions.materielRecuLe,
+        factureUrl:         interventions.factureUrl,
+        factureEnvoyeeLe:   interventions.factureEnvoyeeLe,
       })
       .from(interventions)
       .leftJoin(techniciens, eq(interventions.technicienId, techniciens.id))
@@ -200,6 +202,11 @@ export default async function SuiviPage({ params }: { params: Promise<{ token: s
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-slate-900">{TYPE_LABELS[i.type] ?? i.type}</p>
                       <p className="text-xs text-slate-500">{fmtDateTime(i.scheduledAt)}{i.techName ? `, ${i.techName}` : ""}</p>
+                      {i.factureUrl && i.factureEnvoyeeLe && (
+                        <a href={i.factureUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-sky-600 hover:text-sky-700 font-semibold mt-1">
+                          <Download className="w-3 h-3" /> Télécharger ma facture (PDF)
+                        </a>
+                      )}
                     </div>
                     <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${s.color}`}>{s.label}</span>
                   </div>

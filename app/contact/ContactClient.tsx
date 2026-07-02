@@ -73,6 +73,7 @@ function PillGroup({ options, name, value, onChange }: {
 export default function ContactClient() {
   const [form, setForm] = useState<FormState>(initialForm);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [missing, setMissing] = useState("");
 
   // Alex (mode contact) renvoie le récapitulatif du besoin -> on remplit le champ Message.
   useEffect(() => {
@@ -93,7 +94,21 @@ export default function ContactClient() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.nom || !form.telephone || !form.type || !form.bien || !form.email || !form.ville) return;
+    // Bouton toujours actif : au clic, on dit PRÉCISÉMENT ce qui manque (avant, le bouton
+    // restait grisé sans explication et le client ne comprenait pas ce qui bloquait).
+    const manquants: string[] = [];
+    if (!form.type) manquants.push("le type de demande");
+    if (!form.bien) manquants.push("le type de bien");
+    if (!form.nom) manquants.push("votre nom");
+    if (!form.telephone) manquants.push("votre téléphone");
+    if (!form.email) manquants.push("votre e-mail");
+    if (!form.ville) manquants.push("votre ville");
+    if (manquants.length > 0) {
+      setMissing(`Il manque ${manquants.join(", ")}.`);
+      document.getElementById("contact-form-top")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    setMissing("");
     setStatus("loading");
     try {
       const res = await fetch("/api/contact", {
@@ -134,7 +149,7 @@ export default function ContactClient() {
                 Parlons de votre projet
               </h1>
               <p className="text-slate-400 text-lg max-w-xl mx-auto mb-8">
-                Particulier ou professionnel, notre équipe répond sous 2h en jours ouvrés.
+                Particulier ou professionnel, notre équipe vous répond sous 24h, 7j/7.
               </p>
               {/* Alex CTA inline */}
               <div className="inline-flex items-center gap-3 bg-white/8 border border-white/15 rounded-2xl px-5 py-3">
@@ -156,10 +171,11 @@ export default function ContactClient() {
         <section className="py-16">
           <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
             <motion.div
+              id="contact-form-top"
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, duration: 0.6 }}
-              className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden"
+              className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden scroll-mt-24"
             >
               {/* Form header */}
               <div className="px-8 pt-8 pb-6 border-b border-slate-100">
@@ -289,19 +305,22 @@ export default function ContactClient() {
                       onChange={(e) => setForm((p) => ({ ...p, consent: e.target.checked }))}
                       className="mt-0.5 w-4 h-4 rounded border-slate-500 bg-transparent text-sky-500 focus:ring-sky-500/40 flex-shrink-0"
                     />
-                    <span className="text-slate-400 text-xs leading-relaxed">
+                    <span className="text-slate-500 text-xs leading-relaxed">
                       J&apos;accepte que ClimExpert me recontacte pour des offres commerciales et conseils.
                       Facultatif, vous pouvez vous désinscrire à tout moment. Vos données ne sont jamais revendues.
                     </span>
                   </label>
 
+                  {missing && (
+                    <p className="text-amber-600 text-sm bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">{missing}</p>
+                  )}
                   {status === "error" && (
                     <p className="text-red-500 text-sm">Une erreur est survenue. Réessayez ou appelez le 06 67 43 27 67.</p>
                   )}
 
                   <button
                     type="submit"
-                    disabled={status === "loading" || !form.nom || !form.telephone || !form.type || !form.bien || !form.email || !form.ville}
+                    disabled={status === "loading"}
                     className="w-full flex items-center justify-center gap-2 py-4 bg-sky-500 hover:bg-sky-400 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-all shadow-lg shadow-sky-500/25 hover:shadow-sky-500/40 text-sm"
                   >
                     {status === "loading" ? (
@@ -338,7 +357,7 @@ export default function ContactClient() {
                 <div className="min-w-0">
                   <p className="text-xs text-slate-400 font-medium uppercase tracking-wide mb-0.5">Téléphone</p>
                   <p className="text-slate-800 font-semibold text-sm group-hover:text-sky-600 transition-colors">06 67 43 27 67</p>
-                  <p className="text-slate-400 text-xs mt-0.5">Lun–Sam, 8h–19h</p>
+                  <p className="text-slate-400 text-xs mt-0.5">7j/7, de 8h à 20h</p>
                 </div>
               </a>
 
@@ -349,7 +368,7 @@ export default function ContactClient() {
                 <div className="min-w-0">
                   <p className="text-xs text-slate-400 font-medium uppercase tracking-wide mb-0.5">Email</p>
                   <p className="text-slate-800 font-semibold text-sm group-hover:text-sky-600 transition-colors truncate">contact@climexpert.fr</p>
-                  <p className="text-slate-400 text-xs mt-0.5">Réponse sous 2h</p>
+                  <p className="text-slate-400 text-xs mt-0.5">Réponse sous 24h</p>
                 </div>
               </a>
 
@@ -374,7 +393,7 @@ export default function ContactClient() {
             >
               <div className="grid sm:grid-cols-2 gap-3">
                 {[
-                  { icon: Clock, text: "Réponse sous 2h en jours ouvrés" },
+                  { icon: Clock, text: "Réponse sous 24h, 7j/7" },
                   { icon: CheckCircle2, text: "Devis gratuit sans engagement" },
                   { icon: Shield, text: "Techniciens certifiés fluides cat. I" },
                   { icon: Zap, text: "Intervention en 24-48h max" },
@@ -398,8 +417,8 @@ export default function ContactClient() {
             </div>
             <div className="space-y-4">
               {[
-                { q: "Quel est le délai de réponse après une prise de contact ?", a: "Nous répondons à toutes les demandes sous 2h en heures ouvrées (7h-20h, 7j/7). Pour les urgences de dépannage, un technicien peut intervenir sous 48h." },
-                { q: "Comment puis-je joindre ClimExpert en urgence ?", a: "Pour une urgence, appelez directement le 06 67 43 27 67 ou écrivez via WhatsApp. Notre équipe est disponible 7j/7 de 7h à 20h." },
+                { q: "Quel est le délai de réponse après une prise de contact ?", a: "Nous répondons à toutes les demandes sous 24h maximum, 7j/7 de 8h à 20h. Pour les urgences de dépannage, un technicien peut intervenir sous 48h." },
+                { q: "Comment puis-je joindre ClimExpert en urgence ?", a: "Pour une urgence, appelez directement le 06 67 43 27 67 ou écrivez via WhatsApp. Notre équipe est disponible 7j/7, de 8h à 20h." },
                 { q: "Intervenez-vous pour toutes les marques de climatisation ?", a: "Oui, nos techniciens sont formés sur toutes les marques : Daikin, Mitsubishi Electric, Samsung, Toshiba, LG, Fujitsu, Atlantic, Panasonic et bien d'autres." },
                 { q: "Proposez-vous des contrats d'entretien pour les professionnels ?", a: "Oui, nous proposons des contrats d'entretien annuels adaptés aux locaux professionnels, hôtels, restaurants et copropriétés. Contactez-nous pour un devis sur mesure." },
               ].map(({ q, a }) => (

@@ -26,6 +26,8 @@ type PhotoFile = { file: File; preview: string; url?: string; uploading?: boolea
 export default function DevisClient() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [photoWarning, setPhotoWarning] = useState("");
   const [photos, setPhotos] = useState<PhotoFile[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -99,11 +101,20 @@ export default function DevisClient() {
       "Copropriété": "copropriete",
     };
 
-    // Upload photos first
+    setSubmitError("");
+    setPhotoWarning("");
+
+    // Upload photos first. Si certaines échouent, on prévient (la demande part quand même :
+    // mieux vaut un prospect sans photos qu'un prospect perdu).
     const photoUrls: string[] = [];
+    let photosEnEchec = 0;
     for (let i = 0; i < photos.length; i++) {
       const url = await uploadPhoto(i);
       if (url) photoUrls.push(url);
+      else photosEnEchec++;
+    }
+    if (photosEnEchec > 0) {
+      setPhotoWarning(`${photosEnEchec} photo${photosEnEchec > 1 ? "s n'ont" : " n'a"} pas pu être jointe${photosEnEchec > 1 ? "s" : ""} (réseau). Votre demande part sans ${photosEnEchec > 1 ? "elles" : "elle"}, vous pourrez les envoyer plus tard.`);
     }
 
     try {
@@ -125,8 +136,10 @@ export default function DevisClient() {
         setSubmitted(true);
         return;
       }
+      const d = await res.json().catch(() => ({}));
+      setSubmitError(d.error ?? "L'envoi a échoué, réessayez dans un instant ou appelez-nous.");
     } catch {
-      // ignore
+      setSubmitError("Erreur réseau : votre demande n'est PAS partie. Vérifiez votre connexion et réessayez, ou appelez-nous.");
     }
     setLoading(false);
   }
@@ -361,12 +374,20 @@ export default function DevisClient() {
                       )}
                     </div>
 
+                    {photoWarning && (
+                      <p className="text-amber-300 text-sm bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2">{photoWarning}</p>
+                    )}
+                    {submitError && (
+                      <p className="text-red-300 text-sm bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
+                        {submitError} <a href="tel:+33667432767" className="underline font-semibold whitespace-nowrap">06 67 43 27 67</a>
+                      </p>
+                    )}
                     <button
                       type="submit"
                       disabled={loading}
                       className="w-full inline-flex items-center justify-center gap-2 px-8 py-4 bg-sky-500 hover:bg-sky-400 disabled:opacity-60 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-sky-500/25"
                     >
-                      {loading ? "Envoi en cours…" : "Envoyer ma demande"}
+                      {loading ? "Envoi en cours…" : submitError ? "Réessayer" : "Envoyer ma demande"}
                       {!loading && <ArrowRight className="w-4 h-4" />}
                     </button>
 

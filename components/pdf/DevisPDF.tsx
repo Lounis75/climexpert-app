@@ -162,7 +162,7 @@ export default function DevisPDF({
             <Text style={styles.partyName}>{COMPANY.name}</Text>
             <Text style={styles.partyInfo}>{COMPANY.address}{"\n"}{COMPANY.city}{"\n"}{COMPANY.email}{"\n"}{COMPANY.phone}</Text>
             <Text style={[styles.partyLabel, { marginTop: 12 }]}>Client ou Cliente</Text>
-            <Text style={styles.partyName}>{clientName || "—"}</Text>
+            <Text style={styles.partyName}>{clientName || "-"}</Text>
             {clientAddress ? <Text style={styles.partyInfo}>{clientAddress}</Text> : null}
           </View>
         </View>

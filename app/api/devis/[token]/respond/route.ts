@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { devis } from "@/lib/db/schema";
+import { devis, notifications } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
 import { getDevisByToken } from "@/lib/devis";
 import { acceptDevis } from "@/lib/devis-workflow";
@@ -12,11 +12,12 @@ export async function POST(
 ) {
   try {
     const { token } = await params;
-    const { action } = await req.json();
+    const { action, motif } = await req.json();
 
     if (action !== "accepté" && action !== "refusé") {
       return NextResponse.json({ error: "Action invalide" }, { status: 400 });
     }
+    const motifRefus = action === "refusé" ? String(motif ?? "").trim().slice(0, 500) : "";
 
     const d = await getDevisByToken(token);
     if (!d) return NextResponse.json({ error: "Devis introuvable" }, { status: 404 });
@@ -43,6 +44,16 @@ export async function POST(
     if (action === "accepté") {
       // Signature : crée client (si prospect) + intervention à planifier + notifie. Idempotent.
       await acceptDevis(d.id);
+    } else if (claimed) {
+      // Refus (premier clic seulement) : notifier l'équipe avec le motif, précieux pour relancer.
+      await db.insert(notifications).values({
+        adminId: null,
+        type: "devis_refuse",
+        titre: `Devis ${d.number} refusé par le client`,
+        contenu: motifRefus ? `Motif : ${motifRefus}` : "Aucun motif indiqué.",
+        refType: "devis",
+        refId: d.id,
+      }).catch((e) => logError("devis.respond.notif", e, { devisId: d.id }));
     }
     return NextResponse.json({ success: true, status: action });
   } catch (err) {

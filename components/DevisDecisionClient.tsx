@@ -25,7 +25,7 @@ export default function DevisDecisionClient({
   async function send(d: "accepte" | "refuse") {
     setLoading(true); setError("");
     try {
-      const finalMotif = d === "refuse" ? [motif, comment.trim()].filter(Boolean).join(" — ") : undefined;
+      const finalMotif = d === "refuse" ? [motif, comment.trim()].filter(Boolean).join(" : ") : undefined;
       const res = await fetch("/api/devis-decision", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, decision: d, motif: finalMotif }),

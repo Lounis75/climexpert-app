@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
       : `❌ Devis décliné par le client. Motif : ${motifClean}.`,
   }).catch((e) => logError("devisDecision.suivi", e, { leadId: lead.id }));
 
-  // Notification cloche (admin) — adminId null = visible par les admins (cf. notifs terrain).
+  // Notification cloche (admin) : adminId null = visible par les admins (cf. notifs terrain).
   await db.insert(notifications).values({
     type: decision === "accepte" ? "devis_accepte" : "devis_refuse",
     titre: decision === "accepte" ? `Devis accepté, ${lead.name}` : `Devis décliné, ${lead.name}`,

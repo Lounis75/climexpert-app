@@ -4,14 +4,14 @@ import ContactClient from "./ContactClient";
 export const metadata: Metadata = {
   title: "Contact, Devis Gratuit, Dépannage, Entretien en Île-de-France",
   description:
-    "Contactez ClimExpert pour une installation, un entretien ou un dépannage de climatisation en Île-de-France. Réponse sous 2h, devis gratuit sans engagement.",
+    "Contactez ClimExpert pour une installation, un entretien ou un dépannage de climatisation en Île-de-France. Réponse sous 24h, devis gratuit sans engagement.",
   keywords:
     "contact climexpert, devis climatisation ile-de-france, demande installation clim, urgence dépannage climatisation paris",
   alternates: { canonical: "https://climexpert.fr/contact" },
   openGraph: {
     title: "Contact ClimExpert, Devis Gratuit Île-de-France",
     description:
-      "Demandez un devis gratuit ou signalez une panne. Réponse sous 2h, techniciens certifiés en Île-de-France.",
+      "Demandez un devis gratuit ou signalez une panne. Réponse sous 24h, techniciens certifiés en Île-de-France.",
     url: "https://climexpert.fr/contact",
     images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
   },
@@ -33,12 +33,12 @@ const faqSchema = {
     {
       "@type": "Question",
       name: "Quel est le délai de réponse après une prise de contact ?",
-      acceptedAnswer: { "@type": "Answer", text: "Nous répondons à toutes les demandes sous 2h en heures ouvrées (7h-20h, 7j/7). Pour les urgences de dépannage, un technicien peut intervenir sous 48h." },
+      acceptedAnswer: { "@type": "Answer", text: "Nous répondons à toutes les demandes sous 24h maximum, 7j/7 de 8h à 20h. Pour les urgences de dépannage, un technicien peut intervenir sous 48h." },
     },
     {
       "@type": "Question",
       name: "Comment puis-je joindre ClimExpert en urgence ?",
-      acceptedAnswer: { "@type": "Answer", text: "Pour une urgence, appelez directement le 06 67 43 27 67 ou écrivez via WhatsApp. Notre équipe est disponible 7j/7 de 7h à 20h." },
+      acceptedAnswer: { "@type": "Answer", text: "Pour une urgence, appelez directement le 06 67 43 27 67 ou écrivez via WhatsApp. Notre équipe est disponible 7j/7, de 8h à 20h." },
     },
     {
       "@type": "Question",

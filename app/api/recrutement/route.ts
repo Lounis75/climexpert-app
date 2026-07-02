@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
       from: "ClimExpert <noreply@climexpert.fr>",
       to: mailRecipient(adminEmail),
       replyTo: email,
-      subject: `Candidature : ${poste} — ${nom}`,
+      subject: `Candidature : ${poste}, ${nom}`,
       html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;color:#0f172a;">
         <h2 style="color:#0284c7;">Nouvelle candidature</h2>
         <table style="border-collapse:collapse;margin:12px 0;">
