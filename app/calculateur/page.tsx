@@ -8,13 +8,13 @@ export const metadata: Metadata = {
   keywords:
     "calculateur climatisation, calculer puissance climatisation, estimer prix climatisation ile-de-france, combien coûte climatisation, simulation climatisation paris",
   alternates: {
-    canonical: "https://calculateur.climexpert.fr",
+    canonical: "https://climexpert.fr/calculateur",
   },
   openGraph: {
     title: "Calculateur Climatisation, Estimation Gratuite en 2 min | ClimExpert",
     description:
       "Calculez la puissance et le budget pour votre projet. Résultat instantané, devis gratuit sous 24h.",
-    url: "https://calculateur.climexpert.fr",
+    url: "https://climexpert.fr/calculateur",
     siteName: "ClimExpert",
     locale: "fr_FR",
     type: "website",
@@ -104,7 +104,7 @@ const serviceSchema = {
     lowPrice: "1500",
     highPrice: "15000",
   },
-  url: "https://calculateur.climexpert.fr",
+  url: "https://climexpert.fr/calculateur",
 };
 
 const breadcrumbSchema = {
@@ -112,7 +112,7 @@ const breadcrumbSchema = {
   "@type": "BreadcrumbList",
   itemListElement: [
     { "@type": "ListItem", position: 1, name: "Accueil", item: "https://climexpert.fr" },
-    { "@type": "ListItem", position: 2, name: "Calculateur climatisation", item: "https://calculateur.climexpert.fr" },
+    { "@type": "ListItem", position: 2, name: "Calculateur climatisation", item: "https://climexpert.fr/calculateur" },
   ],
 };
 

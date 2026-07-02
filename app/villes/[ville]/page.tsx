@@ -76,8 +76,14 @@ export default async function VillePage({
     serviceType: "Installation climatisation",
     offers: {
       "@type": "Offer",
-      priceCurrency: "EUR",
-      priceRange: "1500-8000",
+      // priceRange n'est pas une propriété valide d'Offer (elle appartient à LocalBusiness) :
+      // Google l'ignorait avec un avertissement. PriceSpecification est la forme correcte.
+      priceSpecification: {
+        "@type": "PriceSpecification",
+        priceCurrency: "EUR",
+        minPrice: 3000,
+        maxPrice: 15000,
+      },
       availability: "https://schema.org/InStock",
     },
   };

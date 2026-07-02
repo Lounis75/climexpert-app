@@ -8,6 +8,7 @@ export const metadata: Metadata = {
   title: "ClimExpert Technicien",
   manifest: "/manifest.json",
   themeColor: "#0ea5e9",
+  robots: { index: false, follow: false }, // espace privé, jamais indexé
 };
 
 export default async function TechnicienLayout({ children }: { children: React.ReactNode }) {

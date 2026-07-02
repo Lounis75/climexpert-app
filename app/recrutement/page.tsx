@@ -11,6 +11,18 @@ export const metadata: Metadata = {
   title: "Nous recrutons, ClimExpert | Emplois climatisation en Île-de-France",
   description: "Rejoignez ClimExpert : technicien frigoriste, installateur, alternance... Une équipe à taille humaine, certifiée RGE, en Île-de-France. Postulez en ligne.",
   alternates: { canonical: "/recrutement" },
+  openGraph: {
+    title: "Nous recrutons | ClimExpert",
+    description: "Technicien frigoriste, installateur, alternance : rejoignez une équipe climatisation à taille humaine en Île-de-France.",
+    url: "https://climexpert.fr/recrutement",
+  },
+};
+
+// Balisage Google for Jobs : fait apparaître les offres dans le bloc « Offres d'emploi »
+// des résultats Google (gratuit, très visible).
+const EMPLOYMENT_TYPE: Record<string, string> = {
+  CDI: "FULL_TIME", CDD: "TEMPORARY", "Intérim": "TEMPORARY",
+  Alternance: "INTERN", Stage: "INTERN", Freelance: "CONTRACTOR",
 };
 
 const ATOUTS = [
@@ -22,8 +34,26 @@ const ATOUTS = [
 
 export default async function RecrutementPage() {
   const offres = await getOffresActives();
+  const jobPostingsLd = offres.map((o) => ({
+    "@context": "https://schema.org",
+    "@type": "JobPosting",
+    title: o.titre,
+    description: [o.description, o.profil ? `Profil recherché : ${o.profil}` : ""].filter(Boolean).join("\n\n"),
+    datePosted: new Date(o.createdAt).toISOString().slice(0, 10),
+    validThrough: new Date(new Date(o.createdAt).getTime() + 60 * 86400000).toISOString().slice(0, 10),
+    employmentType: EMPLOYMENT_TYPE[o.contrat] ?? "FULL_TIME",
+    hiringOrganization: { "@type": "Organization", name: "CLIM EXPERT", sameAs: "https://climexpert.fr" },
+    jobLocation: {
+      "@type": "Place",
+      address: { "@type": "PostalAddress", streetAddress: "200 rue de la Croix Nivert", addressLocality: "Paris", postalCode: "75015", addressRegion: "Île-de-France", addressCountry: "FR" },
+    },
+    directApply: true,
+  }));
   return (
     <>
+      {jobPostingsLd.map((ld, i) => (
+        <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
+      ))}
       <Header />
       <main>
         {/* Hero */}

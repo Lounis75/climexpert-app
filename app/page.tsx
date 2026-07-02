@@ -56,7 +56,7 @@ export default function Home() {
                   ))}
                 </ul>
                 <a
-                  href="https://calculateur.climexpert.fr"
+                  href="/calculateur"
                   className="inline-flex items-center gap-2 px-5 py-3 bg-sky-500 hover:bg-sky-400 text-white text-sm font-semibold rounded-xl transition-colors shadow-lg shadow-sky-500/20"
                 >
                   Ouvrir le calculateur complet

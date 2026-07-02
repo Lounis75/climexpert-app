@@ -50,13 +50,13 @@ export async function proxy(req: NextRequest) {
   const hostname = req.headers.get("host") ?? "";
   const { pathname } = req.nextUrl;
 
-  // Sous-domaine calculateur.climexpert.fr → /calculateur
+  // Sous-domaine calculateur.climexpert.fr → redirection 301 vers climexpert.fr/calculateur.
+  // (Avant : rewrite qui SERVAIT le contenu sur le sous-domaine → autorité SEO divisée entre
+  // deux hôtes pour la même page. La 301 consolide tout sur le domaine principal.)
   if (hostname.startsWith("calculateur.")) {
     if (pathname.startsWith("/api/")) return NextResponse.next();
-    const url = req.nextUrl.clone();
     const path = pathname === "/" ? "" : pathname;
-    url.pathname = `/calculateur${path}`;
-    return NextResponse.rewrite(url);
+    return NextResponse.redirect(`https://climexpert.fr/calculateur${path}`, 301);
   }
 
   // Espace technicien

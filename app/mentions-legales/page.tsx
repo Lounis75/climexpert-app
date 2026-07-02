@@ -5,7 +5,9 @@ import Footer from "@/components/Footer";
 export const metadata: Metadata = {
   title: "Mentions légales · Clim Expert",
   description: "Mentions légales du site climexpert.fr et de la société Clim Expert SAS.",
-  robots: { index: false, follow: true },
+  // Indexables volontairement : des mentions légales visibles (SIRET, société réelle)
+  // renforcent les signaux de confiance E-E-A-T pour le SEO local.
+  alternates: { canonical: "/mentions-legales" },
 };
 
 export default function MentionsLegalesPage() {

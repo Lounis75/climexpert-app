@@ -2,12 +2,41 @@ User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /api/
+# Espaces privés à jeton (données personnelles clients) : ni crawl, ni index
+Disallow: /suivi/
+Disallow: /mon-devis/
+Disallow: /q/
+Disallow: /qualif/
+Disallow: /rdv/
+Disallow: /rdv-confirmation/
+Disallow: /activer/
+Disallow: /attestation/
+Disallow: /contrat/
+Disallow: /connexion
+Disallow: /commercial
+Disallow: /technicien
+Disallow: /devis/
+Disallow: /entretien/
 
 # Robots IA — accès autorisé au contenu public
 User-agent: GPTBot
 Allow: /
 Disallow: /admin
 Disallow: /api/
+Disallow: /suivi/
+Disallow: /mon-devis/
+Disallow: /q/
+Disallow: /qualif/
+Disallow: /rdv/
+Disallow: /rdv-confirmation/
+Disallow: /activer/
+Disallow: /attestation/
+Disallow: /contrat/
+Disallow: /connexion
+Disallow: /commercial
+Disallow: /technicien
+Disallow: /devis/
+Disallow: /entretien/
 
 User-agent: ChatGPT-User
 Allow: /

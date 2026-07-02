@@ -101,9 +101,13 @@ const jsonLd = {
   },
   address: {
     "@type": "PostalAddress",
+    streetAddress: "200 rue de la Croix Nivert",
+    addressLocality: "Paris",
+    postalCode: "75015",
     addressRegion: "Île-de-France",
     addressCountry: "FR",
   },
+  hasMap: "https://g.page/r/CWbvuCaYXZbkEAE",
   geo: {
     "@type": "GeoCoordinates",
     latitude: 48.8566,
@@ -114,7 +118,7 @@ const jsonLd = {
     dayOfWeek: [
       "Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday",
     ],
-    opens: "07:00",
+    opens: "08:00",
     closes: "20:00",
   },
   sameAs: [

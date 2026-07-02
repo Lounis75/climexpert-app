@@ -6,6 +6,15 @@ import { DEPARTEMENTS } from "@/lib/departements";
 
 const BASE = "https://climexpert.fr";
 
+// Date de dernière vraie mise à jour éditoriale des pages statiques. À bumper quand le contenu
+// marketing change réellement. Un lastModified = new Date() à chaque génération rendait le
+// signal inutilisable (Google apprend à l'ignorer si "tout change tous les jours").
+const CONTENT_UPDATED = new Date("2026-07-01");
+
+function page(path: string, priority: number, changeFrequency: "weekly" | "monthly" | "yearly" = "monthly"): MetadataRoute.Sitemap[number] {
+  return { url: `${BASE}${path}`, lastModified: CONTENT_UPDATED, changeFrequency, priority };
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const dynamicArticles = await getPublishedDynamicArticles();
   const dynamicSlugs = new Set(dynamicArticles.map((a) => a.slug));
@@ -27,84 +36,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   return [
-    {
-      url: BASE,
-      lastModified: new Date(),
-      changeFrequency: "weekly",
-      priority: 1,
-    },
-    {
-      url: `${BASE}/installation`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.9,
-    },
-    {
-      url: `${BASE}/entretien`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.9,
-    },
-    {
-      url: `${BASE}/depannage`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.9,
-    },
-    {
-      url: `${BASE}/guide-climatisation`,
-      lastModified: new Date(),
-      changeFrequency: "weekly",
-      priority: 0.85,
-    },
-    {
-      url: `${BASE}/devis`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.8,
-    },
-    {
-      url: `${BASE}/qui-sommes-nous`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.7,
-    },
-    {
-      url: `${BASE}/contact`,
-      lastModified: new Date(),
-      changeFrequency: "yearly",
-      priority: 0.6,
-    },
-    {
-      url: `${BASE}/tarifs`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.85,
-    },
-    {
-      url: `${BASE}/departements`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.7,
-    },
-    {
-      url: `${BASE}/villes`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: 0.7,
-    },
-    ...DEPARTEMENTS.map((d) => ({
-      url: `${BASE}/departements/${d.slug}`,
-      lastModified: new Date(),
-      changeFrequency: "monthly" as const,
-      priority: 0.8,
-    })),
-    ...VILLES.map((v) => ({
-      url: `${BASE}/villes/${v.slug}`,
-      lastModified: new Date(),
-      changeFrequency: "monthly" as const,
-      priority: 0.8,
-    })),
+    { url: BASE, lastModified: CONTENT_UPDATED, changeFrequency: "weekly", priority: 1 },
+    page("/installation", 0.9),
+    page("/entretien", 0.9),
+    page("/depannage", 0.9),
+    page("/tarifs", 0.85),
+    page("/calculateur", 0.8),
+    page("/guide-climatisation", 0.85, "weekly"),
+    page("/devis", 0.8),
+    page("/qui-sommes-nous", 0.7),
+    page("/recrutement", 0.7, "weekly"),
+    page("/rse", 0.6, "yearly"),
+    page("/avis", 0.7),
+    page("/contact", 0.6, "yearly"),
+    page("/departements", 0.7),
+    page("/villes", 0.7),
+    ...DEPARTEMENTS.map((d) => page(`/departements/${d.slug}`, 0.8)),
+    ...VILLES.map((v) => page(`/villes/${v.slug}`, 0.8)),
     ...staticArticleEntries,
     ...dynamicArticleEntries,
   ];

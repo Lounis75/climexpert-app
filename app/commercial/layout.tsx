@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { verifyCommercialToken, COMMERCIAL_COOKIE_NAME } from "@/lib/auth";
 
-export const metadata: Metadata = { title: "ClimExpert, Espace Commercial" };
+export const metadata: Metadata = { title: "ClimExpert, Espace Commercial", robots: { index: false, follow: false } };
 
 export default async function CommercialLayout({ children }: { children: React.ReactNode }) {
   return (

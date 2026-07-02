@@ -7,6 +7,11 @@ export const metadata: Metadata = {
   title: "Politique RSE, ClimExpert | Engagements responsables",
   description: "Les engagements responsables de ClimExpert : récupération et recyclage des fluides frigorigènes, équipements performants, emploi local en Île-de-France, transparence et sécurité.",
   alternates: { canonical: "/rse" },
+  openGraph: {
+    title: "Politique RSE | ClimExpert",
+    description: "Fluides récupérés et recyclés, équipements performants, emploi local : les engagements concrets de ClimExpert, sans greenwashing.",
+    url: "https://climexpert.fr/rse",
+  },
 };
 
 const PILIERS = [

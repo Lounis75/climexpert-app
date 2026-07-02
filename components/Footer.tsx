@@ -54,7 +54,7 @@ export default function Footer() {
             <li><Link href="/mentions-legales" className="text-slate-400 hover:text-white transition-colors">Mentions légales</Link></li>
             <li><Link href="/politique-confidentialite" className="text-slate-400 hover:text-white transition-colors">Politique de confidentialité</Link></li>
             <li><Link href="/cgv" className="text-slate-400 hover:text-white transition-colors">CGV</Link></li>
-            <li><a href="/#avis" className="text-slate-400 hover:text-white transition-colors">Avis clients</a></li>
+            <li><Link href="/avis" className="text-slate-400 hover:text-white transition-colors">Avis clients</Link></li>
           </ul>
         </div>
 
