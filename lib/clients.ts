@@ -6,6 +6,7 @@ import { randomBytes } from "crypto";
 import { createChantier, getChantierByLead } from "@/lib/chantiers";
 import { logError } from "@/lib/observability";
 import { formatQualification } from "@/lib/qualification";
+import { todayParisISO } from "@/lib/paris-time";
 import { Resend } from "resend";
 import { mailRecipient } from "@/lib/mail";
 import { escapeHtml } from "@/lib/escape-html";
@@ -63,7 +64,7 @@ export async function getClientsStats(): Promise<{ total: number; withEmail: num
 
 // Action à faire par client (repère rouge) : entretien à relancer ou facture en retard.
 export async function getClientActions(clientList: Client[]): Promise<Record<string, string>> {
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayParisISO();
   const overdue = await db
     .select({ clientId: factures.clientId })
     .from(factures)
@@ -202,7 +203,7 @@ export async function getClientActivity(id: string): Promise<ClientActivity | nu
   const [client, devisList, facturesList, interventionsList, savList, suivisList] = await Promise.all([
     getClientById(id),
     db.select().from(devis).where(eq(devis.clientId, id)).orderBy(desc(devis.createdAt)),
-    db.select().from(factures).where(eq(factures.clientId, id)).orderBy(desc(factures.createdAt)),
+    db.select().from(factures).where(and(eq(factures.clientId, id), isNull(factures.supprimeLe))).orderBy(desc(factures.createdAt)),
     db.select().from(interventions).where(eq(interventions.clientId, id)).orderBy(desc(interventions.createdAt)),
     db.select().from(savTickets).where(eq(savTickets.clientId, id)).orderBy(desc(savTickets.createdAt)),
     db.select().from(suivisPlanifies).where(eq(suivisPlanifies.clientId, id)).orderBy(desc(suivisPlanifies.datePrevue)),

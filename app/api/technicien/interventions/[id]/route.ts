@@ -70,10 +70,19 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "La clôture se fait via le rapport (photos + CERFA signé)." }, { status: 400 });
   }
 
-  await db
+  // Garde d'état atomique : seule une intervention "planifiée" peut démarrer. Évite de
+  // remettre "en_cours" une intervention terminée ou annulée entre-temps par l'admin.
+  const [started] = await db
     .update(interventions)
     .set({ status: "en_cours", version: sql`${interventions.version} + 1`, updatedAt: new Date() })
-    .where(and(eq(interventions.id, id), eq(interventions.technicienId, session.sub)));
+    .where(and(eq(interventions.id, id), eq(interventions.technicienId, session.sub), eq(interventions.status, "planifiée")))
+    .returning({ id: interventions.id });
+  if (!started) {
+    const [cur] = await db.select({ status: interventions.status }).from(interventions)
+      .where(and(eq(interventions.id, id), eq(interventions.technicienId, session.sub))).limit(1);
+    if (cur?.status === "en_cours") return NextResponse.json({ ok: true, deja: true }); // double clic
+    return NextResponse.json({ error: `Impossible de démarrer : intervention ${cur?.status ?? "introuvable"}.` }, { status: 409 });
+  }
 
   return NextResponse.json({ ok: true });
 }

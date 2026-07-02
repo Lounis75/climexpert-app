@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
   if (admin) {
     await db.insert(notifications).values({
       id: createId(),
-      adminId: admin.id,
+      adminId: null,
       type: "ticket_sav",
       titre: `Nouveau ticket SAV : ${subject}`,
       contenu: description || null,

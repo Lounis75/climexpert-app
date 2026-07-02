@@ -15,7 +15,7 @@ const IMAGES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/he
 // stockée sur R2 et rattachée à SA fiche (leads.photos_urls), visible par l'équipe.
 export async function POST(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  if (!rateLimit(`qualif-photo:${clientIp(req)}`, 30, 10 * 60 * 1000)) {
+  if (!(await rateLimit(`qualif-photo:${clientIp(req)}`, 30, 10 * 60 * 1000))) {
     return NextResponse.json({ error: "Trop d'envois, réessayez dans quelques minutes." }, { status: 429 });
   }
 

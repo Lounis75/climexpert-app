@@ -12,6 +12,9 @@ export async function setFeaturedSlugs(slugs: string[]): Promise<void> {
   await r2PutJSON(R2_KEY, slugs);
 }
 
+// Lecture-modification-écriture NON atomique (R2 n'offre pas de compare-and-swap) : deux
+// admins qui cliquent au même instant peuvent perdre un des deux toggles. Risque assumé,
+// données purement éditoriales (articles mis en avant) ; re-cliquer suffit à corriger.
 export async function toggleFeaturedSlug(
   slug: string
 ): Promise<{ featured: boolean; slugs: string[] }> {

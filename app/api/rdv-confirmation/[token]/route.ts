@@ -11,7 +11,7 @@ export const runtime = "nodejs";
 // l'e-mail de confirmation. Remonte l'info sur la fiche intervention + notifie l'équipe.
 export async function POST(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  if (!rateLimit(`rdvconfirm:${clientIp(req)}`, 20, 10 * 60 * 1000)) {
+  if (!(await rateLimit(`rdvconfirm:${clientIp(req)}`, 20, 10 * 60 * 1000))) {
     return NextResponse.json({ error: "Trop de tentatives, réessayez plus tard." }, { status: 429 });
   }
 

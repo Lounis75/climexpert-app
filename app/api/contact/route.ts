@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createLead } from "@/lib/leads";
 import { createNotification } from "@/lib/notifications";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
+import { logError } from "@/lib/observability";
 
 interface ContactFormData {
   type: string;
@@ -38,7 +39,7 @@ const bienLabels: Record<string, string> = {
 export async function POST(req: NextRequest) {
   try {
     // Rate-limit : 5 envois / minute / IP (anti-spam formulaire + quota email)
-    if (!rateLimit(`contact:${clientIp(req)}`, 5, 60_000)) {
+    if (!(await rateLimit(`contact:${clientIp(req)}`, 5, 60_000))) {
       return NextResponse.json({ error: "Trop de demandes, réessayez dans un instant." }, { status: 429 });
     }
 
@@ -48,12 +49,49 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Champs requis manquants" }, { status: 400 });
     }
 
+    // ── 1) Persister le lead EN PRIORITÉ (donnée critique). Avant, l'e-mail partait d'abord :
+    // une panne Resend d'une heure = tous les prospects du formulaire perdus sans trace.
+    // Photos jointes : stockées dans un champ dédié du lead (affichées en vignettes sur la fiche).
+    const photosUrls = body.photosUrls && body.photosUrls.length > 0 ? body.photosUrls : undefined;
+
+    // Le champ "Adresse / Ville / CP" est autocomplété -> on récupère l'adresse complète.
+    // On la stocke dans `address` (carte « Adresse d'intervention », comme Alex) et on garde
+    // juste « CP Ville » pour `location` (affichage court sur les cartes du Kanban).
+    const adresseComplete = (body.ville || "").trim() || undefined;
+    const cpMatch = adresseComplete ? adresseComplete.match(/\b\d{5}\b.*$/) : null;
+    const villeCp = cpMatch ? cpMatch[0].trim() : adresseComplete;
+
+    const lead = await createLead({
+      source: "formulaire",
+      name: body.nom,
+      phone: body.telephone,
+      email: body.email || undefined,
+      project: body.type as "installation" | "entretien" | "depannage" | "contrat-pro" | "autre",
+      address: adresseComplete && /\d/.test(adresseComplete) ? adresseComplete : undefined,
+      location: villeCp,
+      message: (body.message || "").trim() || undefined,
+      photosUrls,
+      consentementMarketing: body.consent === true,
+      consentementLe: body.consent === true ? new Date() : undefined,
+      typeClient: ["professionnel", "sous_traitance"].includes(body.typeClient ?? "") ? body.typeClient : "particulier",
+    });
+
+    await createNotification({
+      type: "nouveau_lead",
+      titre: `Nouveau lead, ${body.nom}`,
+      contenu: `${body.telephone}${body.ville ? ` · ${body.ville}` : ""}`,
+      refType: "lead",
+      refId: lead.id,
+    }).catch((e) => logError("contact.notif", e, { leadId: lead.id }));
+
+    // ── 2) E-mail interne : best-effort, le lead est déjà en base. ──
     const resend = new Resend(process.env.RESEND_API_KEY);
     const date = new Date().toLocaleDateString("fr-FR", {
       weekday: "long", year: "numeric", month: "long", day: "numeric",
-      hour: "2-digit", minute: "2-digit",
+      hour: "2-digit", minute: "2-digit", timeZone: "Europe/Paris",
     });
 
+    try {
     await resend.emails.send({
       from: "Contact ClimExpert <noreply@climexpert.fr>",
       to: ["contact@climexpert.fr"],
@@ -100,44 +138,13 @@ export async function POST(req: NextRequest) {
         </div>
       `,
     });
-
-    // Photos jointes : stockées dans un champ dédié du lead (affichées en vignettes sur la
-    // fiche), plus besoin de les coller en texte dans les notes.
-    const photosUrls = body.photosUrls && body.photosUrls.length > 0 ? body.photosUrls : undefined;
-
-    // Le champ "Adresse / Ville / CP" est autocomplété -> on récupère l'adresse complète.
-    // On la stocke dans `address` (carte « Adresse d'intervention », comme Alex) et on garde
-    // juste « CP Ville » pour `location` (affichage court sur les cartes du Kanban).
-    const adresseComplete = (body.ville || "").trim() || undefined;
-    const cpMatch = adresseComplete ? adresseComplete.match(/\b\d{5}\b.*$/) : null;
-    const villeCp = cpMatch ? cpMatch[0].trim() : adresseComplete;
-
-    const lead = await createLead({
-      source: "formulaire",
-      name: body.nom,
-      phone: body.telephone,
-      email: body.email || undefined,
-      project: body.type as "installation" | "entretien" | "depannage" | "contrat-pro" | "autre",
-      address: adresseComplete && /\d/.test(adresseComplete) ? adresseComplete : undefined,
-      location: villeCp,
-      message: (body.message || "").trim() || undefined,
-      photosUrls,
-      consentementMarketing: body.consent === true,
-      consentementLe: body.consent === true ? new Date() : undefined,
-      typeClient: ["professionnel", "sous_traitance"].includes(body.typeClient ?? "") ? body.typeClient : "particulier",
-    });
-
-    await createNotification({
-      type: "nouveau_lead",
-      titre: `Nouveau lead, ${body.nom}`,
-      contenu: `${body.telephone}${body.ville ? ` · ${body.ville}` : ""}`,
-      refType: "lead",
-      refId: lead.id,
-    });
+    } catch (e) {
+      logError("contact.email", e, { leadId: lead.id });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Contact API error:", error);
+    logError("contact", error);
     return NextResponse.json({ error: "Erreur lors de l'envoi" }, { status: 500 });
   }
 }

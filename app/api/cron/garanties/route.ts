@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { clients, notifications, admins } from "@/lib/db/schema";
-import { and, isNull, lte, gte, isNotNull } from "drizzle-orm";
+import { clients, notifications } from "@/lib/db/schema";
+import { and, isNull, lte, gte, isNotNull, eq } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
+import { logError } from "@/lib/observability";
 
-// Called daily by Vercel Cron, checks for warranties expiring in 30 days
+// Cron quotidien : garanties qui expirent dans les 30 jours. Notifie UNE SEULE FOIS par
+// client (garantieNotifieeLe), sinon la cloche recevait la même alerte chaque jour
+// pendant 30 jours.
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -31,6 +34,7 @@ export async function GET(req: NextRequest) {
         isNotNull(clients.garantieExpireLe),
         gte(clients.garantieExpireLe, todayStr),
         lte(clients.garantieExpireLe, in30Str),
+        isNull(clients.garantieNotifieeLe), // pas encore alerté pour cette garantie
       )
     );
 
@@ -38,21 +42,27 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ processed: 0 });
   }
 
-  const [admin] = await db.select({ id: admins.id }).from(admins).limit(1);
-  if (!admin) return NextResponse.json({ processed: 0 });
-
+  let processed = 0;
   for (const c of expiringClients) {
-    const expDate = c.garantieExpireLe ? new Date(c.garantieExpireLe).toLocaleDateString("fr-FR") : "";
-    await db.insert(notifications).values({
-      id:      createId(),
-      adminId: admin.id,
-      type:    "garantie_expiration",
-      titre:   `Garantie expire bientôt, ${c.name}`,
-      contenu: `Expire le ${expDate}. Proposez un contrat d'entretien.`,
-      refType: "client",
-      refId:   c.id,
-    });
+    try {
+      const expDate = c.garantieExpireLe
+        ? new Date(c.garantieExpireLe).toLocaleDateString("fr-FR", { timeZone: "Europe/Paris" })
+        : "";
+      await db.insert(notifications).values({
+        id:      createId(),
+        adminId: null,
+        type:    "garantie_expiration",
+        titre:   `Garantie expire bientôt, ${c.name}`,
+        contenu: `Expire le ${expDate}. Proposez un contrat d'entretien.`,
+        refType: "client",
+        refId:   c.id,
+      });
+      await db.update(clients).set({ garantieNotifieeLe: new Date() }).where(eq(clients.id, c.id));
+      processed++;
+    } catch (e) {
+      logError("cron.garanties", e, { clientId: c.id });
+    }
   }
 
-  return NextResponse.json({ processed: expiringClients.length });
+  return NextResponse.json({ processed });
 }

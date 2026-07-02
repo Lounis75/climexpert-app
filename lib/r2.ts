@@ -1,4 +1,5 @@
 import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { logError } from "@/lib/observability";
 
 export const r2 = new S3Client({
   region: "auto",
@@ -16,7 +17,14 @@ export async function r2GetJSON(key: string): Promise<unknown | null> {
     const res = await r2.send(new GetObjectCommand({ Bucket: R2_BUCKET, Key: key }));
     const text = await res.Body!.transformToString();
     return JSON.parse(text);
-  } catch {
+  } catch (e) {
+    // Clé absente = fallback légitime (config jamais enregistrée) : silencieux. TOUTE autre
+    // erreur (credentials, réseau, panne R2) est alertée : sinon un incident R2 fait chiffrer
+    // les devis sur le catalogue PAR DÉFAUT du code (prix périmés) sans que personne ne le voie.
+    const name = (e as { name?: string; Code?: string })?.name ?? (e as { Code?: string })?.Code;
+    if (name !== "NoSuchKey" && name !== "NotFound") {
+      logError("r2.getJSON", e, { key });
+    }
     return null;
   }
 }

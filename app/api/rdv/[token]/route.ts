@@ -5,6 +5,7 @@ import { interventions, clients, notifications, admins, techniciens } from "@/li
 import { eq, and, isNull, sql } from "drizzle-orm";
 import { Resend } from "resend";
 import { createId } from "@paralleldrive/cuid2";
+import { logError } from "@/lib/observability";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -57,7 +58,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
   const chosen = creneaux[choix - 1];
   if (!chosen) return NextResponse.json({ error: "choix_invalide" }, { status: 400 });
 
-  await db
+  // Réservation ATOMIQUE du créneau : seule la requête qui trouve rdvTokenChoix encore NULL
+  // gagne. Deux clics simultanés sur deux créneaux du même e-mail ne peuvent plus s'écraser
+  // (l'ancien check-then-act lisait NULL des deux côtés puis appliquait les deux updates).
+  const [claimed] = await db
     .update(interventions)
     .set({
       status:         "planifiée",
@@ -67,18 +71,28 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       version:        sql`${interventions.version} + 1`,
       updatedAt:      new Date(),
     })
-    .where(eq(interventions.id, interv.id));
+    .where(and(eq(interventions.id, interv.id), isNull(interventions.rdvTokenChoix)))
+    .returning({ id: interventions.id });
+  if (!claimed) return NextResponse.json({ error: "deja_utilise" }, { status: 409 });
 
   const [client] = await db.select().from(clients).where(eq(clients.id, interv.clientId)).limit(1);
 
-  // Email confirmation client
+  // Email confirmation client. Best-effort : le créneau est DÉJÀ réservé en base ; si Resend
+  // échoue, on répond quand même ok (sinon le client croit que la réservation a raté, re-clique
+  // et tombe sur "deja_utilise" sans jamais recevoir l'e-mail).
+  let emailEnvoye = false;
   if (client?.email) {
-    await resend.emails.send({
-      from: "ClimExpert <noreply@climexpert.fr>",
-      to: mailRecipient(client.email),
-      subject: "Votre intervention Clim Expert est confirmée",
-      html: `<p>Bonjour ${client.name},</p><p>Votre rendez-vous a été confirmé : <strong>${chosen.label}</strong>.</p><p>Adresse : ${interv.address ?? "à confirmer"}</p><p><a href="${process.env.NEXT_PUBLIC_URL}/rdv/${token}/annuler">Annuler ce rendez-vous</a></p>`,
-    });
+    try {
+      await resend.emails.send({
+        from: "ClimExpert <noreply@climexpert.fr>",
+        to: mailRecipient(client.email),
+        subject: "Votre intervention Clim Expert est confirmée",
+        html: `<p>Bonjour ${client.name},</p><p>Votre rendez-vous a été confirmé : <strong>${chosen.label}</strong>.</p><p>Adresse : ${interv.address ?? "à confirmer"}</p><p><a href="${process.env.NEXT_PUBLIC_URL}/rdv/${token}/annuler">Annuler ce rendez-vous</a></p>`,
+      });
+      emailEnvoye = true;
+    } catch (e) {
+      logError("rdv.confirmation.email", e, { interventionId: interv.id });
+    }
   }
 
   // Notifications (admin + technicien), ne doivent jamais faire échouer la
@@ -87,7 +101,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
     const [admin] = await db.select({ id: admins.id }).from(admins).limit(1);
     if (admin) {
       await db.insert(notifications).values({
-        id: createId(), adminId: admin.id, type: "intervention_planifiee",
+        id: createId(), adminId: null, type: "intervention_planifiee",
         titre: `Intervention confirmée, ${client?.name ?? "client"}`,
         contenu: chosen.label, refType: "intervention", refId: interv.id,
       });
@@ -102,8 +116,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       });
     }
   } catch (e) {
-    console.error("[rdv] échec création notification (non bloquant):", e);
+    logError("rdv.notif", e, { interventionId: interv.id });
   }
 
-  return NextResponse.json({ ok: true, creneau: chosen });
+  return NextResponse.json({ ok: true, creneau: chosen, emailEnvoye });
 }

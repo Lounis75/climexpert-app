@@ -1,9 +1,10 @@
 import { db } from "@/lib/db";
 import { factures, devis, clients, lignesDevis } from "@/lib/db/schema";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
-import { eq, desc, count, and, lt, ne } from "drizzle-orm";
+import { eq, desc, and, lt, ne, isNull, sql } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 import { centimesToEuros } from "@/lib/devis";
+import { todayParisISO, addDaysParisISO } from "@/lib/paris-time";
 import { createNotification } from "@/lib/notifications";
 
 export type Facture = InferSelectModel<typeof factures>;
@@ -20,26 +21,30 @@ export type FactureWithRefs = Facture & {
 
 async function generateFactureNumber(): Promise<string> {
   const year = new Date().getFullYear();
-  const [{ value }] = await db.select({ value: count() }).from(factures);
-  const n = Number(value) + 1;
+  // Compteur atomique (séquence Postgres, comme les devis) : l'ancien COUNT(*)+1 générait un
+  // numéro déjà pris après une suppression (violation d'unicité = facturation bloquée) et le
+  // même numéro en cas de créations simultanées.
+  const res = await db.execute(sql`SELECT nextval('facture_number_seq') AS n`);
+  const rows = (Array.isArray(res) ? res : (res as { rows?: unknown[] }).rows) ?? [];
+  const n = Number((rows[0] as { n: number | string } | undefined)?.n ?? 1);
   return `FACT-${year}-${String(n).padStart(3, "0")}`;
 }
 
 export async function markOverdueFactures(): Promise<void> {
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayParisISO();
 
   // Récupérer les factures qui vont passer en retard pour créer les notifications
   const toMark = await db
     .select({ id: factures.id, number: factures.number })
     .from(factures)
-    .where(and(eq(factures.status, "en_attente"), lt(factures.dueDate, today)));
+    .where(and(eq(factures.status, "en_attente"), lt(factures.dueDate, today), isNull(factures.supprimeLe)));
 
   if (toMark.length === 0) return;
 
   await db
     .update(factures)
     .set({ status: "en_retard", updatedAt: new Date() })
-    .where(and(eq(factures.status, "en_attente"), lt(factures.dueDate, today)));
+    .where(and(eq(factures.status, "en_attente"), lt(factures.dueDate, today), isNull(factures.supprimeLe)));
 
   // Notifications (fire-and-forget)
   for (const f of toMark) {
@@ -63,6 +68,7 @@ export async function getFactures(): Promise<FactureWithRefs[]> {
     .from(factures)
     .leftJoin(clients, eq(factures.clientId, clients.id))
     .leftJoin(devis, eq(factures.devisId, devis.id))
+    .where(isNull(factures.supprimeLe))
     .orderBy(desc(factures.createdAt));
 
   return rows.map((r) => ({
@@ -83,7 +89,7 @@ export async function getFactureById(id: string): Promise<FactureWithRefs | null
     .from(factures)
     .leftJoin(clients, eq(factures.clientId, clients.id))
     .leftJoin(devis, eq(factures.devisId, devis.id))
-    .where(eq(factures.id, id));
+    .where(and(eq(factures.id, id), isNull(factures.supprimeLe)));
 
   if (!row) return null;
 
@@ -106,7 +112,7 @@ export async function createFactureFromDevis(devisId: string): Promise<Facture> 
   const [existing] = await db
     .select()
     .from(factures)
-    .where(and(eq(factures.devisId, devisId), ne(factures.status, "annulée")))
+    .where(and(eq(factures.devisId, devisId), ne(factures.status, "annulée"), isNull(factures.supprimeLe)))
     .limit(1);
   if (existing) return existing;
 
@@ -114,9 +120,7 @@ export async function createFactureFromDevis(devisId: string): Promise<Facture> 
   const id = createId();
 
   // Échéance par défaut : 30 jours
-  const dueDate = new Date();
-  dueDate.setDate(dueDate.getDate() + 30);
-  const dueDateStr = dueDate.toISOString().split("T")[0];
+  const dueDateStr = addDaysParisISO(30);
 
   // Taux de TVA effectif déduit des montants (le champ d'en-tête du devis n'est pas
   // fiable). Évite d'afficher "TVA 5,5%" sur une facture dont le TTC correspond à 20%.
@@ -153,11 +157,7 @@ export async function createFactureManuelle(data: {
   const number = await generateFactureNumber();
   const id = createId();
 
-  const dueDate = data.dueDate ?? (() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 30);
-    return d.toISOString().split("T")[0];
-  })();
+  const dueDate = data.dueDate ?? addDaysParisISO(30);
 
   const [f] = await db
     .insert(factures)
@@ -181,8 +181,10 @@ export async function updateFactureStatus(
   return f ?? null;
 }
 
+// Soft delete : une facture émise ne disparaît jamais physiquement (séquentialité comptable,
+// possibilité d'audit). Toutes les lectures filtrent supprimeLe.
 export async function deleteFacture(id: string): Promise<void> {
-  await db.delete(factures).where(eq(factures.id, id));
+  await db.update(factures).set({ supprimeLe: new Date(), updatedAt: new Date() }).where(eq(factures.id, id));
 }
 
 export const STATUS_FACTURE: Record<string, { label: string; color: string }> = {

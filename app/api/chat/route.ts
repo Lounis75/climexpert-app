@@ -381,7 +381,7 @@ RÈGLES :
 export async function POST(req: NextRequest) {
   try {
     // Rate-limit : 20 requêtes / minute / IP (borne le coût Anthropic et le spam)
-    if (!rateLimit(`chat:${clientIp(req)}`, 20, 60_000)) {
+    if (!(await rateLimit(`chat:${clientIp(req)}`, 20, 60_000))) {
       return NextResponse.json({ error: "Trop de messages, patientez quelques instants." }, { status: 429 });
     }
 
@@ -487,7 +487,7 @@ PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE 
           const [admin] = await db.select({ id: admins.id }).from(admins).limit(1);
           if (admin) {
             await db.insert(notifications).values({
-              id: createId(), adminId: admin.id, type: "ticket_sav",
+              id: createId(), adminId: null, type: "ticket_sav",
               titre: `SAV via Alex : ${data.subject}`,
               contenu: `${data.name}, ${data.phone}`,
               refType: "sav", refId: ticketId,

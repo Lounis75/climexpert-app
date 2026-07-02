@@ -12,7 +12,7 @@ export const runtime = "nodejs";
 // PUBLIC : un candidat postule depuis la page « Nous recrutons ». On envoie la candidature (+ CV)
 // par e-mail à l'équipe et on dépose une notification dans le CRM. Pas de compte requis.
 export async function POST(req: NextRequest) {
-  if (!rateLimit(`recrutement:${clientIp(req)}`, 5, 10 * 60 * 1000)) {
+  if (!(await rateLimit(`recrutement:${clientIp(req)}`, 5, 10 * 60 * 1000))) {
     return NextResponse.json({ error: "Trop de tentatives, réessayez dans quelques minutes." }, { status: 429 });
   }
 

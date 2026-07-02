@@ -78,7 +78,7 @@ export async function POST(
                   d'un montant de <strong>${centimesToEuros(f.totalTtcCt)} TTC</strong>.
                 </p>
                 ${f.dueDate ? `<p style="color: #475569; font-size: 14px; margin: 0 0 16px;">
-                  Date d'échéance : <strong>${new Date(f.dueDate).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}</strong>
+                  Date d'échéance : <strong>${new Date(f.dueDate).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Paris" })}</strong>
                 </p>` : ""}
                 <p style="color: #475569; font-size: 14px; margin: 0;">
                   Règlement par virement, chèque ou espèces à l'ordre de <strong>CLIM EXPERT SAS</strong>.

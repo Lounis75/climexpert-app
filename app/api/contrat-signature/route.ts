@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { contratsEntretien, clients } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { contratsEntretien, clients, notifications } from "@/lib/db/schema";
+import { eq, and, isNull } from "drizzle-orm";
+import { createId } from "@paralleldrive/cuid2";
 import { generateContratPDF } from "@/lib/contrat-pdf";
 import { buildContratData, finalizeContrat } from "@/lib/contrat-finalize";
+import { logError } from "@/lib/observability";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,16 +42,28 @@ export async function POST(req: NextRequest) {
   if (!row) return NextResponse.json({ error: "Lien invalide ou expiré" }, { status: 404 });
   if (row.contrat.signeLe) return NextResponse.json({ error: "Ce contrat est déjà signé" }, { status: 400 });
 
+  // Réservation ATOMIQUE : seul le premier clic passe signe_le de NULL à maintenant. Un double
+  // clic simultané passait la garde de lecture des deux côtés et finalisait deux fois (2 PDF,
+  // 2 e-mails, 2 lignes documents).
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
-  await db.update(contratsEntretien)
+  const [claimed] = await db.update(contratsEntretien)
     .set({ signeLe: new Date(), signatureIp: ip })
-    .where(eq(contratsEntretien.id, row.contrat.id));
+    .where(and(eq(contratsEntretien.id, row.contrat.id), isNull(contratsEntretien.signeLe)))
+    .returning({ id: contratsEntretien.id });
+  if (!claimed) return NextResponse.json({ ok: true, deja: true });
 
-  // PDF signé -> R2 + documents de la fiche client + e-mail au client. N'échoue pas la signature.
+  // PDF signé -> R2 + documents de la fiche client + e-mail au client. N'échoue pas la signature,
+  // mais alerte le gérant : sinon le contrat est "signé" sans PDF et personne ne le sait.
   try {
     await finalizeContrat({ contrat: row.contrat, client: row.client!, clientSignatureDataUrl: signature });
   } catch (e) {
-    console.error("[contrat-signature] finalize:", e);
+    logError("contratSignature.finalize", e, { contratId: row.contrat.id });
+    await db.insert(notifications).values({
+      id: createId(), type: "escalade_client",
+      titre: "⚠️ Contrat signé à distance mais PDF non généré",
+      contenu: `${row.client?.name ?? "Client"} a signé son contrat d'entretien en ligne mais la génération/l'envoi du PDF a échoué. Régénérez-le depuis la fiche client.`,
+      refType: "contrat", refId: row.contrat.id,
+    }).catch((e2) => logError("contratSignature.notif", e2, { contratId: row.contrat.id }));
   }
   return NextResponse.json({ ok: true });
 }

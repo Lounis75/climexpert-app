@@ -104,6 +104,9 @@ export async function sendChiffrageDevis(params: SendDevisParams): Promise<SendD
     });
   } catch (e) {
     logError("devis-send.email", e, { leadId: id });
+    // L'e-mail n'est jamais parti : on invalide le lien créé à l'étape 5, sinon un envoi
+    // « fantôme » resterait décidable 60 jours et gonflerait l'historique du prospect.
+    await db.delete(devisEnvois).where(eq(devisEnvois.token, token)).catch((e2) => logError("devis-send.cleanup", e2, { leadId: id }));
     return { ok: false, status: 500, error: "Échec de l'envoi de l'e-mail au client." };
   }
 

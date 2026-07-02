@@ -240,13 +240,16 @@ export async function mergeLeads(masterId: string, duplicateId: string): Promise
   if (!master || !duplicate) return null;
 
   // 1) Transfert des enfants du doublon vers le master (AVANT la suppression du doublon).
-  await db.update(suivis).set({ leadId: masterId }).where(eq(suivis.leadId, duplicateId)).catch(() => {});
-  await db.update(devisEnvois).set({ leadId: masterId }).where(eq(devisEnvois.leadId, duplicateId)).catch(() => {});
+  // Ces updates ne sont PAS avalés : si un transfert échoue, on interrompt la fusion (le
+  // doublon n'est pas supprimé, rien n'est perdu, la fusion est rejouable). Avant, un échec
+  // silencieux ici + suppression du doublon = historique suivis/devis perdu sans trace.
+  await db.update(suivis).set({ leadId: masterId }).where(eq(suivis.leadId, duplicateId));
+  await db.update(devisEnvois).set({ leadId: masterId }).where(eq(devisEnvois.leadId, duplicateId));
   // Lien client : si le doublon est déjà converti et pas le master, on rattache son client au master.
   let clientIdToKeep = master.clientId ?? null;
   if (!master.clientId && duplicate.clientId) {
     clientIdToKeep = duplicate.clientId;
-    await db.update(clients).set({ leadId: masterId }).where(eq(clients.id, duplicate.clientId)).catch(() => {});
+    await db.update(clients).set({ leadId: masterId }).where(eq(clients.id, duplicate.clientId));
   }
 
   // 2) Champs fusionnés (master prioritaire, doublon en complément ; statut le plus avancé).

@@ -75,7 +75,7 @@ export default async function SuiviPage({ params }: { params: Promise<{ token: s
         createdAt:  factures.createdAt,
       })
       .from(factures)
-      .where(eq(factures.clientId, client.id))
+      .where(and(eq(factures.clientId, client.id), isNull(factures.supprimeLe)))
       .orderBy(desc(factures.createdAt))
       .limit(10),
 

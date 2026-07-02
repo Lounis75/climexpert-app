@@ -9,6 +9,9 @@ import { finalizeCerfa, requestCerfaSignature } from "@/lib/cerfa";
 import { finalizeContrat } from "@/lib/contrat-finalize";
 import type { CerfaData } from "@/lib/cerfa-pdf";
 import { SIGNATURE_GERANT_DATAURL, GERANT_NOM, GERANT_QUALITE } from "@/lib/signature-gerant";
+import { planifierSuivis } from "@/lib/interventions";
+import { logError } from "@/lib/observability";
+import { formatDateShortParis } from "@/lib/paris-time";
 
 export async function POST(req: NextRequest) {
   // Clôture autorisée au technicien assigné (terrain) OU à l'administrateur (back-office,
@@ -82,6 +85,19 @@ export async function POST(req: NextRequest) {
     .where(eq(rapportsIntervention.interventionId, interventionId))
     .limit(1);
   if (dejaRapport || interv.status === "terminée") {
+    // Rattrapage : un 1er POST a pu insérer le rapport puis crasher AVANT le passage en
+    // "terminée" (timeout, lambda tuée). On rejoue ici les étapes idempotentes manquantes
+    // au lieu de laisser l'intervention bloquée "en_cours" avec un rapport existant.
+    if (interv.status !== "terminée") {
+      await db.update(interventions).set({
+        status: "terminée",
+        completedAt: interv.completedAt ?? new Date(),
+        version: sql`${interventions.version} + 1`,
+        updatedAt: new Date(),
+      }).where(eq(interventions.id, interventionId));
+    }
+    await planifierSuivis({ id: interventionId, clientId: interv.clientId, completedAt: interv.completedAt ?? new Date() })
+      .catch((e) => logError("rapport.suivis.rattrapage", e, { interventionId }));
     return NextResponse.json({ ok: true, dejaCloture: true });
   }
 
@@ -142,7 +158,17 @@ export async function POST(req: NextRequest) {
       if (contrat && cli) {
         await finalizeContrat({ contrat, client: cli, clientSignatureDataUrl: contratClientSignature });
       }
-    } catch (e) { console.error("[rapport] création contrat:", e); }
+    } catch (e) {
+      // Le client a PHYSIQUEMENT signé sur l'iPad : un échec ici = signature juridiquement
+      // perdue si personne n'est prévenu. On alerte le gérant pour rattrapage manuel.
+      logError("rapport.contrat.creation", e, { interventionId, clientId: interv.clientId });
+      await db.insert(notifications).values({
+        id: createId(), type: "escalade_client",
+        titre: "⚠️ Contrat signé sur iPad NON enregistré, action requise",
+        contenu: `Le client a signé un contrat d'entretien pendant la clôture mais l'enregistrement a échoué. Recréez le contrat manuellement (fiche client) et refaites signer si besoin.`,
+        refType: "intervention", refId: interventionId,
+      }).catch((e2) => logError("rapport.contrat.notif", e2, { interventionId }));
+    }
   }
 
   // Mettre à jour l'intervention
@@ -157,6 +183,11 @@ export async function POST(req: NextRequest) {
     })
     .where(eq(interventions.id, interventionId));
 
+  // Suivis post-chantier (avis J+7, relance J+30, SMS J+365) : c'est ICI la clôture réelle,
+  // sans cet appel les crons de suivi tournent sur une table vide. Idempotent.
+  await planifierSuivis({ id: interventionId, clientId: interv.clientId, completedAt: new Date() })
+    .catch((e) => logError("rapport.suivis", e, { interventionId }));
+
   // Entretien terminé : programmer la relance du client à +330 jours (nouvel entretien).
   if (["entretien", "maintenance", "contrat-pro"].includes(interv.type)) {
     const relance = new Date();
@@ -166,7 +197,7 @@ export async function POST(req: NextRequest) {
       relanceEntretienNotifiee: false,
       version: sql`${clients.version} + 1`,
       updatedAt: new Date(),
-    }).where(eq(clients.id, interv.clientId)).catch((e) => console.error("[rapport] relance entretien:", e));
+    }).where(eq(clients.id, interv.clientId)).catch((e) => logError("rapport.relanceEntretien", e, { interventionId, clientId: interv.clientId }));
   }
 
   // Attestation CERFA : génère le PDF officiel rempli → R2 + fiche client + e-mail au client.
@@ -174,8 +205,7 @@ export async function POST(req: NextRequest) {
   if (cerfa) {
     try {
       const [client] = await db.select().from(clients).where(eq(clients.id, interv.clientId)).limit(1);
-      const t = new Date();
-      const todayFr = `${String(t.getDate()).padStart(2, "0")}/${String(t.getMonth() + 1).padStart(2, "0")}/${t.getFullYear()}`;
+      const todayFr = formatDateShortParis(); // jour civil PARIS (le serveur est en UTC)
       const cerfaData: CerfaData = {
         ...(cerfa as CerfaData),
         detenteur: (cerfa as CerfaData).detenteur ?? { nom: client?.name ?? "", adresse: [client?.address, client?.city].filter(Boolean).join(", ") },
@@ -208,7 +238,15 @@ export async function POST(req: NextRequest) {
         });
       }
     } catch (e) {
-      console.error("[rapport] CERFA:", e);
+      // Attestation réglementaire (fluides F-Gaz) : un échec silencieux = document jamais
+      // produit. On alerte pour régénérer depuis le back-office.
+      logError("rapport.cerfa", e, { interventionId, clientId: interv.clientId });
+      await db.insert(notifications).values({
+        id: createId(), type: "escalade_client",
+        titre: "⚠️ Attestation CERFA non générée, action requise",
+        contenu: "La génération/l'envoi de l'attestation d'intervention a échoué à la clôture. Régénérez-la depuis la fiche intervention.",
+        refType: "intervention", refId: interventionId,
+      }).catch((e2) => logError("rapport.cerfa.notif", e2, { interventionId }));
     }
   }
 

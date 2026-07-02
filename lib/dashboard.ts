@@ -151,7 +151,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       status: factures.status,
       totalCt: sql<number>`coalesce(sum(${factures.totalTtcCt}), 0)`,
       cnt: sql<number>`count(*)`,
-    }).from(factures).groupBy(factures.status),
+    }).from(factures).where(isNull(factures.supprimeLe)).groupBy(factures.status),
 
     // ─ Devis : COUNT par statut
     db.select({
@@ -215,6 +215,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     .from(factures)
     .where(and(
       eq(factures.status, "payée"),
+      isNull(factures.supprimeLe),
       sql`coalesce(${factures.paidAt}, ${factures.createdAt}) >= ${sixMonthsAgo}`,
     )),
   ]);

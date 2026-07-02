@@ -20,7 +20,7 @@ const DUMMY_HASH = hashPassword("climexpert-dummy-password");
 export async function POST(req: NextRequest) {
   // Limite par IP (anti-balayage depuis une source) ET par email (anti-brute-force
   // ciblé via un botnet multi-IP : la clé email plafonne les essais quelle que soit l'IP).
-  if (!rateLimit(`login:ip:${clientIp(req)}`, 10, 15 * 60 * 1000)) {
+  if (!(await rateLimit(`login:ip:${clientIp(req)}`, 10, 15 * 60 * 1000))) {
     return NextResponse.json({ error: "Trop de tentatives. Réessayez dans 15 minutes." }, { status: 429 });
   }
 
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
   }
 
   const emailKey = email.toLowerCase().trim();
-  if (!rateLimit(`login:email:${emailKey}`, 5, 15 * 60 * 1000)) {
+  if (!(await rateLimit(`login:email:${emailKey}`, 5, 15 * 60 * 1000))) {
     return NextResponse.json({ error: "Trop de tentatives sur ce compte. Réessayez dans 15 minutes." }, { status: 429 });
   }
 

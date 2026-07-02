@@ -5,6 +5,7 @@ import { suivisPlanifies, clients, interventions, notifications } from "@/lib/db
 import { eq, and, lte, isNull, sql } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 import { Resend } from "resend";
+import { logError } from "@/lib/observability";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -88,6 +89,15 @@ export async function GET(req: NextRequest) {
 
     if (!html) continue;
 
+    // Claim ATOMIQUE avant envoi : deux exécutions du cron qui se chevauchent (rejeu Vercel)
+    // liraient le même lot "planifie" et enverraient chaque e-mail en double. Seule la
+    // requête qui gagne le passage planifie -> en_cours envoie.
+    const [claimed] = await db.update(suivisPlanifies)
+      .set({ statut: "en_cours" })
+      .where(and(eq(suivisPlanifies.id, suivi.id), eq(suivisPlanifies.statut, "planifie")))
+      .returning({ id: suivisPlanifies.id });
+    if (!claimed) continue;
+
     try {
       await resend.emails.send({
         from: "ClimExpert <noreply@climexpert.fr>",
@@ -101,6 +111,9 @@ export async function GET(req: NextRequest) {
       }).where(eq(suivisPlanifies.id, suivi.id));
       sent++;
     } catch (err) {
+      // Échec d'envoi : on remet en "planifie" pour retenter au prochain passage.
+      await db.update(suivisPlanifies).set({ statut: "planifie" }).where(eq(suivisPlanifies.id, suivi.id)).catch(() => {});
+      logError("cron.suivis.email", err, { suiviId: suivi.id });
       errors.push(`${suivi.id}: ${String(err)}`);
     }
   }

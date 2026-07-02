@@ -132,7 +132,16 @@ function addDaysToDate(d: Date, n: number): string {
   return r.toISOString().slice(0, 10);
 }
 
-async function planifierSuivis(interv: Intervention): Promise<void> {
+// Programme les suivis post-chantier (avis J+7, relance J+30, SMS J+365). Exporté : la clôture
+// réelle passe par la route rapports (pas par updateInterventionStatus). Idempotent : ne replanifie
+// pas si des suivis existent déjà pour cette intervention (clôture rejouée, double appel).
+export async function planifierSuivis(interv: Pick<Intervention, "id" | "clientId" | "completedAt">): Promise<void> {
+  const [deja] = await db
+    .select({ id: suivisPlanifies.id })
+    .from(suivisPlanifies)
+    .where(eq(suivisPlanifies.interventionId, interv.id))
+    .limit(1);
+  if (deja) return;
   const base = interv.completedAt ?? new Date();
   const rows = [
     { typeSuivi: "j7",   canal: "email", datePrevue: addDaysToDate(base, 7)   },

@@ -22,7 +22,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
 // marque le rapport signé (piste d'audit : date + IP).
 export async function POST(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  if (!rateLimit(`attestation:${clientIp(req)}`, 20, 10 * 60 * 1000)) {
+  if (!(await rateLimit(`attestation:${clientIp(req)}`, 20, 10 * 60 * 1000))) {
     return NextResponse.json({ error: "Trop de tentatives, réessayez plus tard." }, { status: 429 });
   }
   const { signature } = await req.json().catch(() => ({}));

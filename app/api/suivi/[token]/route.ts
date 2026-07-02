@@ -41,7 +41,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
         createdAt:  factures.createdAt,
       })
       .from(factures)
-      .where(eq(factures.clientId, client.id))
+      .where(and(eq(factures.clientId, client.id), isNull(factures.supprimeLe)))
       .orderBy(desc(factures.createdAt))
       .limit(10),
 

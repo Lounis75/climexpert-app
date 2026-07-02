@@ -5,7 +5,7 @@ import { updateInterventionStatus, updateInterventionNotes, deleteIntervention, 
 import type { Intervention } from "@/lib/interventions";
 import { db } from "@/lib/db";
 import { interventions, clients, notifications, admins } from "@/lib/db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, notInArray } from "drizzle-orm";
 import { Resend } from "resend";
 import { createId } from "@paralleldrive/cuid2";
 import { randomBytes } from "crypto";
@@ -25,20 +25,33 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       const [interv] = await db.select().from(interventions).where(eq(interventions.id, id)).limit(1);
       if (!interv) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
 
-      await db.update(interventions).set({
+      // Garde d'état atomique : on n'annule pas une intervention déjà terminée (ex. le
+      // technicien vient de la clôturer pendant que l'admin cliquait sur Annuler).
+      const [annulee] = await db.update(interventions).set({
         status: "annulée", annulePar: "admin", motifAnnulation: body.motif || null, version: sql`${interventions.version} + 1`, updatedAt: new Date(),
-      }).where(eq(interventions.id, id));
+      }).where(and(eq(interventions.id, id), notInArray(interventions.status, ["terminée", "annulée"])))
+        .returning({ id: interventions.id });
+      if (!annulee) {
+        return NextResponse.json({ error: "Cette intervention est déjà terminée ou annulée, annulation impossible." }, { status: 409 });
+      }
 
       const [client] = await db.select().from(clients).where(eq(clients.id, interv.clientId)).limit(1);
 
-      // Email client
+      // Email client. Best-effort : l'annulation est DÉJÀ enregistrée ; si l'e-mail échoue,
+      // on répond quand même ok (avec avertissement) au lieu d'un 500 trompeur.
+      let emailEnvoye = false;
       if (client?.email) {
-        await resend.emails.send({
-          from: "ClimExpert <noreply@climexpert.fr>",
-          to: mailRecipient(client.email),
-          subject: "Votre rendez-vous Clim Expert a été annulé",
-          html: `<p>Bonjour ${client.name},</p><p>Votre intervention a été annulée par notre équipe.</p><p>Motif : ${body.motif || "Non précisé"}</p><p>Nous allons vous proposer un nouveau créneau prochainement.</p>`,
-        });
+        try {
+          await resend.emails.send({
+            from: "ClimExpert <noreply@climexpert.fr>",
+            to: mailRecipient(client.email),
+            subject: "Votre rendez-vous Clim Expert a été annulé",
+            html: `<p>Bonjour ${client.name},</p><p>Votre intervention a été annulée par notre équipe.</p><p>Motif : ${body.motif || "Non précisé"}</p><p>Nous allons vous proposer un nouveau créneau prochainement.</p>`,
+          });
+          emailEnvoye = true;
+        } catch (e) {
+          logError("intervention.annulation.email", e, { interventionId: id });
+        }
       }
 
       // Notif technicien
@@ -58,7 +71,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         apres: { status: "annulée", motif: body.motif },
         ip: req.headers.get("x-forwarded-for") ?? undefined,
       });
-      return NextResponse.json({ ok: true });
+      return NextResponse.json({ ok: true, emailEnvoye });
     }
 
     // Report : crée une nouvelle intervention liée
@@ -66,9 +79,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       const [interv] = await db.select().from(interventions).where(eq(interventions.id, id)).limit(1);
       if (!interv) return NextResponse.json({ error: "Introuvable" }, { status: 404 });
 
-      await db.update(interventions).set({
+      // Même garde d'état que l'annulation : on ne reporte pas une intervention terminée/annulée.
+      const [reportee] = await db.update(interventions).set({
         status: "annulée", annulePar: "admin", motifAnnulation: "Report", version: sql`${interventions.version} + 1`, updatedAt: new Date(),
-      }).where(eq(interventions.id, id));
+      }).where(and(eq(interventions.id, id), notInArray(interventions.status, ["terminée", "annulée"])))
+        .returning({ id: interventions.id });
+      if (!reportee) {
+        return NextResponse.json({ error: "Cette intervention est déjà terminée ou annulée, report impossible." }, { status: 409 });
+      }
 
       const newId = createId();
       const rdvToken = randomBytes(32).toString("hex");
@@ -90,7 +108,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       const [admin] = await db.select({ id: admins.id }).from(admins).limit(1);
       if (admin) {
         await db.insert(notifications).values({
-          id: createId(), adminId: admin.id, type: "intervention_planifiee",
+          id: createId(), adminId: null, type: "intervention_planifiee",
           titre: "Intervention reportée, nouvelle intervention créée",
           contenu: `Ancienne ID: ${id}`, refType: "intervention", refId: newId,
         });
@@ -129,7 +147,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
             contenu: body.scheduledAt ? `Le ${new Date(body.scheduledAt).toLocaleString("fr-FR", { timeZone: "Europe/Paris" })}` : "Date à confirmer",
             refType: "intervention", refId: id,
           });
-        } catch (e) { console.error("[planifier] notif technicien:", e); }
+        } catch (e) { logError("intervention.planifier.notifTech", e, { interventionId: id }); }
       }
       return NextResponse.json({ ok: true });
     }

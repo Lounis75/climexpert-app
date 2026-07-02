@@ -1,5 +1,27 @@
-import { calculerDureeTotale, getDuреeDeplacement } from "@/lib/creneaux-pure";
+import { calculerDureeTotale, getDuреeDeplacement, parisHour } from "@/lib/creneaux-pure";
 import { calculerTVA } from "@/lib/tva";
+
+// ── Bornes de journée en heure de Paris (le serveur Vercel tourne en UTC) ─────
+// Ces tests doivent passer QUEL QUE SOIT le fuseau de la machine (CI en UTC comprise).
+describe("parisHour", () => {
+  const afficheParis = (d: Date) =>
+    d.toLocaleTimeString("fr-FR", { timeZone: "Europe/Paris", hour: "2-digit", minute: "2-digit" });
+
+  test("9h Paris en été (UTC+2) -> 07:00 UTC, affiché 09:00 au client", () => {
+    const d = parisHour(new Date("2026-07-15T00:00:00Z"), 9);
+    expect(d.toISOString()).toBe("2026-07-15T07:00:00.000Z");
+    expect(afficheParis(d)).toBe("09:00");
+  });
+  test("9h Paris en hiver (UTC+1) -> 08:00 UTC, affiché 09:00 au client", () => {
+    const d = parisHour(new Date("2026-01-15T00:00:00Z"), 9);
+    expect(d.toISOString()).toBe("2026-01-15T08:00:00.000Z");
+    expect(afficheParis(d)).toBe("09:00");
+  });
+  test("18h Paris en été -> 16:00 UTC", () => {
+    const d = parisHour(new Date("2026-07-15T00:00:00Z"), 18);
+    expect(d.toISOString()).toBe("2026-07-15T16:00:00.000Z");
+  });
+});
 
 // ── Durée de déplacement ──────────────────────────────────────────────────────
 describe("getDuреeDeplacement", () => {

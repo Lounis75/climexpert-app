@@ -6,6 +6,7 @@ import { eq, and, isNull, sql } from "drizzle-orm";
 import { trouverCreneaux } from "@/lib/creneaux";
 import { Resend } from "resend";
 import { randomBytes } from "crypto";
+import { logError } from "@/lib/observability";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -66,6 +67,9 @@ export async function POST(req: NextRequest) {
       </div>
     `).join("");
 
+  // Best-effort : le token et les créneaux sont DÉJÀ enregistrés en base ; si Resend échoue,
+  // on le dit clairement (au lieu d'un 500 brut) pour que l'expéditeur renvoie le lien.
+  try {
   await resend.emails.send({
     from: "ClimExpert <noreply@climexpert.fr>",
     to: emailTo,
@@ -83,6 +87,14 @@ export async function POST(req: NextRequest) {
       </div>
     `,
   });
+  } catch (e) {
+    logError("proposerCreneaux.email", e, { interventionId });
+    return NextResponse.json({
+      ok: false,
+      rdvToken,
+      error: `Les créneaux sont réservés mais l'e-mail n'a pas pu être envoyé à ${emailTo}. Renvoyez le lien ${baseUrl}/rdv/${rdvToken} manuellement.`,
+    }, { status: 502 });
+  }
 
   return NextResponse.json({
     ok: true,

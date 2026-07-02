@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     const ua = req.headers.get("user-agent") ?? "";
     if (BOT_UA.test(ua)) return NextResponse.json({ ok: true, skipped: "bot" });
     // Anti-spam : limite par IP (un vrai visiteur ne dépasse pas ; bloque le gonflage artificiel des stats).
-    if (!rateLimit(`track:${clientIp(req)}`, 80, 5 * 60 * 1000)) return NextResponse.json({ ok: true, skipped: "rate" });
+    if (!(await rateLimit(`track:${clientIp(req)}`, 80, 5 * 60 * 1000))) return NextResponse.json({ ok: true, skipped: "rate" });
 
     const body = await req.json().catch(() => ({}));
     const type = String(body.type ?? "");

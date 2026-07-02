@@ -4,7 +4,7 @@ import { hashPassword } from "@/lib/password";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
-  if (!rateLimit(`activer:${clientIp(req)}`, 10, 15 * 60 * 1000)) {
+  if (!(await rateLimit(`activer:${clientIp(req)}`, 10, 15 * 60 * 1000))) {
     return NextResponse.json({ error: "Trop de tentatives. Réessayez plus tard." }, { status: 429 });
   }
 

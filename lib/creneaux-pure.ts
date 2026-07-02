@@ -30,6 +30,18 @@ export function isJourOuvre(date: Date): boolean {
   return jour >= 1 && jour <= 5;
 }
 
+// Instant UTC correspondant à `hour` h (heure de PARIS) le jour civil UTC de `day`.
+// Indispensable sur Vercel (serveur en UTC) : setHours(9) y produirait 9h UTC, soit 10h/11h
+// à Paris, donc des créneaux proposés au client décalés de 1 à 2 heures.
+export function parisHour(day: Date, hour: number): Date {
+  const utcGuess = Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate(), hour, 0, 0, 0);
+  // Décalage Paris/UTC à cette date (60 min l'hiver, 120 l'été), déduit du rendu localisé.
+  const asParis = new Date(new Date(utcGuess).toLocaleString("en-US", { timeZone: "Europe/Paris" }));
+  const asUTC = new Date(new Date(utcGuess).toLocaleString("en-US", { timeZone: "UTC" }));
+  const offsetMin = Math.round((asParis.getTime() - asUTC.getTime()) / 60000);
+  return new Date(utcGuess - offsetMin * 60000);
+}
+
 export function formatCreneau(debut: Date, fin: Date): string {
   const opts: Intl.DateTimeFormatOptions = { timeZone: "Europe/Paris", weekday: "long", day: "numeric", month: "long" };
   const dateStr = debut.toLocaleDateString("fr-FR", opts);

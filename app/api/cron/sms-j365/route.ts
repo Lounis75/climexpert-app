@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { suivisPlanifies, clients } from "@/lib/db/schema";
 import { eq, and, lte } from "drizzle-orm";
+import { logError } from "@/lib/observability";
 
 export async function GET(req: NextRequest) {
   if (req.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -48,6 +49,13 @@ export async function GET(req: NextRequest) {
     const portalLink = clientToken ? ` Votre espace : ${baseUrl}/suivi/${clientToken}` : "";
     const body = `Bonjour ${clientName ?? ""}, votre climatisation a 1 an ! Pensez à l'entretien annuel pour maintenir ses performances.${portalLink}, Clim Expert`;
 
+    // Claim ATOMIQUE avant envoi : évite le SMS en double si deux exécutions se chevauchent.
+    const [claimed] = await db.update(suivisPlanifies)
+      .set({ statut: "en_cours" })
+      .where(and(eq(suivisPlanifies.id, suivi.id), eq(suivisPlanifies.statut, "planifie")))
+      .returning({ id: suivisPlanifies.id });
+    if (!claimed) continue;
+
     try {
       const res = await fetch(
         `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`,
@@ -61,12 +69,17 @@ export async function GET(req: NextRequest) {
         },
       );
       if (!res.ok) {
+        await db.update(suivisPlanifies).set({ statut: "planifie" }).where(eq(suivisPlanifies.id, suivi.id)).catch(() => {});
+        logError("cron.sms365.twilio", new Error(`HTTP ${res.status}`), { suiviId: suivi.id });
         errors.push(`${suivi.id}: HTTP ${res.status}`);
         continue;
       }
       await db.update(suivisPlanifies).set({ statut: "envoye", dateEnvoi: new Date() }).where(eq(suivisPlanifies.id, suivi.id));
       sent++;
     } catch (err) {
+      // Échec réseau : remise en "planifie" pour retenter demain.
+      await db.update(suivisPlanifies).set({ statut: "planifie" }).where(eq(suivisPlanifies.id, suivi.id)).catch(() => {});
+      logError("cron.sms365", err, { suiviId: suivi.id });
       errors.push(`${suivi.id}: ${String(err)}`);
     }
   }

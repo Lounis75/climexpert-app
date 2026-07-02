@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
   if (!isAdmin) {
     // Anti-abus : limite les uploads anonymes (évite le remplissage du stockage et l'hébergement
     // de contenu arbitraire sous nos URLs). 15 fichiers / 10 min / IP.
-    if (!rateLimit(`upload-devis:${clientIp(req)}`, 15, 10 * 60 * 1000)) {
+    if (!(await rateLimit(`upload-devis:${clientIp(req)}`, 15, 10 * 60 * 1000))) {
       return NextResponse.json({ error: "Trop d'envois, réessayez dans quelques minutes." }, { status: 429 });
     }
   }

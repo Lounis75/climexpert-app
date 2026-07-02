@@ -4,6 +4,9 @@ import { db } from "@/lib/db";
 import { interventions, clients, techniciens, leads } from "@/lib/db/schema";
 import { eq, and, gte, lte, isNull, ne } from "drizzle-orm";
 import { Resend } from "resend";
+import { logError } from "@/lib/observability";
+import { parisHour } from "@/lib/creneaux-pure";
+import { todayParisISO } from "@/lib/paris-time";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -13,8 +16,12 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 function tomorrowRange(): { start: Date; end: Date } {
-  const start = new Date(); start.setDate(start.getDate() + 1); start.setHours(0, 0, 0, 0);
-  const end = new Date(start); end.setHours(23, 59, 59, 999);
+  // "Demain" au sens du jour civil de PARIS : le serveur est en UTC, setHours(0) y donnerait
+  // minuit UTC (1h/2h à Paris) et une intervention à 00h30 serait rappelée le mauvais jour.
+  const [y, m, d] = todayParisISO().split("-").map(Number);
+  const demain = new Date(Date.UTC(y, m - 1, d + 1)); // Date.UTC gère les fins de mois
+  const start = parisHour(demain, 0);
+  const end = new Date(parisHour(demain, 24).getTime() - 1);
   return { start, end };
 }
 const fmtJour = (d: Date) => d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/Paris" });
@@ -56,7 +63,7 @@ export async function GET(req: NextRequest) {
       <p>Un imprévu ? Répondez à cet email ou appelez-nous au 06 67 43 27 67.</p>
       <p style="color:#94a3b8;font-size:12px;">L'équipe Clim Expert</p>
     </div>`;
-    try { await send(i.clientEmail, `Rappel : votre intervention demain à ${fmtHeure(d)}, Clim Expert`, html); r.interventions++; } catch { /* on continue */ }
+    try { await send(i.clientEmail, `Rappel : votre intervention demain à ${fmtHeure(d)}, Clim Expert`, html); r.interventions++; } catch (e) { logError("cron.rappelRdv.intervention", e, { interventionId: i.id }); }
   }
 
   // Rendez-vous commerciaux de demain -> rappel au prospect
@@ -77,7 +84,7 @@ export async function GET(req: NextRequest) {
       <p>Un imprévu ? Répondez à cet email ou appelez-nous au 06 67 43 27 67.</p>
       <p style="color:#94a3b8;font-size:12px;">L'équipe Clim Expert</p>
     </div>`;
-    try { await send(l.email, `Rappel : notre rendez-vous demain à ${fmtHeure(d)}, Clim Expert`, html); r.rdvs++; } catch { /* on continue */ }
+    try { await send(l.email, `Rappel : notre rendez-vous demain à ${fmtHeure(d)}, Clim Expert`, html); r.rdvs++; } catch (e) { logError("cron.rappelRdv.rdv", e, { leadId: l.id }); }
   }
 
   return NextResponse.json({ ok: true, ...r });

@@ -33,7 +33,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
     const [admin] = await db.select({ id: admins.id }).from(admins).limit(1);
     if (admin) {
       await db.insert(notifications).values({
-        id: createId(), adminId: admin.id, type: "annulation",
+        id: createId(), adminId: null, type: "annulation",
         titre: `Annulation client, ${client?.name ?? "inconnu"}`,
         contenu: motif || "Aucun motif fourni",
         refType: "intervention", refId: interv.id,

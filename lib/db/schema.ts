@@ -183,6 +183,10 @@ export const clients = pgTable("clients", {
   dateInstallation:   date("date_installation"),
   technicienId:       text("technicien_id").references(() => techniciens.id),
   garantieExpireLe:   date("garantie_expire_le"),
+  // Cloche "garantie expire bientôt" déjà émise ? (sinon le cron quotidien re-notifiait
+  // le même client chaque jour pendant les 30 jours de la fenêtre). À remettre à null
+  // si la garantie est prolongée.
+  garantieNotifieeLe: timestamp("garantie_notifiee_le"),
   contratEntretienId: text("contrat_entretien_id"),                                // ref logique → contratsEntretien
   // Date à laquelle relancer le client pour son prochain entretien (= dernier entretien + 330 j).
   prochainEntretienLe: date("prochain_entretien_le"),
@@ -195,6 +199,7 @@ export const clients = pgTable("clients", {
 }, (t) => ({
   // Un prospect ne peut donner qu'UN client actif : garde-fou DB contre les doublons de conversion.
   leadUnique: uniqueIndex("clients_lead_id_unique").on(t.leadId).where(sql`lead_id is not null and supprime_le is null`),
+  prochainEntretienIdx: index("clients_prochain_entretien_le_idx").on(t.prochainEntretienLe), // relances entretien (dashboard + cron)
 }));
 
 // ─── Leads ────────────────────────────────────────────────────────────────────
@@ -508,7 +513,10 @@ export const savTickets = pgTable("sav_tickets", {
   description:    text("description"),
   createdAt:      timestamp("created_at").defaultNow().notNull(),
   updatedAt:      timestamp("updated_at").defaultNow().notNull(),
-});
+}, (t) => ({
+  statusIdx: index("sav_tickets_status_idx").on(t.status),   // compteur "ouverts" du dashboard
+  clientIdx: index("sav_tickets_client_id_idx").on(t.clientId), // fiche client + espace client
+}));
 
 // ─── Notifications ────────────────────────────────────────────────────────────
 
@@ -524,7 +532,11 @@ export const notifications = pgTable("notifications", {
   refType:   varchar("ref_type", { length: 50 }),
   refId:     text("ref_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (t) => ({
+  // Cloche admin : COUNT non lues (admin_id IS NULL + lu) à chaque page admin, + tri récent.
+  luAdminIdx:   index("notifications_admin_id_lu_idx").on(t.adminId, t.lu),
+  createdAtIdx: index("notifications_created_at_idx").on(t.createdAt),
+}));
 
 // ─── Logs connexion ───────────────────────────────────────────────────────────
 
@@ -663,7 +675,11 @@ export const suivisPlanifies = pgTable("suivis_planifies", {
   dateEnvoi:      timestamp("date_envoi"),
   reponseClient:  text("reponse_client"),
   createdAt:      timestamp("created_at").defaultNow().notNull(),
-});
+}, (t) => ({
+  // Crons quotidiens : SELECT ... WHERE statut='planifie' AND date_prevue <= aujourd'hui.
+  statutDateIdx: index("suivis_planifies_statut_date_prevue_idx").on(t.statut, t.datePrevue),
+  interventionIdx: index("suivis_planifies_intervention_id_idx").on(t.interventionId), // garde d'idempotence
+}));
 
 // ─── Audit log ────────────────────────────────────────────────────────────────
 

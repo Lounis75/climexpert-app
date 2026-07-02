@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { clients, factures } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, isNull } from "drizzle-orm";
 
 function escapeCsv(v: string | null | undefined): string {
   if (v == null) return "";
@@ -15,7 +15,7 @@ function escapeCsv(v: string | null | undefined): string {
 export async function GET() {
   const [allClients, allFactures] = await Promise.all([
     db.select().from(clients).orderBy(desc(clients.createdAt)),
-    db.select({ clientId: factures.clientId, totalTtcCt: factures.totalTtcCt, status: factures.status }).from(factures),
+    db.select({ clientId: factures.clientId, totalTtcCt: factures.totalTtcCt, status: factures.status }).from(factures).where(isNull(factures.supprimeLe)),
   ]);
 
   const caByClient: Record<string, number> = {};

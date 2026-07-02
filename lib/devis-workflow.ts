@@ -67,7 +67,7 @@ export async function acceptDevis(devisId: string): Promise<{ interventionId?: s
     if (admin) {
       await db.insert(notifications).values({
         id: createId(),
-        adminId: admin.id,
+        adminId: null,
         type: "devis_signe",
         titre: `Devis ${d.number} signé, intervention à planifier`,
         contenu: "Définissez une date et affectez un technicien.",

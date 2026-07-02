@@ -4,6 +4,7 @@
 // et par la clôture terrain (rapport technicien).
 
 import { generateContratPDF, type ContratData } from "@/lib/contrat-pdf";
+import { todayParisISO, formatDateLongParis } from "@/lib/paris-time";
 import { mailRecipient } from "@/lib/mail";
 import { entretienPrix } from "@/lib/contrat-pricing";
 import { r2PutFile } from "@/lib/r2";
@@ -30,7 +31,7 @@ export function buildContratData(contrat: Contrat, client: Client, opts?: { clie
     clientType: client.typeClient === "professionnel" ? "professionnel" : "particulier",
     contract: {
       number: contrat.numero ?? undefined,
-      date: new Date().toISOString().slice(0, 10), // date de signature = aujourd'hui
+      date: todayParisISO(), // date de signature = aujourd'hui (jour civil PARIS, le serveur est en UTC)
       place: "Paris",
       startDate: contrat.startDate,
       visitsPerYear: 1,
@@ -74,7 +75,7 @@ export async function finalizeContrat(opts: {
   const key = `contrats/${opts.contrat.id}-${createId()}.pdf`;
   const url = await r2PutFile(key, pdf, "application/pdf");
 
-  const dateLabel = new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+  const dateLabel = formatDateLongParis();
   await db.insert(documents).values({
     clientId: opts.client.id,
     type: "contrat",

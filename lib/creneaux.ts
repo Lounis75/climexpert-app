@@ -8,6 +8,7 @@ import {
   isJourOuvre,
   formatCreneau,
   getWeekKey,
+  parisHour,
   type Creneau,
 } from "./creneaux-pure";
 
@@ -111,8 +112,7 @@ export async function trouverCreneaux(
         }))
         .sort((a, b) => a.debut.getTime() - b.debut.getTime());
 
-      let slotDebut = new Date(cursor);
-      slotDebut.setHours(9, 0, 0, 0);
+      let slotDebut = parisHour(cursor, 9); // 9h heure de Paris, quel que soit le fuseau serveur
       let found = false;
 
       for (const occ of occupied) {
@@ -123,8 +123,7 @@ export async function trouverCreneaux(
 
       if (!found) {
         const slotFin = new Date(slotDebut.getTime() + dureeTotale * 60000);
-        const endLimit = new Date(cursor);
-        endLimit.setHours(18, 0, 0, 0);
+        const endLimit = parisHour(cursor, 18); // fin de journée 18h heure de Paris
         if (slotFin <= endLimit) found = true;
       }
 

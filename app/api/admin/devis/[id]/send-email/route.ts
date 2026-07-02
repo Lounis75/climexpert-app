@@ -67,7 +67,7 @@ export async function POST(
               Veuillez trouver ci-joint votre devis <strong>${d.number}</strong>
               d'un montant de <strong>${centimesToEuros(totalTtcCt)} TTC</strong>.
             </p>
-            ${d.validUntil ? `<p style="color: #475569; font-size: 14px; margin: 0 0 16px;">Ce devis est valable jusqu'au <strong>${new Date(d.validUntil).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}</strong>.</p>` : ""}
+            ${d.validUntil ? `<p style="color: #475569; font-size: 14px; margin: 0 0 16px;">Ce devis est valable jusqu'au <strong>${new Date(d.validUntil).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Paris" })}</strong>.</p>` : ""}
             ${publicUrl ? `<p style="color: #475569; font-size: 14px; margin: 0 0 16px;">
               Vous pouvez également consulter et <strong>accepter votre devis en ligne</strong> en cliquant sur le bouton ci-dessous.
             </p>` : `<p style="color: #475569; font-size: 14px; margin: 0;">
