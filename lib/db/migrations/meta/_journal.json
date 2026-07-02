@@ -379,6 +379,13 @@
       "when": 1783001787398,
       "tag": "0053_garantie_notifiee",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1783009986739,
+      "tag": "0054_devis_envoi_chiffrage",
+      "breakpoints": true
     }
   ]
 }

@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
     description: body.description,
     project: body.project,
     message: body.message,
+    draft: body.draft,
   });
 
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status });

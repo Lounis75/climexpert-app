@@ -283,7 +283,7 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
     if (!client.email.trim()) { setSendErr("Renseigne l'e-mail du client (section A « Client ») pour lui envoyer le devis."); return; }
     setSending(true); setSendErr("");
     try {
-      const res = await fetch("/api/admin/terrain/chiffrage/envoyer", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ leadId, clientId: clientIdRef, clientType, client, lignes: lines, description: devisTitle(), project: prestation }) });
+      const res = await fetch("/api/admin/terrain/chiffrage/envoyer", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ leadId, clientId: clientIdRef, clientType, client, lignes: lines, description: devisTitle(), project: prestation, draft: currentDraft() }) });
       const d = await res.json().catch(() => ({}));
       if (res.ok) { setLeadId(d.leadId); setSent(true); }
       else setSendErr(d.error ?? "Échec de l'envoi.");

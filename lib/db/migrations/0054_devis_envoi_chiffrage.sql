@@ -1,0 +1,1 @@
+ALTER TABLE "devis_envois" ADD COLUMN "chiffrage" text;

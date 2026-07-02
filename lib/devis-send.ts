@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { leads, suivis, devisEnvois } from "@/lib/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, and, isNull } from "drizzle-orm";
 import { randomBytes } from "crypto";
 import { Resend } from "resend";
 import { mailRecipient } from "@/lib/mail";
@@ -21,6 +21,9 @@ export type SendDevisParams = {
   description?: string | null;
   project?: string | null;
   message?: string;
+  // Instantané de l'outil de chiffrage (ChiffrageDraft) : stocké avec l'envoi pour pouvoir
+  // « Modifier et renvoyer » ce devis plus tard.
+  draft?: unknown;
 };
 
 export type SendDevisResult =
@@ -72,10 +75,25 @@ export async function sendChiffrageDevis(params: SendDevisParams): Promise<SendD
   try { url = await r2PutFile(key, buf, "application/pdf"); }
   catch (e) { logError("devis-send.r2", e, { leadId: id }); return { ok: false, status: 500, error: "Échec du stockage du PDF." }; }
 
-  // 5) Enregistrement durable (token) avant l'e-mail
+  // 5) Enregistrement durable (token) avant l'e-mail. Un NOUVEL envoi remplace les devis encore
+  // en attente de ce prospect : on les invalide (le client ne doit plus pouvoir accepter l'ancien
+  // prix via un vieux lien). C'est ce qui permet le « Modifier et renvoyer ».
+  let remplace = false;
+  try {
+    const anciens = await db.update(devisEnvois)
+      .set({ decision: "annule", decisionLe: new Date() })
+      .where(and(eq(devisEnvois.leadId, id), isNull(devisEnvois.decision)))
+      .returning({ id: devisEnvois.id });
+    remplace = anciens.length > 0;
+  } catch (e) {
+    logError("devis-send.remplace", e, { leadId: id });
+  }
   const token = randomBytes(32).toString("hex");
   try {
-    await db.insert(devisEnvois).values({ leadId: id, url, nomFichier: `${number}.pdf`, token, montantCt, envoyeLe: new Date() });
+    await db.insert(devisEnvois).values({
+      leadId: id, url, nomFichier: `${number}.pdf`, token, montantCt, envoyeLe: new Date(),
+      chiffrage: params.draft ? JSON.stringify(params.draft) : null,
+    });
   } catch (e) {
     logError("devis-send.insert", e, { leadId: id });
     return { ok: false, status: 500, error: "Échec de l'enregistrement du devis." };
@@ -90,10 +108,12 @@ export async function sendChiffrageDevis(params: SendDevisParams): Promise<SendD
     await resend.emails.send({
       from: "ClimExpert <noreply@climexpert.fr>",
       to: mailRecipient(email),
-      subject: "Votre devis ClimExpert",
+      subject: remplace ? "Votre devis ClimExpert mis à jour" : "Votre devis ClimExpert",
       html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
         <h2 style="color:#0f172a;">Bonjour ${escapeHtml(lead.name)},</h2>
-        <p>Suite à notre échange, vous trouverez ci-joint votre <strong>devis</strong> d'un montant de <strong>${montantTxt}</strong>.</p>
+        <p>${remplace
+          ? `Voici votre <strong>devis mis à jour</strong>, d'un montant de <strong>${montantTxt}</strong>. Il remplace le précédent (dont le lien n'est plus valable).`
+          : `Suite à notre échange, vous trouverez ci-joint votre <strong>devis</strong> d'un montant de <strong>${montantTxt}</strong>.`}</p>
         ${message ? `<p>${escapeHtml(message).replace(/\n/g, "<br>")}</p>` : ""}
         <p>Pour <strong>valider</strong> ou <strong>décliner</strong> votre devis, c'est en 1 clic :</p>
         <p><a href="${link}" style="background:#0ea5e9;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;font-weight:bold;">Voir mon devis et répondre</a></p>
@@ -120,7 +140,10 @@ export async function sendChiffrageDevis(params: SendDevisParams): Promise<SendD
     version: sql`${leads.version} + 1`, updatedAt: new Date(),
   }).where(eq(leads.id, id));
 
-  await db.insert(suivis).values({ leadId: id, type: "devis", contenu: `Devis envoyé au client (${montantTxt}).` }).catch((e) => logError("devis-send.suivi", e, { leadId: id }));
+  await db.insert(suivis).values({
+    leadId: id, type: "devis",
+    contenu: remplace ? `Devis modifié et renvoyé au client (${montantTxt}), l'ancien lien est invalidé.` : `Devis envoyé au client (${montantTxt}).`,
+  }).catch((e) => logError("devis-send.suivi", e, { leadId: id }));
 
   return { ok: true, leadId: id, montantCt, number };
 }

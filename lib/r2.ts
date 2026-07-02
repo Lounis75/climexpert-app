@@ -13,6 +13,8 @@ export const r2 = new S3Client({
 export const R2_BUCKET = process.env.R2_BUCKET_NAME ?? "climexpert-uploads";
 
 export async function r2GetJSON(key: string): Promise<unknown | null> {
+  // Environnement sans R2 configuré (build local, CI) : fallback assumé, pas d'alerte.
+  if (!process.env.R2_ACCESS_KEY_ID || !process.env.R2_SECRET_ACCESS_KEY) return null;
   try {
     const res = await r2.send(new GetObjectCommand({ Bucket: R2_BUCKET, Key: key }));
     const text = await res.Body!.transformToString();

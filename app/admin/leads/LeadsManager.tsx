@@ -452,6 +452,19 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
     } catch { alert("Erreur réseau, réessayez."); }
   }
 
+  // « Modifier et renvoyer » : recharge le chiffrage de cet envoi dans le brouillon du prospect
+  // puis ouvre l'outil pré-rempli. Le renvoi invalidera automatiquement l'ancien lien client.
+  async function modifierDevis(devisId: string) {
+    const id = selectedLead?.id;
+    if (!id) return;
+    try {
+      const res = await fetch(`/api/admin/leads/${id}/devis/reprendre`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ devisId }) });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) { alert(d.error ?? "Impossible de reprendre ce devis."); return; }
+      window.open(d.url ?? `/admin/terrain/chiffrage?lead=${id}`, "_blank", "noopener");
+    } catch { alert("Erreur réseau, réessayez."); }
+  }
+
   async function patchLeadField(fields: Record<string, unknown>): Promise<boolean> {
     const id = selectedLead?.id;
     if (!id) return false;
@@ -1995,12 +2008,19 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                             {dv.decision === "accepte" ? (
                               <span className="text-emerald-400 text-xs font-medium flex items-center gap-1 flex-shrink-0"><CheckCircle2 className="w-3.5 h-3.5" /> Accepté</span>
                             ) : dv.decision === "refuse" ? (
-                              <span className="text-red-400 text-xs font-medium flex items-center gap-1 flex-shrink-0"><X className="w-3.5 h-3.5" /> Décliné</span>
+                              <>
+                                <span className="text-red-400 text-xs font-medium flex items-center gap-1 flex-shrink-0"><X className="w-3.5 h-3.5" /> Décliné</span>
+                                <button onClick={() => modifierDevis(dv.id)} title="Reprendre ce chiffrage, l'ajuster et renvoyer un devis au client" className="text-violet-300 hover:text-violet-200 text-xs font-medium flex-shrink-0 transition-colors">Modifier et renvoyer</button>
+                              </>
                             ) : dv.decision === "annule" ? (
-                              <span className="text-slate-500 text-xs font-medium flex items-center gap-1 flex-shrink-0 line-through"><X className="w-3.5 h-3.5" /> Annulé</span>
+                              <>
+                                <span className="text-slate-500 text-xs font-medium flex items-center gap-1 flex-shrink-0 line-through"><X className="w-3.5 h-3.5" /> Annulé</span>
+                                <button onClick={() => modifierDevis(dv.id)} title="Reprendre ce chiffrage, l'ajuster et renvoyer un devis au client" className="text-violet-300 hover:text-violet-200 text-xs font-medium flex-shrink-0 transition-colors">Reprendre</button>
+                              </>
                             ) : (
                               <>
                                 <span className="text-violet-300 text-xs font-medium flex items-center gap-1 flex-shrink-0"><Clock className="w-3.5 h-3.5" /> En attente</span>
+                                <button onClick={() => modifierDevis(dv.id)} title="Modifier ce devis et le renvoyer pour signature (l'ancien lien sera invalidé au renvoi)" className="text-violet-300 hover:text-violet-200 text-xs font-medium flex-shrink-0 transition-colors">Modifier</button>
                                 <button onClick={() => annulerDevis(dv.id)} title="Annuler ce devis" className="text-slate-500 hover:text-red-400 text-xs font-medium flex-shrink-0 transition-colors">Annuler</button>
                               </>
                             )}

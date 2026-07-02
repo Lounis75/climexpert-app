@@ -307,6 +307,9 @@ export const devisEnvois = pgTable("devis_envois", {
   decisionLe:  timestamp("decision_le"),
   motifRefus:  text("motif_refus"),
   accepteIp:   varchar("accepte_ip", { length: 50 }),    // IP du client au clic « J'accepte » (preuve du bon pour accord en ligne)
+  // Instantané de l'état de l'outil de chiffrage au moment de l'envoi (JSON ChiffrageDraft).
+  // Permet de « Modifier et renvoyer » un devis : on recharge cet état dans l'outil.
+  chiffrage:   text("chiffrage"),
   createdAt:   timestamp("created_at").defaultNow().notNull(),
 }, (t) => ({
   leadIdx:  index("devis_envois_lead_id_idx").on(t.leadId),
