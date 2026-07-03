@@ -276,6 +276,23 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
       .then(r => r.json())
       .then(d => setDevisHist(d.devis ?? []))
       .catch(() => {});
+    // Champs LOURDS (notes, transcript Alex, qualification, brouillon de chiffrage, photos...)
+    // exclus du Kanban pour l'alléger : on les charge à l'ouverture de la fiche. On ne remplace
+    // QUE ces champs (pas les champs légers), pour ne pas écraser une saisie locale en cours.
+    fetch(`/api/admin/leads/${openLeadId}`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => {
+        const full = d?.lead as Lead | undefined;
+        if (!full) return;
+        const heavy = {
+          notes: full.notes, notesAlex: full.notesAlex, message: full.message,
+          qualification: full.qualification, taches: full.taches, photosUrls: full.photosUrls,
+          piecesJointes: full.piecesJointes, noteEpinglee: full.noteEpinglee, chiffrageBrouillon: full.chiffrageBrouillon,
+        };
+        setSelectedLead((prev) => (prev && prev.id === openLeadId ? ({ ...prev, ...heavy } as Lead) : prev));
+        setLeads((prev) => prev.map((l) => (l.id === openLeadId ? ({ ...l, ...heavy } as Lead) : l)));
+      })
+      .catch(() => {});
   }, [openLeadId]);
 
 

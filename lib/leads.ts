@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { leads, interventions, suivis, techniciens, devisEnvois, clients, type Lead, type NewLead } from "@/lib/db/schema";
 import { eq, desc, isNull, and, inArray, notInArray, ne, isNotNull, asc, ilike, or, count, sql, type SQL } from "drizzle-orm";
 import { qualifTokenValid } from "@/lib/qualif";
+import { getTableColumns } from "drizzle-orm";
 
 export type LeadStatus = "nouveau" | "pas_de_reponse" | "contacté" | "devis_envoyé" | "gagné" | "perdu";
 export type LeadSource = "alex" | "formulaire" | "téléphone" | "whatsapp" | "autre";
@@ -147,6 +148,24 @@ export async function getMontantsDevisByClientIds(clientIds: string[]): Promise<
 
 /** Données du Kanban : jusqu'à `cap` prospects les plus récents PAR colonne (statut),
  *  + le total réel par statut. Évite de charger toute la table. */
+// Colonnes LOURDES exclues du chargement du Kanban : elles ne servent qu'au cockpit (détail),
+// pas aux cartes. Les transcrits Alex (notes/notesAlex, jusqu'à plusieurs Ko) et les JSON
+// (qualification, chiffrageBrouillon, taches) faisaient un payload de 1 à 3 Mo à chaque
+// ouverture de la page la plus utilisée. Elles sont chargées à l'ouverture d'une fiche
+// (GET /api/admin/leads/[id]).
+const HEAVY_LEAD_FIELDS = {
+  notes: null, notesAlex: null, message: null, qualification: null, taches: null,
+  photosUrls: null, piecesJointes: null, noteEpinglee: null, chiffrageBrouillon: null,
+} as const;
+
+function boardLeadColumns() {
+  const { notes, notesAlex, message, qualification, taches, photosUrls, piecesJointes, noteEpinglee, chiffrageBrouillon, ...rest } = getTableColumns(leads);
+  return rest;
+}
+function toBoardLead(row: Record<string, unknown>): Lead {
+  return { ...row, ...HEAVY_LEAD_FIELDS } as Lead;
+}
+
 export async function getLeadsBoard(cap = 50): Promise<{ leads: Lead[]; counts: Record<string, number>; enProductionCount: number }> {
   const enProd = await getEnProductionLeadIdSet();
   const enProdArr = [...enProd];
@@ -157,12 +176,13 @@ export async function getLeadsBoard(cap = 50): Promise<{ leads: Lead[]; counts: 
   for (const r of countRows) counts[r.status] = Number(r.value);
   counts["gagné"] = Math.max(0, (counts["gagné"] ?? 0) - enProd.size); // les "en production" sont masqués
 
+  const cols = boardLeadColumns();
   const perStatus = await Promise.all(STATUS_LIST.map((st) => {
     const conds: SQL[] = [isNull(leads.supprimeLe), isNull(leads.archiveLe), eq(leads.status, st)];
     if (st === "gagné" && enProdArr.length) conds.push(notInArray(leads.id, enProdArr));
-    return db.select().from(leads).where(and(...conds)).orderBy(orderForStatus(st)).limit(cap);
+    return db.select(cols).from(leads).where(and(...conds)).orderBy(orderForStatus(st)).limit(cap);
   }));
-  return { leads: perStatus.flat(), counts, enProductionCount: enProd.size };
+  return { leads: perStatus.flat().map(toBoardLead), counts, enProductionCount: enProd.size };
 }
 
 /** « Charger plus » d'une colonne : prospects suivants d'un statut donné. */
