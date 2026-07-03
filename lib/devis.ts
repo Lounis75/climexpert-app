@@ -115,6 +115,42 @@ export async function createDevis(
   return { ...d, lignes };
 }
 
+/** Modifie le CONTENU d'un devis (lignes, montant, objet, validité, PDF joint) et RÉGÉNÈRE le
+ *  jeton public : l'ancien lien de signature devient invalide (le client ne peut plus signer
+ *  l'ancien montant). Le devis repasse en "brouillon" -> à renvoyer pour une nouvelle signature. */
+export async function updateDevisContent(
+  id: string,
+  data: { description?: string | null; validUntil?: string | null; fichierUrl?: string | null },
+  lignesInput: LigneInput[],
+): Promise<DevisWithLignes | null> {
+  const lignesValues = lignesInput.map((l, i) => ({
+    id: createId(), devisId: id, designation: l.designation, quantite: l.quantite,
+    prixUnitaireCt: Math.round(l.prixUnitaireEuros * 100), tvaRate: l.tvaRate, ordre: i,
+  }));
+  const totalHtCt = lignesValues.reduce((sum, l) => sum + l.quantite * l.prixUnitaireCt, 0);
+  const totalTtcCt = lignesValues.reduce((sum, l) => {
+    const ht = l.quantite * l.prixUnitaireCt;
+    return sum + Math.round(ht * (1 + Number(l.tvaRate) / 100));
+  }, 0);
+
+  const patch: Partial<InferInsertModel<typeof devis>> = {
+    description: data.description ?? null,
+    validUntil: data.validUntil ?? null,
+    totalHtCt, totalTtcCt,
+    status: "brouillon",
+    publicToken: generatePublicToken(), // ← invalide l'ancien lien de signature
+  };
+  if (data.fichierUrl !== undefined) patch.fichierUrl = data.fichierUrl;
+
+  const [d] = await db.update(devis).set(patch).where(eq(devis.id, id)).returning();
+  if (!d) return null;
+
+  // Remplace les lignes
+  await db.delete(lignesDevis).where(eq(lignesDevis.devisId, id));
+  const lignes = lignesValues.length > 0 ? await db.insert(lignesDevis).values(lignesValues).returning() : [];
+  return { ...d, lignes };
+}
+
 export async function getDevisByToken(token: string): Promise<DevisWithLignes | null> {
   const [row] = await db
     .select({ devis: devis, clientName: clients.name, clientEmail: clients.email, leadName: leads.name, leadEmail: leads.email })

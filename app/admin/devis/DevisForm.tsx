@@ -7,18 +7,20 @@ import Link from "next/link";
 import type { Client } from "@/lib/db/schema";
 
 type Prospect = { id: string; name: string; location: string | null };
+// Mode édition : on modifie un devis existant (destinataire figé).
+export type DevisEditData = { id: string; montant: string; objet: string; validUntil: string; fichierUrl: string | null; fichierNom: string | null; cibleLabel: string };
 
-export default function DevisForm({ clients, prospects }: { clients: Client[]; prospects: Prospect[] }) {
+export default function DevisForm({ clients, prospects, edit }: { clients: Client[]; prospects: Prospect[]; edit?: DevisEditData }) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   // Cible du devis : un prospect (lead) OU un client existant
   const [mode, setMode] = useState<"prospect" | "client">(prospects.length > 0 ? "prospect" : "client");
   const [cibleId, setCibleId] = useState(prospects[0]?.id ?? clients[0]?.id ?? "");
-  const [objet, setObjet] = useState("");
-  const [montant, setMontant] = useState("");
-  const [validUntil, setValidUntil] = useState("");
-  const [fichierUrl, setFichierUrl] = useState<string | null>(null);
-  const [fichierNom, setFichierNom] = useState<string | null>(null);
+  const [objet, setObjet] = useState(edit?.objet ?? "");
+  const [montant, setMontant] = useState(edit?.montant ?? "");
+  const [validUntil, setValidUntil] = useState(edit?.validUntil ?? "");
+  const [fichierUrl, setFichierUrl] = useState<string | null>(edit?.fichierUrl ?? null);
+  const [fichierNom, setFichierNom] = useState<string | null>(edit?.fichierNom ?? null);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -46,30 +48,29 @@ export default function DevisForm({ clients, prospects }: { clients: Client[]; p
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    if (!cibleId) { setError(mode === "prospect" ? "Sélectionnez un prospect" : "Sélectionnez un client"); return; }
+    if (!edit && !cibleId) { setError(mode === "prospect" ? "Sélectionnez un prospect" : "Sélectionnez un client"); return; }
     const montantNum = parseFloat(montant);
     if (!Number.isFinite(montantNum) || montantNum <= 0) { setError("Renseignez le montant du devis."); return; }
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/devis", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          [mode === "prospect" ? "leadId" : "clientId"]: cibleId,
-          description: objet || undefined,
-          validUntil: validUntil || undefined,
-          // Devis simple : une seule "ligne" = le montant total (le détail est dans le PDF joint).
-          lignes: [{ designation: objet || "Prestation climatisation", quantite: 1, prixUnitaireEuros: montantNum, tvaRate: "0" }],
-          fichierUrl: fichierUrl ?? undefined,
-        }),
-      });
+      // Devis simple : une seule "ligne" = le montant total (le détail est dans le PDF joint).
+      const payload = {
+        description: objet || undefined,
+        validUntil: validUntil || undefined,
+        lignes: [{ designation: objet || "Prestation climatisation", quantite: 1, prixUnitaireEuros: montantNum, tvaRate: "0" }],
+        fichierUrl: fichierUrl ?? undefined,
+      };
+      const res = edit
+        ? await fetch(`/api/admin/devis/${edit.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+        : await fetch("/api/admin/devis", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ [mode === "prospect" ? "leadId" : "clientId"]: cibleId, ...payload }) });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
         setError(d.error ?? "Erreur");
         return;
       }
       const { devis } = await res.json();
-      router.push(`/admin/devis/${devis.id}`);
+      router.push(`/admin/devis/${edit ? edit.id : devis.id}`);
+      router.refresh();
     } catch {
       setError("Erreur réseau");
     } finally {
@@ -82,15 +83,27 @@ export default function DevisForm({ clients, prospects }: { clients: Client[]; p
 
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Link href="/admin/devis" className="text-slate-400 hover:text-white transition-colors">
+        <Link href={edit ? `/admin/devis/${edit.id}` : "/admin/devis"} className="text-slate-400 hover:text-white transition-colors">
           <ArrowLeft className="w-4 h-4" />
         </Link>
-        <h1 className="text-2xl font-bold text-white">Nouveau devis</h1>
+        <h1 className="text-2xl font-bold text-white">{edit ? "Modifier le devis" : "Nouveau devis"}</h1>
       </div>
+
+      {edit && (
+        <p className="text-amber-300 text-xs bg-amber-500/10 border border-amber-500/25 rounded-xl px-4 py-3">
+          En enregistrant, le devis repasse en brouillon et <strong>l&apos;ancien lien de signature devient invalide</strong>. Renvoyez ensuite le devis au client pour obtenir une nouvelle signature.
+        </p>
+      )}
 
       <div className="bg-slate-800/40 border border-white/8 rounded-2xl p-6 space-y-4">
 
         {/* Destinataire */}
+        {edit ? (
+          <div>
+            <label className="block text-xs text-slate-400 mb-1.5 font-medium">Destinataire</label>
+            <div className="w-full h-11 px-3 rounded-xl bg-slate-900/60 border border-white/10 text-slate-300 text-sm flex items-center">{edit.cibleLabel}</div>
+          </div>
+        ) : (
         <div>
           <label className="block text-xs text-slate-400 mb-1.5 font-medium">Destinataire *</label>
           <div className="flex gap-1.5 mb-2">
@@ -121,6 +134,7 @@ export default function DevisForm({ clients, prospects }: { clients: Client[]; p
             <p className="text-slate-500 text-[11px] mt-1">Le prospect deviendra client automatiquement à la signature.</p>
           )}
         </div>
+        )}
 
         {/* Montant + validité */}
         <div className="grid sm:grid-cols-2 gap-4">
@@ -195,7 +209,7 @@ export default function DevisForm({ clients, prospects }: { clients: Client[]; p
       )}
 
       <div className="flex justify-end gap-3">
-        <Link href="/admin/devis" className="px-5 py-2.5 text-slate-400 hover:text-white border border-white/10 rounded-xl text-sm transition-colors">
+        <Link href={edit ? `/admin/devis/${edit.id}` : "/admin/devis"} className="px-5 py-2.5 text-slate-400 hover:text-white border border-white/10 rounded-xl text-sm transition-colors">
           Annuler
         </Link>
         <button
@@ -203,7 +217,7 @@ export default function DevisForm({ clients, prospects }: { clients: Client[]; p
           disabled={loading || uploading}
           className="px-6 py-2.5 bg-sky-500 hover:bg-sky-400 disabled:opacity-40 text-white font-semibold text-sm rounded-xl transition-all"
         >
-          {loading ? "Création…" : "Créer le devis"}
+          {loading ? "Enregistrement…" : edit ? "Enregistrer les modifications" : "Créer le devis"}
         </button>
       </div>
     </form>

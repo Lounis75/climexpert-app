@@ -1,7 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDevisById, updateDevisStatus, updateDevisEnvoi, deleteDevis } from "@/lib/devis";
+import { getDevisById, updateDevisStatus, updateDevisEnvoi, updateDevisContent, deleteDevis } from "@/lib/devis";
 import { acceptDevis } from "@/lib/devis-workflow";
 import type { Devis } from "@/lib/devis";
+import { db } from "@/lib/db";
+import { factures } from "@/lib/db/schema";
+import { and, eq, ne, isNull } from "drizzle-orm";
+
+// Modification du CONTENU d'un devis (lignes + montant + objet + PDF). Le renvoi invalide
+// l'ancien lien de signature -> nouvelle signature requise. Interdit sur un devis déjà accepté
+// (c'est un engagement signé : on refait un nouveau devis) ou déjà facturé.
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+    const d = await getDevisById(id);
+    if (!d) return NextResponse.json({ error: "Devis introuvable" }, { status: 404 });
+    if (d.status === "accepté") {
+      return NextResponse.json({ error: "Ce devis est déjà accepté (signé). Pour un changement, créez un nouveau devis." }, { status: 409 });
+    }
+    const [facture] = await db.select({ id: factures.id }).from(factures)
+      .where(and(eq(factures.devisId, id), ne(factures.status, "annulée"), isNull(factures.supprimeLe))).limit(1);
+    if (facture) {
+      return NextResponse.json({ error: "Une facture existe déjà pour ce devis, il n'est plus modifiable." }, { status: 409 });
+    }
+
+    const { description, validUntil, lignes, fichierUrl } = await req.json();
+    if (!lignes?.length) return NextResponse.json({ error: "Au moins une ligne requise" }, { status: 400 });
+
+    const updated = await updateDevisContent(id, { description, validUntil, fichierUrl }, lignes);
+    if (!updated) return NextResponse.json({ error: "Devis introuvable" }, { status: 404 });
+    return NextResponse.json({ devis: updated });
+  } catch {
+    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+  }
+}
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
