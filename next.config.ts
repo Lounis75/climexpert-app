@@ -1,6 +1,25 @@
 import type { NextConfig } from "next";
 
+// Content-Security-Policy. `script-src`/`style-src` autorisent 'unsafe-inline' car Next (hydratation)
+// et nos JSON-LD sont des scripts/styles inline (le nonce imposerait un middleware sur TOUTES les
+// routes, qu'on a justement retiré du site public pour la perf). Le vrai gain ici : bloquer les
+// scripts EXTERNES injectés, l'inclusion en iframe (clickjacking), les plugins, et le détournement
+// de <base>. Images : notre R2 + Unsplash + data/blob (signatures, aperçus).
+const csp = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "frame-ancestors 'self'",
+  "form-action 'self'",
+  "img-src 'self' data: blob: https://*.r2.dev https://*.r2.cloudflarestorage.com https://images.unsplash.com https://*.public.blob.vercel-storage.com",
+  "font-src 'self' data:",
+  "style-src 'self' 'unsafe-inline'",
+  "script-src 'self' 'unsafe-inline'",
+  "connect-src 'self' https:",
+].join("; ");
+
 const securityHeaders = [
+  { key: "Content-Security-Policy", value: csp },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "SAMEORIGIN" },
   { key: "X-XSS-Protection", value: "1; mode=block" },

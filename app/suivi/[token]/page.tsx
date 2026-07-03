@@ -204,7 +204,7 @@ export default async function SuiviPage({ params }: { params: Promise<{ token: s
                       <p className="text-sm font-semibold text-slate-900">{TYPE_LABELS[i.type] ?? i.type}</p>
                       <p className="text-xs text-slate-500">{fmtDateTime(i.scheduledAt)}{i.techName ? `, ${i.techName}` : ""}</p>
                       {i.factureUrl && i.factureEnvoyeeLe && (
-                        <a href={i.factureUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-sky-600 hover:text-sky-700 font-semibold mt-1">
+                        <a href={`/api/suivi/${token}/facture/${i.id}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-sky-600 hover:text-sky-700 font-semibold mt-1">
                           <Download className="w-3 h-3" /> Télécharger ma facture (PDF)
                         </a>
                       )}

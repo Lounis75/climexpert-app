@@ -76,7 +76,7 @@ export async function signTechnicienToken(payload: TechnicienSession): Promise<s
   return new SignJWT({ ...payload, role: "technicien" })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("30d")
+    .setExpirationTime("7d") // session terrain courte (appareil mobile)
     .sign(getSecret());
 }
 
@@ -109,7 +109,7 @@ export async function signCommercialToken(payload: CommercialSession): Promise<s
   return new SignJWT({ ...payload, role: "commercial" })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("30d")
+    .setExpirationTime("7d") // session terrain courte (appareil mobile)
     .sign(getSecret());
 }
 

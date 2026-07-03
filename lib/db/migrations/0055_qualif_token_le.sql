@@ -1,0 +1,1 @@
+ALTER TABLE "leads" ADD COLUMN "qualif_token_le" timestamp;

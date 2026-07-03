@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { leads, interventions, suivis, techniciens, devisEnvois, clients, type Lead, type NewLead } from "@/lib/db/schema";
 import { eq, desc, isNull, and, inArray, notInArray, ne, isNotNull, asc, ilike, or, count, sql, type SQL } from "drizzle-orm";
+import { qualifTokenValid } from "@/lib/qualif";
 
 export type LeadStatus = "nouveau" | "pas_de_reponse" | "contacté" | "devis_envoyé" | "gagné" | "perdu";
 export type LeadSource = "alex" | "formulaire" | "téléphone" | "whatsapp" | "autre";
@@ -129,7 +130,8 @@ export async function getEnProductionLeadIdSet(): Promise<Set<string>> {
 /** Prospect rattaché à un lien personnel de qualification Alex (portail public /qualif/[token]). */
 export async function getLeadByQualifToken(token: string): Promise<Lead | null> {
   const [l] = await db.select().from(leads).where(and(eq(leads.qualifToken, token), isNull(leads.supprimeLe))).limit(1);
-  return l ?? null;
+  if (!l) return null;
+  return qualifTokenValid(l.qualifTokenLe) ? l : null; // lien expiré = introuvable
 }
 
 /** Montant du devis (centimes) par clientId, pour afficher le montant sur les cartes « à affecter ». */

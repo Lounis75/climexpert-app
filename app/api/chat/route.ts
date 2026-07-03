@@ -8,6 +8,7 @@ import { eq, sql } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 import { getAlexConsignes, consignesPromptBlock } from "@/lib/alex-consignes";
+import { qualifTokenValid } from "@/lib/qualif";
 import { escapeHtml } from "@/lib/escape-html";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -407,9 +408,11 @@ export async function POST(req: NextRequest) {
     // Mode « qualif » : conversation rattachée à un prospect EXISTANT via son lien personnel (SMS).
     // Alex connaît déjà son identité et met à jour SA fiche au lieu d'en créer une nouvelle.
     const qualifToken = typeof body.qualifToken === "string" ? body.qualifToken : null;
-    const [qualifLead] = qualifToken
+    const [qualifRow] = qualifToken
       ? await db.select().from(leads).where(eq(leads.qualifToken, qualifToken)).limit(1)
       : [];
+    // Lien de qualif expiré (> 60 j) : on ignore le contexte prospect (Alex repart en mode normal).
+    const qualifLead = qualifRow && qualifTokenValid(qualifRow.qualifTokenLe) ? qualifRow : undefined;
 
     // Borne la taille de l'historique envoyé au modèle (coût d'entrée + DB)
     const messages = body.messages.slice(-40);

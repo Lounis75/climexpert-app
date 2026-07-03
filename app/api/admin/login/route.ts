@@ -5,25 +5,14 @@ import { admins } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { signAdminToken, COOKIE_NAME } from "@/lib/auth";
 import { sessionCookieOptions, clearCookieOptions } from "@/lib/cookie";
-
-const attempts = new Map<string, { count: number; resetAt: number }>();
-
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now();
-  const rec = attempts.get(ip);
-  if (!rec || now > rec.resetAt) {
-    attempts.set(ip, { count: 1, resetAt: now + 15 * 60 * 1000 });
-    return true;
-  }
-  if (rec.count >= 5) return false;
-  rec.count++;
-  return true;
-}
+import { rateLimit, clientIp } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
-
-  if (!checkRateLimit(ip)) {
+  // clientIp() : dernier segment / x-real-ip (posé par Vercel, non falsifiable), pas le PREMIER
+  // segment de x-forwarded-for qui est fourni par le client. Avant, en faisant tourner l'en-tête
+  // X-Forwarded-For, on obtenait une clé différente à chaque requête -> limite inopérante ->
+  // brute-force du code TOTP possible. Store partagé (Upstash si configuré).
+  if (!(await rateLimit(`admin-login:${clientIp(req)}`, 5, 15 * 60 * 1000))) {
     return NextResponse.json(
       { error: "Trop de tentatives. Réessayez dans 15 minutes." },
       { status: 429 }

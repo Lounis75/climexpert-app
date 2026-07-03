@@ -10,8 +10,15 @@ interface Message {
 
 const WELCOME = "Bonjour ! Je suis ton assistant interne ClimExpert. Je peux t'aider à utiliser le logiciel, répondre à des questions sur les process ou sur la climatisation. Comment puis-je t'aider ?";
 
+// On ÉCHAPPE d'abord le HTML (le texte peut contenir < > & venus de la réponse du modèle),
+// puis on n'autorise QUE le gras **...** et les retours à la ligne. Sinon `dangerouslySetInnerHTML`
+// interprèterait n'importe quel HTML présent dans la réponse.
 function formatMessage(text: string) {
-  return text
+  const escaped = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  return escaped
     .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
     .replace(/\n/g, "<br/>");
 }

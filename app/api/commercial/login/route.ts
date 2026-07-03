@@ -4,10 +4,18 @@ import { randomBytes } from "crypto";
 import { db } from "@/lib/db";
 import { techniciens, magicLinkTokens } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { rateLimit, clientIp } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
   const { email } = await req.json();
   if (!email?.trim()) return NextResponse.json({ error: "Email requis" }, { status: 400 });
+
+  const emailKey = email.toLowerCase().trim();
+  // Rate-limit (IP + email) : sans lui, connaissant l'e-mail d'un salarié on pouvait spammer sa
+  // boîte de liens de connexion et épuiser le quota Resend. Réponse neutre (anti-énumération).
+  if (!(await rateLimit(`magic:ip:${clientIp(req)}`, 10, 15 * 60 * 1000)) || !(await rateLimit(`magic:email:${emailKey}`, 4, 15 * 60 * 1000))) {
+    return NextResponse.json({ ok: true });
+  }
 
   const [tech] = await db
     .select()

@@ -6,6 +6,7 @@ import { r2PutFile } from "@/lib/r2";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 import { randomBytes } from "crypto";
 import { logError } from "@/lib/observability";
+import { qualifTokenValid } from "@/lib/qualif";
 
 export const runtime = "nodejs";
 
@@ -20,7 +21,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
   }
 
   const [lead] = await db.select().from(leads).where(and(eq(leads.qualifToken, token), isNull(leads.supprimeLe))).limit(1);
-  if (!lead) return NextResponse.json({ error: "Lien invalide" }, { status: 404 });
+  if (!lead || !qualifTokenValid(lead.qualifTokenLe)) return NextResponse.json({ error: "Lien invalide ou expiré" }, { status: 404 });
 
   const form = await req.formData();
   const file = form.get("file");

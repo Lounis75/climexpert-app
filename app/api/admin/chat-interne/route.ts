@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimit, clientIp } from "@/lib/rate-limit";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -23,7 +24,7 @@ TU AIDES L'ÉQUIPE AVEC :
 ## Processus métier ClimExpert
 - **Alex (chatbot front)** : Qualifie les prospects 24h/24. Les leads arrivant via Alex sont tagués "alex" comme source.
 - **Pipeline commercial** : Lead nouveau → appel dans les 24h → contact établi → devis envoyé → accepté → intervention planifiée → facturée.
-- **Tarifs indicatifs** : Mono-split à partir de 1 800 € TTC, multi-split 2-3 pièces à partir de 3 500 €, gainable à partir de 4 000 €. Toujours "à partir de", jamais de maximum.
+- **Tarifs indicatifs** : monosplit à partir de 3 000 € TTC, bi-split (2 pièces) à partir de 5 000 €, multisplit 3 pièces à partir de 7 000 €, 4 pièces et + à partir de 9 000 €, gainable à partir de 7 000 €, entretien à partir de 200 € TTC. Toujours "à partir de", jamais de maximum.
 - **Zone d'intervention** : Principalement Île-de-France (75, 92, 93, 94, 77, 78, 91, 95).
 
 ## Questions techniques
@@ -38,6 +39,10 @@ RÈGLES :
 
 export async function POST(req: NextRequest) {
   try {
+    // Garde-fou de coût (route authentifiée admin, mais on plafonne la cadence par IP).
+    if (!(await rateLimit(`chat-interne:${clientIp(req)}`, 30, 5 * 60 * 1000))) {
+      return NextResponse.json({ error: "Trop de messages, patientez un instant." }, { status: 429 });
+    }
     const { messages } = await req.json();
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: "messages requis" }, { status: 400 });

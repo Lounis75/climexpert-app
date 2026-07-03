@@ -4,15 +4,29 @@ import { db } from "@/lib/db";
 import { admins } from "@/lib/db/schema";
 import { count } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
+import { timingSafeEqual } from "crypto";
 
-export async function GET() {
+// Secret d'amorçage DÉDIÉ (ne réutilise plus le secret de signature JWT). Repli sur NEXTAUTH_SECRET
+// pour ne pas casser un déploiement existant tant que SETUP_SECRET n'est pas défini.
+const SETUP_SECRET = process.env.SETUP_SECRET || process.env.NEXTAUTH_SECRET || "";
+
+function secretOk(header: string | null): boolean {
+  if (!SETUP_SECRET || !header) return false;
+  const a = Buffer.from(header), b = Buffer.from(SETUP_SECRET);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+// GET protégé : ne divulgue plus publiquement l'existence (ou non) d'un administrateur.
+export async function GET(req: NextRequest) {
+  if (!secretOk(req.headers.get("x-setup-secret"))) {
+    return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
+  }
   const [{ value }] = await db.select({ value: count() }).from(admins);
   return NextResponse.json({ hasAdmins: value > 0 });
 }
 
 export async function POST(req: NextRequest) {
-  const setupSecret = req.headers.get("x-setup-secret");
-  if (!setupSecret || setupSecret !== process.env.NEXTAUTH_SECRET) {
+  if (!secretOk(req.headers.get("x-setup-secret"))) {
     return NextResponse.json({ error: "Non autorisé" }, { status: 403 });
   }
 
