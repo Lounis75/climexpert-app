@@ -5,8 +5,10 @@ import { interventions, clients } from "@/lib/db/schema";
 import { eq, and, isNull, sql } from "drizzle-orm";
 import { trouverCreneaux } from "@/lib/creneaux";
 import { Resend } from "resend";
-import { randomBytes } from "crypto";
+import { randomBytes, timingSafeEqual } from "crypto";
 import { logError } from "@/lib/observability";
+import { rateLimit, clientIp } from "@/lib/rate-limit";
+import { escapeHtml } from "@/lib/escape-html";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -15,24 +17,49 @@ const TYPE_LABELS: Record<string, string> = {
   depannage: "Dépannage", "contrat-pro": "Contrat pro", autre: "Autre",
 };
 
-export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const { interventionId, emailClient, nomClient, typeIntervention, codePostal } = body;
+function secretOk(header: string | null): boolean {
+  const expected = process.env.NEXTAUTH_SECRET ?? "";
+  if (!expected || !header) return false;
+  const a = Buffer.from(header), b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
 
-  if (!interventionId || !emailClient) {
-    return NextResponse.json({ error: "interventionId et emailClient requis" }, { status: 400 });
+// Appelée UNIQUEMENT en interne par le chatbot (serveur -> serveur). Elle réécrit le rdvToken de
+// l'intervention et envoie un e-mail : sans protection, une injection de prompt sur Alex (qui
+// produit le corps CRENEAUX_READY) permettrait de spammer des e-mails depuis notre domaine et
+// d'invalider le lien RDV du vrai client. On exige donc un secret interne, on rate-limite, et on
+// N'UTILISE PAS l'e-mail/nom fournis dans le corps : on prend ceux rattachés à l'intervention en base.
+export async function POST(req: NextRequest) {
+  if (!secretOk(req.headers.get("x-internal-secret"))) {
+    return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+  }
+  if (!(await rateLimit(`proposer-creneaux:${clientIp(req)}`, 20, 10 * 60 * 1000))) {
+    return NextResponse.json({ error: "Trop de demandes" }, { status: 429 });
   }
 
+  const body = await req.json().catch(() => ({}));
+  const { interventionId, typeIntervention, codePostal } = body;
+
+  if (!interventionId) {
+    return NextResponse.json({ error: "interventionId requis" }, { status: 400 });
+  }
+
+  // Intervention + client rattaché (source de vérité pour l'e-mail et le nom, PAS le corps).
   const [interv] = await db
-    .select()
+    .select({ intervention: interventions, clientEmail: clients.email, clientName: clients.name })
     .from(interventions)
+    .leftJoin(clients, eq(interventions.clientId, clients.id))
     .where(and(eq(interventions.id, interventionId), isNull(interventions.supprimeLe)))
     .limit(1);
 
   if (!interv) return NextResponse.json({ error: "intervention not found" }, { status: 404 });
+  const iv = interv.intervention;
+  const emailClient = (interv.clientEmail ?? "").trim();
+  const nomClient = interv.clientName ?? "";
+  if (!emailClient) return NextResponse.json({ error: "Ce client n'a pas d'e-mail" }, { status: 400 });
 
-  const duree = interv.dureeEstimeeMinutes ?? 240;
-  const cp = codePostal ?? interv.codePostal ?? "75001";
+  const duree = iv.dureeEstimeeMinutes ?? 240;
+  const cp = codePostal ?? iv.codePostal ?? "75001";
   const creneaux = await trouverCreneaux(cp, duree, 3);
 
   if (creneaux.length === 0) {
@@ -76,7 +103,7 @@ export async function POST(req: NextRequest) {
     subject: `Votre ${TYPE_LABELS[typeIntervention] ?? typeIntervention} Clim Expert – Choisissez votre créneau`,
     html: `
       <div style="font-family:Arial,sans-serif; max-width:600px; margin:0 auto;">
-        <h2 style="color:#0f172a;">Bonjour ${nomClient},</h2>
+        <h2 style="color:#0f172a;">Bonjour ${escapeHtml(nomClient)},</h2>
         <p>Votre devis a été accepté. Voici 3 créneaux disponibles pour votre <strong>${TYPE_LABELS[typeIntervention] ?? typeIntervention}</strong> :</p>
         ${creneauxHtml}
         <p style="color:#64748b; font-size:13px; margin-top:24px;">

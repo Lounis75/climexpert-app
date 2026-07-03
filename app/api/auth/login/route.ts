@@ -8,6 +8,7 @@ import {
 import { homeSpace } from "@/lib/roles";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 import { sessionCookieOptions, clearCookieOptions } from "@/lib/cookie";
+import speakeasy from "speakeasy";
 
 // Hash factice pour égaliser le temps de réponse : on exécute toujours scrypt,
 // même si le compte n'existe pas, pour ne pas révéler par timing quels emails existent.
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Trop de tentatives. Réessayez dans 15 minutes." }, { status: 429 });
   }
 
-  const { email, password } = await req.json().catch(() => ({}));
+  const { email, password, code } = await req.json().catch(() => ({}));
   if (!email?.trim() || !password) {
     return NextResponse.json({ error: "Identifiant et mot de passe requis" }, { status: 400 });
   }
@@ -42,6 +43,20 @@ export async function POST(req: NextRequest) {
   }
 
   const roles = u.roles ?? [];
+
+  // 2FA obligatoire pour les ADMINISTRATEURS qui ont configuré un secret TOTP : le mot de passe
+  // seul ne suffit pas à ouvrir l'espace admin (sinon la 2FA de la page Sécurité était
+  // contournable par ce login unifié). Le code est demandé en 2e étape.
+  if (roles.includes("administrateur") && u.totpSecret) {
+    if (!code) {
+      return NextResponse.json({ need2fa: true }, { status: 200 });
+    }
+    const valid = speakeasy.totp.verify({ secret: u.totpSecret, encoding: "base32", token: String(code), window: 1 });
+    if (!valid) {
+      return NextResponse.json({ error: "Code de vérification invalide", need2fa: true }, { status: 401 });
+    }
+  }
+
   const fullName = u.prenom ? `${u.prenom} ${u.nom}` : u.nom;
   const cookieOpts = sessionCookieOptions(req.headers.get("host"));
 

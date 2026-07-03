@@ -23,10 +23,12 @@ function matchesAny(pathname: string, paths: string[]): boolean {
   return paths.some((p) => pathname === p || pathname.startsWith(p + "/"));
 }
 
-/** Garde optimiste : exige un cookie de session au JWT valide (signature + expiration).
- *  L'autorisation fine (rôle, compte actif/non supprimé) est faite dans la couche
- *  données — la doc Next recommande de ne PAS faire d'auth complète dans le proxy. */
-async function guardSpace(req: NextRequest, cookieName: string, loginPath: string): Promise<NextResponse> {
+/** Garde : exige un cookie de session au JWT valide (signature + expiration) ET dont le claim
+ *  `role` correspond à l'espace demandé. SANS ce contrôle de rôle, un salarié pouvait copier son
+ *  jeton technicien/commercial dans le cookie `admin_token` (même secret de signature) et passer
+ *  le proxy sur /api/admin. La vérification fine du compte (actif / non supprimé) reste faite
+ *  dans la couche données. */
+async function guardSpace(req: NextRequest, cookieName: string, loginPath: string, expectedRole: string): Promise<NextResponse> {
   const { pathname } = req.nextUrl;
   const isApi = pathname.startsWith("/api/");
   const token = req.cookies.get(cookieName)?.value;
@@ -36,10 +38,11 @@ async function guardSpace(req: NextRequest, cookieName: string, loginPath: strin
     return NextResponse.redirect(new URL(loginPath, req.url));
   }
   try {
-    await jwtVerify(token, CACHED_SECRET);
+    const { payload } = await jwtVerify(token, CACHED_SECRET);
+    if (payload.role !== expectedRole) throw new Error("mauvais rôle");
     return NextResponse.next();
   } catch {
-    if (isApi) return NextResponse.json({ error: "Session expirée — reconnectez-vous" }, { status: 401 });
+    if (isApi) return NextResponse.json({ error: "Accès non autorisé — reconnectez-vous" }, { status: 401 });
     const res = NextResponse.redirect(new URL(loginPath, req.url));
     res.cookies.set(cookieName, "", clearCookieOptions(req.headers.get("host")));
     return res;
@@ -67,15 +70,15 @@ export async function proxy(req: NextRequest) {
     // les deux rôles, on laisse donc passer admin_token dessus.
     const clotureApi = pathname === "/api/technicien/rapports" || pathname === "/api/technicien/upload";
     if (clotureApi && !req.cookies.get("tech_token")?.value && req.cookies.get("admin_token")?.value) {
-      return guardSpace(req, "admin_token", "/admin");
+      return guardSpace(req, "admin_token", "/admin", "admin");
     }
-    return guardSpace(req, "tech_token", "/technicien/login");
+    return guardSpace(req, "tech_token", "/technicien/login", "technicien");
   }
 
   // Espace commercial
   if (pathname.startsWith("/commercial") || pathname.startsWith("/api/commercial")) {
     if (matchesAny(pathname, COMMERCIAL_PUBLIC)) return NextResponse.next();
-    return guardSpace(req, "commercial_token", "/commercial/login");
+    return guardSpace(req, "commercial_token", "/commercial/login", "commercial");
   }
 
   if (!pathname.startsWith("/admin") && !pathname.startsWith("/api/admin")) {
@@ -96,10 +99,13 @@ export async function proxy(req: NextRequest) {
   }
 
   try {
-    await jwtVerify(token, CACHED_SECRET);
+    const { payload } = await jwtVerify(token, CACHED_SECRET);
+    // Le jeton doit être un jeton ADMIN : un jeton technicien/commercial (même secret) ne
+    // doit PAS ouvrir l'espace admin, même s'il est placé dans le cookie admin_token.
+    if (payload.role !== "admin") throw new Error("mauvais rôle");
     return NextResponse.next();
   } catch {
-    if (isApiRoute) return NextResponse.json({ error: "Session expirée — reconnectez-vous" }, { status: 401 });
+    if (isApiRoute) return NextResponse.json({ error: "Accès non autorisé — reconnectez-vous" }, { status: 401 });
     const res = NextResponse.redirect(new URL("/admin", req.url));
     res.cookies.set("admin_token", "", clearCookieOptions(req.headers.get("host")));
     return res;

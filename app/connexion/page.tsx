@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Wind, Mail, Lock, ArrowRight } from "lucide-react";
+import { Wind, Mail, Lock, ArrowRight, ShieldCheck } from "lucide-react";
 
 export default function ConnexionPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [code, setCode] = useState("");
+  const [need2fa, setNeed2fa] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -19,13 +21,18 @@ export default function ConnexionPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, code: need2fa ? code : undefined }),
       });
       const data = await res.json();
-      if (res.ok) {
+      if (res.ok && data.need2fa) {
+        // 1re étape validée (mot de passe OK) : on demande le code d'authentification.
+        setNeed2fa(true);
+        setError("");
+      } else if (res.ok) {
         router.push(data.redirect ?? "/admin");
         router.refresh();
       } else {
+        if (data.need2fa) setNeed2fa(true);
         setError(data.error ?? "Échec de la connexion");
       }
     } catch {
@@ -71,17 +78,31 @@ export default function ConnexionPage() {
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                 <input
                   type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-                  required autoComplete="current-password" placeholder="••••••••"
-                  className="w-full bg-slate-900/60 border border-white/10 rounded-xl pl-9 pr-3 py-2.5 text-white text-sm placeholder-slate-600 focus:outline-none focus:border-sky-500/50"
+                  required autoComplete="current-password" placeholder="••••••••" disabled={need2fa}
+                  className="w-full bg-slate-900/60 border border-white/10 rounded-xl pl-9 pr-3 py-2.5 text-white text-sm placeholder-slate-600 focus:outline-none focus:border-sky-500/50 disabled:opacity-60"
                 />
               </div>
             </div>
+            {need2fa && (
+              <div>
+                <label className="text-slate-400 text-xs block mb-1.5">Code de vérification (application 2FA)</label>
+                <div className="relative">
+                  <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-sky-400" />
+                  <input
+                    type="text" inputMode="numeric" autoComplete="one-time-code" value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    required autoFocus placeholder="123456"
+                    className="w-full bg-slate-900/60 border border-sky-500/40 rounded-xl pl-9 pr-3 py-2.5 text-white text-sm tracking-widest placeholder-slate-600 focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+              </div>
+            )}
             <button
               type="submit" disabled={loading}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-white font-semibold rounded-xl text-sm transition-colors"
             >
               {loading ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <ArrowRight className="w-4 h-4" />}
-              Se connecter
+              {need2fa ? "Valider le code" : "Se connecter"}
             </button>
           </form>
         </div>
