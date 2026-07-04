@@ -365,6 +365,22 @@ async function notifyDevisBrouillon(leadId: string, name: string, qualif: Qualif
   }).catch((e) => console.error("[chat] devisBrouillon notif:", e));
 }
 
+const FALLBACK_MESSAGE = "Je rencontre un petit souci technique. Pour ne pas vous faire attendre, laissez-moi votre nom et votre numéro de téléphone : un conseiller vous rappelle rapidement.";
+
+// Alerte équipe en cas de panne IA, throttlée à 1 notification / 15 min (un incident ne doit
+// pas noyer la cloche). Le client, lui, voit le formulaire de secours (flag fallback).
+async function notifyPannePublic() {
+  try {
+    if (await rateLimit("alex:panne:notif", 1, 15 * 60 * 1000)) {
+      await db.insert(notifications).values({
+        adminId: null, type: "alex_panne",
+        titre: "⚠️ Alex est en difficulté (erreur IA)",
+        contenu: "Le chatbot rencontre des erreurs. Les visiteurs voient un formulaire de secours (nom + téléphone) : les contacts sont préservés.",
+      });
+    }
+  } catch (e2) { console.error("[chat] notif panne:", e2); }
+}
+
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
 function buildTranscript(messages: ChatMessage[]): string {
@@ -533,7 +549,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Trop de messages, patientez quelques instants." }, { status: 429 });
     }
 
-    const body: { messages: ChatMessage[]; sessionId?: string; mode?: string; qualifToken?: string } = await req.json();
+    const body: { messages: ChatMessage[]; sessionId?: string; mode?: string; qualifToken?: string; stream?: boolean } = await req.json();
+    const wantStream = body.stream === true;
     const sid = body.sessionId ?? "unknown";
     const mode = body.mode;
 
@@ -576,17 +593,19 @@ PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE 
     // entre visiteurs) est marqué cache_control -> relu à ~0,1x du prix au lieu d'être refacturé
     // plein tarif à chaque message. La partie dynamique (consignes + prospect identifié) reste
     // hors cache, après.
-    const response = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
+    const modelParams = {
+      model: "claude-haiku-4-5-20251001" as const,
       max_tokens: 400,
       system: [
-        { type: "text", text: baseSystem, cache_control: { type: "ephemeral" } },
+        { type: "text" as const, text: baseSystem, cache_control: { type: "ephemeral" as const } },
         ...(extraSystem ? [{ type: "text" as const, text: extraSystem }] : []),
       ],
       messages,
-    });
+    };
 
-    const raw = response.content[0].type === "text" ? response.content[0].text : "";
+    // Post-traitement COMMUN aux deux modes (streaming / classique) : journalisation, marqueurs
+    // LEAD_READY / CRENEAUX_READY / SAV_READY, ou réponse normale. Retourne le payload JSON.
+    const finishReply = async (raw: string): Promise<Record<string, unknown>> => {
 
     // Log chaque échange (fire-and-forget)
     const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
@@ -600,7 +619,7 @@ PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE 
 
     // Mode contact : on renvoie juste la réponse, sans aucune logique lead/créneaux/SAV.
     if (mode === "contact") {
-      return NextResponse.json({ message: raw });
+      return ({ message: raw });
     }
 
     // Détecter proposition de créneaux
@@ -618,10 +637,10 @@ PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE 
             body: JSON.stringify(data),
           });
         }
-        return NextResponse.json({ message, creneauxSent: true });
+        return ({ message, creneauxSent: true });
       } catch (e) {
         console.error("[chat] erreur traitement CRENEAUX_READY:", e);
-        return NextResponse.json({ message: "Les créneaux disponibles vous seront envoyés par email." });
+        return ({ message: "Les créneaux disponibles vous seront envoyés par email." });
       }
     }
 
@@ -658,10 +677,10 @@ PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE 
             });
           }
         }
-        return NextResponse.json({ message, savComplete: true });
+        return ({ message, savComplete: true });
       } catch (e) {
         console.error("[chat] erreur traitement SAV_READY:", e);
-        return NextResponse.json({ message: "Votre demande SAV est bien enregistrée. Notre équipe vous rappelle en priorité." });
+        return ({ message: "Votre demande SAV est bien enregistrée. Notre équipe vous rappelle en priorité." });
       }
     }
 
@@ -678,7 +697,7 @@ PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE 
         if (qualifLead && lead) {
           await updateLeadFromQualif(qualifLead, lead, messages);
           await notifyDevisBrouillon(qualifLead.id, qualifLead.name ?? lead.name ?? "Prospect", buildQualifFromAlex(lead));
-          return NextResponse.json({ message, leadComplete: true, lead });
+          return ({ message, leadComplete: true, lead });
         }
 
         if (lead?.phone) {
@@ -726,7 +745,7 @@ PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE 
               refType: "lead", refId: dejaConnu.id,
             }).catch((e) => console.error("[chat] notif re-contact:", e));
             sendLeadEmails(lead, messages).catch((e) => console.error("[chat] échec envoi email lead:", e));
-            return NextResponse.json({ message, leadComplete: true, lead });
+            return ({ message, leadComplete: true, lead });
           }
 
           try {
@@ -758,32 +777,69 @@ PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE 
           sendLeadEmails(lead, messages).catch((e) => console.error("[chat] échec envoi email lead:", e));
         }
 
-        return NextResponse.json({ message, leadComplete: true, lead });
+        return ({ message, leadComplete: true, lead });
       } catch (e) {
         console.error("[chat] erreur traitement LEAD_READY:", e);
-        return NextResponse.json({ message: "Votre demande est bien enregistrée. Notre équipe vous contacte très prochainement !" });
+        return ({ message: "Votre demande est bien enregistrée. Notre équipe vous contacte très prochainement !" });
       }
     }
 
-    return NextResponse.json({ message: raw });
+    return ({ message: raw });
+    };
+
+    // ── Mode STREAMING : la réponse s'affiche mot à mot (NDJSON, lignes {t:"d"|"done"}). Les
+    // marqueurs (LEAD_READY...) arrivent en DÉBUT de réponse : on bufferise le tout début pour
+    // décider si on streame (message normal) ou si on reste silencieux (le JSON du marqueur ne
+    // doit jamais s'afficher chez le client ; le message propre part dans l'événement done). ──
+    if (wantStream) {
+      const encoder = new TextEncoder();
+      const MARKERS = ["CRENEAUX_READY", "SAV_READY", "LEAD_READY"];
+      const stream = new ReadableStream({
+        async start(controller) {
+          const send = (obj: unknown) => controller.enqueue(encoder.encode(JSON.stringify(obj) + "\n"));
+          let acc = "";
+          let decided: "stream" | "silent" | null = null;
+          try {
+            const s = client.messages.stream(modelParams);
+            for await (const ev of s) {
+              if (ev.type !== "content_block_delta" || ev.delta.type !== "text_delta") continue;
+              const chunk = ev.delta.text;
+              if (decided === "stream") { acc += chunk; send({ t: "d", v: chunk }); continue; }
+              acc += chunk;
+              if (decided === "silent") continue;
+              const head = acc.trimStart();
+              if (MARKERS.some((m) => head.startsWith(m))) { decided = "silent"; continue; }
+              if (head.length >= 15 || !MARKERS.some((m) => m.startsWith(head))) {
+                decided = "stream";
+                if (acc) send({ t: "d", v: acc });
+              }
+            }
+            send({ t: "done", ...(await finishReply(acc)) });
+          } catch (e) {
+            console.error("Chat stream error:", e);
+            await notifyPannePublic();
+            send({ t: "done", fallback: true, message: FALLBACK_MESSAGE });
+          } finally {
+            controller.close();
+          }
+        },
+      });
+      return new Response(stream, {
+        headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-store" },
+      });
+    }
+
+    // ── Mode classique (compatibilité) ──
+    const response = await client.messages.create(modelParams);
+    const raw = response.content[0].type === "text" ? response.content[0].text : "";
+    return NextResponse.json(await finishReply(raw));
   } catch (error) {
     console.error("Chat API error:", error);
     // Panne de l'IA (API indisponible, quota, timeout...) : on ne perd PAS le prospect.
     // 1) Alerte équipe, throttlée à 1 notification / 15 min pour ne pas noyer la cloche pendant
     //    un incident. 2) Le client voit un message de secours + un mini-formulaire (nom, tél)
     //    affiché par l'interface (flag fallback), qui crée le lead via /api/chat/sos.
-    try {
-      if (await rateLimit("alex:panne:notif", 1, 15 * 60 * 1000)) {
-        await db.insert(notifications).values({
-          adminId: null, type: "alex_panne",
-          titre: "⚠️ Alex est en difficulté (erreur IA)",
-          contenu: "Le chatbot rencontre des erreurs. Les visiteurs voient un formulaire de secours (nom + téléphone) : les contacts sont préservés.",
-        });
-      }
-    } catch (e2) { console.error("[chat] notif panne:", e2); }
-    return NextResponse.json({
-      fallback: true,
-      message: "Je rencontre un petit souci technique. Pour ne pas vous faire attendre, laissez-moi votre nom et votre numéro de téléphone : un conseiller vous rappelle rapidement.",
-    });
+    await notifyPannePublic();
+    return NextResponse.json({ fallback: true, message: FALLBACK_MESSAGE });
   }
 }

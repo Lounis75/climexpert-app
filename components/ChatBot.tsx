@@ -79,10 +79,38 @@ export default function ChatBot() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: newMessages, sessionId: sessionId.current, mode: besoinModeRef.current ? "contact" : undefined }),
+        body: JSON.stringify({ messages: newMessages, sessionId: sessionId.current, mode: besoinModeRef.current ? "contact" : undefined, stream: true }),
       });
-      const data = await res.json();
-      setMessages([...newMessages, { role: "assistant", content: data.message || data.error }]);
+      const ct = res.headers.get("content-type") ?? "";
+      let data: { message?: string; error?: string; fallback?: boolean; leadComplete?: boolean; lead?: { name?: string } } = {};
+      if (ct.includes("ndjson") && res.body) {
+        // Streaming : la réponse s'affiche mot à mot (le 1er mot arrive en ~0,5 s au lieu de 2-4 s).
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = "", acc = "";
+        while (true) {
+          const { done: end, value } = await reader.read();
+          if (end) break;
+          buf += decoder.decode(value, { stream: true });
+          const lines = buf.split("\n");
+          buf = lines.pop() ?? "";
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            try {
+              const ev = JSON.parse(line);
+              if (ev.t === "d") {
+                if (!acc) setLoading(false); // 1er mot arrivé : on remplace les pointillés par la bulle
+                acc += ev.v;
+                setMessages([...newMessages, { role: "assistant", content: acc }]);
+              } else if (ev.t === "done") { data = ev; }
+            } catch { /* ligne incomplète, complétée au prochain paquet */ }
+          }
+        }
+        setMessages([...newMessages, { role: "assistant", content: data.message || acc || "..." }]);
+      } else {
+        data = await res.json();
+        setMessages([...newMessages, { role: "assistant", content: data.message || data.error || "..." }]);
+      }
       if (data.fallback) setSosMode(true); // IA en panne : formulaire de secours (nom + tél)
       if (data.leadComplete) {
         setLeadComplete(true);
