@@ -210,12 +210,27 @@ SITUATIONS DE BLOCAGE
 - Question hors climatisation : "Je suis spécialisé uniquement dans la climatisation et le chauffage. Pour autre chose, je ne peux pas vous aider, mais si vous avez un projet clim, je suis là !"
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+QUALIFICATION APPROFONDIE (OPTIONNELLE, avant les coordonnées)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+APRÈS avoir donné l'estimation (étape 5/6) et SEULEMENT si le prospect montre un RÉEL INTÉRÊT (il répond volontiers, pose des questions concrètes, se projette, ce n'est pas juste "je regarde les prix"), propose UNE fois, poliment et sans insister :
+"Si vous avez deux petites minutes, je peux vous poser quelques questions pour affiner et préparer un devis plus précis. On y va ?"
+- S'il refuse ou ne réagit pas : passe directement aux coordonnées (étape suivante), qualifPlus reste false. N'insiste jamais, ne re-propose pas.
+- S'il accepte : pose les questions ci-dessous UNE PAR UNE (courtes, avec des exemples), UNIQUEMENT celles pertinentes pour son projet, puis passe aux coordonnées et mets qualifPlus:true dans LEAD_READY. Ne dépasse pas 5 à 6 questions. Si une info a déjà été donnée, ne la redemande pas.
+
+Questions selon le projet :
+- INSTALLATION : nombre d'unités souhaitées (si pas déjà su) ; est-ce en copropriété ? (si oui, connaissez-vous le syndic ?) ; où sera posée l'unité extérieure et à quelle hauteur/accès (balcon, façade, toiture, RDC, R+2…) ; une marque en tête ou peu importe ? ; un budget approximatif en tête ? ; c'est pour quand (urgent, sous 1 mois, 1 à 3 mois, pas pressé) ?
+- ENTRETIEN : combien d'unités à entretenir ; à quelle hauteur / quel accès ; où est l'unité extérieure (balcon, façade, toiture…) ; quelle marque ; c'est pour quand ?
+- DÉPANNAGE : décrivez précisément le symptôme (ne refroidit plus, fuite, code erreur, bruit…) ; quelle marque et quel âge environ ; est-ce urgent ?
+- DÉPOSE : combien d'unités à retirer ; où et à quelle hauteur/accès ; quelle marque ; une réinstallation est-elle prévue (non / plus tard au même endroit / ailleurs) ; le motif du retrait ?
+Reporte toutes ces réponses dans les champs correspondants de LEAD_READY (budget, delai, copro, syndic, hauteur, emplacementUE, marque, problem) et dans notes pour le reste.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 FORMAT OBLIGATOIRE À LA DERNIÈRE ÉTAPE UNIQUEMENT :
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Quand tu as collecté le nom ET le téléphone ET l'adresse (l'email est optionnel), réponds avec ce format exact (sans rien d'autre avant ou après) :
 
 LEAD_READY
-{"name":"[prénom nom]","phone":"[téléphone]","email":"[email ou vide]","project":"[installation/entretien/depannage/depose/contrat-pro/autre, en minuscules SANS accent]","property":"[type de bien : appartement, maison, local commercial, bureau]","rooms":"[nombre de pièces à climatiser ou d'unités concernées, chiffre seul, ex : 5]","location":"[ville/CP]","address":"[adresse complète : numéro, rue, code postal, ville]","estimate":"[fourchette €]","notes":"[tout détail utile : accessibilité, photos envoyées, HORS IDF si applicable]","refuseContact":false,"typeClient":"[particulier OU professionnel, 'professionnel' si local pro/entreprise/société/contrat-pro, sinon 'particulier']"}
+{"name":"[prénom nom]","phone":"[téléphone]","email":"[email ou vide]","project":"[installation/entretien/depannage/depose/contrat-pro/autre, en minuscules SANS accent]","property":"[type de bien : appartement, maison, local commercial, bureau]","rooms":"[nombre de pièces à climatiser ou d'unités concernées, chiffre seul, ex : 5]","location":"[ville/CP]","address":"[adresse complète : numéro, rue, code postal, ville]","estimate":"[fourchette €]","notes":"[tout détail utile : accessibilité, photos envoyées, HORS IDF si applicable]","refuseContact":false,"typeClient":"[particulier OU professionnel, 'professionnel' si local pro/entreprise/société/contrat-pro, sinon 'particulier']","qualifPlus":[true si tu as fait le tour de questions approfondi ci-dessous, sinon false],"budget":"[budget approximatif si donné, sinon vide]","delai":"[urgence/échéance si donnée : urgent, moins d'1 mois, 1 à 3 mois, pas pressé]","copro":"[installation : oui/non/ne sait pas si copropriété]","syndic":"[nom du syndic si copro, sinon vide]","hauteur":"[accès/hauteur de l'unité extérieure si donné, ex : RDC, R+2, 3 m, nacelle]","emplacementUE":"[emplacement unité extérieure : balcon/jardin/façade/toiture/cour]","marque":"[marque souhaitée ou existante si donnée]","problem":"[dépannage : description précise du symptôme]"}
 MESSAGE
 [Ton message de confirmation chaleureux. Termine TOUJOURS par cette information sur le consentement (formulée naturellement) : "Sauf indication contraire de votre part, nous conservons vos coordonnées pour vous recontacter, uniquement par les équipes ClimExpert, jamais de revente à des tiers."
 En IDF : "Parfait Thomas ! Votre demande est bien enregistrée, un technicien ClimExpert reprend contact avec vous rapidement pour la suite. Sauf indication contraire de votre part, nous conservons vos coordonnées pour vous recontacter, uniquement par les équipes ClimExpert (jamais de revente à des tiers)."
@@ -235,6 +250,43 @@ interface LeadData {
   rooms?: string;            // nombre de pièces à climatiser / d'unités (chiffre)
   refuseContact?: boolean;   // true UNIQUEMENT si la personne refuse le démarchage
   typeClient?: string;       // "particulier" | "professionnel"
+  // ── Champs de la QUALIFICATION APPROFONDIE (remplis seulement si le prospect accepte les 2 min) ──
+  budget?: string;           // budget approximatif
+  delai?: string;            // urgence / échéance
+  copro?: string;            // copropriété (installation) : oui / non / ne sait pas
+  syndic?: string;           // nom du syndic si copro
+  hauteur?: string;          // accès / hauteur de l'unité extérieure
+  emplacementUE?: string;    // emplacement de l'unité extérieure
+  marque?: string;           // marque souhaitée / existante
+  problem?: string;          // description du problème (dépannage)
+  qualifPlus?: boolean;      // true si la qualification approfondie a été menée
+}
+
+function mapOuiNon(v?: string): string | undefined {
+  const s = (v ?? "").toLowerCase();
+  if (!s) return undefined;
+  if (s.includes("oui")) return "Oui";
+  if (s.includes("non")) return "Non";
+  return "Ne sait pas";
+}
+function mapDelai(v?: string): string | undefined {
+  const s = (v ?? "").toLowerCase();
+  if (!s) return undefined;
+  if (s.includes("urgen") || s.includes("vite") || s.includes("rapide") || s.includes("dès que")) return "Urgent";
+  if (s.includes("mois") && (s.includes("1") || s.includes("moins") || s.includes("un"))) return "Moins d'1 mois";
+  if (s.includes("pas pressé") || s.includes("pas presse") || s.includes("plus tard") || s.includes("aucune")) return "Pas pressé";
+  if (s.includes("mois") || s.includes("trimestre")) return "1 à 3 mois";
+  return v;
+}
+function mapEmplacement(v?: string): string | undefined {
+  const s = (v ?? "").toLowerCase();
+  if (!s) return undefined;
+  if (s.includes("balcon")) return "Balcon";
+  if (s.includes("jardin")) return "Jardin";
+  if (s.includes("façade") || s.includes("facade") || s.includes("mur")) return "Façade";
+  if (s.includes("toit")) return "Toiture";
+  if (s.includes("cour")) return "Cour";
+  return "À voir sur place";
 }
 
 // Construit la QUALIFICATION structurée (panneau « Qualification des besoins ») à partir de ce
@@ -260,7 +312,33 @@ function buildQualifFromAlex(lead: LeadData): Qualification {
     else if (q.natureProjet === "Dépose") q.deposeNbUnites = rooms;
     else q.nbUnites = rooms; // installation par défaut
   }
-  if (q.natureProjet === "Dépannage" && lead.notes) q.problemeDescription = lead.notes.slice(0, 500);
+
+  // ── Champs approfondis (présents seulement si Alex a fait le tour long) ──
+  if (lead.budget) q.budget = lead.budget.slice(0, 100);
+  const delai = mapDelai(lead.delai);
+  if (delai) q.delai = delai;
+  const marque = lead.marque?.trim();
+  const hauteur = lead.hauteur?.trim();
+  const emplacement = mapEmplacement(lead.emplacementUE);
+
+  if (q.natureProjet === "Installation") {
+    const copro = mapOuiNon(lead.copro);
+    if (copro) q.copropriete = copro;
+    if (lead.syndic) q.syndic = lead.syndic.slice(0, 200);
+  } else if (q.natureProjet === "Entretien") {
+    if (hauteur) q.entretienHauteur = hauteur;
+    if (emplacement) q.entretienEmplacementUE = emplacement;
+    if (marque) q.entretienMarque = marque;
+  } else if (q.natureProjet === "Dépose") {
+    if (hauteur) q.deposeHauteur = hauteur;
+    if (emplacement) q.deposeEmplacementUE = emplacement;
+    if (marque) q.deposeMarque = marque;
+  } else if (q.natureProjet === "Dépannage") {
+    if (marque) q.depannageMarque = marque;
+    if (lead.problem) q.problemeDescription = lead.problem.slice(0, 500);
+    else if (lead.notes) q.problemeDescription = lead.notes.slice(0, 500);
+  }
+  if (lead.qualifPlus) q.qualifPlus = true;
   return q;
 }
 
@@ -457,7 +535,7 @@ export async function POST(req: NextRequest) {
     const baseSystem = mode === "contact" ? CONTACT_SYSTEM_PROMPT : SYSTEM_PROMPT;
     let extraSystem = consignesPromptBlock(consignes);
     if (qualifLead) {
-      extraSystem += `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nPROSPECT DÉJÀ IDENTIFIÉ (qualification via lien personnel envoyé par l'équipe)\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nCe client t'a été adressé par ClimExpert suite à sa demande (appel ou formulaire sur le site). Tu connais déjà : nom = ${qualifLead.name ?? "?"}, téléphone = ${qualifLead.phone ?? "?"}${qualifLead.location ? `, ville = ${qualifLead.location}` : ""}${qualifLead.project ? `, projet pressenti = ${qualifLead.project}` : ""}. NE REDEMANDE JAMAIS son nom ni son téléphone. Concentre-toi sur la qualification du BESOIN : type de projet exact, nombre de pièces, surface, budget approximatif réaliste, délai souhaité, accès. Sois chaleureux et efficace, puis conclus dès que tu as l'essentiel (pas besoin de redemander les coordonnées avant LEAD_READY).
+      extraSystem += `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nPROSPECT DÉJÀ IDENTIFIÉ (qualification via lien personnel envoyé par l'équipe)\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nCe client t'a été adressé par ClimExpert suite à sa demande (appel ou formulaire sur le site). Tu connais déjà : nom = ${qualifLead.name ?? "?"}, téléphone = ${qualifLead.phone ?? "?"}${qualifLead.location ? `, ville = ${qualifLead.location}` : ""}${qualifLead.project ? `, projet pressenti = ${qualifLead.project}` : ""}. NE REDEMANDE JAMAIS son nom ni son téléphone. Concentre-toi sur la qualification du BESOIN. Ce prospect est venu via un lien personnel, il est donc MOTIVÉ : fais directement le TOUR APPROFONDI (voir section QUALIFICATION APPROFONDIE) sans redemander la permission des 2 minutes, pose les questions pertinentes à son projet une par une, puis conclus. Mets qualifPlus:true dans LEAD_READY. Sois chaleureux et efficace (pas besoin de redemander les coordonnées avant LEAD_READY).
 
 INTERFACE MOBILE À BOUTONS (très important) : le client est sur son téléphone. À CHAQUE FOIS que ta question a des réponses courtes et prévisibles (type de projet, nombre de pièces, type de logement, oui/non, étage, urgence...), termine ton message par UNE SEULE ligne tout à la fin au format exact : "OPTIONS: choix1 | choix2 | choix3" (3 à 5 options courtes). Le client cliquera dessus. Pour une question OUVERTE (décrire librement le besoin, préciser une adresse), NE mets PAS de ligne OPTIONS. Ne mets jamais d'OPTIONS sur le message final de récap.
 

@@ -23,7 +23,8 @@ export type Qualification = {
   plagesHoraires?: string; budget?: string; delai?: string; commentConnu?: string;
   // 📝
   note?: string;
-  qualifieLe?: string; // ISO, renseigné au 1er enregistrement
+  qualifieLe?: string;   // ISO, renseigné au 1er enregistrement
+  qualifPlus?: boolean;  // qualification approfondie menée par Alex (tour long accepté)
   // — anciens champs conservés pour ne pas perdre les données déjà saisies (non affichés) —
   surfaceM2?: string; nbPieces?: string; etageAcces?: string;
   equipementExistant?: string; chauffageActuel?: string;
