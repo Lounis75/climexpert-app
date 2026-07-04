@@ -9,6 +9,7 @@ import { createId } from "@paralleldrive/cuid2";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 import { getAlexConsignes, consignesPromptBlock } from "@/lib/alex-consignes";
 import { qualifTokenValid } from "@/lib/qualif";
+import { type Qualification } from "@/lib/qualification";
 import { escapeHtml } from "@/lib/escape-html";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -214,7 +215,7 @@ FORMAT OBLIGATOIRE À LA DERNIÈRE ÉTAPE UNIQUEMENT :
 Quand tu as collecté le nom ET le téléphone ET l'adresse (l'email est optionnel), réponds avec ce format exact (sans rien d'autre avant ou après) :
 
 LEAD_READY
-{"name":"[prénom nom]","phone":"[téléphone]","email":"[email ou vide]","project":"[installation/entretien/depannage/depose/contrat-pro/autre, en minuscules SANS accent]","property":"[type de bien]","location":"[ville/CP]","address":"[adresse complète : numéro, rue, code postal, ville]","estimate":"[fourchette €]","notes":"[tout détail utile : nombre d'unités, accessibilité, photos envoyées, HORS IDF si applicable]","refuseContact":false,"typeClient":"[particulier OU professionnel, 'professionnel' si local pro/entreprise/société/contrat-pro, sinon 'particulier']"}
+{"name":"[prénom nom]","phone":"[téléphone]","email":"[email ou vide]","project":"[installation/entretien/depannage/depose/contrat-pro/autre, en minuscules SANS accent]","property":"[type de bien : appartement, maison, local commercial, bureau]","rooms":"[nombre de pièces à climatiser ou d'unités concernées, chiffre seul, ex : 5]","location":"[ville/CP]","address":"[adresse complète : numéro, rue, code postal, ville]","estimate":"[fourchette €]","notes":"[tout détail utile : accessibilité, photos envoyées, HORS IDF si applicable]","refuseContact":false,"typeClient":"[particulier OU professionnel, 'professionnel' si local pro/entreprise/société/contrat-pro, sinon 'particulier']"}
 MESSAGE
 [Ton message de confirmation chaleureux. Termine TOUJOURS par cette information sur le consentement (formulée naturellement) : "Sauf indication contraire de votre part, nous conservons vos coordonnées pour vous recontacter, uniquement par les équipes ClimExpert, jamais de revente à des tiers."
 En IDF : "Parfait Thomas ! Votre demande est bien enregistrée, un technicien ClimExpert reprend contact avec vous rapidement pour la suite. Sauf indication contraire de votre part, nous conservons vos coordonnées pour vous recontacter, uniquement par les équipes ClimExpert (jamais de revente à des tiers)."
@@ -231,8 +232,36 @@ interface LeadData {
   address?: string;
   estimate: string;
   notes: string;
+  rooms?: string;            // nombre de pièces à climatiser / d'unités (chiffre)
   refuseContact?: boolean;   // true UNIQUEMENT si la personne refuse le démarchage
   typeClient?: string;       // "particulier" | "professionnel"
+}
+
+// Construit la QUALIFICATION structurée (panneau « Qualification des besoins ») à partir de ce
+// qu'Alex a collecté. Sans ça, les infos ne vivaient que dans le transcript, jamais dans le
+// formulaire pré-rempli pour le commercial/technicien.
+function buildQualifFromAlex(lead: LeadData): Qualification {
+  const q: Qualification = { qualifieLe: new Date().toISOString() };
+  const projNorm = (lead.project ?? "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+  const projMap: Record<string, string> = { installation: "Installation", entretien: "Entretien", depannage: "Dépannage", depose: "Dépose" };
+  if (projMap[projNorm]) q.natureProjet = projMap[projNorm];
+
+  const prop = (lead.property ?? "").toLowerCase();
+  if (prop.includes("apparteme")) q.typeBien = "Appartement";
+  else if (prop.includes("maison")) q.typeBien = "Maison";
+  else if (prop.includes("bureau")) q.typeBien = "Bureau";
+  else if (prop.includes("local") || prop.includes("commerc") || prop.includes("pro")) q.typeBien = "Local commercial";
+
+  q.clientType = String(lead.typeClient ?? "").toLowerCase().includes("pro") ? "Professionnel" : "Particulier";
+
+  const rooms = String(lead.rooms ?? "").match(/\d+/)?.[0];
+  if (rooms) {
+    if (q.natureProjet === "Entretien") q.entretienNbUnites = rooms;
+    else if (q.natureProjet === "Dépose") q.deposeNbUnites = rooms;
+    else q.nbUnites = rooms; // installation par défaut
+  }
+  if (q.natureProjet === "Dépannage" && lead.notes) q.problemeDescription = lead.notes.slice(0, 500);
+  return q;
 }
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
@@ -345,6 +374,11 @@ async function updateLeadFromQualif(existing: typeof leads.$inferSelect, lead: L
     || onlyDigits(existing.name) === onlyDigits(existing.phone)
     || /^\+?[\d\s().-]{6,}$/.test(existing.name.trim());
 
+  // Qualification structurée : on FUSIONNE ce qu'Alex a déduit avec ce qui aurait déjà été saisi
+  // à la main (les valeurs d'Alex complètent/actualisent, sans écraser par du vide).
+  const qualifAlex = buildQualifFromAlex(lead);
+  const mergedQualif = { ...((existing.qualification as Qualification) ?? {}), ...qualifAlex };
+
   try {
     await db.update(leads).set({
       ...(project ? { project } : {}),
@@ -353,6 +387,7 @@ async function updateLeadFromQualif(existing: typeof leads.$inferSelect, lead: L
       ...(lead.location ? { location: lead.location } : {}),
       ...(lead.address ? { address: lead.address } : {}),
       ...(lead.email ? { email: lead.email } : {}),
+      qualification: mergedQualif,
       notes: newNotes,
       status: existing.status === "nouveau" ? "contacté" : existing.status,
       prochaineEtape: "rdv_a_convenir",
@@ -578,6 +613,7 @@ PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE 
               address: lead.address || undefined,
               message: lead.estimate ? `Estimation : ${lead.estimate}` : undefined,
               notes: fullNotes || undefined,
+              qualification: buildQualifFromAlex(lead), // pré-remplit « Qualification des besoins »
               // Consentement par défaut (opt-out) : Alex informe l'utilisateur en fin
               // d'échange qu'il sera recontacté uniquement par les équipes ClimExpert
               // sauf opposition de sa part. Permet la prospection ultérieure (cf. RGPD).
