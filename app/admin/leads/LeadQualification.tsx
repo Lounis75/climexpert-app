@@ -82,14 +82,14 @@ export default function LeadQualification({
                   <div key={c.key} className={c.full || c.type === "textarea" ? "col-span-2" : ""}>
                     <label className="block text-[11px] text-slate-400 mb-1">{c.label}</label>
                     {c.type === "select" ? (
-                      <select value={form[c.key] ?? ""} onChange={(e) => set(c.key, e.target.value)} className={inputCls}>
+                      <select value={(form[c.key] as string | undefined) ?? ""} onChange={(e) => set(c.key, e.target.value)} className={inputCls}>
                         <option value="">Sélectionner</option>
                         {c.options!.map((o) => <option key={o} value={o}>{o}</option>)}
                       </select>
                     ) : c.type === "textarea" ? (
-                      <textarea value={form[c.key] ?? ""} onChange={(e) => set(c.key, e.target.value)} rows={2} placeholder={c.placeholder} className={taCls} />
+                      <textarea value={(form[c.key] as string | undefined) ?? ""} onChange={(e) => set(c.key, e.target.value)} rows={2} placeholder={c.placeholder} className={taCls} />
                     ) : (
-                      <input type={c.type === "number" ? "number" : "text"} inputMode={c.type === "number" ? "numeric" : undefined} value={form[c.key] ?? ""} onChange={(e) => set(c.key, e.target.value)} placeholder={c.placeholder} className={c.type === "number" ? numCls : inputCls} />
+                      <input type={c.type === "number" ? "number" : "text"} inputMode={c.type === "number" ? "numeric" : undefined} value={(form[c.key] as string | undefined) ?? ""} onChange={(e) => set(c.key, e.target.value)} placeholder={c.placeholder} className={c.type === "number" ? numCls : inputCls} />
                     )}
                   </div>
                 ))}
@@ -136,7 +136,7 @@ export default function LeadQualification({
       {!open && alreadyQualified && (
         <div className="px-4 pb-3 -mt-1 text-xs text-slate-400 space-y-0.5">
           {QUALIF_GROUPS.flatMap((g) => g.champs)
-            .filter((c) => c.key !== "note" && (!c.showIf || c.showIf(form)) && (form[c.key] ?? "").trim() !== "")
+            .filter((c) => c.key !== "note" && (!c.showIf || c.showIf(form)) && ((form[c.key] as string | undefined) ?? "").trim() !== "")
             .slice(0, 6)
             .map((c) => (
               <p key={c.key} className="truncate"><span className="text-slate-500">{c.label} :</span> {form[c.key]}</p>
