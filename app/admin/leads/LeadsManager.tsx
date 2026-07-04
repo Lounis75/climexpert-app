@@ -961,6 +961,13 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
           return null;
         })()}
 
+        {/* RDV de visite posé automatiquement par Alex */}
+        {(lead as Lead & { rdvParAlex?: boolean }).rdvParAlex && (
+          <span className="inline-flex items-center gap-1 mt-1.5 ml-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-400/40" title="Rendez-vous de visite posé automatiquement par Alex">
+            <Bot className="w-3 h-3" /> RDV posé par Alex
+          </span>
+        )}
+
         {/* Ligne 3 : dernière activité (ou source) · action rouge / relance planifiée / sous-statut */}
         <div className="flex items-center justify-between gap-2 mt-1.5 flex-wrap">
           {enSommeil ? (

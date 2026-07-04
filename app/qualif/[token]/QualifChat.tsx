@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Send, Zap, CheckCircle2, Phone, Camera } from "lucide-react";
+import { Send, Zap, CheckCircle2, Phone, Camera, CalendarClock } from "lucide-react";
 import { compressImage } from "@/lib/compress-image";
 
 type Message = { role: "user" | "assistant"; content: string };
@@ -15,6 +15,7 @@ function parseDirectives(content: string): { text: string; options: string[]; ph
   let text = content;
   const photo = /\[\[PHOTO\]\]/i.test(text);
   if (photo) text = text.replace(/\[\[PHOTO\]\]/gi, "").trim();
+  text = text.replace(/\[\[RDV\]\]/gi, "").trim(); // marqueur RDV retiré du texte affiché
   let options: string[] = [];
   const m = text.match(/\n?\s*OPTIONS\s*:\s*(.+?)\s*$/i);
   if (m && m.index !== undefined) {
@@ -34,6 +35,11 @@ export default function QualifChat({ token, prenom }: { token: string; prenom: s
   const [done, setDone] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [photoCount, setPhotoCount] = useState(0);
+  const [rdvSlots, setRdvSlots] = useState<{ id: string; label: string }[] | null>(null);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [bookingId, setBookingId] = useState<string | null>(null);
+  const [rdvBooked, setRdvBooked] = useState<string | null>(null);
+  const [rdvError, setRdvError] = useState("");
   const sessionId = useRef(genSessionId());
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -96,6 +102,35 @@ export default function QualifChat({ token, prenom }: { token: string; prenom: s
   })();
   // Le bouton photo n'apparaît QUE quand Alex l'a proposé (marqueur [[PHOTO]]), pas en permanence.
   const photoInvited = messages.some((m) => m.role === "assistant" && /\[\[PHOTO\]\]/i.test(m.content));
+  // Créneaux de visite : Alex émet [[RDV]] pour proposer un rendez-vous, le portail affiche les
+  // vrais créneaux ouverts (Alex n'invente jamais de date).
+  const rdvInvited = messages.some((m) => m.role === "assistant" && /\[\[RDV\]\]/i.test(m.content));
+
+  useEffect(() => {
+    if (rdvInvited && !rdvBooked && rdvSlots === null && !loadingSlots) {
+      setLoadingSlots(true);
+      fetch(`/api/qualif/${token}/rdv`)
+        .then((r) => r.json())
+        .then((d) => setRdvSlots(Array.isArray(d.creneaux) ? d.creneaux : []))
+        .catch(() => setRdvSlots([]))
+        .finally(() => setLoadingSlots(false));
+    }
+  }, [rdvInvited, rdvBooked, rdvSlots, loadingSlots, token]);
+
+  async function bookRdv(slotId: string, label: string) {
+    setBookingId(slotId); setRdvError("");
+    try {
+      const res = await fetch(`/api/qualif/${token}/rdv`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slotId }) });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (d.taken) { setRdvError("Ce créneau vient d'être pris."); const r = await fetch(`/api/qualif/${token}/rdv`).then((x) => x.json()).catch(() => ({})); setRdvSlots(Array.isArray(r.creneaux) ? r.creneaux : []); }
+        else setRdvError(d.error ?? "Réservation impossible, réessayez.");
+        return;
+      }
+      setRdvBooked(d.label ?? label);
+    } catch { setRdvError("Erreur réseau, réessayez."); }
+    finally { setBookingId(null); }
+  }
 
   return (
     <div className="flex flex-col h-[100dvh] bg-slate-50">
@@ -147,6 +182,39 @@ export default function QualifChat({ token, prenom }: { token: string; prenom: s
                     {opt}
                   </button>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* Créneaux de visite proposés par Alex (réservation immédiate) */}
+          {rdvInvited && !rdvBooked && (
+            <div className="pt-1">
+              {loadingSlots ? (
+                <p className="text-slate-400 text-xs">Recherche des créneaux disponibles…</p>
+              ) : rdvSlots && rdvSlots.length > 0 ? (
+                <>
+                  <p className="text-slate-500 text-[11px] mb-1.5 flex items-center gap-1"><CalendarClock className="w-3.5 h-3.5 text-sky-500" /> Choisissez un créneau de visite :</p>
+                  <div className="flex flex-col gap-2">
+                    {rdvSlots.map((s) => (
+                      <button key={s.id} onClick={() => bookRdv(s.id, s.label)} disabled={bookingId !== null}
+                        className="text-left px-4 py-2.5 rounded-xl bg-white border border-sky-200 text-slate-800 text-sm font-medium hover:border-sky-400 hover:bg-sky-50 disabled:opacity-50 active:scale-[0.99] transition-all">
+                        {bookingId === s.id ? "Réservation…" : s.label}
+                      </button>
+                    ))}
+                  </div>
+                  {rdvError && <p className="text-red-500 text-xs mt-1.5">{rdvError}</p>}
+                </>
+              ) : (
+                <p className="text-slate-400 text-xs">Aucun créneau en ligne pour l&apos;instant, notre équipe vous proposera un rendez-vous rapidement.</p>
+              )}
+            </div>
+          )}
+          {rdvBooked && (
+            <div className="bg-sky-50 border border-sky-200 rounded-2xl p-4 flex items-start gap-3">
+              <CalendarClock className="w-5 h-5 text-sky-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sky-800 font-semibold text-sm">Rendez-vous confirmé !</p>
+                <p className="text-sky-600 text-xs mt-0.5">{rdvBooked}. Vous recevez un e-mail de confirmation. À très vite !</p>
               </div>
             </div>
           )}

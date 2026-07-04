@@ -282,6 +282,7 @@ export const leads = pgTable("leads", {
   qualifToken:         varchar("qualif_token", { length: 64 }).unique(), // lien personnel de qualification par Alex (SMS)
   qualifTokenLe:       timestamp("qualif_token_le"), // date d'émission du lien (pour l'expiration)
   qualifLe:            timestamp("qualif_le"),            // date où Alex a qualifié le prospect via le portail
+  rdvParAlex:          boolean("rdv_par_alex").default(false).notNull(), // le RDV de visite a été posé par Alex
 }, (t) => ({
   statusIdx:        index("leads_status_idx").on(t.status),
   sourceIdx:        index("leads_source_idx").on(t.source),
@@ -410,6 +411,23 @@ export const factures = pgTable("factures", {
 }));
 
 // ─── Interventions ────────────────────────────────────────────────────────────
+
+// ─── Créneaux ouverts à Alex (RDV de visite qu'Alex peut poser tout seul) ──────
+// L'admin ouvre des créneaux depuis le planning ; Alex les propose en conversation et en réserve
+// un immédiatement. commercialId : à qui attribuer le RDV (null tant qu'il n'y a pas de commercial).
+export const creneauxAlex = pgTable("creneaux_alex", {
+  id:           text("id").primaryKey().$defaultFn(() => createId()),
+  debut:        timestamp("debut").notNull(),
+  fin:          timestamp("fin").notNull(),
+  commercialId: text("commercial_id").references(() => techniciens.id),
+  statut:       varchar("statut", { length: 20 }).default("ouvert").notNull(), // "ouvert" | "reserve"
+  leadId:       text("lead_id").references(() => leads.id),  // prospect qui a réservé
+  reserveLe:    timestamp("reserve_le"),
+  createdAt:    timestamp("created_at").defaultNow().notNull(),
+  supprimeLe:   timestamp("supprime_le"),
+}, (t) => ({
+  statutDebutIdx: index("creneaux_alex_statut_debut_idx").on(t.statut, t.debut),
+}));
 
 export const interventions = pgTable("interventions", {
   id:                   text("id").primaryKey().$defaultFn(() => createId()),

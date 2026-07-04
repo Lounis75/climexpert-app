@@ -10,6 +10,7 @@ import { rateLimit, clientIp } from "@/lib/rate-limit";
 import { getAlexConsignes, consignesPromptBlock } from "@/lib/alex-consignes";
 import { qualifTokenValid } from "@/lib/qualif";
 import { type Qualification } from "@/lib/qualification";
+import { getOpenSlots } from "@/lib/creneaux-alex";
 import { escapeHtml } from "@/lib/escape-html";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -540,6 +541,13 @@ export async function POST(req: NextRequest) {
 INTERFACE MOBILE À BOUTONS (très important) : le client est sur son téléphone. À CHAQUE FOIS que ta question a des réponses courtes et prévisibles (type de projet, nombre de pièces, type de logement, oui/non, étage, urgence...), termine ton message par UNE SEULE ligne tout à la fin au format exact : "OPTIONS: choix1 | choix2 | choix3" (3 à 5 options courtes). Le client cliquera dessus. Pour une question OUVERTE (décrire librement le besoin, préciser une adresse), NE mets PAS de ligne OPTIONS. Ne mets jamais d'OPTIONS sur le message final de récap.
 
 PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE quand tu le proposes. Propose-le UNE SEULE FOIS, vers la FIN de la qualification (juste avant de conclure), et SEULEMENT pour une INSTALLATION (inutile pour un entretien ou un dépannage). Justifie le gain de temps, par exemple : "Pour gagner du temps et éviter peut-être un déplacement, vous pouvez ajouter une ou deux photos : l'emplacement souhaité, le mur, l'unité extérieure, et votre tableau électrique (ça nous dit si une simple ligne électrique suffit)." Pour faire apparaître le bouton, termine CE message précis par une ligne contenant uniquement [[PHOTO]]. Ne mets [[PHOTO]] sur aucun autre message. Le client peut refuser : dans ce cas, conclus normalement.`;
+
+      // RDV de visite : uniquement si l'équipe a ouvert des créneaux. Alex propose, le portail
+      // affiche les VRAIS créneaux (Alex n'invente jamais de date/heure).
+      const slotsDispo = await getOpenSlots(1);
+      if (slotsDispo.length > 0) {
+        extraSystem += `\n\nRENDEZ-VOUS DE VISITE : des créneaux de visite sont disponibles. Une fois le besoin qualifié (idéalement pour une installation), propose UNE fois au client de fixer un rendez-vous de visite avec un conseiller, par exemple : "Souhaitez-vous que je vous propose un créneau de visite pour affiner votre projet sur place ?" Pour afficher les créneaux réels, termine CE message par une ligne contenant uniquement [[RDV]]. NE DONNE JAMAIS toi-même de date ou d'heure (c'est le portail qui affiche les créneaux réservables). Ne mets [[RDV]] qu'une seule fois. Le client reste libre de refuser.`;
+      }
     }
 
     // Prompt caching : le gros prompt système STATIQUE (~4500 tokens, identique à chaque tour et
