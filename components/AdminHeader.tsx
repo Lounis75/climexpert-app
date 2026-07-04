@@ -137,6 +137,7 @@ export default function AdminHeader() {
     if (!n.refId) return null;
     switch (n.refType) {
       case "lead":         return `/admin/leads?lead=${n.refId}`;
+      case "chiffrage":    return `/admin/terrain/chiffrage?lead=${n.refId}`;
       case "intervention": return `/admin/interventions`;
       case "client":       return `/admin/clients/${n.refId}`;
       case "contrat":      return `/admin/contrats`;

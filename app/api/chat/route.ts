@@ -343,6 +343,21 @@ function buildQualifFromAlex(lead: LeadData): Qualification {
   return q;
 }
 
+// Quand Alex a qualifié EN PROFONDEUR une installation, on prévient l'équipe qu'un devis peut être
+// préparé : l'outil de chiffrage s'ouvrira déjà pré-rempli (pièces, immeuble, dépose...) depuis la
+// qualification. Jamais d'envoi auto : c'est un brouillon à vérifier par un humain.
+async function notifyDevisBrouillon(leadId: string, name: string, qualif: Qualification) {
+  if (!qualif.qualifPlus || qualif.natureProjet !== "Installation") return;
+  const detail = qualif.nbUnites ? `${qualif.nbUnites} unité(s)` : "installation";
+  await db.insert(notifications).values({
+    adminId: null,
+    type: "devis_brouillon",
+    titre: `Devis à préparer, ${name}`,
+    contenu: `${name} a été qualifié en détail par Alex (${detail}). Le chiffrage est pré-rempli : vérifiez et envoyez.`,
+    refType: "chiffrage", refId: leadId,
+  }).catch((e) => console.error("[chat] devisBrouillon notif:", e));
+}
+
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
 function buildTranscript(messages: ChatMessage[]): string {
@@ -655,6 +670,7 @@ PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE 
         // Mode qualif : on MET À JOUR le prospect existant (pas de doublon) + notif "qualifié".
         if (qualifLead && lead) {
           await updateLeadFromQualif(qualifLead, lead, messages);
+          await notifyDevisBrouillon(qualifLead.id, qualifLead.name ?? lead.name ?? "Prospect", buildQualifFromAlex(lead));
           return NextResponse.json({ message, leadComplete: true, lead });
         }
 
@@ -688,8 +704,9 @@ PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE 
           // Persister le lead EN PRIORITÉ : ne jamais le perdre à cause d'un
           // échec d'envoi d'email. En cas d'échec, log bruyant avec les données
           // brutes pour récupération manuelle.
+          const qualifObj = buildQualifFromAlex(lead);
           try {
-            await createLead({
+            const created = await createLead({
               source: "alex",
               name: lead.name,
               phone: lead.phone,
@@ -699,7 +716,7 @@ PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE 
               address: lead.address || undefined,
               message: lead.estimate ? `Estimation : ${lead.estimate}` : undefined,
               notes: fullNotes || undefined,
-              qualification: buildQualifFromAlex(lead), // pré-remplit « Qualification des besoins »
+              qualification: qualifObj, // pré-remplit « Qualification des besoins »
               // Consentement par défaut (opt-out) : Alex informe l'utilisateur en fin
               // d'échange qu'il sera recontacté uniquement par les équipes ClimExpert
               // sauf opposition de sa part. Permet la prospection ultérieure (cf. RGPD).
@@ -707,6 +724,8 @@ PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE 
               consentementLe: new Date(),
               typeClient: String(lead.typeClient ?? "").toLowerCase().includes("pro") ? "professionnel" : "particulier",
             });
+            // Qualif approfondie d'installation -> prévenir qu'un devis brouillon est prêt à valider.
+            await notifyDevisBrouillon(created.id, created.name, qualifObj);
           } catch (e) {
             console.error("[chat] ÉCHEC createLead, lead potentiellement perdu:", e, JSON.stringify(lead));
           }
