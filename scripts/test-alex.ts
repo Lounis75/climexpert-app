@@ -1,0 +1,127 @@
+/**
+ * Jeu de tests du script d'Alex : rejoue des conversations types contre le prompt RÉEL
+ * (lib/alex-prompt.ts) et vérifie les comportements critiques. À lancer avant tout déploiement
+ * qui touche le prompt :
+ *
+ *   npx dotenv -e .env.local -- npx tsx scripts/test-alex.ts
+ *
+ * Coût : quelques centimes (Haiku, temperature 0 pour la reproductibilité).
+ */
+import Anthropic from "@anthropic-ai/sdk";
+import { SYSTEM_PROMPT } from "../lib/alex-prompt";
+
+const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+type Msg = { role: "user" | "assistant"; content: string };
+
+async function reply(messages: Msg[]): Promise<string> {
+  const r = await client.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 400,
+    temperature: 0,
+    system: SYSTEM_PROMPT,
+    messages,
+  });
+  return r.content[0].type === "text" ? r.content[0].text : "";
+}
+
+/** Déroule une conversation : envoie chaque message utilisateur, accumule les réponses. */
+async function converse(userTurns: string[]): Promise<{ transcript: Msg[]; last: string; all: string }> {
+  const transcript: Msg[] = [];
+  let last = "";
+  for (const u of userTurns) {
+    transcript.push({ role: "user", content: u });
+    last = await reply(transcript);
+    transcript.push({ role: "assistant", content: last });
+  }
+  return { transcript, last, all: transcript.filter((m) => m.role === "assistant").map((m) => m.content).join("\n\n") };
+}
+
+function extractLeadJson(text: string): Record<string, unknown> | null {
+  if (!text.includes("LEAD_READY")) return null;
+  const m = text.match(/\{[\s\S]*?\}/);
+  try { return m ? JSON.parse(m[0]) : null; } catch { return null; }
+}
+
+let failures = 0;
+function check(name: string, ok: boolean, detail?: string) {
+  console.log(`${ok ? "✅" : "❌"} ${name}${!ok && detail ? `\n   → ${detail}` : ""}`);
+  if (!ok) failures++;
+}
+
+async function main() {
+  console.log("Jeu de tests Alex (prompt réel, temperature 0)\n");
+
+  // ── 1. Installation 5 pièces : doit aboutir à LEAD_READY complet, prix ≥ plancher ──
+  {
+    const { last, all } = await converse([
+      "Bonjour, je veux installer la climatisation",
+      "Appartement",
+      "5 pièces",
+      "75013",
+      "Marc Test, 0612345678, 35 rue de la Glacière 75013 Paris, pas d'email",
+      "Non merci, pas d'autres questions, c'est tout bon",
+    ]);
+    const lead = extractLeadJson(last) ?? extractLeadJson(all);
+    check("1. Installation 5 pièces → LEAD_READY émis", !!lead, last.slice(0, 200));
+    if (lead) {
+      check("   project = installation", lead.project === "installation", String(lead.project));
+      check("   téléphone capté", String(lead.phone ?? "").replace(/\D/g, "").includes("612345678"), String(lead.phone));
+      const est = parseInt(String(lead.estimate ?? "").replace(/[\s  ]/g, "").match(/(\d{3,6})/)?.[1] ?? "0", 10);
+      check("   estimation ≥ 9 000 € (plancher 4+ pièces)", est >= 9000, `estimate="${lead.estimate}"`);
+    }
+  }
+
+  // ── 2. Clim mobile : doit REFUSER poliment, ne PAS émettre LEAD_READY ──
+  {
+    const { all } = await converse([
+      "Bonjour, ma clim mobile ne refroidit plus, vous pouvez venir la réparer ?",
+      "Oui c'est un climatiseur mobile monobloc sur roulettes",
+    ]);
+    check("2. Clim mobile → hors périmètre annoncé", /mobile|portable/i.test(all) && /(ne prenons pas|pas en charge|spécialisés)/i.test(all), all.slice(-300));
+    check("   pas de LEAD_READY sur une clim mobile", !all.includes("LEAD_READY"), "LEAD_READY émis à tort");
+  }
+
+  // ── 3. Entretien 2 unités : doit proposer le CONTRAT annuel (200 €) ──
+  {
+    const { all } = await converse([
+      "Bonjour, je voudrais faire entretenir ma climatisation",
+      "Appartement, 2 unités intérieures, facilement accessibles",
+      "75015 Paris",
+      "Le dernier entretien date de l'année dernière",
+      "Oui, dites-moi le prix",
+    ]);
+    check("3. Entretien → contrat annuel proposé", /contrat/i.test(all), all.slice(-300));
+    check("   prix entretien cohérent (200 mentionné)", /200/.test(all), all.slice(-300));
+  }
+
+  // ── 4. Dépose : projet reconnu, LEAD_READY project=depose ──
+  {
+    const { last, all } = await converse([
+      "Bonjour, je veux faire retirer une vieille clim de ma façade",
+      "1 unité, en façade au 2e étage, marque Airton",
+      "Je déménage, pas de réinstallation. 92130 Issy-les-Moulineaux",
+      "Paul Test, 0698765432, 10 rue du Test 92130 Issy, pas d'email",
+    ]);
+    const lead = extractLeadJson(last) ?? extractLeadJson(all);
+    check("4. Dépose → LEAD_READY project=depose", lead?.project === "depose", lead ? String(lead.project) : "pas de LEAD_READY");
+  }
+
+  // ── 5. Hors IDF : continue la qualification, note HORS IDF ──
+  {
+    const { last, all } = await converse([
+      "Bonjour, j'aimerais une installation de clim dans ma maison à Lyon",
+      "Maison, 3 pièces",
+      "69003 Lyon",
+      "Julie Test, 0611223344, 5 rue du Test 69003 Lyon, pas d'email",
+      "Non c'est tout, merci",
+    ]);
+    const lead = extractLeadJson(last) ?? extractLeadJson(all);
+    check("5. Hors IDF → qualification menée quand même", !!lead, last.slice(0, 200));
+    if (lead) check("   HORS IDF signalé dans les notes", /hors idf/i.test(String(lead.notes ?? "") + String(lead.location ?? "")), String(lead.notes));
+  }
+
+  console.log(`\n${failures === 0 ? "🎉 Tous les tests passent." : `⚠️ ${failures} échec(s) : relisez le prompt avant de déployer.`}`);
+  process.exit(failures === 0 ? 0 : 1);
+}
+
+main().catch((e) => { console.error(e); process.exit(1); });

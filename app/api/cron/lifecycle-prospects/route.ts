@@ -18,7 +18,22 @@ export async function GET(req: NextRequest) {
   }
 
   const now = new Date();
-  const r = { rappelPasReponse: 0, autoPerdu: 0, rappelDevis: 0, archives: 0 };
+  const r = { rappelPasReponse: 0, autoPerdu: 0, rappelDevis: 0, archives: 0, relanceQualif: 0 };
+
+  // 0) Qualification Alex abandonnée : le prospect a OUVERT son lien /q/ il y a plus de 24 h sans
+  // aller au bout (pas de qualifLe) -> notification « à relancer » (une seule fois). Prospect
+  // chaud : il a cliqué, il s'est arrêté en route.
+  const abandonsQualif = await db.select().from(leads).where(and(
+    isNull(leads.supprimeLe), isNull(leads.archiveLe),
+    isNull(leads.qualifLe), isNull(leads.qualifRelanceLe),
+    lte(leads.qualifOuvertLe, daysAgo(1)),
+  ));
+  for (const l of abandonsQualif) {
+    await notifier("relance_qualif", `Qualification abandonnée : ${l.name}`,
+      `${l.name} a ouvert son lien de qualification sans le terminer. Prospect chaud : relancez-le (SMS du lien à renvoyer depuis sa fiche, ou appel).`, l.id);
+    await db.update(leads).set({ qualifRelanceLe: now }).where(eq(leads.id, l.id));
+    r.relanceQualif++;
+  }
 
   // 1) « Pas de réponse » depuis 5 j, pas encore relancé -> rappel (que faire de ce prospect ?)
   const rappelPR = await db.select().from(leads).where(and(
