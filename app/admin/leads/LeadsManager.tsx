@@ -942,7 +942,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
         {/* Repère qualification Alex : lien envoyé (violet) ou client déjà qualifié (vert) */}
         {(() => {
-          const l = lead as Lead & { qualifToken?: string | null; qualifLe?: string | null };
+          const l = lead as Lead & { qualifToken?: string | null; qualifLe?: string | null; qualifOuvertLe?: string | null };
           if (l.qualifLe) {
             const d = new Date(l.qualifLe);
             const jour = d.toLocaleDateString("fr-FR", { day: "numeric", month: "short", timeZone: "Europe/Paris" });
@@ -950,6 +950,15 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
             return (
               <span className="inline-flex items-center gap-1 mt-1.5 ml-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-400/40" title={`Le client a répondu à Alex et a été qualifié le ${jour} à ${heure}`}>
                 <Bot className="w-3 h-3" /> Répondu {jour} · {heure}
+              </span>
+            );
+          }
+          if (l.qualifOuvertLe) {
+            const d = new Date(l.qualifOuvertLe);
+            const jour = d.toLocaleDateString("fr-FR", { day: "numeric", month: "short", timeZone: "Europe/Paris" });
+            return (
+              <span className="inline-flex items-center gap-1 mt-1.5 ml-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-400/40" title={`Le client a ouvert le lien le ${jour} mais n'a pas terminé : prospect chaud, à relancer`}>
+                <Bot className="w-3 h-3" /> Lien ouvert {jour}
               </span>
             );
           }

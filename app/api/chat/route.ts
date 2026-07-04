@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { Resend } from "resend";
 import { NextRequest, NextResponse } from "next/server";
-import { createLead } from "@/lib/leads";
+import { createLead, findActiveLeadByPhone } from "@/lib/leads";
 import { db } from "@/lib/db";
 import { savTickets, clients, notifications, admins, logsAlex, leads, suivis } from "@/lib/db/schema";
 import { eq, sql } from "drizzle-orm";
@@ -712,6 +712,23 @@ PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE 
           // échec d'envoi d'email. En cas d'échec, log bruyant avec les données
           // brutes pour récupération manuelle.
           const qualifObj = buildQualifFromAlex(lead);
+
+          // Anti-doublon : si un prospect ACTIF porte déjà ce numéro (client qui revient discuter),
+          // on met à jour SA fiche (mêmes règles que le portail de qualif) au lieu d'en créer une 2e.
+          const dejaConnu = await findActiveLeadByPhone(lead.phone).catch(() => null);
+          if (dejaConnu) {
+            await updateLeadFromQualif(dejaConnu, lead, messages);
+            await notifyDevisBrouillon(dejaConnu.id, dejaConnu.name ?? lead.name ?? "Prospect", qualifObj);
+            await db.insert(notifications).values({
+              adminId: null, type: "nouveau_lead",
+              titre: `Prospect déjà connu : ${dejaConnu.name} a reparlé à Alex`,
+              contenu: "Sa fiche a été mise à jour (aucun doublon créé).",
+              refType: "lead", refId: dejaConnu.id,
+            }).catch((e) => console.error("[chat] notif re-contact:", e));
+            sendLeadEmails(lead, messages).catch((e) => console.error("[chat] échec envoi email lead:", e));
+            return NextResponse.json({ message, leadComplete: true, lead });
+          }
+
           try {
             const created = await createLead({
               source: "alex",
@@ -751,9 +768,22 @@ PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE 
     return NextResponse.json({ message: raw });
   } catch (error) {
     console.error("Chat API error:", error);
-    return NextResponse.json(
-      { error: "Une erreur est survenue. Réessayez dans un instant." },
-      { status: 500 }
-    );
+    // Panne de l'IA (API indisponible, quota, timeout...) : on ne perd PAS le prospect.
+    // 1) Alerte équipe, throttlée à 1 notification / 15 min pour ne pas noyer la cloche pendant
+    //    un incident. 2) Le client voit un message de secours + un mini-formulaire (nom, tél)
+    //    affiché par l'interface (flag fallback), qui crée le lead via /api/chat/sos.
+    try {
+      if (await rateLimit("alex:panne:notif", 1, 15 * 60 * 1000)) {
+        await db.insert(notifications).values({
+          adminId: null, type: "alex_panne",
+          titre: "⚠️ Alex est en difficulté (erreur IA)",
+          contenu: "Le chatbot rencontre des erreurs. Les visiteurs voient un formulaire de secours (nom + téléphone) : les contacts sont préservés.",
+        });
+      }
+    } catch (e2) { console.error("[chat] notif panne:", e2); }
+    return NextResponse.json({
+      fallback: true,
+      message: "Je rencontre un petit souci technique. Pour ne pas vous faire attendre, laissez-moi votre nom et votre numéro de téléphone : un conseiller vous rappelle rapidement.",
+    });
   }
 }

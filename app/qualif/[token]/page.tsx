@@ -1,5 +1,8 @@
 import { notFound } from "next/navigation";
 import { getLeadByQualifToken } from "@/lib/leads";
+import { db } from "@/lib/db";
+import { leads } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import QualifChat from "./QualifChat";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +13,12 @@ export default async function QualifPage({ params }: { params: Promise<{ token: 
   const { token } = await params;
   const lead = await getLeadByQualifToken(token);
   if (!lead) notFound();
+  // Funnel « envoyé → ouvert → répondu » : on horodate la 1re ouverture du lien (badge « Lien
+  // ouvert » sur la carte prospect ; permet de relancer ceux qui ont ouvert sans répondre).
+  if (!lead.qualifOuvertLe) {
+    await db.update(leads).set({ qualifOuvertLe: new Date(), updatedAt: new Date() })
+      .where(eq(leads.id, lead.id)).catch(() => {});
+  }
   const prenom = (lead.name || "").trim().split(" ")[0] || "";
   return <QualifChat token={token} prenom={prenom} />;
 }

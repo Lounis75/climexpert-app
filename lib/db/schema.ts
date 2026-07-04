@@ -282,6 +282,8 @@ export const leads = pgTable("leads", {
   qualifToken:         varchar("qualif_token", { length: 64 }).unique(), // lien personnel de qualification par Alex (SMS)
   qualifTokenLe:       timestamp("qualif_token_le"), // date d'émission du lien (pour l'expiration)
   qualifLe:            timestamp("qualif_le"),            // date où Alex a qualifié le prospect via le portail
+  qualifOuvertLe:      timestamp("qualif_ouvert_le"),     // 1re ouverture du lien /q/ par le client (funnel envoyé → ouvert → répondu)
+  qualifRelanceLe:     timestamp("qualif_relance_le"),    // notif « à relancer » déjà émise (qualif ouverte non terminée)
   rdvParAlex:          boolean("rdv_par_alex").default(false).notNull(), // le RDV de visite a été posé par Alex
 }, (t) => ({
   statusIdx:        index("leads_status_idx").on(t.status),

@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, Zap, CheckCircle2, Phone, Camera, CalendarClock } from "lucide-react";
 import { compressImage } from "@/lib/compress-image";
+import ChatSosForm from "@/components/ChatSosForm";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -40,6 +41,7 @@ export default function QualifChat({ token, prenom }: { token: string; prenom: s
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [rdvBooked, setRdvBooked] = useState<string | null>(null);
   const [rdvError, setRdvError] = useState("");
+  const [sosMode, setSosMode] = useState(false); // IA en panne : formulaire de secours
   const sessionId = useRef(genSessionId());
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -61,6 +63,7 @@ export default function QualifChat({ token, prenom }: { token: string; prenom: s
       });
       const data = await res.json();
       setMessages([...newMessages, { role: "assistant", content: data.message || data.error || "..." }]);
+      if (data.fallback) setSosMode(true); // IA en panne : formulaire de secours (nom + tel)
       if (data.leadComplete) setDone(true);
     } catch {
       setMessages([...newMessages, { role: "assistant", content: `Une erreur est survenue. Vous pouvez nous appeler directement au ${COMPANY_PHONE}.` }]);
@@ -228,6 +231,7 @@ export default function QualifChat({ token, prenom }: { token: string; prenom: s
               </div>
             </div>
           )}
+          {sosMode && !done && <ChatSosForm />}
           <div ref={bottomRef} />
         </div>
       </main>

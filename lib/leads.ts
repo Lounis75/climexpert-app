@@ -22,6 +22,22 @@ export type RendezVous = {
   commercialName: string | null;
 };
 
+/** Prospect ACTIF portant ce numéro de téléphone (comparaison sur les 9 derniers chiffres :
+ *  insensible aux espaces, points, +33/0...). Utilisé par le chat public pour METTRE À JOUR la
+ *  fiche existante au lieu de créer un doublon quand un client reparle à Alex. */
+export async function findActiveLeadByPhone(phone: string): Promise<Lead | null> {
+  const digits = (phone ?? "").replace(/\D/g, "").slice(-9);
+  if (digits.length < 9) return null;
+  const [row] = await db.select().from(leads)
+    .where(and(
+      isNull(leads.supprimeLe), isNull(leads.archiveLe),
+      sql`right(regexp_replace(${leads.phone}, '\\D', '', 'g'), 9) = ${digits}`,
+    ))
+    .orderBy(desc(leads.createdAt))
+    .limit(1);
+  return row ?? null;
+}
+
 /** Détecte un prospect actif (non supprimé) avec le même téléphone + nom (insensible
  *  à la casse), pour empêcher les doublons saisis manuellement. */
 export async function findActiveLeadByNamePhone(name: string, phone: string): Promise<Lead | null> {

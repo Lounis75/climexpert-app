@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { MessageCircle, X, Send, ArrowRight, Zap, CheckCircle2 } from "lucide-react";
+import ChatSosForm from "@/components/ChatSosForm";
 
 interface Message {
   role: "user" | "assistant";
@@ -23,6 +24,7 @@ export default function ChatBot() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [leadComplete, setLeadComplete] = useState(false);
+  const [sosMode, setSosMode] = useState(false); // IA en panne : formulaire de secours
   const [leadName, setLeadName] = useState("");
   const sessionId = useRef(genSessionId());
   const [besoinMode, setBesoinMode] = useState(false); // aide à la description du besoin (formulaire contact)
@@ -81,6 +83,7 @@ export default function ChatBot() {
       });
       const data = await res.json();
       setMessages([...newMessages, { role: "assistant", content: data.message || data.error }]);
+      if (data.fallback) setSosMode(true); // IA en panne : formulaire de secours (nom + tél)
       if (data.leadComplete) {
         setLeadComplete(true);
         setLeadName(data.lead?.name || "");
@@ -88,8 +91,9 @@ export default function ChatBot() {
     } catch {
       setMessages([
         ...newMessages,
-        { role: "assistant", content: "Une erreur est survenue. Réessayez ou contactez-nous directement." },
+        { role: "assistant", content: "Je rencontre un petit souci technique. Laissez-moi vos coordonnées, un conseiller vous rappelle rapidement." },
       ]);
+      setSosMode(true);
     } finally {
       setLoading(false);
     }
@@ -207,6 +211,7 @@ export default function ChatBot() {
                   </div>
                 </motion.div>
               )}
+              {sosMode && !leadComplete && <ChatSosForm />}
               <div ref={bottomRef} />
             </div>
 
