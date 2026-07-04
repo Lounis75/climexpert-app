@@ -42,6 +42,23 @@ function extractLeadJson(text: string): Record<string, unknown> | null {
   try { return m ? JSON.parse(m[0]) : null; } catch { return null; }
 }
 
+// Une réponse est FERMÉE si elle ne contient ni question ni demande de coordonnées : le client
+// croit la conversation terminée et part (bug réel du 4 juillet : estimation donnée sans suite).
+// Exceptions légitimes : le message final LEAD_READY (récap) et le refus clim mobile.
+function reponsesFermees(transcript: Msg[]): string[] {
+  const out: string[] = [];
+  let apresLead = false;
+  for (const m of transcript) {
+    if (m.role !== "assistant") continue;
+    if (m.content.includes("LEAD_READY")) { apresLead = true; continue; }
+    if (apresLead) continue; // au revoir post-récap : la conversation est légitimement terminée
+    if (/mobile|portable/i.test(m.content)) continue;
+    if (/\?/.test(m.content) || /(besoin de quelques infos|prénom et nom|numéro de téléphone|vos coordonnées|envoyer des photos)/i.test(m.content)) continue;
+    out.push(m.content.slice(-140));
+  }
+  return out;
+}
+
 let failures = 0;
 function check(name: string, ok: boolean, detail?: string) {
   console.log(`${ok ? "✅" : "❌"} ${name}${!ok && detail ? `\n   → ${detail}` : ""}`);
@@ -53,11 +70,12 @@ async function main() {
 
   // ── 1. Installation 5 pièces : doit aboutir à LEAD_READY complet, prix ≥ plancher ──
   {
-    const { last, all } = await converse([
+    const { transcript, last, all } = await converse([
       "Bonjour, je veux installer la climatisation",
       "Appartement",
       "5 pièces",
       "75013",
+      "Non, pas de copropriété, et pas de préférence de marque",
       "Marc Test, 0612345678, 35 rue de la Glacière 75013 Paris, pas d'email",
       "Non merci, pas d'autres questions, c'est tout bon",
     ]);
@@ -69,6 +87,11 @@ async function main() {
       const est = parseInt(String(lead.estimate ?? "").replace(/[\s  ]/g, "").match(/(\d{3,6})/)?.[1] ?? "0", 10);
       check("   estimation ≥ 9 000 € (plancher 4+ pièces)", est >= 9000, `estimate="${lead.estimate}"`);
     }
+    // RÉPONSE JAMAIS FERMÉE (bug réel du 4 juillet) : chaque message d'Alex doit se terminer par
+    // une question ou une prochaine étape, sinon le client croit la conversation finie et part.
+    const fermees1 = reponsesFermees(transcript);
+    check("   aucune réponse fermée dans toute la conversation", fermees1.length === 0,
+      fermees1.map((f) => `« ...${f} »`).join(" | "));
   }
 
   // ── 2. Clim mobile : doit REFUSER poliment, ne PAS émettre LEAD_READY ──
@@ -83,7 +106,7 @@ async function main() {
 
   // ── 3. Entretien 2 unités : doit proposer le CONTRAT annuel (200 €) ──
   {
-    const { all } = await converse([
+    const { transcript, all } = await converse([
       "Bonjour, je voudrais faire entretenir ma climatisation",
       "Appartement, 2 unités intérieures, facilement accessibles",
       "75015 Paris",
@@ -91,6 +114,8 @@ async function main() {
       "Oui, dites-moi le prix",
     ]);
     check("3. Entretien → contrat annuel proposé", /contrat/i.test(all), all.slice(-300));
+    const fermees3 = reponsesFermees(transcript);
+    check("   aucune réponse fermée (entretien)", fermees3.length === 0, fermees3.map((f) => `« ...${f} »`).join(" | "));
     check("   prix entretien cohérent (200 mentionné)", /200/.test(all), all.slice(-300));
   }
 
