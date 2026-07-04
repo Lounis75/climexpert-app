@@ -11,6 +11,7 @@ import { getAlexConsignes, consignesPromptBlock } from "@/lib/alex-consignes";
 import { qualifTokenValid } from "@/lib/qualif";
 import { type Qualification } from "@/lib/qualification";
 import { getOpenSlots } from "@/lib/creneaux-alex";
+import { contratTotalEuros } from "@/lib/contrat-pricing";
 import { escapeHtml } from "@/lib/escape-html";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -46,7 +47,7 @@ SÉQUENCE DE QUALIFICATION, ENTRETIEN (séquence spécifique) :
 Étape 3, Combien d'unités intérieures à entretenir ?
 Étape 4, Accessibilité : "Est-ce que vos unités sont facilement accessibles ? (hauteur, encombrement, local technique, toiture…)"
 Étape 5, Ville ou code postal (pour vérifier la zone IDF et estimer le prix)
-Étape 6, Donner une fourchette : base 200 € TTC (1 unité, Paris intramuros) +60 € TTC/unité supplémentaire, avec majoration si accès difficile ou hors Paris. Proposer d'envoyer des photos directement dans cette conversation pour affiner le devis : "Vous pouvez aussi m'envoyer des photos de vos unités directement ici si vous le souhaitez, ça nous permettra d'être plus précis."
+Étape 6, Donner une fourchette : base 200 € TTC (1 unité, Paris intramuros) +60 € TTC/unité supplémentaire, avec majoration si accès difficile ou hors Paris. PROPOSER LE CONTRAT D'ENTRETIEN ANNUEL : explique brièvement l'avantage, "En passant par un contrat d'entretien annuel, c'est 200 € TTC/an au lieu de 250 € en visite ponctuelle, avec un entretien programmé chaque année et votre garantie préservée. Souhaitez-vous que je prépare une proposition de contrat ?" Note son intérêt (contrat ou ponctuel) dans les notes. Proposer aussi d'envoyer des photos pour affiner : "Vous pouvez aussi m'envoyer des photos de vos unités directement ici si vous le souhaitez, ça nous permettra d'être plus précis."
 Étape 7, Demander les coordonnées ET l'adresse EN UN SEUL MESSAGE : "Pour planifier votre entretien, j'ai besoin de quelques infos : votre prénom et nom, votre numéro de téléphone, l'adresse exacte (numéro, rue, code postal), et votre email si vous en avez un."
 Étape 8, Message de confirmation ET données du lead (voir format ci-dessous)
 
@@ -343,18 +344,24 @@ function buildQualifFromAlex(lead: LeadData): Qualification {
   return q;
 }
 
-// Quand Alex a qualifié EN PROFONDEUR une installation, on prévient l'équipe qu'un devis peut être
-// préparé : l'outil de chiffrage s'ouvrira déjà pré-rempli (pièces, immeuble, dépose...) depuis la
-// qualification. Jamais d'envoi auto : c'est un brouillon à vérifier par un humain.
+// Quand Alex a qualifié EN PROFONDEUR une installation OU un entretien, on prévient l'équipe qu'un
+// devis peut être préparé : l'outil de chiffrage s'ouvrira déjà pré-rempli depuis la qualification.
+// Jamais d'envoi auto : c'est un brouillon à vérifier par un humain.
 async function notifyDevisBrouillon(leadId: string, name: string, qualif: Qualification) {
-  if (!qualif.qualifPlus || qualif.natureProjet !== "Installation") return;
-  const detail = qualif.nbUnites ? `${qualif.nbUnites} unité(s)` : "installation";
+  if (!qualif.qualifPlus) return;
+  let titre: string, contenu: string;
+  if (qualif.natureProjet === "Installation") {
+    const detail = qualif.nbUnites ? `${qualif.nbUnites} unité(s)` : "installation";
+    titre = `Devis à préparer, ${name}`;
+    contenu = `${name} a été qualifié en détail par Alex (${detail}). Le chiffrage est pré-rempli : vérifiez et envoyez.`;
+  } else if (qualif.natureProjet === "Entretien") {
+    const units = Math.max(1, parseInt(qualif.entretienNbUnites || "1", 10) || 1);
+    const prix = contratTotalEuros(units);
+    titre = `Contrat d'entretien à préparer, ${name}`;
+    contenu = `${name} qualifié par Alex : entretien ${units} unité(s), soit environ ${prix} € TTC/an avec contrat. Le chiffrage est pré-rempli : vérifiez et envoyez.`;
+  } else return;
   await db.insert(notifications).values({
-    adminId: null,
-    type: "devis_brouillon",
-    titre: `Devis à préparer, ${name}`,
-    contenu: `${name} a été qualifié en détail par Alex (${detail}). Le chiffrage est pré-rempli : vérifiez et envoyez.`,
-    refType: "chiffrage", refId: leadId,
+    adminId: null, type: "devis_brouillon", titre, contenu, refType: "chiffrage", refId: leadId,
   }).catch((e) => console.error("[chat] devisBrouillon notif:", e));
 }
 
