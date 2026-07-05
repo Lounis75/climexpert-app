@@ -210,7 +210,7 @@ export default function ChatBot() {
                     className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                   >
                     <div
-                      className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                      className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-line ${
                         msg.role === "user"
                           ? "bg-sky-500 text-white rounded-tr-sm"
                           : "bg-slate-100 text-slate-800 rounded-tl-sm"

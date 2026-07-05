@@ -92,6 +92,15 @@ async function main() {
     const fermees1 = reponsesFermees(transcript);
     check("   aucune réponse fermée dans toute la conversation", fermees1.length === 0,
       fermees1.map((f) => `« ...${f} »`).join(" | "));
+    // CONCISION (retour utilisateur du 5 juillet : « trop de texte ») : le message
+    // estimation + coordonnées doit être compact et en liste à puces, pas un pavé.
+    const estimCoord = transcript.filter((m) => m.role === "assistant")
+      .find((m) => /(il me faut|prénom et nom)/i.test(m.content) && !m.content.includes("LEAD_READY"));
+    check(
+      "   coordonnées en liste à puces, message compact (≤ 550 car.)",
+      !!estimCoord && estimCoord.content.includes("•") && estimCoord.content.length <= 550,
+      estimCoord ? `${estimCoord.content.length} caractères, puces=${estimCoord.content.includes("•")} : « ${estimCoord.content.slice(0, 220).replace(/\n/g, " ⏎ ")}… »` : "pas de message de demande de coordonnées trouvé",
+    );
   }
 
   // ── 2. Clim mobile : doit REFUSER poliment, ne PAS émettre LEAD_READY ──
