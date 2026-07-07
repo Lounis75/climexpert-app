@@ -1,9 +1,10 @@
 import AdminHeader from "@/components/AdminHeader";
 import { db } from "@/lib/db";
-import { leads } from "@/lib/db/schema";
+import { leads, devisEnvois } from "@/lib/db/schema";
 import { and, isNull, isNotNull, inArray, desc } from "drizzle-orm";
 import Link from "next/link";
 import { FileText, Clock, CheckCircle2, XCircle, ArrowRight } from "lucide-react";
+import ModifierDevisButton from "./ModifierDevisButton";
 
 export const dynamic = "force-dynamic";
 
@@ -13,16 +14,28 @@ const PROJECT: Record<string, string> = { installation: "Installation", entretie
 
 export default async function SuiviDevisPage() {
   const [enAttente, finalises] = await Promise.all([
-    db.select({ id: leads.id, name: leads.name, project: leads.project, montantDevisCt: leads.montantDevisCt, devisEnvoyeLe: leads.devisEnvoyeLe, devisUrl: leads.devisUrl })
+    db.select({ id: leads.id, name: leads.name, clientId: leads.clientId, project: leads.project, montantDevisCt: leads.montantDevisCt, devisEnvoyeLe: leads.devisEnvoyeLe, devisUrl: leads.devisUrl })
       .from(leads)
       .where(and(isNotNull(leads.devisEnvoyeLe), isNull(leads.devisDecision), isNull(leads.supprimeLe)))
       .orderBy(desc(leads.devisEnvoyeLe)),
-    db.select({ id: leads.id, name: leads.name, project: leads.project, montantDevisCt: leads.montantDevisCt, devisDecision: leads.devisDecision, devisDecisionLe: leads.devisDecisionLe, devisMotifRefus: leads.devisMotifRefus, devisUrl: leads.devisUrl })
+    db.select({ id: leads.id, name: leads.name, clientId: leads.clientId, project: leads.project, montantDevisCt: leads.montantDevisCt, devisDecision: leads.devisDecision, devisDecisionLe: leads.devisDecisionLe, devisMotifRefus: leads.devisMotifRefus, devisUrl: leads.devisUrl })
       .from(leads)
       .where(and(inArray(leads.devisDecision, ["accepte", "refuse"]), isNull(leads.supprimeLe)))
       .orderBy(desc(leads.devisDecisionLe))
       .limit(50),
   ]);
+
+  // Dernier envoi AVEC instantané de chiffrage par prospect : permet « Modifier » (rouvre l'outil
+  // pré-rempli ; les envois sans instantané, PDF déposé à la main, n'ont pas ce bouton).
+  const allIds = [...new Set([...enAttente.map((l) => l.id), ...finalises.map((l) => l.id)])];
+  const envois = allIds.length
+    ? await db.select({ id: devisEnvois.id, leadId: devisEnvois.leadId })
+        .from(devisEnvois)
+        .where(and(inArray(devisEnvois.leadId, allIds), isNotNull(devisEnvois.chiffrage)))
+        .orderBy(desc(devisEnvois.createdAt))
+    : [];
+  const envoiByLead = new Map<string, string>();
+  for (const e of envois) if (!envoiByLead.has(e.leadId)) envoiByLead.set(e.leadId, e.id);
 
   const totalAttente = enAttente.reduce((s, l) => s + (l.montantDevisCt ?? 0), 0);
   const acceptes = finalises.filter((l) => l.devisDecision === "accepte");
@@ -54,8 +67,9 @@ export default async function SuiviDevisPage() {
                     <p className="text-slate-500 text-xs">{l.project ? (PROJECT[l.project] ?? l.project) : "Devis"} · envoyé le {fmt(l.devisEnvoyeLe)}</p>
                   </div>
                   <span className="text-slate-300 text-sm font-semibold tabular-nums flex-shrink-0">{euros(l.montantDevisCt)}</span>
+                  {envoiByLead.has(l.id) && <ModifierDevisButton leadId={l.id} envoiId={envoiByLead.get(l.id)!} />}
                   {l.devisUrl && <a href={l.devisUrl} target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:text-sky-300 text-xs font-medium flex-shrink-0">PDF</a>}
-                  <Link href={`/admin/leads?lead=${l.id}`} className="text-slate-500 hover:text-white flex-shrink-0"><ArrowRight className="w-4 h-4" /></Link>
+                  <Link href={l.clientId ? `/admin/clients/${l.clientId}` : `/admin/leads?lead=${l.id}`} title={l.clientId ? "Ouvrir la fiche client" : "Ouvrir la fiche prospect"} className="text-slate-500 hover:text-white flex-shrink-0"><ArrowRight className="w-4 h-4" /></Link>
                 </div>
               ))}
             </div>
@@ -81,8 +95,9 @@ export default async function SuiviDevisPage() {
                       <p className="text-slate-500 text-xs truncate">{ok ? "Accepté" : "Décliné"} le {fmt(l.devisDecisionLe)}{!ok && l.devisMotifRefus ? ` · ${l.devisMotifRefus}` : ""}</p>
                     </div>
                     <span className={`text-sm font-semibold tabular-nums flex-shrink-0 ${ok ? "text-emerald-300" : "text-slate-500"}`}>{euros(l.montantDevisCt)}</span>
+                    {envoiByLead.has(l.id) && <ModifierDevisButton leadId={l.id} envoiId={envoiByLead.get(l.id)!} />}
                     {l.devisUrl && <a href={l.devisUrl} target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:text-sky-300 text-xs font-medium flex-shrink-0">PDF</a>}
-                    <Link href={`/admin/leads?lead=${l.id}`} className="text-slate-500 hover:text-white flex-shrink-0"><ArrowRight className="w-4 h-4" /></Link>
+                    <Link href={l.clientId ? `/admin/clients/${l.clientId}` : `/admin/leads?lead=${l.id}`} title={l.clientId ? "Ouvrir la fiche client" : "Ouvrir la fiche prospect"} className="text-slate-500 hover:text-white flex-shrink-0"><ArrowRight className="w-4 h-4" /></Link>
                   </div>
                 );
               })}
