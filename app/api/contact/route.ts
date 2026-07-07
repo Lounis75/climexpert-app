@@ -1,7 +1,9 @@
 import { Resend } from "resend";
 import { NextRequest, NextResponse } from "next/server";
-import { createLead } from "@/lib/leads";
+import { createLead, findActiveLeadByPhone } from "@/lib/leads";
 import { createNotification } from "@/lib/notifications";
+import { db } from "@/lib/db";
+import { suivis } from "@/lib/db/schema";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 import { escapeHtml } from "@/lib/escape-html";
 import { logError } from "@/lib/observability";
@@ -49,6 +51,17 @@ export async function POST(req: NextRequest) {
     if (!body.nom || !body.telephone || !body.type || !body.bien) {
       return NextResponse.json({ error: "Champs requis manquants" }, { status: 400 });
     }
+    // Validation : téléphone plausible + type de projet dans la liste connue (sinon 500 Postgres).
+    if (String(body.telephone).replace(/\D/g, "").length < 8) {
+      return NextResponse.json({ error: "Numéro de téléphone invalide." }, { status: 400 });
+    }
+    const VALID_PROJECTS = ["installation", "entretien", "depannage", "contrat-pro", "depose", "autre"] as const;
+    const project = (VALID_PROJECTS as readonly string[]).includes(body.type) ? (body.type as typeof VALID_PROJECTS[number]) : "autre";
+    // Type de bien du formulaire -> qualification structurée (avant : perdu, seulement dans l'e-mail).
+    const TYPE_BIEN: Record<string, string> = { appartement: "Appartement", maison: "Maison", local: "Local commercial", "local-professionnel": "Local commercial", "hotel-restaurant": "Local commercial", copropriete: "Appartement" };
+    const NATURE: Record<string, string> = { installation: "Installation", entretien: "Entretien", "contrat-pro": "Entretien", depannage: "Dépannage", depose: "Dépose" };
+    const typeBien = TYPE_BIEN[body.bien];
+    const qualification = typeBien ? { typeBien, ...(NATURE[project] ? { natureProjet: NATURE[project] } : {}) } : undefined;
 
     // ── 1) Persister le lead EN PRIORITÉ (donnée critique). Avant, l'e-mail partait d'abord :
     // une panne Resend d'une heure = tous les prospects du formulaire perdus sans trace.
@@ -66,12 +79,16 @@ export async function POST(req: NextRequest) {
     const cpMatch = adresseComplete ? adresseComplete.match(/\b\d{5}\b.*$/) : null;
     const villeCp = cpMatch ? cpMatch[0].trim() : adresseComplete;
 
-    const lead = await createLead({
+    // Anti-doublon : si un prospect ACTIF porte déjà ce numéro, on met à jour son dossier
+    // (nouvelle demande en note) au lieu de créer une 2e fiche.
+    const dejaConnu = await findActiveLeadByPhone(body.telephone).catch(() => null);
+    const lead = dejaConnu ?? await createLead({
       source: "formulaire",
       name: body.nom,
       phone: body.telephone,
       email: body.email || undefined,
-      project: body.type as "installation" | "entretien" | "depannage" | "contrat-pro" | "autre",
+      project,
+      qualification,
       address: adresseComplete && /\d/.test(adresseComplete) ? adresseComplete : undefined,
       location: villeCp,
       message: (body.message || "").trim() || undefined,
@@ -81,10 +98,14 @@ export async function POST(req: NextRequest) {
       typeClient: ["professionnel", "sous_traitance"].includes(body.typeClient ?? "") ? body.typeClient : "particulier",
     });
 
+    if (dejaConnu) {
+      await db.insert(suivis).values({ leadId: lead.id, type: "note", contenu: `Nouvelle demande via le formulaire (${typeLabels[project] ?? project})${body.message ? " : " + body.message.slice(0, 300) : ""}.` }).catch((e) => logError("contact.suivi", e, { leadId: lead.id }));
+    }
+
     await createNotification({
       type: "nouveau_lead",
-      titre: `Nouveau lead, ${body.nom}`,
-      contenu: `${body.telephone}${body.ville ? ` · ${body.ville}` : ""}`,
+      titre: dejaConnu ? `Prospect déjà connu : ${lead.name}` : `Nouveau lead, ${body.nom}`,
+      contenu: dejaConnu ? "Nouvelle demande via le formulaire (aucun doublon créé)." : `${body.telephone}${body.ville ? ` · ${body.ville}` : ""}`,
       refType: "lead",
       refId: lead.id,
     }).catch((e) => logError("contact.notif", e, { leadId: lead.id }));

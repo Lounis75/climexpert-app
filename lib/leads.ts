@@ -41,8 +41,10 @@ export async function findActiveLeadByPhone(phone: string): Promise<Lead | null>
 /** Détecte un prospect actif (non supprimé) avec le même téléphone + nom (insensible
  *  à la casse), pour empêcher les doublons saisis manuellement. */
 export async function findActiveLeadByNamePhone(name: string, phone: string): Promise<Lead | null> {
+  const digits = (phone ?? "").replace(/\D/g, "").slice(-9);
+  if (digits.length < 9) return null;
   const rows = await db.select().from(leads)
-    .where(and(eq(leads.phone, phone.trim()), isNull(leads.supprimeLe), isNull(leads.archiveLe)));
+    .where(and(sql`right(regexp_replace(${leads.phone}, '\D', '', 'g'), 9) = ${digits}`, isNull(leads.supprimeLe), isNull(leads.archiveLe)));
   const target = name.trim().toLowerCase();
   return rows.find((r) => r.name.trim().toLowerCase() === target) ?? null;
 }

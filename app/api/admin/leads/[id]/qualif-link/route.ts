@@ -22,7 +22,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   const [lead] = await db.select().from(leads).where(eq(leads.id, id)).limit(1);
   if (!lead) return NextResponse.json({ error: "Prospect introuvable" }, { status: 404 });
 
-  const token = await ensureQualifToken(id, lead.qualifToken);
+  const token = await ensureQualifToken(id, lead.qualifToken, lead.qualifTokenLe);
   const link = qualifLink(token);
   const prenom = (lead.name || "").trim().split(" ")[0] || "";
   const sms = `Bonjour${prenom ? ` ${prenom}` : ""}, c'est Alex de ClimExpert. Suite à votre demande et à un afflux de demandes, on met tout en œuvre pour vous répondre au plus vite. Veuillez nous excuser. Pour gagner du temps, décrivez votre besoin en 2 minutes ici :\n\n👉 ${link}\n\nÀ très vite !`;

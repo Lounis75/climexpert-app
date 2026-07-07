@@ -291,14 +291,14 @@ async function sendLeadEmails(lead: LeadData, messages: ChatMessage[]) {
 // Met à jour un prospect EXISTANT à partir de la qualification Alex (portail / lien personnel),
 // au lieu d'en créer un nouveau. Remplit projet/localisation/notes, passe en "contacté" + "RDV à
 // convenir", trace la conversation et notifie l'équipe ("prospect qualifié").
-async function updateLeadFromQualif(existing: typeof leads.$inferSelect, lead: LeadData, messages: ChatMessage[]) {
+async function updateLeadFromQualif(existing: typeof leads.$inferSelect, lead: LeadData, messages: ChatMessage[], viaPortail = true) {
   const VALID_PROJECTS = ["installation", "entretien", "depannage", "depose", "contrat-pro", "autre"] as const;
   const normalized = lead.project ? lead.project.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim() : "";
   const project = (VALID_PROJECTS as readonly string[]).includes(normalized) ? (normalized as typeof VALID_PROJECTS[number]) : undefined;
 
   const transcript = buildTranscript(messages);
   const noteAjout = [
-    "Qualifié par Alex (portail de qualification).",
+    viaPortail ? "Qualifié par Alex (portail de qualification)." : "A reparlé à Alex sur le site (fiche mise à jour).",
     lead.estimate ? `Estimation : ${lead.estimate}` : "",
     lead.notes ? `Détails : ${lead.notes}` : "",
     transcript ? `\n--- Conversation Alex ---\n${transcript}` : "",
@@ -329,7 +329,7 @@ async function updateLeadFromQualif(existing: typeof leads.$inferSelect, lead: L
       notes: newNotes,
       status: existing.status === "nouveau" ? "contacté" : existing.status,
       prochaineEtape: "rdv_a_convenir",
-      qualifLe: new Date(),
+      ...(viaPortail ? { qualifLe: new Date() } : {}),
       statutChangeLe: new Date(),
       relanceNotifieeLe: null,
       version: sql`${leads.version} + 1`,
@@ -337,6 +337,12 @@ async function updateLeadFromQualif(existing: typeof leads.$inferSelect, lead: L
     }).where(eq(leads.id, existing.id));
   } catch (e) {
     console.error("[chat] échec updateLeadFromQualif:", e);
+    await db.insert(notifications).values({
+      adminId: null, type: "alex_panne",
+      titre: `Qualif Alex NON enregistrée : ${existing.name ?? "prospect"}`,
+      contenu: "Le client a répondu à Alex mais la mise à jour de sa fiche a échoué. Recontactez-le / vérifiez le transcript.",
+      refType: "lead", refId: existing.id,
+    }).catch(() => {});
     return;
   }
   await db.insert(suivis).values({ leadId: existing.id, type: "note", contenu: noteAjout.slice(0, 4000) }).catch(() => {});
@@ -501,7 +507,8 @@ PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE 
         const jsonMatch = raw.match(/\{[\s\S]*?\}/);
         const messageMatch = raw.match(/MESSAGE\n([\s\S]+)/);
 
-        const lead: LeadData = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+        let lead: LeadData | null = null;
+        try { lead = jsonMatch ? JSON.parse(jsonMatch[0]) : null; } catch { lead = null; }
         const message = messageMatch ? messageMatch[1].trim() : "Votre demande est bien enregistrée. Notre équipe vous contacte très prochainement !";
 
         // Mode qualif : on MET À JOUR le prospect existant (pas de doublon) + notif "qualifié".
@@ -548,7 +555,7 @@ PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE 
           // on met à jour SA fiche (mêmes règles que le portail de qualif) au lieu d'en créer une 2e.
           const dejaConnu = await findActiveLeadByPhone(lead.phone).catch(() => null);
           if (dejaConnu) {
-            await updateLeadFromQualif(dejaConnu, lead, messages);
+            await updateLeadFromQualif(dejaConnu, lead, messages, false); // chat public : pas une réponse au lien perso
             await notifyDevisBrouillon(dejaConnu.id, dejaConnu.name ?? lead.name ?? "Prospect", qualifObj);
             await flagEstimationBasse(dejaConnu.id, dejaConnu.name ?? "Prospect", lead);
             await db.insert(notifications).values({
@@ -580,6 +587,14 @@ PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE 
               consentementLe: new Date(),
               typeClient: String(lead.typeClient ?? "").toLowerCase().includes("pro") ? "professionnel" : "particulier",
             });
+            // Notification équipe : un nouveau prospect vient d'être capté par Alex (le canal
+            // principal du site n'alertait jamais la cloche, seul un e-mail partait).
+            await db.insert(notifications).values({
+              adminId: null, type: "nouveau_lead",
+              titre: `Nouveau prospect (Alex) : ${created.name}`,
+              contenu: `${created.phone}${lead.location ? ` · ${lead.location}` : ""}${lead.project ? ` · ${lead.project}` : ""}`,
+              refType: "lead", refId: created.id,
+            }).catch((e) => console.error("[chat] notif nouveau lead:", e));
             // Qualif approfondie d'installation -> prévenir qu'un devis brouillon est prêt à valider.
             await notifyDevisBrouillon(created.id, created.name, qualifObj);
             await flagEstimationBasse(created.id, created.name, lead);
@@ -589,6 +604,16 @@ PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE 
 
           // Emails non bloquants (l'échec d'envoi ne doit pas masquer le succès du lead)
           sendLeadEmails(lead, messages).catch((e) => console.error("[chat] échec envoi email lead:", e));
+        } else if (!qualifLead) {
+          // LEAD_READY illisible ou sans téléphone : NE PAS afficher une fausse confirmation.
+          // On alerte l'équipe et on redemande le numéro au client (filet anti-perte).
+          console.error("[chat] LEAD_READY sans téléphone exploitable:", raw.slice(0, 500));
+          await db.insert(notifications).values({
+            adminId: null, type: "alex_panne",
+            titre: "Lead Alex incomplet (sans téléphone)",
+            contenu: `Alex a conclu sans numéro exploitable. Extrait : ${raw.slice(0, 200)}`,
+          }).catch(() => {});
+          return ({ fallback: true, message: "Presque terminé ! Il me manque juste votre numéro de téléphone pour qu'un conseiller vous rappelle. Vous pouvez me le laisser ici." });
         }
 
         return ({ message, leadComplete: true, lead });

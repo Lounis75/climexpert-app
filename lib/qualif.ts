@@ -23,11 +23,17 @@ export function qualifTokenValid(emisLe: Date | string | null | undefined): bool
   return Date.now() - new Date(emisLe).getTime() <= QUALIF_TOKEN_TTL_MS;
 }
 
-// Retourne le jeton de qualif du prospect, en le créant (et le persistant) s'il n'existe pas encore.
-export async function ensureQualifToken(leadId: string, current: string | null): Promise<string> {
-  if (current) return current;
+// Retourne le jeton de qualif du prospect, en le créant (ou en le RÉGÉNÉRANT s'il a expiré : sinon
+// on renverrait par SMS un lien de plus de 60 jours qui affiche un 404). Réinitialise aussi le
+// funnel (ouvert/répondu/relance) pour repartir sur une nouvelle campagne propre.
+export async function ensureQualifToken(leadId: string, current: string | null, currentLe?: Date | string | null): Promise<string> {
+  if (current && qualifTokenValid(currentLe)) return current;
   const token = shortToken();
-  await db.update(leads).set({ qualifToken: token, qualifTokenLe: new Date(), updatedAt: new Date() }).where(eq(leads.id, leadId));
+  await db.update(leads).set({
+    qualifToken: token, qualifTokenLe: new Date(),
+    qualifOuvertLe: null, qualifLe: null, qualifRelanceLe: null,
+    updatedAt: new Date(),
+  }).where(eq(leads.id, leadId));
   return token;
 }
 

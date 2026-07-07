@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { leads } from "@/lib/db/schema";
-import { isNull } from "drizzle-orm";
+import { isNull, and } from "drizzle-orm";
 import { createLead } from "@/lib/leads";
 import { normalizePhone, formatPhone, extractPhones } from "@/lib/phone";
 
@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Dédup contre les prospects existants (non supprimés), sur numéro normalisé.
-  const existing = await db.select({ phone: leads.phone }).from(leads).where(isNull(leads.supprimeLe));
+  const existing = await db.select({ phone: leads.phone }).from(leads).where(and(isNull(leads.supprimeLe), isNull(leads.archiveLe)));
   const seen = new Set<string>();
   for (const e of existing) { const n = normalizePhone(e.phone); if (n) seen.add(n); }
 

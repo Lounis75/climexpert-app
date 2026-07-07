@@ -27,7 +27,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   const email = (lead.email || "").trim();
   if (!email) return NextResponse.json({ error: "Ce prospect n'a pas d'e-mail." }, { status: 400 });
 
-  const token = await ensureQualifToken(id, lead.qualifToken);
+  const token = await ensureQualifToken(id, lead.qualifToken, lead.qualifTokenLe);
   const link = qualifLink(token);
   const prenom = (lead.name || "").trim().split(" ")[0] || "";
 
