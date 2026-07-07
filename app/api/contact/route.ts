@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createLead, findActiveLeadByPhone } from "@/lib/leads";
 import { createNotification } from "@/lib/notifications";
 import { db } from "@/lib/db";
-import { suivis } from "@/lib/db/schema";
+import { suivis, leads } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 import { escapeHtml } from "@/lib/escape-html";
 import { logError } from "@/lib/observability";
@@ -100,6 +101,11 @@ export async function POST(req: NextRequest) {
 
     if (dejaConnu) {
       await db.insert(suivis).values({ leadId: lead.id, type: "note", contenu: `Nouvelle demande via le formulaire (${typeLabels[project] ?? project})${body.message ? " : " + body.message.slice(0, 300) : ""}.` }).catch((e) => logError("contact.suivi", e, { leadId: lead.id }));
+      // Le prospect reçoche la case marketing sur cette nouvelle demande : on met à jour son
+      // consentement (sinon un prospect déjà connu restait consentementMarketing=false à vie).
+      if (body.consent === true && !dejaConnu.consentementMarketing) {
+        await db.update(leads).set({ consentementMarketing: true, consentementLe: new Date(), updatedAt: new Date() }).where(eq(leads.id, lead.id)).catch((e) => logError("contact.consent", e, { leadId: lead.id }));
+      }
     }
 
     await createNotification({

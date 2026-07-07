@@ -132,6 +132,7 @@ export default function CalculateurClient() {
   const [loading,       setLoading]       = useState(false);
   const [submitted,     setSubmitted]     = useState(false);
   const [error,         setError]         = useState("");
+  const [consent,       setConsent]       = useState(false);
 
   // Fermer suggestions si clic extérieur
   useEffect(() => {
@@ -213,6 +214,7 @@ export default function CalculateurClient() {
           ville: adresse,
           message: `Via calculateur, Système : ${rec.system} · ${kwLabel(rec.kwRaw)} · Budget : ${fmt(rec.priceMin)}–${fmt(rec.priceMax)} TTC · ${rooms} pièce(s) (${roomSurfaces.slice(0, rooms).map((s, i) => `P${i + 1}:${s}m²`).join(", ")}) · Surface totale : ${surface} m² · H : ${height}m · Isolation : ${isoData.label} · Exposition : ${expData.label} · Usage : Réversible${adresse ? ` · Adresse : ${adresse}` : ""}${contraintes.length ? ` · Contraintes : ${contraintes.join(", ")}` : ""}`,
           photosUrls: uploadedFiles.map(f => f.url),
+          consent,
         }),
       });
       if (!res.ok) throw new Error();
@@ -791,6 +793,20 @@ export default function CalculateurClient() {
                   </div>
 
                   {error && <p className="text-red-500 text-xs">{error}</p>}
+
+                  {/* Consentement RGPD (démarchage), facultatif */}
+                  <label className="flex items-start gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={consent}
+                      onChange={e => setConsent(e.target.checked)}
+                      className="mt-0.5 w-4 h-4 rounded border-slate-300 text-sky-500 focus:ring-sky-500/40 flex-shrink-0"
+                    />
+                    <span className="text-slate-500 text-xs leading-relaxed">
+                      J&apos;accepte que ClimExpert me recontacte pour des offres commerciales et conseils.
+                      Facultatif, vous pouvez vous désinscrire à tout moment. Vos données ne sont jamais revendues.
+                    </span>
+                  </label>
 
                   <button type="submit" disabled={loading}
                     className="w-full flex items-center justify-center gap-2 py-3.5 bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-white font-semibold rounded-xl shadow-lg shadow-sky-500/20 transition-all touch-manipulation text-sm">

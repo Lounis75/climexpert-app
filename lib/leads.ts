@@ -180,9 +180,12 @@ export async function getLeadByQualifToken(token: string): Promise<Lead | null> 
 /** Montant du devis (centimes) par clientId, pour afficher le montant sur les cartes « à affecter ». */
 export async function getMontantsDevisByClientIds(clientIds: string[]): Promise<Record<string, number>> {
   if (clientIds.length === 0) return {};
+  // ORDER BY déterministe : un client peut porter plusieurs prospects (2e affaire = nouveau lead).
+  // On retient le montant de l'affaire la plus RÉCENTE (sinon le montant affiché était arbitraire).
   const rows = await db.select({ clientId: leads.clientId, montantCt: leads.montantDevisCt })
     .from(leads)
-    .where(and(inArray(leads.clientId, clientIds), isNull(leads.supprimeLe)));
+    .where(and(inArray(leads.clientId, clientIds), isNull(leads.supprimeLe)))
+    .orderBy(desc(leads.createdAt));
   const out: Record<string, number> = {};
   for (const r of rows) if (r.clientId && r.montantCt != null && out[r.clientId] == null) out[r.clientId] = r.montantCt;
   return out;
@@ -217,6 +220,14 @@ export async function getLeadsBoard(cap = 50): Promise<{ leads: Lead[]; counts: 
   const counts: Record<string, number> = {};
   for (const r of countRows) counts[r.status] = Number(r.value);
   counts["gagné"] = Math.max(0, (counts["gagné"] ?? 0) - enProd.size); // les "en production" sont masqués
+
+  // Compteur RÉEL de la pseudo-colonne « RDV pris » (contacté + prochaineEtape=rdv_pris), calculé en
+  // base et non à partir des seules cartes chargées : au-delà du cap, l'en-tête était faux.
+  const [rdvRow] = await db.select({ value: count() }).from(leads).where(and(
+    isNull(leads.supprimeLe), isNull(leads.archiveLe),
+    eq(leads.status, "contacté"), eq(leads.prochaineEtape, "rdv_pris"),
+  ));
+  counts["rdv_pris"] = Number(rdvRow?.value ?? 0);
 
   const cols = boardLeadColumns();
   const perStatus = await Promise.all(STATUS_LIST.map((st) => {

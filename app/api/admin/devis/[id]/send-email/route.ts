@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createElement } from "react";
 import { Resend } from "resend";
-import { getDevisById, centimesToEuros, updateDevisStatus } from "@/lib/devis";
+import { getDevisById, centimesToEuros, updateDevisStatus, tauxTvaLigne } from "@/lib/devis";
+import { db } from "@/lib/db";
+import { leads } from "@/lib/db/schema";
+import { eq, and, sql, inArray } from "drizzle-orm";
+import { logError } from "@/lib/observability";
 import DevisPDF from "@/components/pdf/DevisPDF";
 
 export async function POST(
@@ -15,10 +19,12 @@ export async function POST(
     if (!d) return NextResponse.json({ error: "Devis introuvable" }, { status: 404 });
     if (!d.clientEmail) return NextResponse.json({ error: "Ce client n'a pas d'email" }, { status: 400 });
 
-    const totalHtCt = d.lignes.reduce((s, l) => s + l.quantite * l.prixUnitaireCt, 0);
-    const totalTtcCt = d.lignes.reduce((s, l) => {
+    // On privilégie les totaux STOCKÉS (calculés avec le bon taux au moment du devis) ; à défaut,
+    // recalcul via tauxTvaLigne (repli 5,5 %, jamais 0) pour ne pas envoyer un TTC = HT (TVA effacée).
+    const totalHtCt = d.totalHtCt ?? d.lignes.reduce((s, l) => s + l.quantite * l.prixUnitaireCt, 0);
+    const totalTtcCt = d.totalTtcCt ?? d.lignes.reduce((s, l) => {
       const ht = l.quantite * l.prixUnitaireCt;
-      return s + ht + Math.round(ht * (Number(l.tvaRate) / 100));
+      return s + ht + Math.round(ht * (tauxTvaLigne(l.tvaRate) / 100));
     }, 0);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -100,6 +106,22 @@ export async function POST(
     // Passer le devis en "envoyé" si encore brouillon
     if (d.status === "brouillon") {
       await updateDevisStatus(d.id, "envoyé");
+    }
+
+    // Aligner le PROSPECT : un devis structuré envoyé doit faire passer le lead en « devis_envoyé »
+    // (sinon il restait affiché « Contact établi » dans le Kanban et disparaissait du taux de
+    // signature). On enregistre aussi le montant et on redémarre le compteur de relance. On ne
+    // touche pas un prospect déjà gagné / perdu / archivé.
+    if (d.leadId) {
+      try {
+        await db.update(leads).set({
+          status: "devis_envoyé",
+          devisEnvoyeLe: new Date(),
+          ...(typeof totalTtcCt === "number" ? { montantDevisCt: totalTtcCt } : {}),
+          statutChangeLe: new Date(), relanceNotifieeLe: null,
+          version: sql`${leads.version} + 1`, updatedAt: new Date(),
+        }).where(and(eq(leads.id, d.leadId), inArray(leads.status, ["nouveau", "contacté", "devis_envoyé"])));
+      } catch (e) { logError("devis.sendEmail.lead", e, { devisId: d.id, leadId: d.leadId }); }
     }
 
     return NextResponse.json({ success: true });

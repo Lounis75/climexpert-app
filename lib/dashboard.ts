@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { leads, devis, factures, interventions, clients, savTickets, logsAlex, techniciens, contratsEntretien } from "@/lib/db/schema";
+import { leads, devis, factures, interventions, clients, savTickets, logsAlex, techniciens, contratsEntretien, suivis } from "@/lib/db/schema";
 import { eq, gte, lte, ne, desc, and, sql, isNull, isNotNull, count, notInArray, inArray } from "drizzle-orm";
 
 export type DashboardStats = {
@@ -318,6 +318,7 @@ export async function getLeadsPageStats(alexSince?: Date): Promise<LeadsPageStat
       id: leads.id,
       status: leads.status,
       source: leads.source,
+      clientId: leads.clientId,
       createdAt: leads.createdAt,
       statutChangeLe: leads.statutChangeLe,
       montantDevisCt: leads.montantDevisCt,
@@ -363,10 +364,17 @@ export async function getLeadsPageStats(alexSince?: Date): Promise<LeadsPageStat
   }
 
   // ─── Indicateurs de PROSPECTION (pilotage) ──────────────────────────────────
+  // « Refacturation » : prospect créé directement pour une affaire d'un client EXISTANT (nouveau
+  // devis / 2e affaire via devis-direct ou spin-off) -> source "autre" + clientId déjà rattaché.
+  // Ces dossiers ne sont PAS de la prospection (aucun canal d'acquisition) : on les EXCLUT des KPI
+  // de conversion, sinon ils gonflent la source "autre" et le taux (créés déjà gagnés/en devis).
+  const estRefacturation = (l: { source: string | null; clientId: string | null }) => l.source === "autre" && !!l.clientId;
+
   // Conversion par source : gagnés / total de la source (les gagnés gardent le statut "gagné"
   // même passés en production, donc le compte reste juste).
   const conversionParSource: Record<string, { total: number; gagne: number; taux: number }> = {};
   for (const l of active) {
+    if (estRefacturation(l)) continue;
     const src = l.source ?? "autre";
     const e = conversionParSource[src] ?? { total: 0, gagne: 0, taux: 0 };
     e.total++;
@@ -389,16 +397,37 @@ export async function getLeadsPageStats(alexSince?: Date): Promise<LeadsPageStat
     ? Math.round(gagnesAvecMontant.reduce((s2, l) => s2 + (l.montantDevisCt ?? 0), 0) / gagnesAvecMontant.length)
     : null;
 
-  // Délai moyen avant premier contact = temps entre l'arrivée et la sortie du statut "nouveau".
-  const traites = active.filter((l) => l.status !== "nouveau" && l.statutChangeLe && new Date(l.statutChangeLe) > new Date(l.createdAt));
-  const delaiPremierContactJours = traites.length > 0
-    ? Math.round((traites.reduce((s2, l) => s2 + (new Date(l.statutChangeLe!).getTime() - new Date(l.createdAt).getTime()), 0) / traites.length) / 86400000 * 10) / 10
+  // Délai moyen avant PREMIER contact = temps entre l'arrivée du prospect et sa 1re activité réelle
+  // (1er appel ou 1er changement de statut). On NE se base plus sur statutChangeLe (qui est le
+  // DERNIER changement : un prospect nouveau->contacté->gagné comptait le délai jusqu'au « gagné »,
+  // gonflant le KPI). On lit la 1re trace datée dans le fil d'échanges (types « appel »/« statut »).
+  const activeIds = active.map((l) => l.id);
+  const premierContactRows = activeIds.length > 0
+    ? await db.select({ leadId: suivis.leadId, first: sql<string>`min(${suivis.createdAt})` })
+        .from(suivis)
+        .where(and(inArray(suivis.leadId, activeIds), inArray(suivis.type, ["appel", "statut"])))
+        .groupBy(suivis.leadId)
+    : [];
+  const premierContactMap = new Map<string, number>();
+  for (const r of premierContactRows) if (r.leadId && r.first) premierContactMap.set(r.leadId, new Date(r.first).getTime());
+  const delais = active
+    .map((l) => {
+      const fc = premierContactMap.get(l.id);
+      if (!fc) return null;
+      const d = fc - new Date(l.createdAt).getTime();
+      return d > 0 ? d : null;
+    })
+    .filter((x): x is number => x != null);
+  const delaiPremierContactJours = delais.length > 0
+    ? Math.round((delais.reduce((s2, d) => s2 + d, 0) / delais.length) / 86400000 * 10) / 10
     : null;
 
-  // Taux de conversion des prospects RÉELLEMENT traités (exclut les "nouveau" jamais appelés,
-  // qui diluaient le chiffre à cause des numéros importés en masse).
-  const traitesTotal = active.filter((l) => l.status !== "nouveau").length;
-  const tauxConversionTraites = traitesTotal > 0 ? Math.round((parStatut.gagné / traitesTotal) * 100) : 0;
+  // Taux de conversion des prospects RÉELLEMENT traités (exclut les "nouveau" jamais appelés qui
+  // diluaient le chiffre, ET la refacturation de clients existants qui le gonflait artificiellement).
+  const traitesProspectes = active.filter((l) => l.status !== "nouveau" && !estRefacturation(l));
+  const traitesTotal = traitesProspectes.length;
+  const gagnesProspectes = traitesProspectes.filter((l) => l.status === "gagné").length;
+  const tauxConversionTraites = traitesTotal > 0 ? Math.round((gagnesProspectes / traitesTotal) * 100) : 0;
 
   const alex = await getAlexStats(alexSince);
 

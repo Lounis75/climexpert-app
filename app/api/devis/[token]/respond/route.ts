@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { devis, leads, notifications } from "@/lib/db/schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 import { getDevisByToken } from "@/lib/devis";
 import { acceptDevis } from "@/lib/devis-workflow";
 import { logError } from "@/lib/observability";
@@ -72,6 +72,15 @@ export async function POST(
         refType: "devis",
         refId: d.id,
       }).catch((e) => logError("devis.respond.notif", e, { devisId: d.id }));
+      // Aligner le PROSPECT : un devis structuré refusé classe le lead en « Perdu » (motif refus),
+      // comme le flux PDF. Sinon il restait indéfiniment en « devis_envoyé » dans le pipeline.
+      if (d.leadId) {
+        await db.update(leads).set({
+          status: "perdu", motifPerdu: "refus",
+          statutChangeLe: new Date(), relanceNotifieeLe: null,
+          version: sql`${leads.version} + 1`, updatedAt: new Date(),
+        }).where(and(eq(leads.id, d.leadId), ne(leads.status, "gagné"))).catch((e) => logError("devis.respond.leadPerdu", e, { devisId: d.id }));
+      }
     }
     return NextResponse.json({ success: true, status: action });
   } catch (err) {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createElement } from "react";
-import { getDevisById } from "@/lib/devis";
+import { getDevisById, tauxTvaLigne } from "@/lib/devis";
 import DevisPDF from "@/components/pdf/DevisPDF";
 
 export async function GET(
@@ -13,10 +13,11 @@ export async function GET(
     const d = await getDevisById(id);
     if (!d) return NextResponse.json({ error: "Devis introuvable" }, { status: 404 });
 
-    const totalHtCt = d.lignes.reduce((s, l) => s + l.quantite * l.prixUnitaireCt, 0);
-    const totalTtcCt = d.lignes.reduce((s, l) => {
+    // Totaux stockés en priorité ; recalcul via tauxTvaLigne (repli 5,5 %, jamais 0) à défaut.
+    const totalHtCt = d.totalHtCt ?? d.lignes.reduce((s, l) => s + l.quantite * l.prixUnitaireCt, 0);
+    const totalTtcCt = d.totalTtcCt ?? d.lignes.reduce((s, l) => {
       const ht = l.quantite * l.prixUnitaireCt;
-      return s + ht + Math.round(ht * (Number(l.tvaRate) / 100));
+      return s + ht + Math.round(ht * (tauxTvaLigne(l.tvaRate) / 100));
     }, 0);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

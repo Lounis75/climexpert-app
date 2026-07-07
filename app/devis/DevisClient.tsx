@@ -131,6 +131,7 @@ export default function DevisClient() {
           ville: data.get("location") ?? "",
           message: data.get("message") ?? "",
           photosUrls: photoUrls,
+          consent: data.get("consent") === "on",
         }),
       });
       if (res.ok) {
@@ -383,6 +384,20 @@ export default function DevisClient() {
                         {submitError} <a href="tel:+33667432767" className="underline font-semibold whitespace-nowrap">06 67 43 27 67</a>
                       </p>
                     )}
+
+                    {/* Consentement RGPD (démarchage), facultatif */}
+                    <label className="flex items-start gap-2.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        name="consent"
+                        className="mt-0.5 w-4 h-4 rounded border-slate-500 bg-transparent text-sky-500 focus:ring-sky-500/40 flex-shrink-0"
+                      />
+                      <span className="text-slate-400 text-xs leading-relaxed">
+                        J&apos;accepte que ClimExpert me recontacte pour des offres commerciales et conseils.
+                        Facultatif, vous pouvez vous désinscrire à tout moment. Vos données ne sont jamais revendues.
+                      </span>
+                    </label>
+
                     <button
                       type="submit"
                       disabled={loading}

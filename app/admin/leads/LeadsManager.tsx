@@ -244,6 +244,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
   async function sendDevis() {
     const id = selectedLead?.id;
     if (!id || !devisFile) return;
+    const prevStatus = selectedLead?.status; // statut avant envoi (pour ajuster les compteurs)
     setDevisSending(true); setDevisError("");
     try {
       const fd = new FormData();
@@ -254,6 +255,17 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
       const d = await res.json().catch(() => ({}));
       if (!res.ok) { setDevisError(d.error ?? "Échec de l'envoi."); return; }
       setDevisOpen(false);
+      if (d.newLeadId) {
+        // Prospect déjà gagné : une NOUVELLE affaire a été créée (spin-off). On l'injecte dans le
+        // board + compteur « Devis envoyé », sans toucher au gagné d'origine.
+        setColCounts((c) => ({ ...c, "devis_envoyé": (c["devis_envoyé"] ?? 0) + 1 }));
+        fetch(`/api/admin/leads/${d.newLeadId}`).then((r) => (r.ok ? r.json() : null)).then((nd) => {
+          if (nd?.lead) setLeads((prev) => (prev.some((l) => l.id === nd.lead.id) ? prev : [nd.lead, ...prev]));
+        }).catch(() => {});
+      } else if (prevStatus && prevStatus !== "devis_envoyé") {
+        // Même prospect : la carte passe en « Devis envoyé ». On met à jour les compteurs d'en-tête.
+        setColCounts((c) => ({ ...c, [prevStatus]: Math.max(0, (c[prevStatus] ?? 0) - 1), "devis_envoyé": (c["devis_envoyé"] ?? 0) + 1 }));
+      }
       await refreshLead(id); // recharge fiche + historique devis, sans recharger la page
     } catch { setDevisError("Erreur réseau, réessayez."); }
     finally { setDevisSending(false); }
@@ -518,7 +530,15 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
       const d = await res.json().catch(() => ({}));
       if (!res.ok) { alert(d.error ?? "Échec de l'annulation."); return; }
       setDevisHist((prev) => prev.map((dv) => (dv.id === devisId ? { ...dv, decision: "annule" } : dv)));
-      if (d.leadReset) setSelectedLead((prev) => prev ? ({ ...prev, status: "contacté" as LeadStatus, prochaineEtape: "devis_a_faire", devisDecision: null } as Lead) : null);
+      if (d.leadReset) {
+        const prevStatus = selectedLead?.status;
+        setSelectedLead((prev) => prev ? ({ ...prev, status: "contacté" as LeadStatus, prochaineEtape: "devis_a_faire", devisDecision: null } as Lead) : null);
+        setLeads((prev) => prev.map((l) => (l.id === id ? ({ ...l, status: "contacté" as LeadStatus, prochaineEtape: "devis_a_faire", devisDecision: null } as Lead) : l)));
+        // Le prospect repasse en « Contact établi » : compteurs d'en-tête mis à jour.
+        if (prevStatus && prevStatus !== "contacté") {
+          setColCounts((c) => ({ ...c, [prevStatus]: Math.max(0, (c[prevStatus] ?? 0) - 1), "contacté": (c["contacté"] ?? 0) + 1 }));
+        }
+      }
     } catch { alert("Erreur réseau, réessayez."); }
   }
 
@@ -751,6 +771,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
       }
       const { client } = await res.json();
 
+      const prevStatus = lead.status;
       setLeads((prev) =>
         prev.map((l) =>
           l.id === lead.id ? { ...l, status: "gagné" as LeadStatus, clientId: client.id } : l
@@ -760,6 +781,10 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
       setSelectedLead((prev) =>
         prev && prev.id === lead.id ? { ...prev, status: "gagné" as LeadStatus, clientId: client.id } : prev
       );
+      // Compteurs d'en-tête : la carte passe en « Gagné ».
+      if (prevStatus && prevStatus !== "gagné") {
+        setColCounts((c) => ({ ...c, [prevStatus]: Math.max(0, (c[prevStatus] ?? 0) - 1), "gagné": (c["gagné"] ?? 0) + 1 }));
+      }
       setConvertDone((prev) => new Set(prev).add(lead.id));
     } catch {
       alert("Erreur réseau : la conversion en client n'a pas abouti.");
@@ -905,9 +930,14 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
     if (!id) return;
     const lead = leads.find((l) => l.id === id);
     if (!lead || colOfLead(lead) === column.key) return;
+    // Compteur « RDV pris » : on l'ajuste ici car ce n'est pas un changement de statut (updateStatus
+    // ne gère que les vrais statuts), or ce compteur d'en-tête vient d'un total serveur.
+    const wasRdv = colOfLead(lead) === "rdv_pris";
+    const toRdv = column.key === "rdv_pris";
     if (column.key === "rdv_pris") await updateStatus(id, "contacté", { prochaineEtape: "rdv_pris" });
     else if (column.key === "contacté") await updateStatus(id, "contacté", colOfLead(lead) === "rdv_pris" ? { prochaineEtape: null } : undefined);
     else await updateStatus(id, column.status);
+    if (wasRdv !== toRdv) setColCounts((c) => ({ ...c, rdv_pris: Math.max(0, (c["rdv_pris"] ?? 0) + (toRdv ? 1 : -1)) }));
   }
 
   // ─── Card component ──────────────────────────────────────────────────────────
@@ -1313,10 +1343,12 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
             const isOver = dragOver === column.key;
             const isCollapsed = !!focusedStatus && focusedStatus !== column.key; // une AUTRE colonne est agrandie
             const statusTotal = colCounts[column.status] ?? 0;
-            // Compteur d'en-tête : RDV pris = sous-ensemble chargé ; Contact établi = total contacté moins RDV pris.
+            // Compteur d'en-tête : RDV pris = total réel en base (colCounts["rdv_pris"], calculé
+            // côté serveur), avec repli sur le chargé si absent ; Contact établi = contacté - RDV pris.
+            const rdvTotal = colCounts["rdv_pris"] ?? rdvLoadedCount;
             const headerCount = favorisOnly ? col.length
-              : column.key === "rdv_pris" ? rdvLoadedCount
-              : column.key === "contacté" ? Math.max(0, statusTotal - rdvLoadedCount)
+              : column.key === "rdv_pris" ? rdvTotal
+              : column.key === "contacté" ? Math.max(0, statusTotal - rdvTotal)
               : statusTotal;
             // Pagination serveur par statut (pas sur la colonne virtuelle RDV pris : ses cartes arrivent en chargeant « contacté »).
             const loadedStatusTotal = leads.filter((l) => l.status === column.status).length;
