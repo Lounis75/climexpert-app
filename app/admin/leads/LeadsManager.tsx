@@ -168,7 +168,12 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
     const leadId = searchParams.get("lead");
     if (!leadId || leadId === lastUrlLeadId.current) return;
     const found = leads.find((l) => l.id === leadId);
-    if (found) { lastUrlLeadId.current = leadId; setSelectedLead(found); }
+    if (found) { lastUrlLeadId.current = leadId; setSelectedLead(found); return; }
+    // Prospect au-delà des pages chargées (cap) : on va chercher sa fiche pour l'ouvrir.
+    lastUrlLeadId.current = leadId;
+    fetch(`/api/admin/leads/${leadId}`).then((r) => (r.ok ? r.json() : null)).then((d) => {
+      if (d?.lead) { setLeads((prev) => (prev.some((l) => l.id === d.lead.id) ? prev : [d.lead, ...prev])); setSelectedLead(d.lead); }
+    }).catch(() => {});
   }, [searchParams, leads]);
   const [showAddModal, setShowAddModal] = useState(false);
   // Import en masse de numéros à rappeler
@@ -219,7 +224,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
       const d = await res.json().catch(() => ({}));
       if (!res.ok) { setDevisError(d.error ?? "Échec de l'envoi."); return; }
       setDevisOpen(false);
-      window.location.reload(); // refléter le nouveau statut + l'historique
+      await refreshLead(id); // recharge fiche + historique devis, sans recharger la page
     } catch { setDevisError("Erreur réseau, réessayez."); }
     finally { setDevisSending(false); }
   }
@@ -419,6 +424,19 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
   function applyServerLead(sv: Lead) {
     setLeads((prev) => prev.map((l) => (l.id === sv.id ? { ...l, ...sv } : l)));
     setSelectedLead((prev) => (prev && prev.id === sv.id ? ({ ...prev, ...sv } as Lead) : prev));
+  }
+
+  // Recharge la fiche serveur d'un prospect (état + historique devis) SANS recharger la page :
+  // on ne perd ni le scroll, ni les filtres, ni la recherche en cours.
+  async function refreshLead(id: string) {
+    try {
+      const [ld, dv] = await Promise.all([
+        fetch(`/api/admin/leads/${id}`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+        fetch(`/api/admin/leads/${id}/devis`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      ]);
+      if (ld?.lead) applyServerLead(ld.lead);
+      if (dv?.devis) setDevisHist(dv.devis);
+    } catch { /* silencieux */ }
   }
 
   // Enregistre un champ du prospect OUVERT avec verrou de version + gestion du 409.
@@ -648,6 +666,13 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
       // « Pas de réponse » : le prospect repart en bas de la file "Nouveau".
       if (action === "pas_de_reponse") {
         setLeads((prev) => { const me = prev.find((l) => l.id === id); return me ? [...prev.filter((l) => l.id !== id), me] : prev; });
+      }
+      // Mode FILE D'APPELS : si la fiche de CE prospect est ouverte, on enchaîne automatiquement
+      // sur le prospect « nouveau » suivant (celui qui vient de sortir de la file, ou le suivant).
+      if (selectedLead?.id === id) {
+        const next = leads.find((l) => l.status === "nouveau" && l.id !== id
+          && !(action === "contact_etabli" && l.id === id));
+        setSelectedLead(next ?? null);
       }
     } finally {
       setUpdating(null);
@@ -902,6 +927,11 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
             <Star className={`w-4 h-4 transition-colors ${lead.favori ? "fill-amber-400 text-amber-400" : "text-slate-600 hover:text-amber-400"}`} />
           </button>
           <p className="text-white font-semibold text-[13px] leading-tight line-clamp-2 break-words flex-1">{lead.name}</p>
+          {lead.phone && (
+            <a href={`tel:${lead.phone}`} onClick={(e) => e.stopPropagation()} title={`Appeler ${lead.phone}`} aria-label="Appeler" className="flex-shrink-0 p-1 rounded-lg text-sky-400 hover:bg-sky-500/15 transition-colors">
+              <Phone className="w-3.5 h-3.5" />
+            </a>
+          )}
           {dupes.length > 0 && (
             <button
               onClick={(e) => { e.stopPropagation(); setMergingPanel({ leadId: lead.id, dupes }); }}
@@ -921,9 +951,14 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
           </span>
         </div>
 
-        {/* Ligne 2 : type · lieu */}
-        {meta.length > 0 && (
-          <p className="text-slate-400 text-xs mt-1 truncate">{meta.join(" · ")}</p>
+        {/* Ligne 2 : type · lieu · montant du devis (pour prioriser les grosses affaires) */}
+        {(meta.length > 0 || (typeof lead.montantDevisCt === "number" && (lead.status === "devis_envoyé" || lead.status === "gagné"))) && (
+          <p className="text-slate-400 text-xs mt-1 truncate">
+            {meta.join(" · ")}
+            {typeof lead.montantDevisCt === "number" && (lead.status === "devis_envoyé" || lead.status === "gagné") && (
+              <span className="text-slate-200 font-semibold tabular-nums">{meta.length > 0 ? " · " : ""}{(lead.montantDevisCt / 100).toLocaleString("fr-FR")} €</span>
+            )}
+          </p>
         )}
 
         {/* Devis signé en ligne par le client */}
@@ -1374,12 +1409,29 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                         ))}
                       </select>
                       <div className="min-w-0 flex items-center gap-2 text-xs text-slate-400">
-                        <span title={lead.source === "alex" ? "Qualifié par Alex" : "Formulaire du site"} className="flex-shrink-0">
-                          {lead.source === "alex" ? <Bot className="w-3.5 h-3.5 text-sky-400" /> : <FileText className="w-3.5 h-3.5 text-violet-400" />}
-                        </span>
+                        {(() => {
+                          const Ico = lead.source === "alex" ? Bot : (lead.source === "whatsapp" || lead.source === "téléphone") ? Phone : FileText;
+                          const col = lead.source === "alex" ? "text-sky-400" : (lead.source === "whatsapp" || lead.source === "téléphone") ? "text-emerald-400" : "text-violet-400";
+                          return <span title={`Source : ${lead.source}`} className="flex-shrink-0"><Ico className={`w-3.5 h-3.5 ${col}`} /></span>;
+                        })()}
                         <span className="truncate">
                           {[lead.project ? (PROJECT_LABELS[lead.project] ?? lead.project) : null, lead.location].filter(Boolean).join(" · ") || "-"}
                         </span>
+                        {typeof lead.montantDevisCt === "number" && (lead.status === "devis_envoyé" || lead.status === "gagné") && (
+                          <span className="flex-shrink-0 text-[11px] font-semibold text-slate-200 tabular-nums" title="Montant du devis">{(lead.montantDevisCt / 100).toLocaleString("fr-FR")} €</span>
+                        )}
+                        {lead.status === "nouveau" && (lead.tentativesAppel ?? 0) >= 4 && (
+                          <span className="flex-shrink-0 flex items-center gap-0.5 text-[10px] font-semibold text-orange-300 whitespace-nowrap" title={`Injoignable : ${lead.tentativesAppel} appels sans réponse`}>
+                            <AlertTriangle className="w-2.5 h-2.5" /> injoign. {lead.tentativesAppel}
+                          </span>
+                        )}
+                        {(() => {
+                          const l = lead as Lead & { qualifLe?: string | null; qualifOuvertLe?: string | null; qualifToken?: string | null };
+                          if (l.qualifLe) return <span className="flex-shrink-0 flex items-center gap-0.5 text-[10px] font-semibold text-emerald-300 whitespace-nowrap" title="A répondu à Alex (qualifié)"><Bot className="w-2.5 h-2.5" /> répondu</span>;
+                          if (l.qualifOuvertLe) return <span className="flex-shrink-0 flex items-center gap-0.5 text-[10px] font-semibold text-sky-300 whitespace-nowrap" title="A ouvert le lien Alex sans terminer (prospect chaud)"><Bot className="w-2.5 h-2.5" /> lien ouvert</span>;
+                          if (l.qualifToken) return <span className="flex-shrink-0 flex items-center gap-0.5 text-[10px] font-medium text-violet-300 whitespace-nowrap" title="Lien de qualification Alex envoyé"><Bot className="w-2.5 h-2.5" /> Alex envoyé</span>;
+                          return null;
+                        })()}
                         {rowAction ? (
                           <span className="flex-shrink-0 flex items-center gap-1 text-[10px] font-semibold text-red-300 bg-red-500/10 border border-red-500/30 rounded-full px-1.5 py-0.5 whitespace-nowrap" title={`Action à faire : ${rowAction}`}>
                             <AlertTriangle className="w-2.5 h-2.5 flex-shrink-0" /> {rowAction}
@@ -1426,6 +1478,18 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                 className="w-full text-xs text-slate-400 hover:text-white py-2.5 border-t border-white/5 transition-colors disabled:opacity-50"
               >
                 {searching ? "Chargement…" : `Charger plus (${totalCount - leads.length} restants)`}
+              </button>
+            )}
+            {/* Liste filtrée par ÉTAPE (clic sur une carte stat) : on pagine CETTE colonne jusqu'au
+                bout, sinon on ne voyait que les 50 premiers (ex. 111 nouveaux → 61 invisibles). */}
+            {!search && !favorisOnly && statusFilter !== "tous" && typeFilter === "tous" && secteurFilter === "tous"
+              && leads.filter((l) => l.status === statusFilter).length < (colCounts[statusFilter] ?? 0) && (
+              <button
+                onClick={() => loadMore(statusFilter as LeadStatus)}
+                disabled={loadingCol === statusFilter}
+                className="w-full text-xs text-slate-400 hover:text-white py-2.5 border-t border-white/5 transition-colors disabled:opacity-50"
+              >
+                {loadingCol === statusFilter ? "Chargement…" : `Charger plus (${(colCounts[statusFilter] ?? 0) - leads.filter((l) => l.status === statusFilter).length} restants)`}
               </button>
             )}
           </div>
