@@ -582,7 +582,7 @@ export async function getProchainesInterventions(limit = 12): Promise<IntervJour
 
 // ─── Interventions à planifier (sans date, ex. devis gagné) ─────────────────
 
-export async function getInterventionsAPlanifier(): Promise<IntervJour[]> {
+export async function getInterventionsAPlanifier(): Promise<(IntervJour & { address: string | null; createdAt: Date })[]> {
   return db
     .select({
       id: interventions.id,
@@ -592,6 +592,8 @@ export async function getInterventionsAPlanifier(): Promise<IntervJour[]> {
       status: interventions.status,
       technicienId: interventions.technicienId,
       technicienName: techniciens.name,
+      address: interventions.address,
+      createdAt: interventions.createdAt,
     })
     .from(interventions)
     .leftJoin(clients, eq(interventions.clientId, clients.id))

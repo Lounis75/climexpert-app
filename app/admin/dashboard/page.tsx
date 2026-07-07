@@ -198,7 +198,7 @@ export default async function DashboardPage() {
 
         {/* ─── À planifier (interventions sans date, ex. devis gagné) ────────────── */}
         {interventionsAPlanifier.length > 0 && (
-          <div className="bg-slate-800/40 border border-sky-500/20 rounded-2xl overflow-hidden h-full">
+          <div className="lg:col-span-2 bg-slate-800/40 border border-sky-500/20 rounded-2xl overflow-hidden">
             <div className="px-5 py-4 border-b border-white/8 flex items-center gap-2 flex-wrap">
               <CalendarPlus className="w-4 h-4 text-sky-400" />
               <h2 className="text-white font-semibold text-sm">À planifier</h2>
@@ -207,10 +207,14 @@ export default async function DashboardPage() {
             </div>
             <div className="divide-y divide-white/5 max-h-[420px] overflow-y-auto">
               {interventionsAPlanifier.map((i) => (
-                <div key={i.id} className="flex flex-col sm:flex-row sm:items-center gap-3 px-5 py-3">
+                <div key={i.id} className="flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-6 px-5 py-4">
                   <Link href={`/admin/interventions/${i.id}`} className="flex-1 min-w-0 group">
-                    <p className="text-white text-sm font-medium truncate group-hover:text-sky-300 transition-colors">{i.clientName ?? "-"}</p>
-                    <p className="text-slate-500 text-xs">{TYPE_LABELS[i.type] ?? i.type}</p>
+                    <p className="text-white text-[15px] font-semibold truncate group-hover:text-sky-300 transition-colors">{i.clientName ?? "-"}</p>
+                    <p className="text-slate-400 text-xs mt-0.5 truncate">
+                      {TYPE_LABELS[i.type] ?? i.type}
+                      {i.address ? ` · ${i.address}` : ""}
+                      {" · créée le "}{new Date(i.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short", timeZone: "Europe/Paris" })}
+                    </p>
                   </Link>
                   <PlanifierInline interventionId={i.id} currentTechnicienId={i.technicienId} techniciens={techOptions} />
                 </div>

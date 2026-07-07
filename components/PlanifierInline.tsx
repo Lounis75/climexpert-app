@@ -51,12 +51,12 @@ export default function PlanifierInline({
         type="datetime-local" step={1800}
         value={date}
         onChange={(e) => setDate(e.target.value)}
-        className="text-xs bg-slate-900/70 border border-white/15 rounded-lg px-2 py-1.5 text-slate-200 focus:outline-none focus:border-sky-500/50 [color-scheme:dark]"
+        className="text-sm bg-slate-900/70 border border-white/15 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-sky-500/50 [color-scheme:dark]"
       />
       <select
         value={technicienId}
         onChange={(e) => setTechnicienId(e.target.value)}
-        className="appearance-none text-xs bg-slate-900/70 border border-white/15 rounded-lg pl-2.5 pr-6 py-1.5 text-slate-200 cursor-pointer focus:outline-none focus:border-emerald-500/50"
+        className="appearance-none text-sm bg-slate-900/70 border border-white/15 rounded-lg pl-3 pr-7 py-2 text-slate-200 cursor-pointer focus:outline-none focus:border-emerald-500/50"
       >
         <option value="">Technicien…</option>
         {techniciens.map((t) => (
@@ -67,7 +67,7 @@ export default function PlanifierInline({
         type="button"
         onClick={planifier}
         disabled={!date || saving}
-        className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-400 disabled:opacity-40 text-white transition-colors"
+        className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 disabled:opacity-40 text-white transition-colors"
       >
         <CalendarPlus className="w-3.5 h-3.5" /> Planifier
       </button>
