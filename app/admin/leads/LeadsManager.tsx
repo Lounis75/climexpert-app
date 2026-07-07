@@ -1023,43 +1023,37 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
   return (
     <div>
-      {/* Stats, masquées sur mobile (superflu) ; sur mobile, voir les chips par étape ci-dessous */}
+      {/* Stats cliquables : chaque carte filtre la liste sur son étape (re-clic = retour au
+          tableau). « Total » réinitialise. Masquées sur mobile (chips par étape ci-dessous). */}
       <div className="hidden sm:grid sm:grid-cols-6 gap-2 mb-6">
         {[
-          { label: "Total",         value: Object.values(colCounts).reduce((a, b) => a + b, 0),        dot: null },
-          { label: "Nouveau",       value: colCounts["nouveau"] ?? 0,                                 dot: "bg-sky-400" },
-          { label: "Contact",       value: colCounts["contacté"] ?? 0,                                dot: "bg-amber-400" },
-          { label: "Devis",         value: colCounts["devis_envoyé"] ?? 0,                            dot: "bg-violet-400" },
-          { label: "Gagné",         value: colCounts["gagné"] ?? 0,                                   dot: "bg-emerald-400" },
-          { label: "Perdu",         value: colCounts["perdu"] ?? 0,                                   dot: "bg-slate-400" },
-        ].map(({ label, value, dot }) => {
-          // « Perdu » n'a plus de colonne : la carte devient un bouton qui ouvre la liste des perdus.
-          if (label === "Perdu") {
-            const perduActive = statusFilter === "perdu";
-            return (
-              <button
-                key={label}
-                type="button"
-                onClick={() => { if (perduActive) { setStatusFilter("tous"); setView("kanban"); } else { setStatusFilter("perdu"); setView("liste"); } }}
-                title={perduActive ? "Revenir au tableau" : "Voir les prospects perdus"}
-                className={`rounded-xl text-center py-3 px-1 border transition-colors cursor-pointer ${perduActive ? "bg-slate-500/20 border-slate-400/50" : "bg-slate-800/40 border-white/8 hover:border-white/20 hover:bg-slate-800/70"}`}
-              >
-                <p className="text-lg font-bold text-white tabular-nums leading-none">{value}</p>
-                <div className="flex items-center justify-center gap-1 mt-1.5">
-                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dot}`} />
-                  <p className="text-slate-400 text-[10px] truncate">{perduActive ? "Fermer" : "Perdu"}</p>
-                </div>
-              </button>
-            );
-          }
+          { label: "Total",   value: Object.values(colCounts).reduce((a, b) => a + b, 0), dot: null,              status: null },
+          { label: "Nouveau", value: colCounts["nouveau"] ?? 0,      dot: "bg-sky-400",     status: "nouveau" },
+          { label: "Contact", value: colCounts["contacté"] ?? 0,     dot: "bg-amber-400",   status: "contacté" },
+          { label: "Devis",   value: colCounts["devis_envoyé"] ?? 0, dot: "bg-violet-400",  status: "devis_envoyé" },
+          { label: "Gagné",   value: colCounts["gagné"] ?? 0,        dot: "bg-emerald-400", status: "gagné" },
+          { label: "Perdu",   value: colCounts["perdu"] ?? 0,        dot: "bg-slate-400",   status: "perdu" },
+        ].map(({ label, value, dot, status }) => {
+          const active = status !== null && statusFilter === status;
           return (
-            <div key={label} className="bg-slate-800/40 border border-white/8 rounded-xl text-center py-3 px-1">
+            <button
+              key={label}
+              type="button"
+              onClick={() => {
+                if (status === null || active) { setStatusFilter("tous"); setView("kanban"); }
+                else { setStatusFilter(status); setView("liste"); }
+              }}
+              title={status === null ? "Tout afficher (tableau)" : active ? "Revenir au tableau" : `Ne voir que : ${label}`}
+              className={`rounded-xl text-center py-3 px-1 border transition-colors cursor-pointer ${
+                active ? "bg-sky-500/15 border-sky-400/60" : "bg-slate-800/40 border-white/8 hover:border-white/20 hover:bg-slate-800/70"
+              }`}
+            >
               <p className="text-lg font-bold text-white tabular-nums leading-none">{value}</p>
               <div className="flex items-center justify-center gap-1 mt-1.5">
                 {dot && <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dot}`} />}
-                <p className="text-slate-500 text-[10px] truncate">{label}</p>
+                <p className={`text-[10px] truncate ${active ? "text-sky-300" : "text-slate-500"}`}>{active ? "Fermer" : label}</p>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
