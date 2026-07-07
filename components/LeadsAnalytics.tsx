@@ -32,7 +32,9 @@ const SOURCE_COLORS: Record<string, string> = {
  *  Affichée sur la page Statistiques (centralisation). `period` pilote le bloc Alex. */
 export default function LeadsAnalytics({ stats, period }: { stats: LeadsPageStats; period: string }) {
   const maxMois = Math.max(...stats.parMois.map((m) => m.total), 1);
-  const tauxConvLeads = stats.total > 0 ? Math.round((stats.parStatut.gagné / stats.total) * 100) : 0;
+  const eur = (ct: number | null) => (ct != null ? `${Math.round(ct / 100).toLocaleString("fr-FR")} €` : "—");
+  // Sources triées par volume, pour le tableau « conversion par source ».
+  const sourcesConv = Object.entries(stats.conversionParSource).sort((a, b) => b[1].total - a[1].total);
 
   return (
     <div className="space-y-6">
@@ -47,9 +49,9 @@ export default function LeadsAnalytics({ stats, period }: { stats: LeadsPageStat
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
           { label: "Total leads", value: stats.total, sub: "depuis le début" },
-          { label: "Nouveaux", value: stats.parStatut.nouveau ?? 0, sub: "à traiter" },
-          { label: "Taux de conversion", value: `${tauxConvLeads}%`, sub: `${stats.parStatut.gagné ?? 0} gagnés` },
-          { label: "Leads perdus", value: stats.parStatut.perdu ?? 0, sub: `${stats.parStatut.contacté ?? 0} contactés` },
+          { label: "Conversion (traités)", value: `${stats.tauxConversionTraites}%`, sub: `${stats.parStatut.gagné ?? 0} gagnés · hors non appelés` },
+          { label: "Signature devis", value: stats.tauxSignatureDevis != null ? `${stats.tauxSignatureDevis}%` : "—", sub: "devis acceptés / envoyés" },
+          { label: "Panier moyen", value: eur(stats.panierMoyenCt), sub: "par affaire gagnée" },
         ].map(({ label, value, sub }) => (
           <div key={label} className="bg-slate-800/40 border border-white/8 rounded-2xl p-4">
             <p className="text-2xl font-bold text-white tabular-nums">{value}</p>
@@ -57,6 +59,30 @@ export default function LeadsAnalytics({ stats, period }: { stats: LeadsPageStat
             <p className="text-slate-500 text-xs mt-0.5">{sub}</p>
           </div>
         ))}
+      </div>
+
+      {/* ─── Prospection : conversion par source + délai de traitement ────────── */}
+      <div className="grid lg:grid-cols-2 gap-6">
+        <div className="bg-slate-800/40 border border-white/8 rounded-2xl p-5">
+          <h2 className="text-white font-semibold text-sm mb-4">Conversion par source</h2>
+          <div className="space-y-2.5">
+            {sourcesConv.length === 0 && <p className="text-slate-500 text-sm">Pas encore de données.</p>}
+            {sourcesConv.map(([src, e]) => (
+              <div key={src} className="flex items-center gap-3">
+                <span className="text-slate-300 text-xs w-24 capitalize flex-shrink-0">{src}</span>
+                <div className="flex-1 h-2 rounded-full bg-slate-700/50 overflow-hidden">
+                  <div className="h-full bg-emerald-500/70 rounded-full" style={{ width: `${Math.min(100, e.taux)}%` }} />
+                </div>
+                <span className="text-white text-xs font-semibold tabular-nums w-24 text-right flex-shrink-0">{e.taux}% · {e.gagne}/{e.total}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="bg-slate-800/40 border border-white/8 rounded-2xl p-5 flex flex-col justify-center">
+          <p className="text-slate-400 text-xs">Délai moyen avant premier contact</p>
+          <p className="text-3xl font-bold text-white tabular-nums mt-1">{stats.delaiPremierContactJours != null ? `${stats.delaiPremierContactJours} j` : "—"}</p>
+          <p className="text-slate-500 text-xs mt-2">Temps entre l&apos;arrivée d&apos;un prospect et sa sortie du statut « Nouveau » (premier appel).</p>
+        </div>
       </div>
 
       {/* ─── Pipeline statuts + Sources ─────────────────────────────────────── */}
@@ -84,8 +110,8 @@ export default function LeadsAnalytics({ stats, period }: { stats: LeadsPageStat
           {stats.total > 0 && (
             <div className="mt-5 pt-4 border-t border-white/8 flex gap-6">
               <div>
-                <p className="text-slate-500 text-xs">Taux de gain</p>
-                <p className="text-white text-xl font-bold mt-0.5">{tauxConvLeads}%</p>
+                <p className="text-slate-500 text-xs">Taux de gain (traités)</p>
+                <p className="text-white text-xl font-bold mt-0.5">{stats.tauxConversionTraites}%</p>
               </div>
               <div>
                 <p className="text-slate-500 text-xs">En cours</p>

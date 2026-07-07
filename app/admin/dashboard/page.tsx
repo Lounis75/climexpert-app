@@ -92,7 +92,9 @@ export default async function DashboardPage() {
   const tachesList = [
     { n: taches.interventionsSansTechnicien, label: "intervention(s) sans technicien", href: "/admin/interventions", color: "amber",  icon: Wrench },
     { n: taches.interventionsSansDate,       label: "intervention(s) à planifier",      href: "/admin/interventions", color: "amber",  icon: CalendarCheck },
-    { n: taches.prospectsSansCommercial,     label: "prospect(s) à affecter",           href: "/admin/leads",         color: "sky",    icon: Users },
+    // « À affecter » n'a de sens qu'à plusieurs : tant qu'il n'y a qu'un seul commercial
+    // assignable (le gérant seul), on masque la ligne pour ne pas noyer les vraies tâches.
+    { n: commerciaux.length > 1 ? taches.prospectsSansCommercial : 0, label: "prospect(s) à affecter", href: "/admin/leads", color: "sky", icon: Users },
     { n: taches.devisAChiffrer,              label: "devis à chiffrer (montant manquant)", href: "/admin/leads",      color: "red",     icon: FileText },
     { n: taches.entretiensARelancer,         label: "entretien(s) à relancer",          href: "/admin/clients",       color: "emerald", icon: Wrench },
     { n: taches.facturesAEnvoyer,            label: "facture(s) à envoyer au client",   href: "/admin/facturation",   color: "emerald", icon: Receipt },

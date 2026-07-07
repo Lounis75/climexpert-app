@@ -301,9 +301,15 @@ export type LeadsPageStats = {
   // Sources
   parSource: Record<string, number>;
   // Tendance mensuelle (8 derniers mois)
-  parMois: { mois: string; total: number; alex: number; formulaire: number }[];
+  parMois: { mois: string; total: number; alex: number; formulaire: number; telephone: number }[];
   // Alex chatbot
   alex: AlexStats;
+  // Indicateurs de prospection
+  conversionParSource: Record<string, { total: number; gagne: number; taux: number }>;
+  tauxSignatureDevis: number | null;
+  panierMoyenCt: number | null;
+  delaiPremierContactJours: number | null;
+  tauxConversionTraites: number;
 };
 
 export async function getLeadsPageStats(alexSince?: Date): Promise<LeadsPageStats> {
@@ -313,6 +319,10 @@ export async function getLeadsPageStats(alexSince?: Date): Promise<LeadsPageStat
       status: leads.status,
       source: leads.source,
       createdAt: leads.createdAt,
+      statutChangeLe: leads.statutChangeLe,
+      montantDevisCt: leads.montantDevisCt,
+      devisEnvoyeLe: leads.devisEnvoyeLe,
+      devisDecision: leads.devisDecision,
       supprimeLe: leads.supprimeLe,
     }).from(leads),
   ]);
@@ -334,7 +344,7 @@ export async function getLeadsPageStats(alexSince?: Date): Promise<LeadsPageStat
   }
 
   // ─── Tendance mensuelle (8 derniers mois) ─────────────────────────────────
-  const parMois: { mois: string; total: number; alex: number; formulaire: number }[] = [];
+  const parMois: { mois: string; total: number; alex: number; formulaire: number; telephone: number }[] = [];
   for (let i = 7; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
@@ -348,8 +358,47 @@ export async function getLeadsPageStats(alexSince?: Date): Promise<LeadsPageStat
       total: inMonth.length,
       alex: inMonth.filter((l) => l.source === "alex").length,
       formulaire: inMonth.filter((l) => l.source === "formulaire").length,
+      telephone: inMonth.filter((l) => l.source === "téléphone").length,
     });
   }
+
+  // ─── Indicateurs de PROSPECTION (pilotage) ──────────────────────────────────
+  // Conversion par source : gagnés / total de la source (les gagnés gardent le statut "gagné"
+  // même passés en production, donc le compte reste juste).
+  const conversionParSource: Record<string, { total: number; gagne: number; taux: number }> = {};
+  for (const l of active) {
+    const src = l.source ?? "autre";
+    const e = conversionParSource[src] ?? { total: 0, gagne: 0, taux: 0 };
+    e.total++;
+    if (l.status === "gagné") e.gagne++;
+    conversionParSource[src] = e;
+  }
+  for (const src of Object.keys(conversionParSource)) {
+    const e = conversionParSource[src];
+    e.taux = e.total > 0 ? Math.round((e.gagne / e.total) * 100) : 0;
+  }
+
+  // Taux de signature des devis = devis acceptés / devis envoyés.
+  const devisEnvoyes = active.filter((l) => l.devisEnvoyeLe).length;
+  const devisAcceptes = active.filter((l) => l.devisDecision === "accepte").length;
+  const tauxSignatureDevis = devisEnvoyes > 0 ? Math.round((devisAcceptes / devisEnvoyes) * 100) : null;
+
+  // Panier moyen = moyenne des montants des affaires gagnées (renseignées), en centimes.
+  const gagnesAvecMontant = active.filter((l) => l.status === "gagné" && typeof l.montantDevisCt === "number");
+  const panierMoyenCt = gagnesAvecMontant.length > 0
+    ? Math.round(gagnesAvecMontant.reduce((s2, l) => s2 + (l.montantDevisCt ?? 0), 0) / gagnesAvecMontant.length)
+    : null;
+
+  // Délai moyen avant premier contact = temps entre l'arrivée et la sortie du statut "nouveau".
+  const traites = active.filter((l) => l.status !== "nouveau" && l.statutChangeLe && new Date(l.statutChangeLe) > new Date(l.createdAt));
+  const delaiPremierContactJours = traites.length > 0
+    ? Math.round((traites.reduce((s2, l) => s2 + (new Date(l.statutChangeLe!).getTime() - new Date(l.createdAt).getTime()), 0) / traites.length) / 86400000 * 10) / 10
+    : null;
+
+  // Taux de conversion des prospects RÉELLEMENT traités (exclut les "nouveau" jamais appelés,
+  // qui diluaient le chiffre à cause des numéros importés en masse).
+  const traitesTotal = active.filter((l) => l.status !== "nouveau").length;
+  const tauxConversionTraites = traitesTotal > 0 ? Math.round((parStatut.gagné / traitesTotal) * 100) : 0;
 
   const alex = await getAlexStats(alexSince);
 
@@ -359,6 +408,11 @@ export async function getLeadsPageStats(alexSince?: Date): Promise<LeadsPageStat
     parSource,
     parMois,
     alex,
+    conversionParSource,
+    tauxSignatureDevis,
+    panierMoyenCt,
+    delaiPremierContactJours,
+    tauxConversionTraites,
   };
 }
 
