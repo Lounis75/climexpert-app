@@ -90,33 +90,39 @@ export default function CommercialDashboard({ session, rdvs }: { session: Commer
     setNotes(lead.notes ?? "");
   }
 
-  async function saveNotes() {
+  function applyLead(sv: Partial<Lead> & { id: string }) {
+    setLeads(prev => prev.map(l => l.id === sv.id ? { ...l, ...sv } : l));
+    setSelected(prev => prev && prev.id === sv.id ? { ...prev, ...sv } : prev);
+  }
+
+  async function patchLead(fields: Record<string, unknown>) {
     if (!selected) return;
     setSaving(true);
     try {
       const res = await fetch("/api/commercial/leads", {
-        method:  "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ id: selected.id, notes, version: selected.version }), // verrou optimiste
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: selected.id, version: selected.version, ...fields }),
       });
       const data = await res.json().catch(() => ({}));
-      if (res.status === 409) {
-        // Quelqu'un a modifié la fiche entre-temps → on resynchronise + message.
-        if (data.lead) {
-          setLeads(prev => prev.map(l => l.id === selected.id ? { ...l, ...data.lead } : l));
-          setSelected(prev => prev ? { ...prev, ...data.lead } : null);
-        }
-        alert("⚠️ " + (data.error ?? "Cette fiche a été modifiée par quelqu'un d'autre."));
-        return;
-      }
-      if (data.lead) {
-        setLeads(prev => prev.map(l => l.id === selected.id ? { ...l, ...data.lead } : l));
-        setSelected(prev => prev ? { ...prev, ...data.lead } : null);
-      }
-    } finally {
-      setSaving(false);
-    }
+      if (res.status === 409) { if (data.lead) applyLead({ ...data.lead }); alert("⚠️ " + (data.error ?? "Fiche modifiée entre-temps.")); return; }
+      if (data.lead) applyLead(data.lead);
+    } finally { setSaving(false); }
   }
+
+  async function contactAction(action: "pas_de_reponse" | "contact_etabli") {
+    if (!selected) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/commercial/leads", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: selected.id, action }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data.lead) applyLead(data.lead);
+    } finally { setSaving(false); }
+  }
+
+  async function saveNotes() { await patchLead({ notes }); }
 
   async function handleLogout() {
     await fetch("/api/commercial/verify", { method: "DELETE" });
@@ -312,12 +318,27 @@ export default function CommercialDashboard({ session, rdvs }: { session: Commer
                     </div>
                   )}
                   <div className="col-span-2 bg-slate-700/50 rounded-xl p-3">
-                    <p className="text-slate-400 text-xs mb-1">Statut</p>
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[selected.status] ?? ""}`}>
-                      {STATUS_LABELS[selected.status] ?? selected.status}
-                    </span>
+                    <p className="text-slate-400 text-xs mb-1.5">Statut</p>
+                    <select
+                      value={selected.status}
+                      onChange={(e) => patchLead({ status: e.target.value })}
+                      disabled={saving}
+                      className={`text-xs font-semibold px-2.5 py-1 rounded-full border-0 cursor-pointer ${STATUS_COLORS[selected.status] ?? "bg-slate-700 text-slate-200"}`}
+                    >
+                      {Object.entries(STATUS_LABELS).map(([val, label]) => (
+                        <option key={val} value={val} className="bg-slate-800 text-white">{label}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
+
+                {/* Premier contact rapide (file d'appels) */}
+                {selected.status === "nouveau" && (
+                  <div className="flex gap-2">
+                    <button onClick={() => contactAction("pas_de_reponse")} disabled={saving} className="flex-1 py-2 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-semibold disabled:opacity-50">Pas de réponse</button>
+                    <button onClick={() => contactAction("contact_etabli")} disabled={saving} className="flex-1 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold disabled:opacity-50">Contact établi</button>
+                  </div>
+                )}
 
                 {/* Message client */}
                 {selected.message && (
