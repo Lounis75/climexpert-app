@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { leads, interventions, suivis, techniciens, devisEnvois, clients, type Lead, type NewLead } from "@/lib/db/schema";
-import { eq, desc, isNull, and, inArray, notInArray, ne, isNotNull, asc, ilike, or, count, sql, type SQL } from "drizzle-orm";
+import { eq, desc, isNull, and, inArray, notInArray, ne, isNotNull, asc, ilike, or, count, sql, type SQL, type AnyColumn } from "drizzle-orm";
 import { qualifTokenValid } from "@/lib/qualif";
 import { getTableColumns } from "drizzle-orm";
 
@@ -224,8 +224,25 @@ export async function getLeadsPaginated(opts: { search?: string; page?: number; 
   const enProd = [...await getEnProductionLeadIdSet()];
   if (enProd.length) filters.push(notInArray(leads.id, enProd));
   if (q) {
-    const like = `%${q}%`;
-    filters.push(or(ilike(leads.name, like), ilike(leads.phone, like), ilike(leads.location, like), ilike(leads.address, like), ilike(leads.entreprise, like))!);
+    // Recherche tolérante : insensible à la casse ET aux accents (translate côté colonne, dépliage
+    // NFD côté requête), e-mail inclus, et téléphone comparé sur les chiffres seuls (« 0612345678 »
+    // trouve « 06 12 34 56 78 » et inversement).
+    const qFold = `%${q.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")}%`;
+    const foldCol = (col: AnyColumn) => sql`translate(lower(${col}), 'àâäáéèêëïîíìôöóòûüúùçñ', 'aaaaeeeeiiiioooouuuucn')`;
+    const conds: SQL[] = [
+      sql`${foldCol(leads.name)} like ${qFold}`,
+      sql`${foldCol(leads.location)} like ${qFold}`,
+      sql`${foldCol(leads.address)} like ${qFold}`,
+      sql`${foldCol(leads.entreprise)} like ${qFold}`,
+      sql`lower(${leads.email}) like ${`%${q.toLowerCase()}%`}`,
+    ];
+    const digits = q.replace(/\D/g, "");
+    conds.push(
+      digits.length >= 3
+        ? sql`regexp_replace(${leads.phone}, '\D', '', 'g') like ${`%${digits}%`}`
+        : sql`${foldCol(leads.phone)} like ${qFold}`,
+    );
+    filters.push(or(...conds)!);
   }
   const where = and(...filters);
   const [items, totalRows] = await Promise.all([
