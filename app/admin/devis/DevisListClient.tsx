@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { FileText, ArrowRight, Calendar, Search, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { FileText, ArrowRight, Calendar, Search, X, Pencil, FilePlus2 } from "lucide-react";
 import { centimesToEuros, STATUS_DEVIS } from "@/lib/devis";
 
 type DevisRow = {
@@ -15,7 +16,26 @@ type DevisRow = {
 };
 
 export default function DevisListClient({ devisList }: { devisList: DevisRow[] }) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  // Devis accepté (signé) : jamais modifié directement, on crée une RÉVISION pré-remplie
+  // (nouveau devis brouillon) qu'on ouvre aussitôt en modification.
+  async function reviser(id: string) {
+    if (!confirm("Ce devis est signé : créer un devis révisé ? L'original reste intact ; le nouveau reprend les mêmes lignes, à ajuster puis renvoyer pour une nouvelle signature.")) return;
+    setBusyId(id);
+    try {
+      const res = await fetch(`/api/admin/devis/${id}/reviser`, { method: "POST" });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok || !d.devis?.id) { alert(d.error ?? "Révision impossible, réessayez."); return; }
+      router.push(`/admin/devis/${d.devis.id}/modifier`);
+    } catch {
+      alert("Erreur réseau, réessayez.");
+    } finally {
+      setBusyId(null);
+    }
+  }
 
   const filtered = devisList.filter((d) => {
     if (!search) return true;
@@ -64,12 +84,13 @@ export default function DevisListClient({ devisList }: { devisList: DevisRow[] }
       </div>
 
       <div className="bg-slate-800/40 border border-white/8 rounded-2xl overflow-hidden">
-        <div className="hidden sm:grid grid-cols-[1fr_1.5fr_130px_120px_100px_32px] gap-4 px-5 py-3 text-xs text-slate-500 border-b border-white/8">
+        <div className="hidden sm:grid grid-cols-[1fr_1.3fr_120px_110px_90px_110px_32px] gap-4 px-5 py-3 text-xs text-slate-500 border-b border-white/8">
           <span>Numéro</span>
           <span>Client</span>
           <span>Statut</span>
           <span>Total TTC</span>
           <span>Date</span>
+          <span />
           <span />
         </div>
 
@@ -80,10 +101,10 @@ export default function DevisListClient({ devisList }: { devisList: DevisRow[] }
             {filtered.map((d) => {
               const status = STATUS_DEVIS[d.status] ?? STATUS_DEVIS.brouillon;
               return (
-                <Link
+                <div
                   key={d.id}
-                  href={`/admin/devis/${d.id}`}
-                  className="grid sm:grid-cols-[1fr_1.5fr_130px_120px_100px_32px] grid-cols-1 gap-4 px-5 py-4 items-center hover:bg-white/3 transition-colors group"
+                  onClick={() => router.push(`/admin/devis/${d.id}`)}
+                  className="grid sm:grid-cols-[1fr_1.3fr_120px_110px_90px_110px_32px] grid-cols-1 gap-4 px-5 py-4 items-center hover:bg-white/3 transition-colors group cursor-pointer"
                 >
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center flex-shrink-0">
@@ -102,8 +123,26 @@ export default function DevisListClient({ devisList }: { devisList: DevisRow[] }
                     <Calendar className="w-3 h-3" />
                     {new Date(d.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
                   </span>
-                  <ArrowRight className="w-3.5 h-3.5 text-slate-600 group-hover:text-slate-400 transition-colors justify-self-center" />
-                </Link>
+                  {/* Modifier (devis non signé) ou Réviser (devis accepté : nouveau devis pré-rempli) */}
+                  {d.status === "accepté" ? (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); reviser(d.id); }}
+                      disabled={busyId === d.id}
+                      title="Devis signé : crée une révision pré-remplie à ajuster puis faire signer"
+                      className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 disabled:opacity-50 text-xs font-medium rounded-lg transition-all w-fit"
+                    >
+                      <FilePlus2 className="w-3 h-3" /> {busyId === d.id ? "…" : "Réviser"}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); router.push(`/admin/devis/${d.id}/modifier`); }}
+                      className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-slate-700/60 border border-white/10 text-slate-300 hover:text-white hover:border-white/20 text-xs font-medium rounded-lg transition-all w-fit"
+                    >
+                      <Pencil className="w-3 h-3" /> Modifier
+                    </button>
+                  )}
+                  <ArrowRight className="w-3.5 h-3.5 text-slate-600 group-hover:text-slate-400 transition-colors justify-self-center hidden sm:block" />
+                </div>
               );
             })}
           </div>
