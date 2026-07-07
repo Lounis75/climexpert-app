@@ -1339,6 +1339,12 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                   const statusCfg = STATUS_CONFIG[lead.status];
                   const listDupes = duplicatesMap.get(lead.id) ?? [];
                   const devisSigne = lead.devisDecision === "accepte";
+                  // Action à faire, même logique que les cartes du Kanban : alerte rouge (action
+                  // urgente) > relance planifiée > prochaine étape (RDV à convenir, devis à faire...).
+                  const rowAction = leadAction(lead);
+                  const rowPal = (lead as Lead & { prochaineActionLe?: string | null }).prochaineActionLe;
+                  const rowPe = lead.status === "contacté" ? (lead as Lead & { prochaineEtape?: string | null }).prochaineEtape : null;
+                  const rowPeCfg = rowPe ? PROCHAINE_ETAPE[rowPe] : null;
                   return (
                     <div
                       key={lead.id}
@@ -1374,6 +1380,19 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                         <span className="truncate">
                           {[lead.project ? (PROJECT_LABELS[lead.project] ?? lead.project) : null, lead.location].filter(Boolean).join(" · ") || "-"}
                         </span>
+                        {rowAction ? (
+                          <span className="flex-shrink-0 flex items-center gap-1 text-[10px] font-semibold text-red-300 bg-red-500/10 border border-red-500/30 rounded-full px-1.5 py-0.5 whitespace-nowrap" title={`Action à faire : ${rowAction}`}>
+                            <AlertTriangle className="w-2.5 h-2.5 flex-shrink-0" /> {rowAction}
+                          </span>
+                        ) : rowPal ? (
+                          <span className="flex-shrink-0 flex items-center gap-1 text-[10px] font-medium text-amber-300/90 whitespace-nowrap" title="Relance planifiée">
+                            <Clock className="w-2.5 h-2.5 flex-shrink-0" /> relance {new Date(rowPal).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+                          </span>
+                        ) : rowPeCfg ? (
+                          <span className={`flex-shrink-0 flex items-center gap-0.5 text-[10px] font-medium whitespace-nowrap ${rowPeCfg.color}`} title={rowPeCfg.label}>
+                            {rowPeCfg.emoji} {rowPeCfg.short}
+                          </span>
+                        ) : null}
                         {devisSigne && <span className="flex-shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-400/40">Signé</span>}
                         {listDupes.length > 0 && (
                           <button
