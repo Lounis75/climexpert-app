@@ -1330,8 +1330,95 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
       )}
 
       {/* ── LISTE VIEW (toujours affichée sur mobile ; sur desktop si vue=liste) ── */}
-      {leads.length > 0 && (
-        <div className={view === "liste" ? "space-y-3" : "space-y-3 sm:hidden"}>
+      {leads.length > 0 && (<>
+        {/* Vue LISTE compacte (desktop) : une ligne par prospect, dense et scannable.
+            Les grosses cartes ci-dessous restent la vue mobile. Le clic ouvre le cockpit. */}
+        {view === "liste" && (
+          <div className="hidden sm:block bg-slate-800/40 border border-white/8 rounded-2xl overflow-hidden mb-3">
+            {filtered.length === 0 ? (
+              <p className="text-center text-slate-500 text-sm py-12">
+                Aucun prospect{statusFilter !== "tous" ? " à cette étape" : ""}{favorisOnly ? " en favori" : ""}.
+              </p>
+            ) : (
+              <div className="divide-y divide-white/5">
+                {filtered.map((lead) => {
+                  const statusCfg = STATUS_CONFIG[lead.status];
+                  const listDupes = duplicatesMap.get(lead.id) ?? [];
+                  const devisSigne = lead.devisDecision === "accepte";
+                  return (
+                    <div
+                      key={lead.id}
+                      onClick={() => setSelectedLead(lead)}
+                      className={`grid grid-cols-[auto_minmax(170px,1.1fr)_130px_1fr_auto_92px] items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors hover:bg-slate-800/70 ${devisSigne ? "bg-amber-500/[0.05]" : ""}`}
+                    >
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleFavori(lead); }}
+                        title={lead.favori ? "Retirer des favoris" : "Marquer comme intéressant"}
+                        className="flex-shrink-0"
+                      >
+                        <Star className={`w-4 h-4 transition-colors ${lead.favori ? "fill-amber-400 text-amber-400" : "text-slate-600 hover:text-amber-400"}`} />
+                      </button>
+                      <div className="min-w-0">
+                        <p className="text-white text-sm font-semibold truncate">{lead.name}</p>
+                        <a href={`tel:${lead.phone}`} onClick={(e) => e.stopPropagation()} className="text-sky-400 hover:text-sky-300 text-xs transition-colors">{lead.phone}</a>
+                      </div>
+                      <select
+                        value={lead.status}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => updateStatus(lead.id, e.target.value)}
+                        disabled={updating === lead.id}
+                        className={`text-[10px] font-semibold px-2 py-1 rounded-full border bg-transparent cursor-pointer appearance-none w-fit ${statusCfg.color} ${updating === lead.id ? "opacity-50 cursor-wait" : ""}`}
+                      >
+                        {Object.entries(STATUS_CONFIG).filter(([val]) => val !== "pas_de_reponse").map(([val, cfg]) => (
+                          <option key={val} value={val} className="bg-slate-800 text-white text-xs">{cfg.label}</option>
+                        ))}
+                      </select>
+                      <div className="min-w-0 flex items-center gap-2 text-xs text-slate-400">
+                        <span title={lead.source === "alex" ? "Qualifié par Alex" : "Formulaire du site"} className="flex-shrink-0">
+                          {lead.source === "alex" ? <Bot className="w-3.5 h-3.5 text-sky-400" /> : <FileText className="w-3.5 h-3.5 text-violet-400" />}
+                        </span>
+                        <span className="truncate">
+                          {[lead.project ? (PROJECT_LABELS[lead.project] ?? lead.project) : null, lead.location].filter(Boolean).join(" · ") || "-"}
+                        </span>
+                        {devisSigne && <span className="flex-shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-400/40">Signé</span>}
+                        {listDupes.length > 0 && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setMergingPanel({ leadId: lead.id, dupes: listDupes }); }}
+                            title="Doublon possible"
+                            className="flex-shrink-0 text-orange-400 hover:text-orange-300"
+                          >
+                            <AlertTriangle className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1.5 justify-end" onClick={(e) => e.stopPropagation()}>
+                        <a href={`tel:${lead.phone}`} title="Appeler" className="p-1.5 rounded-lg bg-sky-500/10 border border-sky-500/30 text-sky-400 hover:bg-sky-500/20 transition-colors"><Phone className="w-3.5 h-3.5" /></a>
+                        {lead.status === "nouveau" && (
+                          <>
+                            <button onClick={() => premierContact(lead.id, "pas_de_reponse")} disabled={updating === lead.id} title="Pas de réponse au premier appel" className="px-2 py-1 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 hover:bg-rose-500/20 text-[11px] font-medium transition-colors disabled:opacity-50 whitespace-nowrap">Pas de rép.</button>
+                            <button onClick={() => premierContact(lead.id, "contact_etabli")} disabled={updating === lead.id} title="Contact établi" className="px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 text-[11px] font-medium transition-colors disabled:opacity-50 whitespace-nowrap">Contact</button>
+                          </>
+                        )}
+                      </div>
+                      <span className="text-slate-500 text-[11px] whitespace-nowrap text-right flex items-center gap-1 justify-end"><Clock className="w-3 h-3" />{formatDate(lead.createdAt)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {!search && !favorisOnly && statusFilter === "tous" && typeFilter === "tous" && secteurFilter === "tous" && leads.length < totalCount && (
+              <button
+                onClick={loadMoreListe}
+                disabled={searching}
+                className="w-full text-xs text-slate-400 hover:text-white py-2.5 border-t border-white/5 transition-colors disabled:opacity-50"
+              >
+                {searching ? "Chargement…" : `Charger plus (${totalCount - leads.length} restants)`}
+              </button>
+            )}
+          </div>
+        )}
+
+        <div className="space-y-3 sm:hidden">
           {filtered.length === 0 && (
             <p className="text-center text-slate-500 text-sm py-12">
               Aucun prospect{statusFilter !== "tous" ? " à cette étape" : ""}{favorisOnly ? " en favori" : ""}.
@@ -1529,7 +1616,7 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
             </button>
           )}
         </div>
-      )}
+      </>)}
 
       {totalCount > 0 && (
         <p className="text-slate-600 text-xs text-center mt-8">
