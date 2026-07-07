@@ -7,7 +7,7 @@ import {
   Phone, Bot, FileText, MapPin, Wrench,
   MessageSquare, Clock, LayoutList, Columns3, UserPlus, CheckCircle2, Send,
   AlertTriangle, GitMerge, X, Search, Mail, ChevronRight, ChevronDown, Briefcase, Plus,
-  Pencil, Check, ShieldCheck, CalendarPlus, Star, Maximize2, Minimize2, ClipboardPaste, Camera, Pin, Calculator, Copy,
+  Pencil, Check, ShieldCheck, CalendarPlus, Star, Maximize2, Minimize2, ClipboardPaste, Camera, Pin, Calculator, Copy, Archive, RotateCcw,
 } from "lucide-react";
 import type { Lead, LeadStatus } from "@/lib/leads";
 import { detectDuplicates, leadAction } from "@/lib/leads-utils";
@@ -182,6 +182,36 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkResult, setBulkResult] = useState<{ created: number; skipped: number; total: number } | null>(null);
   const bulkDetected = useMemo(() => extractPhones(bulkText).length, [bulkText]);
+  // Prospects archivés (perdus sortis du Kanban) : consultation + ré-ouverture.
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [archivedLeads, setArchivedLeads] = useState<Lead[]>([]);
+  const [archiveLoading, setArchiveLoading] = useState(false);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
+
+  async function openArchives() {
+    setArchiveOpen(true); setArchiveLoading(true);
+    try {
+      const res = await fetch("/api/admin/leads?archived=1&limit=100");
+      const data = await res.json();
+      setArchivedLeads(Array.isArray(data.leads) ? data.leads : []);
+    } catch { setArchivedLeads([]); }
+    finally { setArchiveLoading(false); }
+  }
+
+  async function restoreLead(id: string) {
+    setRestoringId(id);
+    try {
+      const res = await fetch(`/api/admin/leads/${id}/restore`, { method: "POST" });
+      if (res.ok) {
+        const { lead } = await res.json();
+        setArchivedLeads((prev) => prev.filter((l) => l.id !== id));
+        // Le prospect ré-ouvert repasse en « Contacté » : on l'injecte dans la liste vivante.
+        if (lead) setLeads((prev) => (prev.some((l) => l.id === lead.id) ? prev.map((l) => (l.id === lead.id ? lead : l)) : [lead, ...prev]));
+        setColCounts((prev) => ({ ...prev, "contacté": (prev["contacté"] ?? 0) + 1 }));
+      }
+    } catch { /* silencieux : l'utilisateur peut réessayer */ }
+    finally { setRestoringId(null); }
+  }
 
   async function importNumbers() {
     setBulkLoading(true); setBulkResult(null);
@@ -1181,6 +1211,16 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
         >
           <ClipboardPaste className="w-3.5 h-3.5" />
           Importer des numéros
+        </button>
+
+        {/* Prospects archivés (perdus sortis du Kanban) */}
+        <button
+          onClick={openArchives}
+          title="Consulter les prospects archivés (perdus) et les ré-ouvrir"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800/60 border border-white/10 hover:border-white/20 text-slate-200 text-xs font-semibold rounded-xl transition-colors"
+        >
+          <Archive className="w-3.5 h-3.5" />
+          Archivés
         </button>
 
         {/* Add lead button */}
@@ -2687,6 +2727,54 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
                     </button>
                   </div>
                 </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {archiveOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setArchiveOpen(false)} />
+          <div className="relative bg-[#0f1623] border border-white/10 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
+              <h2 className="text-white font-semibold text-sm flex items-center gap-2"><Archive className="w-4 h-4 text-slate-400" /> Prospects archivés</h2>
+              <button onClick={() => setArchiveOpen(false)} className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-500 hover:text-white hover:bg-white/8 transition-colors"><X className="w-4 h-4" /></button>
+            </div>
+            <div className="px-5 py-3 border-b border-white/8">
+              <p className="text-slate-400 text-xs leading-relaxed">Prospects passés en « Perdu » puis sortis automatiquement du Kanban. Ils restent conservés ici : « Ré-ouvrir » les repositionne en <span className="text-slate-300">Contacté</span> pour reprendre le contact.</p>
+            </div>
+            <div className="p-4 overflow-y-auto">
+              {archiveLoading ? (
+                <p className="text-slate-500 text-sm text-center py-8">Chargement…</p>
+              ) : archivedLeads.length === 0 ? (
+                <p className="text-slate-500 text-sm text-center py-8">Aucun prospect archivé.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {archivedLeads.map((l) => {
+                    const motifLabel: Record<string, string> = { pas_de_business: "Hors activité", injoignable: "Injoignable", sans_reponse: "Sans réponse au devis", refus: "Refus", autre: "Autre" };
+                    return (
+                      <li key={l.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-slate-900/60 border border-white/8">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-white text-sm font-medium truncate">{l.name}</p>
+                          <p className="text-slate-500 text-xs truncate">
+                            {l.phone}
+                            {l.motifPerdu ? <span className="text-slate-400"> · {motifLabel[l.motifPerdu] ?? l.motifPerdu}</span> : null}
+                            {l.archiveLe ? <span> · archivé le {new Date(l.archiveLe).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric", timeZone: "Europe/Paris" })}</span> : null}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => restoreLead(l.id)}
+                          disabled={restoringId === l.id}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-sky-500/15 hover:bg-sky-500/25 disabled:opacity-40 border border-sky-500/30 text-sky-300 text-xs font-semibold rounded-lg transition-colors shrink-0"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          {restoringId === l.id ? "…" : "Ré-ouvrir"}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
               )}
             </div>
           </div>

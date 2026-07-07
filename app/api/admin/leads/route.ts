@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createLead, updateLead, deleteLead, findActiveLeadByNamePhone, getLeadsByStatusPaged, getLeadsPaginated, getLastActivityByLead, getLeadById } from "@/lib/leads";
+import { createLead, updateLead, deleteLead, findActiveLeadByNamePhone, getLeadsByStatusPaged, getLeadsPaginated, getLastActivityByLead, getLeadById, getArchivedLeads } from "@/lib/leads";
 import { createClientFromLead } from "@/lib/clients";
 import { logError } from "@/lib/observability";
 import type { LeadStatus } from "@/lib/leads";
@@ -15,6 +15,13 @@ const STATUT_HIST: Record<string, string> = {
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
+    // Prospects archivés (perdus sortis du Kanban) : liste dédiée pour recontact / ré-ouverture.
+    if (searchParams.get("archived")) {
+      const offset = Number(searchParams.get("offset")) || 0;
+      const limit = Number(searchParams.get("limit")) || 50;
+      const items = await getArchivedLeads({ offset, limit });
+      return NextResponse.json({ leads: items });
+    }
     const status = searchParams.get("status");
     // « Charger plus » d'une colonne du Kanban
     if (status) {
@@ -145,28 +152,18 @@ export async function PATCH(req: NextRequest) {
       allowed.dateSouhaiteeIntervention = d && !isNaN(d.getTime()) ? d : null;
     }
 
-    // Passage en "gagné" → conversion auto en client (idempotent : copie l'adresse/
-    // notes, lie le lead). Couvre TOUS les chemins (panneau, glisser-déposer Kanban…).
-    // On NE l'avale plus en silence : si elle échoue, on remonte un avertissement.
-    let conversionWarning: string | undefined;
-    if (fields.status === "gagné") {
-      try {
-        const client = await createClientFromLead(id);
-        if (!client) conversionWarning = "Prospect introuvable lors de la création de la fiche client.";
-      } catch (e) {
-        logError("leads.conversionAuto", e, { leadId: id });
-        conversionWarning = "Le prospect est passé en « gagné » mais la fiche client n'a pas pu être créée. À vérifier (les relances d'entretien risquent de ne pas être planifiées).";
-      }
-    }
-
     if (Object.keys(allowed).length === 0) {
       return NextResponse.json({ error: "Aucun champ à mettre à jour" }, { status: 400 });
     }
 
     // Verrou optimiste : le client envoie la version qu'il a sous les yeux.
+    // IMPORTANT : l'update versionné passe AVANT la conversion en client. Auparavant la conversion
+    // (qui incrémente version via createClientFromLead) tournait d'abord, si bien que l'update
+    // versionné qui suivait échouait ensuite en FAUX 409 « modifié par quelqu'un d'autre » à CHAQUE
+    // passage en « gagné » (bug vécu à chaque signature).
     const expectedVersion = typeof fields.version === "number" ? fields.version : undefined;
     const before = await getLeadById(id);
-    const lead = await updateLead(id, allowed, expectedVersion);
+    let lead = await updateLead(id, allowed, expectedVersion);
     if (!lead) {
       if (expectedVersion !== undefined) {
         const current = await getLeadById(id);
@@ -178,6 +175,25 @@ export async function PATCH(req: NextRequest) {
         }
       }
       return NextResponse.json({ error: "Lead introuvable" }, { status: 404 });
+    }
+
+    // Passage en "gagné" → conversion auto en client APRÈS l'update versionné (idempotent : copie
+    // l'adresse/notes, lie le lead). Couvre TOUS les chemins (panneau, glisser-déposer Kanban…).
+    // On NE l'avale plus en silence : si elle échoue, on remonte un avertissement.
+    let conversionWarning: string | undefined;
+    if (fields.status === "gagné") {
+      try {
+        const client = await createClientFromLead(id);
+        if (!client) conversionWarning = "Prospect introuvable lors de la création de la fiche client.";
+        else {
+          // La conversion a mis à jour clientId : on renvoie la fiche fraîche au client.
+          const refreshed = await getLeadById(id);
+          if (refreshed) lead = refreshed;
+        }
+      } catch (e) {
+        logError("leads.conversionAuto", e, { leadId: id });
+        conversionWarning = "Le prospect est passé en « gagné » mais la fiche client n'a pas pu être créée. À vérifier (les relances d'entretien risquent de ne pas être planifiées).";
+      }
     }
 
     // Auto-historique : les évènements clés s'enregistrent tout seuls dans le fil d'échanges.

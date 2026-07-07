@@ -52,7 +52,9 @@ export async function findActiveLeadByNamePhone(name: string, phone: string): Pr
 /** Rendez-vous commerciaux (« RDV pris ») = prospects avec une date de RDV.
  *  Admin : tous (opts vide). Commercial : passer commercialId pour ne voir que les siens. */
 export async function getRendezVous(opts?: { commercialId?: string }): Promise<RendezVous[]> {
-  const conds = [isNotNull(leads.rdvDate), ne(leads.status, "perdu")];
+  // On exclut les prospects supprimés ET archivés : un RDV rattaché à une fiche corbeille/archivée
+  // ne doit plus apparaître dans l'agenda commercial (sinon fantômes dans le planning).
+  const conds = [isNotNull(leads.rdvDate), ne(leads.status, "perdu"), isNull(leads.supprimeLe), isNull(leads.archiveLe)];
   if (opts?.commercialId) conds.push(eq(leads.commercialId, opts.commercialId));
   const rows = await db
     .select({
@@ -115,6 +117,28 @@ export async function createLead(
 
 export async function getLeads(): Promise<Lead[]> {
   return db.select().from(leads).where(isNull(leads.supprimeLe)).orderBy(desc(leads.createdAt));
+}
+
+// Prospects ARCHIVÉS (perdus sortis du Kanban par le cron après 7 j). Ils restent en base pour un
+// éventuel recontact : cette liste permet de les revoir et de les ré-ouvrir depuis l'interface.
+export async function getArchivedLeads(opts?: { limit?: number; offset?: number }): Promise<Lead[]> {
+  const limit = Math.min(opts?.limit ?? 50, 200);
+  const offset = opts?.offset ?? 0;
+  return db.select().from(leads)
+    .where(and(isNull(leads.supprimeLe), isNotNull(leads.archiveLe)))
+    .orderBy(desc(leads.archiveLe))
+    .limit(limit).offset(offset);
+}
+
+// Ré-ouvre un prospect archivé : on le sort des archives et on le repositionne en « Contacté »
+// (on reprend le fil), avec une date de statut fraîche pour ne pas le ré-archiver aussitôt.
+export async function restoreArchivedLead(id: string): Promise<Lead | null> {
+  const [lead] = await db.update(leads).set({
+    archiveLe: null, status: "contacté", motifPerdu: null,
+    statutChangeLe: new Date(), relanceNotifieeLe: null,
+    version: sql`${leads.version} + 1`, updatedAt: new Date(),
+  }).where(and(eq(leads.id, id), isNotNull(leads.archiveLe), isNull(leads.supprimeLe))).returning();
+  return lead ?? null;
 }
 
 const STATUS_LIST: LeadStatus[] = ["nouveau", "contacté", "devis_envoyé", "gagné", "perdu"];
@@ -261,7 +285,7 @@ export async function getLeadById(id: string): Promise<Lead | null> {
 
 export async function updateLead(
   id: string,
-  data: Partial<Pick<NewLead, "status" | "notes" | "email" | "location" | "address" | "project" | "name" | "phone" | "clientId" | "commercialId" | "consentementMarketing" | "consentementLe" | "montantDevisCt" | "prochaineEtape" | "rdvDate" | "visiteClientLe" | "dateSouhaiteeIntervention" | "prochaineActionLe" | "favori" | "qualification" | "taches" | "typeClient" | "entreprise" | "siren">>,
+  data: Partial<Pick<NewLead, "status" | "notes" | "email" | "location" | "address" | "project" | "name" | "phone" | "clientId" | "commercialId" | "consentementMarketing" | "consentementLe" | "montantDevisCt" | "prochaineEtape" | "rdvDate" | "visiteClientLe" | "dateSouhaiteeIntervention" | "prochaineActionLe" | "favori" | "qualification" | "taches" | "typeClient" | "entreprise" | "siren" | "motifPerdu">>,
   expectedVersion?: number,
 ): Promise<Lead | null> {
   // Verrou optimiste : si expectedVersion est fourni, la mise à jour n'a lieu que si
@@ -328,9 +352,16 @@ export async function mergeLeads(masterId: string, duplicateId: string): Promise
   const parts = [master.notes, duplicate.notes].filter(Boolean);
   if (parts.length) merged.notes = parts.join("\n---\n");
 
+  // Si la fusion fait avancer le statut du master (statut le plus avancé des deux), on redate le
+  // passage : sinon les minuteries de cycle de vie (relances, auto-perdu) s'appuieraient sur une
+  // vieille date héritée et se déclencheraient à contretemps.
+  const statusBumped = merged.status !== undefined && merged.status !== master.status
+    ? { statutChangeLe: new Date(), relanceNotifieeLe: null }
+    : {};
+
   const [updated] = await db
     .update(leads)
-    .set({ ...merged, version: sql`${leads.version} + 1` as unknown as number, updatedAt: new Date() })
+    .set({ ...merged, ...statusBumped, version: sql`${leads.version} + 1` as unknown as number, updatedAt: new Date() })
     .where(eq(leads.id, masterId))
     .returning();
 

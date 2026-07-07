@@ -49,7 +49,8 @@ export default function LeadParcours({ lead, devisHist, onSaveTaches }: {
     nodes.push({ key: "gagne", date: new Date(lead.gagneLe), title: "Gagné", sub: "Client signé", done: true, color: "emerald" });
   }
   if (lead.status === "perdu") {
-    nodes.push({ key: "perdu", date: lead.statutChangeLe ? new Date(lead.statutChangeLe) : null, title: "Perdu", sub: lead.motifPerdu === "pas_de_business" ? "Hors activité" : undefined, done: true, color: "slate" });
+    const motifLabel: Record<string, string> = { pas_de_business: "Hors activité", injoignable: "Injoignable", sans_reponse: "Sans réponse au devis", refus: "Refus", autre: "Autre" };
+    nodes.push({ key: "perdu", date: lead.statutChangeLe ? new Date(lead.statutChangeLe) : null, title: "Perdu", sub: lead.motifPerdu ? motifLabel[lead.motifPerdu] ?? undefined : undefined, done: true, color: "slate" });
   }
   nodes.sort((a, b) => (a.date?.getTime() ?? Infinity) - (b.date?.getTime() ?? Infinity));
 
