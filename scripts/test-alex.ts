@@ -76,7 +76,7 @@ async function main() {
       "5 pièces",
       "75013",
       "Non, pas de copropriété, et pas de préférence de marque",
-      "Marc Test, 0612345678, 35 rue de la Glacière 75013 Paris, pas d'email",
+      "Marc Test, 0612345678, 35 rue de la Glacière 75013 Paris, marc.test@gmail.com",
       "Non merci, pas d'autres questions, c'est tout bon",
     ]);
     const lead = extractLeadJson(last) ?? extractLeadJson(all);
@@ -84,6 +84,7 @@ async function main() {
     if (lead) {
       check("   project = installation", lead.project === "installation", String(lead.project));
       check("   téléphone capté", String(lead.phone ?? "").replace(/\D/g, "").includes("612345678"), String(lead.phone));
+      check("   e-mail capté (nécessaire pour envoyer le devis)", /marc\.test@gmail\.com/i.test(String(lead.email ?? "")), `email="${lead.email}"`);
       const est = parseInt(String(lead.estimate ?? "").replace(/[\s  ]/g, "").match(/(\d{3,6})/)?.[1] ?? "0", 10);
       check("   estimation ≥ 9 000 € (plancher 4+ pièces)", est >= 9000, `estimate="${lead.estimate}"`);
     }
@@ -145,8 +146,8 @@ async function main() {
       "Bonjour, je veux faire retirer une vieille clim de ma façade",
       "1 unité, en façade au 2e étage, marque Airton",
       "Je déménage, pas de réinstallation. 92130 Issy-les-Moulineaux",
-      "Paul Test, 0698765432, 10 rue du Test 92130 Issy, pas d'email",
-      "Plutôt le matin en semaine si possible",
+      "Paul Test, 0698765432, 10 rue du Test 92130 Issy, plutôt le matin en semaine, pas d'email",
+      "Non, je n'ai vraiment pas d'e-mail",
     ]);
     const lead = extractLeadJson(last) ?? extractLeadJson(all);
     check("4. Dépose → LEAD_READY project=depose", lead?.project === "depose", lead ? String(lead.project) : "pas de LEAD_READY");
