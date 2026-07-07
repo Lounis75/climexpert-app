@@ -8,6 +8,7 @@ import Link from "next/link";
 import { ArrowLeft, Calendar, User, FileText, Trash2, Download, Wrench, ArrowRight, CalendarPlus, Pencil } from "lucide-react";
 import DevisActions from "./DevisActions";
 import SendEmailButton from "./SendEmailButton";
+import ReviserButton from "./ReviserButton";
 import CopyLinkButton from "./CopyLinkButton";
 import CopyableContact from "@/components/CopyableContact";
 import DeleteDevisButton from "./DeleteDevisButton";
@@ -63,14 +64,18 @@ export default async function DevisDetailPage({
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Modifier : interdit sur un devis accepté (signé) → on refait un nouveau devis. */}
-            {d.status !== "accepté" && (
+            {/* Modifier : interdit sur un devis accepté (signé) → bouton de RÉVISION à la place
+                (nouveau devis pré-rempli, à ajuster puis faire signer ; ex. prix qui change après
+                la visite technique). */}
+            {d.status !== "accepté" ? (
               <Link
                 href={`/admin/devis/${d.id}/modifier`}
                 className="flex items-center gap-1.5 px-3 py-2 bg-slate-700/60 border border-white/10 text-slate-300 hover:text-white hover:border-white/20 text-xs font-medium rounded-xl transition-all"
               >
                 <Pencil className="w-3.5 h-3.5" /> Modifier
               </Link>
+            ) : (
+              <ReviserButton devisId={d.id} />
             )}
             {d.publicToken && <CopyLinkButton token={d.publicToken} />}
             <a

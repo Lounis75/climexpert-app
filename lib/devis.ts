@@ -151,6 +151,31 @@ export async function updateDevisContent(
   return { ...d, lignes };
 }
 
+/** RÉVISE un devis ACCEPTÉ : le devis signé ne se modifie jamais (engagement contractuel), on crée
+ *  un NOUVEAU devis pré-rempli (mêmes lignes, même destinataire, nouveau numéro et nouveau lien)
+ *  en brouillon, à ajuster puis renvoyer pour une nouvelle signature. Cas réel : le prix change
+ *  après la visite technique. L'original reste intact dans l'historique. */
+export async function reviserDevis(id: string): Promise<DevisWithLignes | null> {
+  const old = await getDevisById(id);
+  if (!old) return null;
+  const nouveau = await createDevis(
+    {
+      clientId: old.clientId ?? undefined,
+      leadId: old.leadId ?? undefined,
+      description: old.description ?? undefined,
+      validUntil: undefined, // nouvelle validité à poser à l'envoi
+    },
+    old.lignes.map((l) => ({
+      designation: l.designation,
+      quantite: l.quantite,
+      prixUnitaireEuros: l.prixUnitaireCt / 100,
+      tvaRate: String(l.tvaRate ?? "0"),
+    })),
+  );
+  if (old.fichierUrl) await updateDevisEnvoi(nouveau.id, { fichierUrl: old.fichierUrl });
+  return nouveau;
+}
+
 export async function getDevisByToken(token: string): Promise<DevisWithLignes | null> {
   const [row] = await db
     .select({ devis: devis, clientName: clients.name, clientEmail: clients.email, leadName: leads.name, leadEmail: leads.email })
