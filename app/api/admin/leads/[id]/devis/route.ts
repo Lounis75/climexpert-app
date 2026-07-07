@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { mailRecipient } from "@/lib/mail";
 import { db } from "@/lib/db";
 import { leads, suivis, devisEnvois } from "@/lib/db/schema";
-import { eq, sql, desc } from "drizzle-orm";
+import { eq, sql, desc, and, isNull, ne } from "drizzle-orm";
 import { randomBytes } from "crypto";
 import { Resend } from "resend";
 import { r2PutFile } from "@/lib/r2";
+import { createLead } from "@/lib/leads";
 import { logError } from "@/lib/observability";
 
 export const runtime = "nodejs";
@@ -39,14 +40,31 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const montant = parseFloat(montantRaw);
   const montantCt = Number.isFinite(montant) && montant > 0 ? Math.round(montant * 100) : null;
 
+  // Le prospect est DÉJÀ GAGNÉ : un nouveau devis = une NOUVELLE affaire. On la porte par un
+  // nouveau prospect (clone des coordonnées) au lieu d'écraser le statut « gagné » et le montant
+  // de l'affaire déjà remportée (sinon le CA de la 1re signature était effacé).
+  let targetId = id;
+  let spunOff = false;
+  if (lead.gagneLe) {
+    const fresh = await createLead({
+      name: lead.name, phone: lead.phone, email: lead.email,
+      address: lead.address ?? undefined, location: lead.location ?? undefined,
+      source: "autre", project: lead.project ?? undefined,
+      typeClient: lead.typeClient, clientId: lead.clientId ?? undefined,
+      entreprise: lead.entreprise ?? undefined, siren: lead.siren ?? undefined,
+    });
+    targetId = fresh.id;
+    spunOff = true;
+  }
+
   // 1) Stockage du PDF sur R2
   const buf = Buffer.from(await file.arrayBuffer());
-  const key = `devis/${id}-${randomBytes(6).toString("hex")}.pdf`;
+  const key = `devis/${targetId}-${randomBytes(6).toString("hex")}.pdf`;
   let url: string;
   try {
     url = await r2PutFile(key, buf, "application/pdf");
   } catch (e) {
-    logError("devis.r2", e, { leadId: id });
+    logError("devis.r2", e, { leadId: targetId });
     return NextResponse.json({ error: "Échec du stockage du fichier." }, { status: 500 });
   }
 
@@ -54,11 +72,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   //    adossé à un enregistrement (sinon un 2e devis pourrait « tuer » le lien du 1er). Erreur propagée.
   const token = randomBytes(32).toString("hex");
   try {
-    await db.insert(devisEnvois).values({ leadId: id, url, nomFichier: file.name || "devis.pdf", token, montantCt: montantCt ?? null, envoyeLe: new Date() });
+    await db.insert(devisEnvois).values({ leadId: targetId, url, nomFichier: file.name || "devis.pdf", token, montantCt: montantCt ?? null, envoyeLe: new Date() });
   } catch (e) {
-    logError("devis.envoi.insert", e, { leadId: id });
+    logError("devis.envoi.insert", e, { leadId: targetId });
     return NextResponse.json({ error: "Échec de l'enregistrement du devis." }, { status: 500 });
   }
+
+  // Ce nouveau devis REMPLACE les précédents : on invalide les liens de décision encore ouverts de
+  // ce prospect (sinon le client pourrait accepter une ANCIENNE version, au mauvais montant, via un
+  // e-mail précédent). Marqués « annule » -> la page de décision affiche « remplacé ».
+  try {
+    await db.update(devisEnvois)
+      .set({ decision: "annule", decisionLe: new Date() })
+      .where(and(eq(devisEnvois.leadId, targetId), isNull(devisEnvois.decision), ne(devisEnvois.token, token)));
+  } catch (e) { logError("devis.envoi.supersede", e, { leadId: targetId }); }
 
   // 3) Lien public de décision + e-mail au client (PDF joint)
   const baseUrl = process.env.NEXT_PUBLIC_URL ?? "https://climexpert.fr";
@@ -82,7 +109,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       attachments: [{ filename: file.name || "devis.pdf", content: buf }],
     });
   } catch (e) {
-    logError("devis.email", e, { leadId: id });
+    logError("devis.email", e, { leadId: targetId });
     return NextResponse.json({ error: "Échec de l'envoi de l'e-mail au client." }, { status: 500 });
   }
 
@@ -97,12 +124,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     status: "devis_envoyé",
     statutChangeLe: new Date(), relanceNotifieeLe: null,
     version: sql`${leads.version} + 1`, updatedAt: new Date(),
-  }).where(eq(leads.id, id));
+  }).where(eq(leads.id, targetId));
 
   await db.insert(suivis).values({
-    leadId: id, type: "devis",
+    leadId: targetId, type: "devis",
     contenu: `Devis envoyé au client${montantTxt ? ` (${montantTxt})` : ""}, en attente de sa réponse.`,
   }).catch(() => {});
 
-  return NextResponse.json({ ok: true });
+  // spunOff : un nouveau prospect a été créé pour cette 2e affaire (le gagné d'origine est préservé).
+  return NextResponse.json({ ok: true, ...(spunOff ? { newLeadId: targetId } : {}) });
 }

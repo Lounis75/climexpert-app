@@ -26,6 +26,12 @@ export async function POST(req: NextRequest) {
     : await db.select().from(leads).where(eq(leads.devisToken, token)).limit(1);
   if (!lead) return NextResponse.json({ error: "Lien invalide ou expiré" }, { status: 404 });
 
+  // Lien REMPLACÉ par une version plus récente (un nouveau devis a été envoyé) : on le refuse
+  // explicitement plutôt que d'accepter un ancien montant. Le client doit ouvrir le dernier e-mail.
+  if (envoi?.decision === "annule") {
+    return NextResponse.json({ error: "Ce devis a été remplacé par une version plus récente. Merci d'ouvrir le dernier e-mail reçu de ClimExpert." }, { status: 410 });
+  }
+
   const dejaDecide = envoi ? envoi.decision : lead.devisDecision;
   if (dejaDecide) {
     return NextResponse.json({ ok: true, already: true, decision: dejaDecide });
@@ -72,7 +78,11 @@ export async function POST(req: NextRequest) {
   if (decision === "accepte") {
     await db.update(leads).set({
       ...(estDevisCourant ? { devisDecision: "accepte", devisDecisionLe: new Date(), devisMotifRefus: null } : {}),
-      status: "gagné", gagneLe: new Date(),
+      status: "gagné", gagneLe: sql`coalesce(${leads.gagneLe}, now())`,
+      // On enregistre le montant RÉELLEMENT accepté (celui de ce lien) comme CA de l'affaire : sinon
+      // le panier moyen / la conversion ignoraient le montant quand seul l'envoi le portait. On ne
+      // l'écrase PAS si le prospect était déjà gagné (préserve le CA de la 1re affaire).
+      ...(typeof montantCt === "number" && !dejaGagne ? { montantDevisCt: montantCt } : {}),
       installPrevuLe: null, // le créneau provisoire devient la vraie intervention ci-dessous
       statutChangeLe: new Date(), relanceNotifieeLe: null,
       version: sql`${leads.version} + 1`, updatedAt: new Date(),

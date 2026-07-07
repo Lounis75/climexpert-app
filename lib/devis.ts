@@ -23,6 +23,15 @@ export type LigneInput = {
   tvaRate: string;           // "5.5", "10", "20"
 };
 
+// Taux de TVA d'une ligne, robuste : un taux absent/vide/illisible retombe sur le taux réduit 5,5 %
+// (par défaut du schéma) et JAMAIS sur 0. Number(null)/Number("") valent 0 en JS : sans ce garde-fou,
+// une ligne au taux manquant calculait un TTC = HT (TVA silencieusement effacée, devis sous-facturé).
+export function tauxTvaLigne(v: string | number | null | undefined): number {
+  if (v === null || v === undefined || v === "") return 5.5;
+  const n = Number(v);
+  return Number.isFinite(n) && n > 0 ? n : 5.5;
+}
+
 export async function generateDevisNumber(): Promise<string> {
   const year = new Date().getFullYear();
   // Compteur atomique (séquence Postgres) : numéros uniques et croissants, quel que soit le flux
@@ -88,7 +97,7 @@ export async function createDevis(
   );
   const totalTtcCt = lignesValues.reduce((sum, l) => {
     const ligneHt = l.quantite * l.prixUnitaireCt;
-    return sum + Math.round(ligneHt * (1 + Number(l.tvaRate) / 100));
+    return sum + Math.round(ligneHt * (1 + tauxTvaLigne(l.tvaRate) / 100));
   }, 0);
 
   const [d] = await db
@@ -130,7 +139,7 @@ export async function updateDevisContent(
   const totalHtCt = lignesValues.reduce((sum, l) => sum + l.quantite * l.prixUnitaireCt, 0);
   const totalTtcCt = lignesValues.reduce((sum, l) => {
     const ht = l.quantite * l.prixUnitaireCt;
-    return sum + Math.round(ht * (1 + Number(l.tvaRate) / 100));
+    return sum + Math.round(ht * (1 + tauxTvaLigne(l.tvaRate) / 100));
   }, 0);
 
   const patch: Partial<InferInsertModel<typeof devis>> = {
@@ -169,7 +178,7 @@ export async function reviserDevis(id: string): Promise<DevisWithLignes | null> 
       designation: l.designation,
       quantite: l.quantite,
       prixUnitaireEuros: l.prixUnitaireCt / 100,
-      tvaRate: String(l.tvaRate ?? "0"),
+      tvaRate: String(l.tvaRate ?? "5.5"), // jamais "0" : une révision ne doit pas effacer la TVA
     })),
   );
   if (old.fichierUrl) await updateDevisEnvoi(nouveau.id, { fichierUrl: old.fichierUrl });

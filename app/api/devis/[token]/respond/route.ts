@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { devis, notifications } from "@/lib/db/schema";
+import { devis, leads, notifications } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
 import { getDevisByToken } from "@/lib/devis";
 import { acceptDevis } from "@/lib/devis-workflow";
@@ -21,6 +21,24 @@ export async function POST(
 
     const d = await getDevisByToken(token);
     if (!d) return NextResponse.json({ error: "Devis introuvable" }, { status: 404 });
+
+    // Garde-fous à l'ACCEPTATION (le refus d'un vieux devis reste toujours possible) :
+    if (action === "accepté") {
+      // 1) Expiration : au-delà de validUntil (ou 60 j après création par défaut), on n'accepte plus
+      //    un devis à un prix potentiellement périmé. Aligne le comportement sur /api/devis-decision.
+      const limite = d.validUntil ? new Date(d.validUntil).getTime() : new Date(d.createdAt).getTime() + 60 * 86400000;
+      if (Date.now() > limite) {
+        return NextResponse.json({ error: "Ce devis a expiré. Contactez-nous pour un devis à jour." }, { status: 410 });
+      }
+      // 2) Prospect classé/archivé : un devis rattaché à une affaire archivée ne doit pas être
+      //    ré-accepté silencieusement via un vieux lien (il faut repartir d'un devis à jour).
+      if (d.leadId) {
+        const [ld] = await db.select({ archiveLe: leads.archiveLe }).from(leads).where(eq(leads.id, d.leadId)).limit(1);
+        if (ld?.archiveLe) {
+          return NextResponse.json({ error: "Ce devis n'est plus d'actualité. Contactez-nous pour un devis à jour." }, { status: 410 });
+        }
+      }
+    }
 
     // Réservation ATOMIQUE de la décision (modèle /api/devis-decision) : seul le premier clic
     // fait passer "envoyé" -> décision. L'ancien check-then-act laissait passer deux clics

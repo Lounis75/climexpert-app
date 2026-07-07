@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
-import { devis, interventions, suivis, notifications, admins } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { devis, interventions, suivis, notifications, admins, leads } from "@/lib/db/schema";
+import { eq, sql } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 import { createClientFromLead } from "@/lib/clients";
 
@@ -17,6 +17,27 @@ export async function acceptDevis(devisId: string): Promise<{ interventionId?: s
   if (!d) return {};
 
   await db.update(devis).set({ status: "accepté", updatedAt: new Date() }).where(eq(devis.id, devisId));
+
+  // SIGNATURE = le prospect est GAGNÉ. On aligne le statut du lead et on enregistre le montant
+  // signé (totalTtcCt) AVANT la conversion en client : le chantier créé par createClientFromLead
+  // reprend lead.montantDevisCt, il faut donc qu'il soit déjà posé. Sans ça, le prospect restait
+  // bloqué en « devis_envoyé » et le CA / panier moyen (calculés depuis lead.montantDevisCt des
+  // gagnés) ignoraient le devis accepté -> chiffre d'affaires sous-compté. gagneLe garde la 1re
+  // date de gain (idempotent).
+  if (d.leadId) {
+    const setLead: Record<string, unknown> = {
+      status: "gagné",
+      gagneLe: sql`coalesce(${leads.gagneLe}, now())`,
+      statutChangeLe: new Date(), relanceNotifieeLe: null,
+      version: sql`${leads.version} + 1`, updatedAt: new Date(),
+    };
+    // Montant signé -> CA de l'affaire, MAIS on ne l'écrase pas si le prospect était déjà gagné
+    // (on préserve le CA de la 1re affaire ; un 2e devis passe normalement par un nouveau prospect).
+    if (typeof d.totalTtcCt === "number") {
+      setLead.montantDevisCt = sql`case when ${leads.gagneLe} is null then ${d.totalTtcCt} else ${leads.montantDevisCt} end`;
+    }
+    await db.update(leads).set(setLead).where(eq(leads.id, d.leadId));
+  }
 
   // SIGNATURE = passage prospect -> client : si le devis vise un prospect (leadId
   // sans client), on crée le client à partir du lead et on lie le devis.
