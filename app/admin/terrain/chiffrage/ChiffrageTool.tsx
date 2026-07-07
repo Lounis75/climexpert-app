@@ -106,6 +106,8 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
   const [savingDraft, setSavingDraft] = useState(false);
   const [draftMsg, setDraftMsg] = useState("");
   const [sending, setSending] = useState(false);
+  const [sendOpen, setSendOpen] = useState(false);      // aperçu du message avant envoi
+  const [sendMessage, setSendMessage] = useState("");   // paragraphe personnel (optionnel)
   const [sent, setSent] = useState(false);
   const [sendErr, setSendErr] = useState("");
   const [pdfBusy, setPdfBusy] = useState(false);
@@ -287,13 +289,19 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
     if (prestation === "depose") return "Dépose de climatisation";
     return "Prestation";
   }
-  async function sendDevis() {
+  // Ouvre l'APERÇU du message avant envoi (le commercial voit ce que le client recevra et peut
+  // ajouter un mot personnel).
+  function openSendPreview() {
     if (!client.email.trim()) { setSendErr("Renseigne l'e-mail du client (section A « Client ») pour lui envoyer le devis."); return; }
+    setSendErr("");
+    setSendOpen(true);
+  }
+  async function sendDevis() {
     setSending(true); setSendErr("");
     try {
-      const res = await fetch("/api/admin/terrain/chiffrage/envoyer", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ leadId, clientId: clientIdRef, clientType, client, lignes: lines, description: devisTitle(), project: prestation, draft: currentDraft() }) });
+      const res = await fetch("/api/admin/terrain/chiffrage/envoyer", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ leadId, clientId: clientIdRef, clientType, client, lignes: lines, description: devisTitle(), project: prestation, draft: currentDraft(), message: sendMessage.trim() || undefined }) });
       const d = await res.json().catch(() => ({}));
-      if (res.ok) { setLeadId(d.leadId); setSent(true); }
+      if (res.ok) { setLeadId(d.leadId); setSent(true); setSendOpen(false); }
       else setSendErr(d.error ?? "Échec de l'envoi.");
     } catch { setSendErr("Erreur réseau."); }
     finally { setSending(false); }
@@ -568,10 +576,38 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
             <div className="sentbox noprint">✓ Demande d&apos;avis envoyée à un expert avec les photos. Il pourra corriger si besoin, puis valider (envoi au client). Vous serez notifié.</div>
           ) : (
             <>
-              <button className="btn primary noprint" onClick={sendDevis} disabled={sending} style={{ marginTop: 16 }}>{sending ? "Envoi en cours…" : "Envoyer le devis au client"}</button>
+              <button className="btn primary noprint" onClick={openSendPreview} disabled={sending} style={{ marginTop: 16 }}>{sending ? "Envoi en cours…" : "Envoyer le devis au client"}</button>
               <button className="btn ghost noprint" onClick={() => { setRevueErr(""); setRevueOpen(true); }} disabled={sending} style={{ marginTop: 8, width: "100%" }}>Demander l&apos;avis d&apos;un expert avant l&apos;envoi</button>
               {sendErr && <div className="senderr noprint">{sendErr}</div>}
             </>
+          )}
+          {sendOpen && (
+            <div className="noprint" style={{ position: "fixed", inset: 0, zIndex: 90, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, background: "rgba(15,23,42,.55)" }} onClick={() => !sending && setSendOpen(false)}>
+              <div style={{ background: "#fff", borderRadius: 16, maxWidth: 520, width: "100%", padding: 20, boxShadow: "0 20px 60px rgba(0,0,0,.3)", maxHeight: "90vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
+                <h3 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 800, color: "#0f172a" }}>Aperçu du message au client</h3>
+                <p style={{ margin: "0 0 12px", fontSize: 13, color: "#64748b" }}>Envoyé à <strong>{client.email}</strong>, avec le devis PDF en pièce jointe et le lien de signature en 1 clic.</p>
+                <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 12, padding: 14, fontSize: 13, color: "#0f172a", lineHeight: 1.55 }}>
+                  <p style={{ margin: "0 0 8px" }}><strong>Objet :</strong> Votre devis ClimExpert</p>
+                  <p style={{ margin: "0 0 8px" }}>Bonjour {client.nom || "…"},</p>
+                  <p style={{ margin: "0 0 8px" }}>Suite à notre échange, vous trouverez ci-joint votre <strong>devis</strong> d&apos;un montant de <strong>{eur(totals.ttc)} €</strong>.</p>
+                  <textarea
+                    value={sendMessage}
+                    onChange={(e) => setSendMessage(e.target.value)}
+                    rows={3}
+                    placeholder="Votre mot personnel (optionnel) : il apparaîtra ici, entre le montant et le bouton…"
+                    style={{ width: "100%", boxSizing: "border-box", border: "1px dashed #94a3b8", borderRadius: 8, padding: "8px 10px", fontSize: 13, fontFamily: "inherit", color: "#0f172a", background: "#fff", resize: "vertical", margin: "2px 0 8px" }}
+                  />
+                  <p style={{ margin: "0 0 8px" }}>Pour <strong>valider</strong> ou <strong>décliner</strong> votre devis, c&apos;est en 1 clic :</p>
+                  <p style={{ margin: "0 0 8px" }}><span style={{ background: "#0ea5e9", color: "#fff", padding: "8px 16px", borderRadius: 8, fontWeight: 700, fontSize: 12, display: "inline-block" }}>Voir mon devis et répondre</span></p>
+                  <p style={{ margin: 0, color: "#94a3b8", fontSize: 11 }}>Lien personnel, merci de ne pas le transférer. · L&apos;équipe ClimExpert</p>
+                </div>
+                {sendErr && <p style={{ color: "#dc2626", fontSize: 12, margin: "10px 0 0" }}>{sendErr}</p>}
+                <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+                  <button type="button" className="btn primary" style={{ flex: 1 }} onClick={sendDevis} disabled={sending}>{sending ? "Envoi en cours…" : "Envoyer maintenant"}</button>
+                  <button type="button" className="btn ghost" onClick={() => setSendOpen(false)} disabled={sending}>Annuler</button>
+                </div>
+              </div>
+            </div>
           )}
           {revueOpen && (
             <div className="noprint" style={{ position: "fixed", inset: 0, zIndex: 90, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, background: "rgba(15,23,42,.55)" }} onClick={() => setRevueOpen(false)}>
