@@ -93,6 +93,7 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
   const [prestaUnits, setPrestaUnits] = useState(draft?.prestaUnits ?? prefill?.nbRooms ?? 1);
   const [prestaHours, setPrestaHours] = useState(draft?.prestaHours ?? 2);
   const [prestaContrat, setPrestaContrat] = useState(draft?.prestaContrat ?? false);
+  const [prestaPlus3ans, setPrestaPlus3ans] = useState(draft?.prestaPlus3ans ?? false); // majoration entretien > 3 ans
   const [prestaNote, setPrestaNote] = useState(draft?.prestaNote ?? "");
   const [generated, setGenerated] = useState(draft?.generated ?? false);
   const [lines, setLines] = useState<Line[]>(draft?.lines ? (draft.lines as Line[]) : []);
@@ -158,8 +159,15 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
     const out: Line[] = [];
     const u = Math.max(1, Math.round(prestaUnits) || 1);
     if (prestation === "entretien") {
-      if (prestaContrat) out.push({ d: `Contrat d'entretien annuel (${u} unité${u > 1 ? "s" : ""})`, q: u, pu: f.entretien_contrat_unite?.v ?? 0, tva: tvaMO() });
-      else out.push({ d: `Entretien climatisation (${u} unité${u > 1 ? "s" : ""})`, q: u, pu: f.entretien_unite?.v ?? 0, tva: tvaMO() });
+      // Grille : 1re unité (200 HT avec contrat / 250 HT sans), +50 HT par unité supplémentaire,
+      // +100 HT si la dernière visite date de plus de 3 ans (ou jamais). Valeurs éditables au catalogue.
+      const premiere = prestaContrat ? (f.entretien_premiere_contrat?.v ?? 0) : (f.entretien_premiere_sans?.v ?? 0);
+      out.push({
+        d: prestaContrat ? "Entretien climatisation, 1re unité (contrat annuel)" : "Entretien climatisation, 1re unité",
+        q: 1, pu: premiere, tva: tvaMO(),
+      });
+      if (u > 1) out.push({ d: "Entretien, unité supplémentaire", q: u - 1, pu: f.entretien_unite_supp?.v ?? 0, tva: tvaMO() });
+      if (prestaPlus3ans) out.push({ d: "Majoration : installation non entretenue depuis plus de 3 ans", q: 1, pu: f.entretien_majoration_3ans?.v ?? 0, tva: tvaMO() });
       if ((f.entretien_deplacement?.v ?? 0) > 0) out.push({ d: "Déplacement", q: 1, pu: f.entretien_deplacement.v, tva: tvaMO() });
     } else if (prestation === "depannage") {
       out.push({ d: "Diagnostic / déplacement", q: 1, pu: f.depannage_diagnostic?.v ?? 0, tva: tvaMO() });
@@ -221,7 +229,7 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
     // Mélange TVA approx : tout à 20 % pour un pro (ou logement < 2 ans), sinon pose à 10 %.
     return a * (clientType === "pro" || !plus2ans ? 1.20 : 1.18);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prestation, cfg, brand, cat, rooms, install, prestaUnits, prestaHours, prestaContrat, prestaNote, clientType, plus2ans]);
+  }, [prestation, cfg, brand, cat, rooms, install, prestaUnits, prestaHours, prestaContrat, prestaPlus3ans, prestaNote, clientType, plus2ans]);
 
   const dbHint = useMemo(() => {
     const b = cat.brands.find((x) => x.id === brand);
@@ -255,7 +263,7 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
   }
 
   function currentDraft(): ChiffrageDraft {
-    return { leadId: leadId ?? undefined, clientId: clientIdRef, clientType, plus2ans, client, prestation, prestaUnits, prestaHours, prestaContrat, prestaNote, rooms, install, brand, lines, generated };
+    return { leadId: leadId ?? undefined, clientId: clientIdRef, clientType, plus2ans, client, prestation, prestaUnits, prestaHours, prestaContrat, prestaPlus3ans, prestaNote, rooms, install, brand, lines, generated };
   }
   async function saveDraft() {
     if (!client.nom.trim() && !client.entreprise.trim()) { setDraftMsg("Renseigne au moins le nom du client (ou l'entreprise)."); return; }
@@ -447,9 +455,10 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
                 <div className="field"><label>Nombre d&apos;unités{prestation === "depose" ? " à déposer" : " à entretenir"}</label>
                   <input type="number" min={1} value={prestaUnits} onChange={(e) => setPrestaUnits(parseInt(e.target.value) || 1)} /></div>
               )}
-              {prestation === "entretien" && (
+              {prestation === "entretien" && (<>
                 <label className="chk"><input type="checkbox" checked={prestaContrat} onChange={(e) => setPrestaContrat(e.target.checked)} /> Contrat d&apos;entretien annuel (au lieu d&apos;un entretien ponctuel)</label>
-              )}
+                <label className="chk"><input type="checkbox" checked={prestaPlus3ans} onChange={(e) => setPrestaPlus3ans(e.target.checked)} /> Dernier entretien il y a plus de 3 ans (ou jamais fait) : majoration {cat.forfaits.entretien_majoration_3ans?.v ?? 100} € HT</label>
+              </>)}
               {prestation === "autre" && (
                 <div className="field"><label>Description de la prestation</label>
                   <input value={prestaNote} onChange={(e) => setPrestaNote(e.target.value)} placeholder="ex : déplacement d'une unité, modification d'installation…" /></div>

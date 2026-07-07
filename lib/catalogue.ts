@@ -69,12 +69,16 @@ export const DEFAULT_CATALOGUE: Catalogue = {
     depose:          { label: "Dépose ancien matériel",             v: 272.73 },
   },
   forfaits: {
-    entretien_unite:         { label: "Entretien (par unité)",              v: 90 },
-    entretien_deplacement:   { label: "Déplacement entretien",              v: 0 },
-    entretien_contrat_unite: { label: "Contrat annuel (par unité)",         v: 150 },
-    depannage_diagnostic:    { label: "Diagnostic / déplacement",           v: 90 },
-    depose_unite:            { label: "Dépose (par unité)",                 v: 150 },
-    depose_fluides:          { label: "Évacuation / recyclage des fluides", v: 80 },
+    // Grille entretien (HT) : 1re unité selon contrat ou non, prix par unité supplémentaire,
+    // et majoration si l'installation n'a pas été entretenue depuis plus de 3 ans.
+    entretien_premiere_contrat: { label: "Entretien, 1re unité (avec contrat annuel)",   v: 200 },
+    entretien_premiere_sans:    { label: "Entretien ponctuel, 1re unité (sans contrat)", v: 250 },
+    entretien_unite_supp:       { label: "Entretien, unité supplémentaire",              v: 50 },
+    entretien_majoration_3ans:  { label: "Majoration : non entretenu depuis + de 3 ans", v: 100 },
+    entretien_deplacement:      { label: "Déplacement entretien",                        v: 0 },
+    depannage_diagnostic:       { label: "Diagnostic / déplacement",                     v: 90 },
+    depose_unite:               { label: "Dépose (par unité)",                           v: 150 },
+    depose_fluides:             { label: "Évacuation / recyclage des fluides",           v: 80 },
   },
   moRate: 150,
   marginCoeff: 1.265,
@@ -97,11 +101,17 @@ export async function getCatalogue(): Promise<Catalogue> {
     const ov = (stored.equip ?? {})[key];
     equip[key] = ov ? { label: ov.label ?? def?.label ?? key, p: { ...(def?.p ?? {}), ...ov.p } } : def;
   }
+  // Forfaits : défauts + surcharges, en retirant les clés OBSOLÈTES de l'ancienne grille entretien
+  // (remplacée en juillet 2026 par 1re unité / unité supp / majoration 3 ans) qui pourraient
+  // subsister dans un catalogue enregistré et polluer l'éditeur de prix.
+  const forfaits = { ...DEFAULT_CATALOGUE.forfaits, ...(stored.forfaits ?? {}) };
+  delete forfaits.entretien_unite;
+  delete forfaits.entretien_contrat_unite;
   return {
     brands,
     equip,
     annex: { ...DEFAULT_CATALOGUE.annex, ...(stored.annex ?? {}) },
-    forfaits: { ...DEFAULT_CATALOGUE.forfaits, ...(stored.forfaits ?? {}) },
+    forfaits,
     moRate: typeof stored.moRate === "number" ? stored.moRate : DEFAULT_CATALOGUE.moRate,
     marginCoeff: typeof stored.marginCoeff === "number" ? stored.marginCoeff : DEFAULT_CATALOGUE.marginCoeff,
     updatedAt: stored.updatedAt,
@@ -138,6 +148,7 @@ export type ChiffrageDraft = {
   prestaUnits?: number;
   prestaHours?: number;
   prestaContrat?: boolean;
+  prestaPlus3ans?: boolean; // dernier entretien il y a plus de 3 ans (ou jamais) -> majoration
   prestaNote?: string;
   rooms: unknown[];
   install: unknown;
