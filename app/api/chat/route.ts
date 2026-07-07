@@ -41,6 +41,8 @@ interface LeadData {
   marque?: string;           // marque souhaitée / existante
   problem?: string;          // description du problème (dépannage)
   qualifPlus?: boolean;      // true si la qualification approfondie a été menée
+  dernierEntretien?: string; // entretien : ancienneté du dernier entretien (ex : 2 ans, plus de 3 ans, jamais)
+  disponibilites?: string;   // jours/horaires de préférence pour l'intervention (à confirmer par l'équipe)
 }
 
 function mapOuiNon(v?: string): string | undefined {
@@ -96,6 +98,7 @@ function buildQualifFromAlex(lead: LeadData): Qualification {
 
   // ── Champs approfondis (présents seulement si Alex a fait le tour long) ──
   if (lead.budget) q.budget = lead.budget.slice(0, 100);
+  if (lead.disponibilites) q.plagesHoraires = lead.disponibilites.slice(0, 200);
   const delai = mapDelai(lead.delai);
   if (delai) q.delai = delai;
   const marque = lead.marque?.trim();
@@ -107,6 +110,7 @@ function buildQualifFromAlex(lead: LeadData): Qualification {
     if (copro) q.copropriete = copro;
     if (lead.syndic) q.syndic = lead.syndic.slice(0, 200);
   } else if (q.natureProjet === "Entretien") {
+    if (lead.dernierEntretien) q.dernierEntretien = lead.dernierEntretien.slice(0, 100);
     if (hauteur) q.entretienHauteur = hauteur;
     if (emplacement) q.entretienEmplacementUE = emplacement;
     if (marque) q.entretienMarque = marque;

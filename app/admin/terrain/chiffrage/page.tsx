@@ -34,6 +34,9 @@ function buildPrefill(lead: Lead): ChiffragePrefill {
   const depose = q.natureProjet === "Dépose" || !!q.deposeNbUnites;
   const pro = q.clientType === "Professionnel" || l.typeClient === "professionnel";
   const prestation: Prestation = mapPrestation(q.natureProjet) ?? (lead.project === "entretien" ? "entretien" : lead.project === "depannage" ? "depannage" : "installation");
+  // Majoration entretien : pré-cochée si la qualification indique un dernier entretien
+  // de plus de 3 ans (ou jamais fait). "3 ans" pile n'est pas > 3 ans.
+  const plus3ans = /jamais|plus de 3|[4-9]\s*ans|\d{2,}\s*ans/i.test(q.dernierEntretien ?? "");
   return {
     leadId: lead.id,
     client: { nom: lead.name ?? "", tel: lead.phone ?? "", email: lead.email ?? "", adr: l.address ?? "", cp, ville, entreprise: l.entreprise ?? "", siren: l.siren ?? "" },
@@ -42,6 +45,7 @@ function buildPrefill(lead: Lead): ChiffragePrefill {
     nbRooms: Math.min(Math.max(nb, 1), 8),
     immeuble: !!immeuble,
     depose: !!depose,
+    plus3ans,
   };
 }
 

@@ -134,6 +134,7 @@ export type ChiffragePrefill = {
   nbRooms: number;
   immeuble: boolean;
   depose: boolean;
+  plus3ans?: boolean; // entretien : dernier entretien il y a plus de 3 ans (majoration pré-cochée)
 };
 
 // État complet sauvegardé en brouillon (restauré tel quel par l'outil). Types souples : l'outil

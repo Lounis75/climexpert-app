@@ -97,8 +97,13 @@ async function main() {
     const estimCoord = transcript.filter((m) => m.role === "assistant")
       .find((m) => /(il me faut|prénom et nom)/i.test(m.content) && !m.content.includes("LEAD_READY"));
     check(
-      "   coordonnées en liste à puces, message compact (≤ 550 car.)",
-      !!estimCoord && estimCoord.content.includes("•") && estimCoord.content.length <= 550,
+      "   demande les jours/horaires de préférence",
+      !!estimCoord && /(préférence|horaires|jours)/i.test(estimCoord.content),
+      estimCoord ? estimCoord.content.slice(-200) : "pas de message coordonnées",
+    );
+    check(
+      "   coordonnées en liste à puces, message compact (≤ 620 car.)",
+      !!estimCoord && estimCoord.content.includes("•") && estimCoord.content.length <= 620,
       estimCoord ? `${estimCoord.content.length} caractères, puces=${estimCoord.content.includes("•")} : « ${estimCoord.content.slice(0, 220).replace(/\n/g, " ⏎ ")}… »` : "pas de message de demande de coordonnées trouvé",
     );
   }
@@ -119,10 +124,16 @@ async function main() {
       "Bonjour, je voudrais faire entretenir ma climatisation",
       "Appartement, 2 unités intérieures, facilement accessibles",
       "75015 Paris",
-      "Le dernier entretien date de l'année dernière",
+      "Jamais entretenues je crois, au moins 4 ans",
       "Oui, dites-moi le prix",
     ]);
     check("3. Entretien → contrat annuel proposé", /contrat/i.test(all), all.slice(-300));
+    check(
+      "   question du dernier entretien posée",
+      transcript.some((m) => m.role === "assistant" && /(entreten|révision|nettoyage|dernière visite)/i.test(m.content) && /\?/.test(m.content)),
+      "Questions posées : " + transcript.filter((m) => m.role === "assistant" && /\?/.test(m.content)).map((m) => m.content.replace(/\n/g, " ").slice(0, 90)).join(" | ").slice(0, 500),
+    );
+    check("   majoration > 3 ans annoncée (+100)", /(100\s*€|remise à niveau|majoration)/i.test(all), all.slice(-300));
     const fermees3 = reponsesFermees(transcript);
     check("   aucune réponse fermée (entretien)", fermees3.length === 0, fermees3.map((f) => `« ...${f} »`).join(" | "));
     check("   prix entretien cohérent (200 mentionné)", /200/.test(all), all.slice(-300));
@@ -135,9 +146,11 @@ async function main() {
       "1 unité, en façade au 2e étage, marque Airton",
       "Je déménage, pas de réinstallation. 92130 Issy-les-Moulineaux",
       "Paul Test, 0698765432, 10 rue du Test 92130 Issy, pas d'email",
+      "Plutôt le matin en semaine si possible",
     ]);
     const lead = extractLeadJson(last) ?? extractLeadJson(all);
     check("4. Dépose → LEAD_READY project=depose", lead?.project === "depose", lead ? String(lead.project) : "pas de LEAD_READY");
+    if (lead) check("   disponibilités captées (matin, dans disponibilites ou notes)", /matin/i.test(String(lead.disponibilites ?? "") + String(lead.notes ?? "")), `disponibilites="${lead.disponibilites}" notes="${lead.notes}"`);
   }
 
   // ── 5. Hors IDF : continue la qualification, note HORS IDF ──

@@ -93,7 +93,7 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
   const [prestaUnits, setPrestaUnits] = useState(draft?.prestaUnits ?? prefill?.nbRooms ?? 1);
   const [prestaHours, setPrestaHours] = useState(draft?.prestaHours ?? 2);
   const [prestaContrat, setPrestaContrat] = useState(draft?.prestaContrat ?? false);
-  const [prestaPlus3ans, setPrestaPlus3ans] = useState(draft?.prestaPlus3ans ?? false); // majoration entretien > 3 ans
+  const [prestaPlus3ans, setPrestaPlus3ans] = useState(draft?.prestaPlus3ans ?? prefill?.plus3ans ?? false); // majoration entretien > 3 ans
   const [prestaNote, setPrestaNote] = useState(draft?.prestaNote ?? "");
   const [generated, setGenerated] = useState(draft?.generated ?? false);
   const [lines, setLines] = useState<Line[]>(draft?.lines ? (draft.lines as Line[]) : []);

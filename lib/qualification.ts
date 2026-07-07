@@ -12,7 +12,7 @@ export type Qualification = {
   // 🔧 Prestation
   natureProjet?: string;
   // Entretien (équipement existant à entretenir)
-  entretienNbUnites?: string; entretienHauteur?: string; entretienEmplacementUE?: string; entretienMarque?: string;
+  entretienNbUnites?: string; entretienHauteur?: string; entretienEmplacementUE?: string; entretienMarque?: string; dernierEntretien?: string;
   // Installation (pose neuve)
   nbUnites?: string; copropriete?: string; syndic?: string;
   // Dépannage (panne)
@@ -68,6 +68,7 @@ export const QUALIF_GROUPS: QualifGroup[] = [
       { key: "entretienHauteur",       label: "Hauteur d'installation",       type: "text",   placeholder: "ex : 3 m, RDC, R+2",   showIf: estEntretien },
       { key: "entretienEmplacementUE", label: "Emplacement unité extérieure", type: "select", options: ["Balcon", "Jardin", "Façade", "Toiture", "Cour", "À voir sur place"], showIf: estEntretien },
       { key: "entretienMarque",        label: "Marque",                       type: "text",   placeholder: "ex : Daikin, Mitsubishi…", showIf: estEntretien },
+      { key: "dernierEntretien",       label: "Dernier entretien",            type: "text",   placeholder: "ex : 2 ans, plus de 3 ans, jamais", showIf: estEntretien },
 
       // ── Installation : pose neuve ──
       { key: "nbUnites",    label: "Nombre d'unités souhaitées", type: "number", placeholder: "ex : 2",                                 showIf: estInstallation },
