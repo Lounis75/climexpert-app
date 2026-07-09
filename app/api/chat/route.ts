@@ -630,20 +630,22 @@ PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE 
           // on met à jour SA fiche (mêmes règles que le portail de qualif) au lieu d'en créer une 2e.
           const dejaConnu = await findActiveLeadByPhone(lead.phone).catch(() => null);
           if (dejaConnu) {
+            // La fiche existe déjà : on l'enrichit toujours. En revanche, tant que c'est le FILET qui
+            // repasse (il peut se déclencher à chaque tour tant qu'Alex n'appelle pas l'outil), on
+            // reste SILENCIEUX : ni cloche, ni e-mail, ni notif de devis brouillon. Sinon le gérant
+            // recevrait un e-mail et une notification à chaque message du client.
             await updateLeadFromQualif(dejaConnu, lead, messages, false); // chat public : pas une réponse au lien perso
-            await notifyDevisBrouillon(dejaConnu.id, dejaConnu.name ?? lead.name ?? "Prospect", qualifObj);
-            await flagEstimationBasse(dejaConnu.id, dejaConnu.name ?? "Prospect", lead);
-            // Pas de cloche quand c'est le filet qui repasse (il peut se déclencher à chaque tour
-            // tant qu'Alex n'appelle pas l'outil : la fiche s'enrichit en silence).
             if (!recupereParFilet) {
+              await notifyDevisBrouillon(dejaConnu.id, dejaConnu.name ?? lead.name ?? "Prospect", qualifObj);
+              await flagEstimationBasse(dejaConnu.id, dejaConnu.name ?? "Prospect", lead);
               await db.insert(notifications).values({
                 adminId: null, type: "nouveau_lead",
                 titre: `Prospect déjà connu : ${dejaConnu.name} a reparlé à Alex`,
                 contenu: "Sa fiche a été mise à jour (aucun doublon créé).",
                 refType: "lead", refId: dejaConnu.id,
               }).catch((e) => console.error("[chat] notif re-contact:", e));
+              sendLeadEmails(lead, messages).catch((e) => console.error("[chat] échec envoi email lead:", e));
             }
-            sendLeadEmails(lead, messages).catch((e) => console.error("[chat] échec envoi email lead:", e));
             return ({ message, leadComplete: true, lead });
           }
 
