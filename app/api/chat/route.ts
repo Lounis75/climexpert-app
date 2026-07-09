@@ -12,6 +12,7 @@ import { qualifTokenValid } from "@/lib/qualif";
 import { type Qualification } from "@/lib/qualification";
 import { getOpenSlots } from "@/lib/creneaux-alex";
 import { SYSTEM_PROMPT, CONTACT_SYSTEM_PROMPT } from "@/lib/alex-prompt";
+import { ALEX_TOOLS, PROSPECT_TOOL, TOOL_PROSPECT, TOOL_SAV, TOOL_CRENEAUX } from "@/lib/alex-tools";
 import { contratTotalEuros } from "@/lib/contrat-pricing";
 import { escapeHtml } from "@/lib/escape-html";
 
@@ -355,6 +356,69 @@ async function updateLeadFromQualif(existing: typeof leads.$inferSelect, lead: L
   }).catch(() => {});
 }
 
+// ── Lecture de la réponse du modèle (texte + appels d'outils) ──────────────────────────────
+function texteDe(msg: Anthropic.Message): string {
+  return msg.content.filter((b): b is Anthropic.TextBlock => b.type === "text").map((b) => b.text).join("").trim();
+}
+function outilAppele(msg: Anthropic.Message, nom: string): Record<string, unknown> | null {
+  const b = msg.content.find((x): x is Anthropic.ToolUseBlock => x.type === "tool_use" && x.name === nom);
+  return b ? (b.input as Record<string, unknown>) : null;
+}
+
+// Ancien protocole de marqueur texte : Haiku écrivait le marqueur EN FIN de réponse (et se faisait
+// tronquer par max_tokens), donc `startsWith` ne matchait jamais et le prospect était perdu. On ne
+// demande plus ce format, mais si un modèle en émet un par habitude, on le récupère quand même :
+// on cherche le marqueur N'IMPORTE OÙ (y compris tronqué en "LEAD_READ") et on parse le JSON.
+const MARQUEUR_LEGACY = /(LEAD_?READ(?:Y)?|SAV_READY|CRENEAUX_READY)/;
+function leadLegacy(raw: string): LeadData | null {
+  if (!/LEAD_?READ/.test(raw)) return null;
+  const m = raw.match(/\{[\s\S]*\}/);
+  if (!m) return null;
+  try {
+    const d = JSON.parse(m[0]) as LeadData;
+    return d?.phone ? d : null;
+  } catch { return null; }
+}
+
+// Un numéro de téléphone français apparaît-il dans ce que le CLIENT a écrit ?
+const TEL_RE = /(?:\+33|0)\s*[1-9](?:[\s.\-]?\d{2}){4}/;
+function telephoneDonne(messages: ChatMessage[]): boolean {
+  return messages.some((m) => m.role === "user" && TEL_RE.test(m.content));
+}
+// Alex a-t-il refusé la demande (clim mobile hors périmètre) ? Dans ce cas, pas de prospect.
+function refusPerimetre(raw: string): boolean {
+  return /mobile|portable/i.test(raw) && /(ne prenons pas|pas en charge|spécialis)/i.test(raw);
+}
+
+// FILET DE SÉCURITÉ (anti-perte de prospect). Invariant métier : dès qu'un client a laissé son
+// NOM et son TÉLÉPHONE, une fiche prospect DOIT exister, quoi que fasse le modèle. Si Alex conclut
+// (ou pose une question facultative de plus…) sans appeler enregistrer_prospect, on relit la
+// conversation avec un 2e appel Haiku dont l'outil est FORCÉ : on récupère les données et on crée
+// la fiche. Trois pertes réelles observées (Maxime PROST, Damien Harvey, Restaurant Jin) avant ce
+// filet. Coût : un appel Haiku, uniquement sur les tours où un téléphone a été donné.
+async function extraireProspectDeSecours(messages: ChatMessage[]): Promise<LeadData | null> {
+  try {
+    const r = await client.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 1024,
+      tools: [PROSPECT_TOOL],
+      tool_choice: { type: "tool", name: TOOL_PROSPECT },
+      system:
+        "Tu extrais les informations d'un prospect à partir d'une conversation avec Alex, l'assistant de ClimExpert. " +
+        "Reporte FIDÈLEMENT ce que le client a donné, y compris tôt dans l'échange. N'invente RIEN : laisse vide tout ce qui n'a pas été dit. " +
+        "Le nom est celui de la personne (pour un professionnel, le contact responsable ; mets la raison sociale dans notes).",
+      messages: [{ role: "user", content: `Conversation :\n\n${buildTranscript(messages)}\n\nExtrais les informations de ce prospect.` }],
+    });
+    const b = r.content.find((x): x is Anthropic.ToolUseBlock => x.type === "tool_use");
+    const d = b?.input as LeadData | undefined;
+    if (!d?.name?.trim() || !d?.phone?.trim()) return null; // pas assez pour créer une fiche
+    return d;
+  } catch (e) {
+    console.error("[chat] filet de secours: échec extraction", e);
+    return null;
+  }
+}
+
 // Mode « contact » : Alex aide le visiteur à DÉCRIRE SON BESOIN depuis le formulaire de
 // contact (les coordonnées sont déjà saisies). Il ne crée AUCUN lead / créneau / SAV -
 // c'est le formulaire qui crée le lead à l'envoi. Prompt isolé + court-circuit.
@@ -392,7 +456,7 @@ export async function POST(req: NextRequest) {
     const baseSystem = mode === "contact" ? CONTACT_SYSTEM_PROMPT : SYSTEM_PROMPT;
     let extraSystem = consignesPromptBlock(consignes);
     if (qualifLead) {
-      extraSystem += `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nPROSPECT DÉJÀ IDENTIFIÉ (qualification via lien personnel envoyé par l'équipe)\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nCe client t'a été adressé par ClimExpert suite à sa demande (appel ou formulaire sur le site). Tu connais déjà : nom = ${qualifLead.name ?? "?"}, téléphone = ${qualifLead.phone ?? "?"}${qualifLead.email ? `, e-mail = ${qualifLead.email}` : ", e-mail = INCONNU (demande-le : c'est là que le devis et le lien de signature seront envoyés)"}${qualifLead.location ? `, ville = ${qualifLead.location}` : ""}${qualifLead.project ? `, projet pressenti = ${qualifLead.project}` : ""}. NE REDEMANDE JAMAIS son nom ni son téléphone. Concentre-toi sur la qualification du BESOIN. Ce prospect est venu via un lien personnel, il est donc MOTIVÉ : fais directement le TOUR APPROFONDI (voir section QUALIFICATION APPROFONDIE) sans redemander la permission des 2 minutes, pose les questions pertinentes à son projet une par une, puis conclus. Mets qualifPlus:true dans LEAD_READY. Sois chaleureux et efficace (pas besoin de redemander les coordonnées avant LEAD_READY).
+      extraSystem += `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nPROSPECT DÉJÀ IDENTIFIÉ (qualification via lien personnel envoyé par l'équipe)\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nCe client t'a été adressé par ClimExpert suite à sa demande (appel ou formulaire sur le site). Tu connais déjà : nom = ${qualifLead.name ?? "?"}, téléphone = ${qualifLead.phone ?? "?"}${qualifLead.email ? `, e-mail = ${qualifLead.email}` : ", e-mail = INCONNU (demande-le : c'est là que le devis et le lien de signature seront envoyés)"}${qualifLead.location ? `, ville = ${qualifLead.location}` : ""}${qualifLead.project ? `, projet pressenti = ${qualifLead.project}` : ""}. NE REDEMANDE JAMAIS son nom ni son téléphone. Concentre-toi sur la qualification du BESOIN. Ce prospect est venu via un lien personnel, il est donc MOTIVÉ : fais directement le TOUR APPROFONDI (voir section QUALIFICATION APPROFONDIE) sans redemander la permission des 2 minutes, pose les questions pertinentes à son projet une par une, puis conclus. Mets qualifPlus à true dans l'outil enregistrer_prospect. Sois chaleureux et efficace (pas besoin de redemander les coordonnées avant d'appeler l'outil).
 
 INTERFACE MOBILE À BOUTONS (très important) : le client est sur son téléphone. À CHAQUE FOIS que ta question a des réponses courtes et prévisibles (type de projet, nombre de pièces, type de logement, oui/non, étage, urgence...), termine ton message par UNE SEULE ligne tout à la fin au format exact : "OPTIONS: choix1 | choix2 | choix3" (3 à 5 options courtes). Le client cliquera dessus. Pour une question OUVERTE (décrire librement le besoin, préciser une adresse), NE mets PAS de ligne OPTIONS. Ne mets jamais d'OPTIONS sur le message final de récap.
 
@@ -410,19 +474,26 @@ PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE 
     // entre visiteurs) est marqué cache_control -> relu à ~0,1x du prix au lieu d'être refacturé
     // plein tarif à chaque message. La partie dynamique (consignes + prospect identifié) reste
     // hors cache, après.
+    // max_tokens porté de 400 à 1024 : à 400, le modèle qui écrivait son message PUIS le marqueur
+    // se faisait couper au milieu du marqueur ("LEAD_READ"), et le prospect était perdu. Le JSON
+    // de l'outil compte aussi dans les tokens de sortie : il faut de la marge.
     const modelParams = {
       model: "claude-haiku-4-5-20251001" as const,
-      max_tokens: 400,
+      max_tokens: 1024,
       system: [
         { type: "text" as const, text: baseSystem, cache_control: { type: "ephemeral" as const } },
         ...(extraSystem ? [{ type: "text" as const, text: extraSystem }] : []),
       ],
+      // Les outils ne servent qu'au chat public (le mode « contact » ne crée rien).
+      ...(mode === "contact" ? {} : { tools: ALEX_TOOLS }),
       messages,
     };
 
-    // Post-traitement COMMUN aux deux modes (streaming / classique) : journalisation, marqueurs
-    // LEAD_READY / CRENEAUX_READY / SAV_READY, ou réponse normale. Retourne le payload JSON.
-    const finishReply = async (raw: string): Promise<Record<string, unknown>> => {
+    // Post-traitement COMMUN aux deux modes (streaming / classique) : journalisation, APPELS
+    // D'OUTILS (enregistrer_prospect / creer_ticket_sav / proposer_creneaux), filet de sécurité,
+    // ou réponse normale. Retourne le payload JSON.
+    const finishReply = async (msg: Anthropic.Message): Promise<Record<string, unknown>> => {
+    const raw = texteDe(msg);
 
     // Log chaque échange (fire-and-forget)
     const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
@@ -439,13 +510,12 @@ PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE 
       return ({ message: raw });
     }
 
-    // Détecter proposition de créneaux
-    if (raw.startsWith("CRENEAUX_READY")) {
+    // Détecter proposition de créneaux (outil)
+    const creneauxInput = outilAppele(msg, TOOL_CRENEAUX);
+    if (creneauxInput) {
       try {
-        const jsonMatch = raw.match(/\{[\s\S]*?\}/);
-        const messageMatch = raw.match(/MESSAGE\n([\s\S]+)/);
-        const data = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
-        const message = messageMatch ? messageMatch[1].trim() : "Je vous envoie les créneaux disponibles par email !";
+        const data = creneauxInput as { interventionId?: string };
+        const message = raw || "Je vous envoie les créneaux disponibles par email !";
         if (data?.interventionId) {
           const baseUrl = process.env.NEXT_PUBLIC_URL ?? "https://climexpert.fr";
           await fetch(`${baseUrl}/api/proposer-creneaux`, {
@@ -456,18 +526,17 @@ PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE 
         }
         return ({ message, creneauxSent: true });
       } catch (e) {
-        console.error("[chat] erreur traitement CRENEAUX_READY:", e);
+        console.error("[chat] erreur traitement proposer_creneaux:", e);
         return ({ message: "Les créneaux disponibles vous seront envoyés par email." });
       }
     }
 
-    // Détecter si c'est un ticket SAV
-    if (raw.startsWith("SAV_READY")) {
+    // Détecter si c'est un ticket SAV (outil)
+    const savInput = outilAppele(msg, TOOL_SAV);
+    if (savInput) {
       try {
-        const jsonMatch = raw.match(/\{[\s\S]*?\}/);
-        const messageMatch = raw.match(/MESSAGE\n([\s\S]+)/);
-        const data = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
-        const message = messageMatch ? messageMatch[1].trim() : "Votre ticket SAV est bien enregistré, notre équipe vous rappelle en priorité.";
+        const data = savInput as { name?: string; phone?: string; subject?: string; description?: string };
+        const message = raw || "Votre ticket SAV est bien enregistré, notre équipe vous rappelle en priorité.";
 
         if (data?.subject) {
           // Try to find existing client by phone
@@ -496,20 +565,26 @@ PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE 
         }
         return ({ message, savComplete: true });
       } catch (e) {
-        console.error("[chat] erreur traitement SAV_READY:", e);
+        console.error("[chat] erreur traitement creer_ticket_sav:", e);
         return ({ message: "Votre demande SAV est bien enregistrée. Notre équipe vous rappelle en priorité." });
       }
     }
 
-    // Détecter si le lead est complet
-    if (raw.startsWith("LEAD_READY")) {
-      try {
-        const jsonMatch = raw.match(/\{[\s\S]*?\}/);
-        const messageMatch = raw.match(/MESSAGE\n([\s\S]+)/);
+    // ── Prospect : 1) l'outil (voie normale), 2) un marqueur texte legacy, 3) le FILET ──
+    let lead: LeadData | null = (outilAppele(msg, TOOL_PROSPECT) as LeadData | null) ?? leadLegacy(raw);
+    let recupereParFilet = false;
 
-        let lead: LeadData | null = null;
-        try { lead = jsonMatch ? JSON.parse(jsonMatch[0]) : null; } catch { lead = null; }
-        const message = messageMatch ? messageMatch[1].trim() : "Votre demande est bien enregistrée. Notre équipe vous contacte très prochainement !";
+    // FILET : Alex a répondu sans enregistrer, alors que le client a laissé son numéro. On relit la
+    // conversation et on crée quand même la fiche (sauf refus de périmètre : clim mobile).
+    if (!lead && !qualifLead && telephoneDonne(messages) && !refusPerimetre(raw)) {
+      lead = await extraireProspectDeSecours(messages);
+      recupereParFilet = !!lead;
+      if (lead) console.error("[chat] FILET: prospect récupéré alors qu'Alex n'a pas appelé l'outil", { sid, phone: lead.phone });
+    }
+
+    if (lead) {
+      try {
+        const message = raw || "Votre demande est bien enregistrée. Notre équipe vous contacte très prochainement !";
 
         // Mode qualif : on MET À JOUR le prospect existant (pas de doublon) + notif "qualifié".
         if (qualifLead && lead) {
@@ -558,12 +633,16 @@ PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE 
             await updateLeadFromQualif(dejaConnu, lead, messages, false); // chat public : pas une réponse au lien perso
             await notifyDevisBrouillon(dejaConnu.id, dejaConnu.name ?? lead.name ?? "Prospect", qualifObj);
             await flagEstimationBasse(dejaConnu.id, dejaConnu.name ?? "Prospect", lead);
-            await db.insert(notifications).values({
-              adminId: null, type: "nouveau_lead",
-              titre: `Prospect déjà connu : ${dejaConnu.name} a reparlé à Alex`,
-              contenu: "Sa fiche a été mise à jour (aucun doublon créé).",
-              refType: "lead", refId: dejaConnu.id,
-            }).catch((e) => console.error("[chat] notif re-contact:", e));
+            // Pas de cloche quand c'est le filet qui repasse (il peut se déclencher à chaque tour
+            // tant qu'Alex n'appelle pas l'outil : la fiche s'enrichit en silence).
+            if (!recupereParFilet) {
+              await db.insert(notifications).values({
+                adminId: null, type: "nouveau_lead",
+                titre: `Prospect déjà connu : ${dejaConnu.name} a reparlé à Alex`,
+                contenu: "Sa fiche a été mise à jour (aucun doublon créé).",
+                refType: "lead", refId: dejaConnu.id,
+              }).catch((e) => console.error("[chat] notif re-contact:", e));
+            }
             sendLeadEmails(lead, messages).catch((e) => console.error("[chat] échec envoi email lead:", e));
             return ({ message, leadComplete: true, lead });
           }
@@ -591,8 +670,9 @@ PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE 
             // principal du site n'alertait jamais la cloche, seul un e-mail partait).
             await db.insert(notifications).values({
               adminId: null, type: "nouveau_lead",
-              titre: `Nouveau prospect (Alex) : ${created.name}`,
-              contenu: `${created.phone}${lead.location ? ` · ${lead.location}` : ""}${lead.project ? ` · ${lead.project}` : ""}`,
+              titre: recupereParFilet ? `Nouveau prospect (Alex, rattrapé) : ${created.name}` : `Nouveau prospect (Alex) : ${created.name}`,
+              contenu: `${created.phone}${lead.location ? ` · ${lead.location}` : ""}${lead.project ? ` · ${lead.project}` : ""}`
+                + (recupereParFilet ? " · Alex n'avait pas enregistré la fiche, le filet de sécurité l'a rattrapée. Vérifiez les infos." : ""),
               refType: "lead", refId: created.id,
             }).catch((e) => console.error("[chat] notif nouveau lead:", e));
             // Qualif approfondie d'installation -> prévenir qu'un devis brouillon est prêt à valider.
@@ -605,9 +685,9 @@ PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE 
           // Emails non bloquants (l'échec d'envoi ne doit pas masquer le succès du lead)
           sendLeadEmails(lead, messages).catch((e) => console.error("[chat] échec envoi email lead:", e));
         } else if (!qualifLead) {
-          // LEAD_READY illisible ou sans téléphone : NE PAS afficher une fausse confirmation.
+          // Alex a conclu sans numéro exploitable : NE PAS afficher une fausse confirmation.
           // On alerte l'équipe et on redemande le numéro au client (filet anti-perte).
-          console.error("[chat] LEAD_READY sans téléphone exploitable:", raw.slice(0, 500));
+          console.error("[chat] prospect sans téléphone exploitable:", raw.slice(0, 500));
           await db.insert(notifications).values({
             adminId: null, type: "alex_panne",
             titre: "Lead Alex incomplet (sans téléphone)",
@@ -618,7 +698,7 @@ PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE 
 
         return ({ message, leadComplete: true, lead });
       } catch (e) {
-        console.error("[chat] erreur traitement LEAD_READY:", e);
+        console.error("[chat] erreur traitement prospect:", e);
         return ({ message: "Votre demande est bien enregistrée. Notre équipe vous contacte très prochainement !" });
       }
     }
@@ -626,34 +706,35 @@ PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE 
     return ({ message: raw });
     };
 
-    // ── Mode STREAMING : la réponse s'affiche mot à mot (NDJSON, lignes {t:"d"|"done"}). Les
-    // marqueurs (LEAD_READY...) arrivent en DÉBUT de réponse : on bufferise le tout début pour
-    // décider si on streame (message normal) ou si on reste silencieux (le JSON du marqueur ne
-    // doit jamais s'afficher chez le client ; le message propre part dans l'événement done). ──
+    // ── Mode STREAMING (NDJSON, lignes {t:"d"|"done"}) : on streame les blocs de TEXTE. Les données
+    // structurées voyagent maintenant dans des blocs `tool_use` séparés, jamais dans le texte : il
+    // n'y a donc plus rien à masquer ni de marqueur à bufferiser. Seul garde-fou : si un modèle
+    // écrivait encore un marqueur legacy, on coupe le flux à cet endroit pour ne pas afficher de
+    // JSON au client (le message propre part quand même dans l'évènement `done`). ──
     if (wantStream) {
       const encoder = new TextEncoder();
-      const MARKERS = ["CRENEAUX_READY", "SAV_READY", "LEAD_READY"];
+      const RETENUE = 16; // caractères gardés en réserve : évite d'émettre un marqueur à cheval sur 2 chunks
       const stream = new ReadableStream({
         async start(controller) {
           const send = (obj: unknown) => controller.enqueue(encoder.encode(JSON.stringify(obj) + "\n"));
           let acc = "";
-          let decided: "stream" | "silent" | null = null;
+          let enAttente = "";
+          let coupe = false;
           try {
             const s = client.messages.stream(modelParams);
             for await (const ev of s) {
               if (ev.type !== "content_block_delta" || ev.delta.type !== "text_delta") continue;
-              const chunk = ev.delta.text;
-              if (decided === "stream") { acc += chunk; send({ t: "d", v: chunk }); continue; }
-              acc += chunk;
-              if (decided === "silent") continue;
-              const head = acc.trimStart();
-              if (MARKERS.some((m) => head.startsWith(m))) { decided = "silent"; continue; }
-              if (head.length >= 15 || !MARKERS.some((m) => m.startsWith(head))) {
-                decided = "stream";
-                if (acc) send({ t: "d", v: acc });
+              acc += ev.delta.text;
+              if (coupe) continue;
+              if (MARQUEUR_LEGACY.test(acc)) { coupe = true; enAttente = ""; continue; }
+              enAttente += ev.delta.text;
+              if (enAttente.length > RETENUE) {
+                send({ t: "d", v: enAttente.slice(0, enAttente.length - RETENUE) });
+                enAttente = enAttente.slice(enAttente.length - RETENUE);
               }
             }
-            send({ t: "done", ...(await finishReply(acc)) });
+            if (!coupe && enAttente) send({ t: "d", v: enAttente });
+            send({ t: "done", ...(await finishReply(await s.finalMessage())) });
           } catch (e) {
             console.error("Chat stream error:", e);
             await notifyPannePublic();
@@ -670,8 +751,7 @@ PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE 
 
     // ── Mode classique (compatibilité) ──
     const response = await client.messages.create(modelParams);
-    const raw = response.content[0].type === "text" ? response.content[0].text : "";
-    return NextResponse.json(await finishReply(raw));
+    return NextResponse.json(await finishReply(response));
   } catch (error) {
     console.error("Chat API error:", error);
     // Panne de l'IA (API indisponible, quota, timeout...) : on ne perd PAS le prospect.
