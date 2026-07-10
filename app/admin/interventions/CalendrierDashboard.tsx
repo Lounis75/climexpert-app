@@ -20,6 +20,10 @@ type CalTechnicien = { id: string; name: string; color: string | null; role?: st
 type SimpleClient   = { id: string; name: string; phone: string };
 type CalRdv         = { id: string; leadId?: string; clientName: string; rdvDate: string | null; commercialId: string | null; commercialName: string | null; kind?: "rdv" | "visite" | "install"; duree?: number };
 type CalIndispo     = { id: string; technicienId: string; dateDebut: string; dateFin: string; motif: string | null };
+// Ajout rapide : soit une intervention (client + technicien), soit un rendez-vous (prospect + commercial).
+type QuickMode      = "intervention" | "rdv";
+type LeadLight      = { id: string; name: string; phone: string; status: string; prochaineEtape: string | null };
+type AssignOption   = { id: string; name: string; prenom?: string | null };
 
 // ─── Lookup tables ────────────────────────────────────────────────────────────
 const TYPE_COLORS: Record<string, { bg: string; border: string; text: string; dot: string }> = {
@@ -78,6 +82,11 @@ function QuickAddModal({
   onClose: () => void;
   onCreated: () => void;
 }) {
+  // Deux natures d'évènement dans ce planning : une INTERVENTION (technicien chez un CLIENT) et un
+  // RENDEZ-VOUS commercial (chez un PROSPECT). Le RDV peut concerner quelqu'un qui n'est pas encore
+  // en base : on peut donc créer le prospect à la volée, sans quitter le planning.
+  const [mode, setMode] = useState<QuickMode>("intervention");
+
   const [clients, setClients]         = useState<SimpleClient[]>([]);
   const [search, setSearch]           = useState("");
   const [clientId, setClientId]       = useState("");
@@ -92,12 +101,45 @@ function QuickAddModal({
   const [error, setError]             = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
 
+  // ── Mode « Rendez-vous » ──
+  const [commerciaux, setCommerciaux]   = useState<AssignOption[]>([]);
+  const [commercialId, setCommercialId] = useState("");
+  const [leadSearch, setLeadSearch]     = useState("");
+  const [leadResults, setLeadResults]   = useState<LeadLight[]>([]);
+  const [leadBusy, setLeadBusy]         = useState(false);
+  const [lead, setLead]                 = useState<LeadLight | null>(null);
+  const [creerProspect, setCreerProspect] = useState(false);
+  const [newName, setNewName]           = useState("");
+  const [newPhone, setNewPhone]         = useState("");
+
   useEffect(() => {
     fetch("/api/admin/clients?fields=light")
       .then((r) => r.json())
       .then((d) => setClients(d.clients ?? []));
     searchRef.current?.focus();
   }, []);
+
+  // Liste canonique des commerciaux affectables (admins inclus), chargée à la 1re bascule.
+  useEffect(() => {
+    if (mode !== "rdv" || commerciaux.length) return;
+    fetch("/api/admin/equipe").then((r) => r.json()).then((d) => setCommerciaux(d.commerciaux ?? [])).catch(() => {});
+  }, [mode, commerciaux.length]);
+
+  // Recherche serveur des prospects (tolérante aux accents et au format du téléphone), débouncée.
+  useEffect(() => {
+    if (mode !== "rdv" || lead || leadSearch.trim().length < 2) { setLeadResults([]); return; }
+    const q = leadSearch.trim();
+    setLeadBusy(true);
+    const t = setTimeout(async () => {
+      try {
+        const r = await fetch(`/api/admin/leads?light=1&q=${encodeURIComponent(q)}`);
+        const d = await r.json();
+        setLeadResults(Array.isArray(d.leads) ? d.leads : []);
+      } catch { setLeadResults([]); }
+      finally { setLeadBusy(false); }
+    }, 250);
+    return () => { clearTimeout(t); setLeadBusy(false); };
+  }, [mode, leadSearch, lead]);
 
   const filtered = search.length > 0
     ? clients.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()) || c.phone.includes(search)).slice(0, 6)
@@ -110,8 +152,17 @@ function QuickAddModal({
     setShowList(false);
   }
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  /** Ouvre le formulaire de création en pré-remplissant depuis ce que l'utilisateur a déjà tapé. */
+  function ouvrirCreation() {
+    const q = leadSearch.trim();
+    const estTel = /\d/.test(q) && q.replace(/\D/g, "").length >= 6;
+    setNewName(estTel ? "" : q);
+    setNewPhone(estTel ? q : "");
+    setCreerProspect(true);
+    setLeadResults([]);
+  }
+
+  async function submitIntervention() {
     if (!clientId) { setError("Sélectionnez un client"); return; }
     setSaving(true); setError("");
     try {
@@ -134,6 +185,65 @@ function QuickAddModal({
     }
   }
 
+  async function submitRdv() {
+    setError("");
+    let id = lead?.id ?? "";
+    let statut: string = lead?.status ?? "";
+
+    if (!id) {
+      const nom = newName.trim(), tel = newPhone.trim();
+      if (!nom || !tel) { setError("Le nom et le téléphone du prospect sont requis."); return; }
+      setSaving(true);
+      try {
+        const res = await fetch("/api/admin/leads", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: nom, phone: tel, source: "téléphone" }),
+        });
+        const d = await res.json().catch(() => ({}));
+        if (res.status === 409 && d.duplicateId) {
+          // Ce prospect existe déjà : on ne crée pas de doublon, on lui pose le rendez-vous.
+          id = d.duplicateId;
+          const g = await fetch(`/api/admin/leads/${id}`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+          statut = g?.lead?.status ?? "";
+        } else if (!res.ok || !d.lead) {
+          setError(d.error ?? "Le prospect n'a pas pu être créé."); setSaving(false); return;
+        } else {
+          id = d.lead.id; statut = d.lead.status;
+        }
+      } catch { setError("Erreur réseau"); setSaving(false); return; }
+    } else {
+      setSaving(true);
+    }
+
+    try {
+      // « RDV pris » = statut contacté + sous-étape rdv_pris (cf. colonne du Kanban). On ne
+      // rétrograde jamais un prospect déjà plus avancé (devis envoyé, gagné…).
+      const enAmont = statut === "nouveau" || statut === "contacté" || statut === "";
+      const res = await fetch("/api/admin/leads", {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id,
+          rdvDate: new Date(scheduledAt).toISOString(),
+          commercialId: commercialId || null,
+          ...(enAmont ? { prochaineEtape: "rdv_pris" } : {}),
+          ...(statut === "nouveau" ? { status: "contacté" } : {}),
+        }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setError(d.error ?? "Le rendez-vous n'a pas pu être enregistré."); setSaving(false); return;
+      }
+      onCreated();
+      onClose();
+    } catch { setError("Erreur réseau"); setSaving(false); }
+  }
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (mode === "rdv") void submitRdv();
+    else void submitIntervention();
+  }
+
   // Close on Escape
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -153,7 +263,7 @@ function QuickAddModal({
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
           <div>
             <h2 className="text-white font-semibold text-sm flex items-center gap-2">
-              <Plus className="w-4 h-4 text-sky-400" /> Nouvelle intervention
+              <Plus className="w-4 h-4 text-sky-400" /> {mode === "rdv" ? "Rendez-vous rapide" : "Nouvelle intervention"}
             </h2>
             {dateLabel && <p className="text-slate-500 text-xs mt-0.5">{dateLabel}</p>}
           </div>
@@ -162,10 +272,114 @@ function QuickAddModal({
           </button>
         </div>
 
+        {/* Nature de l'évènement */}
+        <div className="px-5 pt-4">
+          <div className="grid grid-cols-2 gap-1 bg-slate-800/60 border border-white/10 rounded-xl p-1">
+            {([["intervention", "Intervention"], ["rdv", "Rendez-vous"]] as const).map(([v, l]) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => { setMode(v); setError(""); }}
+                className={`py-1.5 rounded-lg text-xs font-semibold transition-colors ${mode === v ? "bg-sky-500 text-white" : "text-slate-400 hover:text-white"}`}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+          <p className="text-slate-500 text-[11px] mt-2">
+            {mode === "rdv"
+              ? "Rendez-vous commercial avec un prospect (2 h). Le prospect peut être créé ici même."
+              : "Intervention technique chez un client existant."}
+          </p>
+        </div>
+
         {/* Form */}
         <form onSubmit={submit} className="p-5 space-y-4">
 
+          {/* ── Mode RENDEZ-VOUS : prospect + commercial ── */}
+          {mode === "rdv" && (
+            <>
+              <div className="relative">
+                <label className="text-xs text-slate-400 block mb-1.5">Prospect *</label>
+                {lead ? (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-slate-800 border border-white/10 rounded-xl">
+                    <Check className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                    <span className="text-white text-sm flex-1 truncate">{lead.name} · {lead.phone}</span>
+                    <button type="button" onClick={() => { setLead(null); setLeadSearch(""); }} className="text-slate-500 hover:text-white text-xs">×</button>
+                  </div>
+                ) : creerProspect ? (
+                  <div className="space-y-2 p-3 bg-slate-800/60 border border-sky-500/30 rounded-xl">
+                    <p className="text-sky-300 text-[11px] font-semibold">Nouveau prospect</p>
+                    <input
+                      value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Prénom et nom *"
+                      className="w-full bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                    />
+                    <input
+                      value={newPhone} onChange={(e) => setNewPhone(e.target.value)} placeholder="Téléphone *" inputMode="tel"
+                      className="w-full bg-slate-900 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                    />
+                    <button type="button" onClick={() => { setCreerProspect(false); setNewName(""); setNewPhone(""); }} className="text-slate-400 hover:text-white text-[11px]">
+                      ← Rechercher un prospect existant
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <input
+                      value={leadSearch}
+                      onChange={(e) => setLeadSearch(e.target.value)}
+                      placeholder="Nom ou téléphone…"
+                      className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                    />
+                    {leadResults.length > 0 && (
+                      <div className="absolute z-10 left-0 right-0 mt-1 bg-[#0f1623] border border-white/10 rounded-xl overflow-hidden shadow-xl">
+                        {leadResults.map((l) => (
+                          <button
+                            key={l.id} type="button"
+                            onClick={() => { setLead(l); setLeadResults([]); }}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-white/5 text-left transition-colors"
+                          >
+                            <div className="w-7 h-7 rounded-lg bg-teal-500/10 flex items-center justify-center flex-shrink-0">
+                              <span className="text-teal-300 text-[10px] font-bold">{l.name[0]?.toUpperCase()}</span>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-white text-sm leading-tight truncate">{l.name}</p>
+                              <p className="text-slate-500 text-xs">{l.phone}</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {/* Le prospect n'existe pas encore : on le crée sans quitter le planning. */}
+                    {leadSearch.trim().length >= 2 && !leadBusy && leadResults.length === 0 && (
+                      <button
+                        type="button" onClick={ouvrirCreation}
+                        className="mt-2 w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 text-sky-300 text-xs font-semibold rounded-xl transition-colors"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Créer le prospect « {leadSearch.trim()} »
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-400 block mb-1.5">Commercial</label>
+                <select
+                  value={commercialId}
+                  onChange={(e) => setCommercialId(e.target.value)}
+                  className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-sky-500"
+                >
+                  <option value="">Non assigné</option>
+                  {commerciaux.map((c) => (
+                    <option key={c.id} value={c.id}>{c.prenom ? `${c.prenom} ${c.name}` : c.name}</option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
+
           {/* Client search */}
+          {mode === "intervention" && (
           <div className="relative">
             <label className="text-xs text-slate-400 block mb-1.5">Client *</label>
             {clientId ? (
@@ -214,8 +428,10 @@ function QuickAddModal({
               </div>
             )}
           </div>
+          )}
 
           {/* Type + Durée */}
+          {mode === "intervention" && (
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-slate-400 block mb-1.5">Type *</label>
@@ -242,6 +458,7 @@ function QuickAddModal({
               </select>
             </div>
           </div>
+          )}
 
           {/* Date + heure */}
           <div>
@@ -256,6 +473,7 @@ function QuickAddModal({
           </div>
 
           {/* Technicien */}
+          {mode === "intervention" && (
           <div>
             <label className="text-xs text-slate-400 block mb-1.5">Technicien</label>
             <select
@@ -269,8 +487,10 @@ function QuickAddModal({
               ))}
             </select>
           </div>
+          )}
 
           {/* Adresse */}
+          {mode === "intervention" && (
           <div>
             <label className="text-xs text-slate-400 block mb-1.5">Adresse (optionnel)</label>
             <input
@@ -280,16 +500,17 @@ function QuickAddModal({
               className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-sky-500"
             />
           </div>
+          )}
 
           {error && <p className="text-red-400 text-xs bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">{error}</p>}
 
           <div className="flex gap-2 pt-1">
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || (mode === "rdv" && !lead && !creerProspect)}
               className="flex-1 py-2.5 bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-all"
             >
-              {saving ? "Création…" : "Créer l'intervention"}
+              {saving ? "Enregistrement…" : mode === "rdv" ? "Prendre le rendez-vous" : "Créer l'intervention"}
             </button>
             <button
               type="button"

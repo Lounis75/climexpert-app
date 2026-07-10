@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createLead, updateLead, deleteLead, findActiveLeadByNamePhone, getLeadsByStatusPaged, getLeadsPaginated, getLastActivityByLead, getLeadById, getArchivedLeads } from "@/lib/leads";
+import { createLead, updateLead, deleteLead, findActiveLeadByNamePhone, getLeadsByStatusPaged, getLeadsPaginated, getLastActivityByLead, getLeadById, getArchivedLeads, searchLeadsLight } from "@/lib/leads";
 import { createClientFromLead } from "@/lib/clients";
 import { logError } from "@/lib/observability";
 import type { LeadStatus } from "@/lib/leads";
@@ -15,6 +15,11 @@ const STATUT_HIST: Record<string, string> = {
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
+    // Recherche rapide de prospects (planning : « rendez-vous rapide »). Charge utile minimale.
+    if (searchParams.get("light")) {
+      const items = await searchLeadsLight(searchParams.get("q") ?? "", Number(searchParams.get("limit")) || 6);
+      return NextResponse.json({ leads: items });
+    }
     // Prospects archivés (perdus sortis du Kanban) : liste dédiée pour recontact / ré-ouverture.
     if (searchParams.get("archived")) {
       const offset = Number(searchParams.get("offset")) || 0;

@@ -31,7 +31,7 @@ export async function findActiveLeadByPhone(phone: string): Promise<Lead | null>
   const [row] = await db.select().from(leads)
     .where(and(
       isNull(leads.supprimeLe), isNull(leads.archiveLe),
-      sql`right(regexp_replace(${leads.phone}, '\\D', '', 'g'), 9) = ${digits}`,
+      sql`right(regexp_replace(${leads.phone}, '[^0-9]', '', 'g'), 9) = ${digits}`,
     ))
     .orderBy(desc(leads.createdAt))
     .limit(1);
@@ -44,7 +44,7 @@ export async function findActiveLeadByNamePhone(name: string, phone: string): Pr
   const digits = (phone ?? "").replace(/\D/g, "").slice(-9);
   if (digits.length < 9) return null;
   const rows = await db.select().from(leads)
-    .where(and(sql`right(regexp_replace(${leads.phone}, '\D', '', 'g'), 9) = ${digits}`, isNull(leads.supprimeLe), isNull(leads.archiveLe)));
+    .where(and(sql`right(regexp_replace(${leads.phone}, '[^0-9]', '', 'g'), 9) = ${digits}`, isNull(leads.supprimeLe), isNull(leads.archiveLe)));
   const target = name.trim().toLowerCase();
   return rows.find((r) => r.name.trim().toLowerCase() === target) ?? null;
 }
@@ -250,6 +250,46 @@ export async function getLeadsByStatusPaged(opts: { status: LeadStatus; offset: 
 }
 
 /** Vue Liste paginée + recherche serveur (nom / téléphone / ville). */
+/** Recherche tolérante : insensible à la casse ET aux accents (translate côté colonne, dépliage NFD
+ *  côté requête), e-mail inclus, et téléphone comparé sur les chiffres seuls (« 0612345678 » trouve
+ *  « 06 12 34 56 78 » et inversement). Partagée par la vue Liste et la recherche rapide du planning. */
+function leadSearchCond(search: string): SQL | null {
+  const q = (search ?? "").trim();
+  if (!q) return null;
+  const qFold = `%${q.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")}%`;
+  const foldCol = (col: AnyColumn) => sql`translate(lower(${col}), 'àâäáéèêëïîíìôöóòûüúùçñ', 'aaaaeeeeiiiioooouuuucn')`;
+  const conds: SQL[] = [
+    sql`${foldCol(leads.name)} like ${qFold}`,
+    sql`${foldCol(leads.location)} like ${qFold}`,
+    sql`${foldCol(leads.address)} like ${qFold}`,
+    sql`${foldCol(leads.entreprise)} like ${qFold}`,
+    sql`lower(${leads.email}) like ${`%${q.toLowerCase()}%`}`,
+  ];
+  // Téléphone : comparaison sur les chiffres seuls. Au-delà de 9 chiffres on ne garde que les 9
+  // derniers, ce qui rend « 0688297066 », « 06 88 29 70 66 » et « +33 6 88 29 70 66 » équivalents.
+  const brut = q.replace(/\D/g, "");
+  const digits = brut.length >= 9 ? brut.slice(-9) : brut;
+  conds.push(
+    digits.length >= 3
+      ? sql`regexp_replace(${leads.phone}, '[^0-9]', '', 'g') like ${`%${digits}%`}`
+      : sql`${foldCol(leads.phone)} like ${qFold}`,
+  );
+  return or(...conds)!;
+}
+
+/** Recherche LÉGÈRE de prospects (planning : « rendez-vous rapide »). On ne renvoie que les champs
+ *  utiles à la sélection : les fiches complètes embarquent les transcrits Alex (plusieurs Ko). */
+export type LeadLight = { id: string; name: string; phone: string; status: LeadStatus; prochaineEtape: string | null };
+export async function searchLeadsLight(search: string, limit = 6): Promise<LeadLight[]> {
+  const cond = leadSearchCond(search);
+  if (!cond) return [];
+  return db.select({ id: leads.id, name: leads.name, phone: leads.phone, status: leads.status, prochaineEtape: leads.prochaineEtape })
+    .from(leads)
+    .where(and(isNull(leads.supprimeLe), isNull(leads.archiveLe), cond))
+    .orderBy(desc(leads.createdAt))
+    .limit(Math.min(10, Math.max(1, limit)));
+}
+
 export async function getLeadsPaginated(opts: { search?: string; page?: number; limit?: number } = {}): Promise<{ items: Lead[]; total: number; page: number; pageSize: number }> {
   const page = Math.max(1, Math.floor(opts.page ?? 1));
   const pageSize = Math.min(100, Math.max(1, Math.floor(opts.limit ?? 50)));
@@ -260,27 +300,8 @@ export async function getLeadsPaginated(opts: { search?: string; page?: number; 
   // Kanban : la recherche/charger-plus ne doit pas les réinjecter dans les colonnes.
   const enProd = [...await getEnProductionLeadIdSet()];
   if (enProd.length) filters.push(notInArray(leads.id, enProd));
-  if (q) {
-    // Recherche tolérante : insensible à la casse ET aux accents (translate côté colonne, dépliage
-    // NFD côté requête), e-mail inclus, et téléphone comparé sur les chiffres seuls (« 0612345678 »
-    // trouve « 06 12 34 56 78 » et inversement).
-    const qFold = `%${q.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")}%`;
-    const foldCol = (col: AnyColumn) => sql`translate(lower(${col}), 'àâäáéèêëïîíìôöóòûüúùçñ', 'aaaaeeeeiiiioooouuuucn')`;
-    const conds: SQL[] = [
-      sql`${foldCol(leads.name)} like ${qFold}`,
-      sql`${foldCol(leads.location)} like ${qFold}`,
-      sql`${foldCol(leads.address)} like ${qFold}`,
-      sql`${foldCol(leads.entreprise)} like ${qFold}`,
-      sql`lower(${leads.email}) like ${`%${q.toLowerCase()}%`}`,
-    ];
-    const digits = q.replace(/\D/g, "");
-    conds.push(
-      digits.length >= 3
-        ? sql`regexp_replace(${leads.phone}, '\D', '', 'g') like ${`%${digits}%`}`
-        : sql`${foldCol(leads.phone)} like ${qFold}`,
-    );
-    filters.push(or(...conds)!);
-  }
+  const cond = leadSearchCond(q);
+  if (cond) filters.push(cond);
   const where = and(...filters);
   const [items, totalRows] = await Promise.all([
     db.select().from(leads).where(where).orderBy(desc(leads.createdAt)).limit(pageSize).offset(offset),
