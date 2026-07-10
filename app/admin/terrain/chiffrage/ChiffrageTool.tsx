@@ -139,13 +139,24 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
     const totalDist = rooms.reduce((a, r) => a + (r.distance || 0), 0);
     out.push({ d: `Liaisons frigorifiques (${totalDist} m)`, q: 1, pu: Math.round(cat.annex.liaison_base.v + cat.annex.liaison_m.v * totalDist), tva: tvaMat() });
     out.push({ d: `Goulotte (${totalDist} m)`, q: 1, pu: Math.max(cat.annex.goulotte_min.v, Math.round(cat.annex.goulotte_m.v * totalDist)), tva: tvaMat() });
+    // Câble de communication : bus qui relie le groupe extérieur à chaque unité intérieure. Sa
+    // longueur suit celle des liaisons frigorifiques. Toujours présent sur une installation.
+    out.push({ d: `Câble de communication (${totalDist} m)`, q: 1, pu: Math.round((cat.annex.cable_com_m?.v ?? 0) * totalDist), tva: tvaMat() });
+    // Complément de fluide frigorigène : la précharge d'usine couvre une longueur incluse ; au-delà,
+    // on recharge au mètre. Toujours présent (à 0 € tant que les liaisons tiennent dans la précharge).
+    const precharge = cat.annex.fluide_precharge_m?.v ?? 0;
+    const fluideSupp = Math.max(0, totalDist - precharge);
+    out.push({
+      d: fluideSupp > 0 ? `Complément de fluide frigorigène (${fluideSupp} m au-delà de la précharge)` : "Fluide frigorigène (précharge incluse)",
+      q: 1, pu: Math.round((cat.annex.fluide_m?.v ?? 0) * fluideSupp), tva: tvaMat(),
+    });
     const sup = cat.annex["support_" + install.empl];
     if (sup) out.push({ d: `Support unité extérieure (${install.empl})`, q: 1, pu: sup.v, tva: tvaMat() });
     const pumps = rooms.filter((r) => !r.evac).length;
     if (pumps > 0) out.push({ d: "Pompe de relevage", q: pumps, pu: cat.annex.pompe.v, tva: tvaMat() });
     const perc = cat.annex["percage_" + install.murMat];
     if (install.nbMurs > 0 && perc) out.push({ d: `Perçage mur (${install.murMat})`, q: install.nbMurs, pu: perc.v, tva: tvaMat() });
-    out.push({ d: `Électricité (disjoncteur + câble alim ${install.tableau} m + communication)`, q: 1, pu: cat.annex.electricite.v, tva: tvaMat() });
+    out.push({ d: `Électricité (disjoncteur + câble alim ${install.tableau} m)`, q: 1, pu: cat.annex.electricite.v, tva: tvaMat() });
     if (install.compteur) out.push({ d: "Évolution compteur / tableau électrique", q: 1, pu: cat.annex.compteur.v, tva: tvaMat() });
     if (install.depose) out.push({ d: "Dépose et gestion fluides de l'ancien matériel", q: 1, pu: cat.annex.depose.v, tva: tvaMO() });
     // Main d'œuvre affichée en FORFAIT (1 unité = montant) : le client ne voit pas le nombre d'heures.
@@ -227,6 +238,8 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
     let a = eq.price;
     const td = rooms.reduce((x, r) => x + (r.distance || 0), 0);
     a += cat.annex.liaison_base.v + cat.annex.liaison_m.v * td + Math.max(cat.annex.goulotte_min.v, Math.round(cat.annex.goulotte_m.v * td)) + cat.annex.electricite.v + 75;
+    // Câble de communication + complément de fluide (mêmes règles que buildLines) pour un total cohérent.
+    a += (cat.annex.cable_com_m?.v ?? 0) * td + (cat.annex.fluide_m?.v ?? 0) * Math.max(0, td - (cat.annex.fluide_precharge_m?.v ?? 0));
     a += rooms.filter((r) => !r.evac).length * cat.annex.pompe.v + estimateHours(cfg, install, rooms) * cat.moRate;
     // Mélange TVA approx : tout à 20 % pour un pro (ou logement < 2 ans), sinon pose à 10 %.
     return a * (clientType === "pro" || !plus2ans ? 1.20 : 1.18);

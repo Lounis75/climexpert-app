@@ -55,6 +55,13 @@ export const DEFAULT_CATALOGUE: Catalogue = {
     liaison_m:       { label: "Liaison frigorifique (€/mètre)",     v: 6.3 },
     goulotte_m:      { label: "Goulotte (€/mètre)",                 v: 5 },
     goulotte_min:    { label: "Goulotte (minimum)",                 v: 45 },
+    // Câble de communication (bus entre le groupe extérieur et chaque unité intérieure) : longueur
+    // = celle des liaisons frigorifiques. Généré d'office dans le devis (§ buildLines).
+    cable_com_m:     { label: "Câble de communication (€/mètre)",   v: 2.5 },
+    // Complément de fluide frigorigène : la précharge d'usine couvre `fluide_precharge_m` mètres de
+    // liaison ; au-delà, on facture `fluide_m` par mètre supplémentaire. Généré d'office.
+    fluide_precharge_m: { label: "Fluide : longueur pré-chargée incluse (m)", v: 10 },
+    fluide_m:        { label: "Complément fluide frigorigène (€/mètre au-delà)", v: 8 },
     pompe:           { label: "Pompe de relevage (l'unité)",        v: 155 },
     support_sol:     { label: "Support extérieur au sol",           v: 59 },
     support_facade:  { label: "Support extérieur façade",           v: 75 },
