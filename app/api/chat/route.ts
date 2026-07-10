@@ -706,7 +706,14 @@ PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE 
             await notifyDevisBrouillon(created.id, created.name, qualifObj);
             await flagEstimationBasse(created.id, created.name, lead);
           } catch (e) {
+            // Échec d'écriture (base indisponible, contrainte…). On ne perd pas le prospect en
+            // silence : alerte avec le numéro à rappeler. Le transcript reste dans logs_alex.
             console.error("[chat] ÉCHEC createLead, lead potentiellement perdu:", e, JSON.stringify(lead));
+            await db.insert(notifications).values({
+              adminId: null, type: "alex_panne",
+              titre: "Prospect à saisir à la main (échec d'enregistrement)",
+              contenu: `${lead.name} · ${lead.phone}${lead.location ? ` · ${lead.location}` : ""}. La fiche n'a pas pu être créée : rappelez-le et saisissez-le manuellement.`,
+            }).catch(() => {});
           }
 
           // Emails non bloquants (l'échec d'envoi ne doit pas masquer le succès du lead)
