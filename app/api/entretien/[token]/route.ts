@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { clients, contratsEntretien, notifications } from "@/lib/db/schema";
 import { eq, and, isNull, sql, desc } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
-import { contratTotalCt, contratTotalEuros } from "@/lib/contrat-pricing";
+import { contratTotalCt, entretienAffichage } from "@/lib/contrat-pricing";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 import { logError } from "@/lib/observability";
 
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       adminId: null,
       type: "nouveau_contrat",
       titre: `Nouveau contrat entretien, ${client.name}`,
-      contenu: `${units} unité(s), ${contratTotalEuros(units)} € TTC/an`,
+      contenu: (() => { const a = entretienAffichage({ withContract: true, pro: client.typeClient === "professionnel", units }); return `${units} unité(s), ${a.montant} € ${a.base}/an`; })(),
       refType: "contrat",
       refId: contratId,
     }).catch((e) => logError("entretien.notif", e, { clientId: client.id }));

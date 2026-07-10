@@ -13,7 +13,7 @@ import { type Qualification } from "@/lib/qualification";
 import { getOpenSlots } from "@/lib/creneaux-alex";
 import { SYSTEM_PROMPT, CONTACT_SYSTEM_PROMPT } from "@/lib/alex-prompt";
 import { ALEX_TOOLS, PROSPECT_TOOL, TOOL_PROSPECT, TOOL_SAV, TOOL_CRENEAUX } from "@/lib/alex-tools";
-import { contratTotalEuros } from "@/lib/contrat-pricing";
+import { entretienAffichage } from "@/lib/contrat-pricing";
 import { escapeHtml } from "@/lib/escape-html";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -140,9 +140,11 @@ async function notifyDevisBrouillon(leadId: string, name: string, qualif: Qualif
     contenu = `${name} a été qualifié en détail par Alex (${detail}). Le chiffrage est pré-rempli : vérifiez et envoyez.`;
   } else if (qualif.natureProjet === "Entretien") {
     const units = Math.max(1, parseInt(qualif.entretienNbUnites || "1", 10) || 1);
-    const prix = contratTotalEuros(units);
+    // Une entreprise raisonne en HT (elle récupère la TVA) : on annonce la même base qu'Alex.
+    const pro = qualif.clientType === "Professionnel";
+    const a = entretienAffichage({ withContract: true, pro, units });
     titre = `Contrat d'entretien à préparer, ${name}`;
-    contenu = `${name} qualifié par Alex : entretien ${units} unité(s), soit environ ${prix} € TTC/an avec contrat. Le chiffrage est pré-rempli : vérifiez et envoyez.`;
+    contenu = `${name} qualifié par Alex : entretien ${units} unité(s), soit environ ${a.montant} € ${a.base}/an avec contrat${pro ? ` (${a.ttc} € TTC)` : ""}. Le chiffrage est pré-rempli : vérifiez et envoyez.`;
   } else return;
   await db.insert(notifications).values({
     adminId: null, type: "devis_brouillon", titre, contenu, refType: "chiffrage", refId: leadId,

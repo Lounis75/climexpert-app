@@ -5,9 +5,12 @@
 //  1) Le client a-t-il un contrat de maintenance ? (avec = tarif réduit, sans = plein tarif)
 //  2) Le type de client, qui fixe la TVA (10 % particulier, 20 % professionnel).
 //
-// Convention demandée par le gérant :
+// Convention demandée par le gérant (mise à jour du 10/07/2026) :
 //  - Particulier : on cale le TTC sur un nombre rond (200 / 250 €), +60 € TTC/unité en plus.
-//  - Professionnel : on cale le HT sur un nombre rond (182 / 228 €), +55 € HT/unité, TVA 20 %.
+//  - Professionnel : on cale le HT sur le MÊME nombre rond (200 / 250 €), +50 € HT/unité, TVA 20 %.
+// Autrement dit une entreprise raisonne, et se voit annoncer, en HORS TAXES : elle récupère la TVA.
+// (Auparavant le pro était calé sur 182 / 228 € HT, c'est-à-dire le HT du tarif particulier.
+//  Le gérant a tranché : pour une entreprise, 200 € s'entend HORS TAXES.)
 
 export type EntretienPrix = {
   htCt: number;    // hors taxes (centimes)
@@ -20,9 +23,9 @@ export type EntretienPrix = {
 const TTC_PARTICULIER = { avecContrat: 200, sansContrat: 250 };
 const SUPPL_TTC_PARTICULIER = 60; // € TTC par unité supplémentaire
 
-// Professionnel (TVA 20 %), calé sur le HT (arrondi).
-const HT_PRO = { avecContrat: 182, sansContrat: 228 };
-const SUPPL_HT_PRO = 55; // € HT par unité supplémentaire (~ 60 € TTC particulier / 1,10)
+// Professionnel (TVA 20 %), calé sur le HT.
+const HT_PRO = { avecContrat: 200, sansContrat: 250 };
+const SUPPL_HT_PRO = 50; // € HT par unité supplémentaire
 
 /** Prix d'un entretien selon contrat / type de client / nombre d'unités. */
 export function entretienPrix(opts: { withContract: boolean; pro?: boolean; units?: number }): EntretienPrix {
@@ -37,6 +40,19 @@ export function entretienPrix(opts: { withContract: boolean; pro?: boolean; unit
   const ttcCt = Math.round(ttc * 100);
   const htCt = Math.round((ttc / 1.1) * 100);
   return { htCt, ttcCt, tvaCt: ttcCt - htCt, vatRate: 10 };
+}
+
+/** Montant à AFFICHER et sa base : une entreprise voit du HT, un particulier du TTC.
+ *  Source unique pour la page de souscription, les notifications et les e-mails. */
+export function entretienAffichage(opts: { withContract: boolean; pro?: boolean; units?: number }): {
+  montant: number;          // en euros, à afficher tel quel
+  base: "HT" | "TTC";       // mention obligatoire à côté du montant
+  ttc: number;              // TTC réel (pour information / contrôle)
+} {
+  const p = entretienPrix(opts);
+  return opts.pro
+    ? { montant: p.htCt / 100, base: "HT", ttc: p.ttcCt / 100 }
+    : { montant: p.ttcCt / 100, base: "TTC", ttc: p.ttcCt / 100 };
 }
 
 // ── Compat : le « contrat de maintenance » = entretien AVEC contrat. Ces helpers restent

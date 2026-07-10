@@ -170,6 +170,26 @@ async function main() {
     if (lead) check("   HORS IDF signalé dans les notes", /hors idf/i.test(String(lead.notes ?? "") + String(lead.location ?? "")), String(lead.notes));
   }
 
+  // ── 6. ENTRETIEN pour une ENTREPRISE : prix annoncés en HT, jamais en TTC ──
+  {
+    const { transcript, all, lead } = await converse([
+      "Bonjour, je voudrais un entretien de la climatisation de mon restaurant",
+      "Local professionnel, 2 unités intérieures",
+      "Accessibles, en faux plafond",
+      "Le dernier entretien date d'un an",
+      "75001 Paris",
+      "Oui le contrat m'intéresse",
+      "Kumiko Yoshida, 0786341255, 6 rue de la Sourdière 75001 Paris, jin.compta@gmail.com",
+    ]);
+    // Le message qui porte le prix de l'entretien.
+    const msgPrix = transcript.filter((m) => m.role === "assistant").find((m) => /\d{3}\s*€/.test(m.content));
+    check("6. Entretien entreprise → prix annoncé en HT", !!msgPrix && /\bHT\b/i.test(msgPrix.content), msgPrix?.content.slice(0, 240) ?? "aucun message avec un prix");
+    check("   aucun prix annoncé en TTC à une entreprise", !!msgPrix && !/\bTTC\b/i.test(msgPrix.content), msgPrix?.content.slice(0, 240) ?? "");
+    // 2 unités : le contrat vaut 250 € HT (200 + 50), pas 200. On vérifie la BASE, pas le montant.
+    check("   contrat annuel proposé, en HT", /contrat/i.test(all) && /\bHT\b/i.test(all) && !/\bTTC\b/i.test(all), all.slice(-320));
+    check("   typeClient = professionnel", String(lead?.typeClient ?? "").toLowerCase().includes("pro"), lead ? String(lead.typeClient) : "outil non appelé");
+  }
+
   console.log(`\n${failures === 0 ? "🎉 Tous les tests passent." : `⚠️ ${failures} échec(s) : relisez le prompt avant de déployer.`}`);
   process.exit(failures === 0 ? 0 : 1);
 }
