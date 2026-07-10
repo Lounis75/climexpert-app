@@ -382,21 +382,31 @@ function leadLegacy(raw: string): LeadData | null {
 
 // Un numéro de téléphone français apparaît-il dans ce que le CLIENT a écrit ?
 const TEL_RE = /(?:\+33|0)\s*[1-9](?:[\s.\-]?\d{2}){4}/;
-function telephoneDonne(messages: ChatMessage[]): boolean {
-  return messages.some((m) => m.role === "user" && TEL_RE.test(m.content));
+function telephoneDonne(messages: ChatMessage[]): string | null {
+  for (const m of messages) {
+    if (m.role !== "user") continue;
+    const t = m.content.match(TEL_RE);
+    if (t) return t[0];
+  }
+  return null;
 }
 // Alex a-t-il refusé la demande (clim mobile hors périmètre) ? Dans ce cas, pas de prospect.
 function refusPerimetre(raw: string): boolean {
   return /mobile|portable/i.test(raw) && /(ne prenons pas|pas en charge|spécialis)/i.test(raw);
 }
+// Le modèle renvoie parfois "<UNKNOWN>" / "inconnu" au lieu de laisser le champ vide.
+const NOM_INCONNU = /^(<?unknown>?|inconnu|n\/?a|non communiqué?|-|\?)$/i;
 
 // FILET DE SÉCURITÉ (anti-perte de prospect). Invariant métier : dès qu'un client a laissé son
-// NOM et son TÉLÉPHONE, une fiche prospect DOIT exister, quoi que fasse le modèle. Si Alex conclut
-// (ou pose une question facultative de plus…) sans appeler enregistrer_prospect, on relit la
-// conversation avec un 2e appel Haiku dont l'outil est FORCÉ : on récupère les données et on crée
-// la fiche. Trois pertes réelles observées (Maxime PROST, Damien Harvey, Restaurant Jin) avant ce
-// filet. Coût : un appel Haiku, uniquement sur les tours où un téléphone a été donné.
-async function extraireProspectDeSecours(messages: ChatMessage[]): Promise<LeadData | null> {
+// TÉLÉPHONE, une fiche prospect DOIT exister, quoi que fasse le modèle. Si Alex conclut (ou pose
+// une question facultative de plus…) sans appeler enregistrer_prospect, on relit la conversation
+// avec un 2e appel Haiku dont l'outil est FORCÉ : on récupère les données et on crée la fiche.
+// Dix pertes réelles constatées avant ce filet (dont Maxime PROST, Damien Harvey, Restaurant Jin).
+// Le NOM n'est PAS exigé : un numéro seul est déjà un prospect rappelable (même logique que
+// « Importer des numéros »). On pose alors un nom bidon contenant le numéro : updateLeadFromQualif
+// le reconnaît comme placeholder et le remplace dès que le vrai nom arrive.
+// Coût : un appel Haiku, uniquement sur les tours où un téléphone a été donné.
+async function extraireProspectDeSecours(messages: ChatMessage[], telRepli: string): Promise<LeadData | null> {
   try {
     const r = await client.messages.create({
       model: "claude-haiku-4-5-20251001",
@@ -410,11 +420,25 @@ async function extraireProspectDeSecours(messages: ChatMessage[]): Promise<LeadD
       messages: [{ role: "user", content: `Conversation :\n\n${buildTranscript(messages)}\n\nExtrais les informations de ce prospect.` }],
     });
     const b = r.content.find((x): x is Anthropic.ToolUseBlock => x.type === "tool_use");
-    const d = b?.input as LeadData | undefined;
-    if (!d?.name?.trim() || !d?.phone?.trim()) return null; // pas assez pour créer une fiche
-    return d;
+    const d = (b?.input ?? {}) as LeadData;
+
+    // Le téléphone du modèle, sinon celui repéré en clair dans la conversation.
+    const phone = String(d.phone ?? "").trim() || telRepli;
+    if (!phone.replace(/\D/g, "")) return null;
+
+    const nomBrut = String(d.name ?? "").trim();
+    const sansNom = !nomBrut || NOM_INCONNU.test(nomBrut);
+    const notes = [d.notes, sansNom ? "Le client n'a pas donné son nom : rappeler le numéro." : ""].filter(Boolean).join("\n");
+
+    return { ...d, phone, name: sansNom ? `Prospect Alex ${phone}` : nomBrut, notes };
   } catch (e) {
+    // On n'échoue JAMAIS en silence : le transcript reste dans logs_alex, et l'équipe est alertée.
     console.error("[chat] filet de secours: échec extraction", e);
+    await db.insert(notifications).values({
+      adminId: null, type: "alex_panne",
+      titre: "Prospect à récupérer à la main (filet en échec)",
+      contenu: `Un client a laissé le numéro ${telRepli} mais la fiche n'a pas pu être créée automatiquement. Rappelez-le et vérifiez la conversation Alex.`,
+    }).catch(() => {});
     return null;
   }
 }
@@ -576,8 +600,9 @@ PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE 
 
     // FILET : Alex a répondu sans enregistrer, alors que le client a laissé son numéro. On relit la
     // conversation et on crée quand même la fiche (sauf refus de périmètre : clim mobile).
-    if (!lead && !qualifLead && telephoneDonne(messages) && !refusPerimetre(raw)) {
-      lead = await extraireProspectDeSecours(messages);
+    const telRepere = !lead && !qualifLead ? telephoneDonne(messages) : null;
+    if (telRepere && !refusPerimetre(raw)) {
+      lead = await extraireProspectDeSecours(messages, telRepere);
       recupereParFilet = !!lead;
       if (lead) console.error("[chat] FILET: prospect récupéré alors qu'Alex n'a pas appelé l'outil", { sid, phone: lead.phone });
     }
