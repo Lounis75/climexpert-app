@@ -602,11 +602,19 @@ PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE 
 
     // FILET : Alex a répondu sans enregistrer, alors que le client a laissé son numéro. On relit la
     // conversation et on crée quand même la fiche (sauf refus de périmètre : clim mobile).
+    // COÛT : l'extraction est un 2e appel Haiku. Le client continuant de discuter APRÈS avoir donné
+    // son numéro, la condition « un téléphone est dans la conversation » reste vraie à chaque tour :
+    // sans le garde-fou ci-dessous, on relançait une extraction à CHAQUE message jusqu'à la fin de
+    // la conversation. On vérifie donc d'abord en base (requête gratuite) si la fiche existe déjà :
+    // si oui, il n'y a rien à rattraper, on ne paie pas l'extraction.
     const telRepere = !lead && !qualifLead ? telephoneDonne(messages) : null;
     if (telRepere && !refusPerimetre(raw)) {
-      lead = await extraireProspectDeSecours(messages, telRepere);
-      recupereParFilet = !!lead;
-      if (lead) console.error("[chat] FILET: prospect récupéré alors qu'Alex n'a pas appelé l'outil", { sid, phone: lead.phone });
+      const dejaEnBase = await findActiveLeadByPhone(telRepere).catch(() => null);
+      if (!dejaEnBase) {
+        lead = await extraireProspectDeSecours(messages, telRepere);
+        recupereParFilet = !!lead;
+        if (lead) console.error("[chat] FILET: prospect récupéré alors qu'Alex n'a pas appelé l'outil", { sid, phone: lead.phone });
+      }
     }
 
     if (lead) {

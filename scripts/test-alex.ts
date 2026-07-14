@@ -14,19 +14,40 @@ import { ALEX_TOOLS, TOOL_PROSPECT } from "../lib/alex-tools";
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 type Msg = { role: "user" | "assistant"; content: string };
 
+// Compteurs de coût : la suite rejoue ~35 tours, chacun renvoyant le prompt système (~10 600
+// tokens) + les outils (~2 400). SANS mise en cache, un lancement coûtait ~0,50 $ et faisait
+// tripler la facture Anthropic les jours de mise au point du prompt. Avec cache_control, le
+// préfixe (outils + système, identique à chaque tour) est relu à 0,1x au lieu d'être refacturé
+// plein tarif : ~0,08 $ le lancement.
+const usage = { cacheWrite: 0, cacheRead: 0, input: 0, output: 0 };
+
 /** Un tour d'Alex : son texte + l'éventuel appel de l'outil enregistrer_prospect. */
 async function reply(messages: Msg[]): Promise<{ text: string; lead: Record<string, unknown> | null }> {
   const r = await client.messages.create({
     model: "claude-haiku-4-5-20251001",
     max_tokens: 1024,
     temperature: 0,
-    system: SYSTEM_PROMPT,
+    // Même découpage qu'en production (app/api/chat/route.ts) : le prompt STATIQUE est mis en cache.
+    system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
     tools: ALEX_TOOLS,
     messages,
   });
+  usage.cacheWrite += r.usage.cache_creation_input_tokens ?? 0;
+  usage.cacheRead  += r.usage.cache_read_input_tokens ?? 0;
+  usage.input      += r.usage.input_tokens;
+  usage.output     += r.usage.output_tokens;
   const text = r.content.filter((b): b is Anthropic.TextBlock => b.type === "text").map((b) => b.text).join("").trim();
   const call = r.content.find((b): b is Anthropic.ToolUseBlock => b.type === "tool_use" && b.name === TOOL_PROSPECT);
   return { text, lead: call ? (call.input as Record<string, unknown>) : null };
+}
+
+/** Coût réel du lancement (tarifs Haiku 4.5 : 1 $/Mtok entrée, 5 $ sortie, 1,25 $ écriture cache, 0,10 $ lecture). */
+function coutDuLancement(): string {
+  const d = (usage.input * 1 + usage.output * 5 + usage.cacheWrite * 1.25 + usage.cacheRead * 0.1) / 1_000_000;
+  const hits = usage.cacheRead + usage.cacheWrite > 0
+    ? Math.round((usage.cacheRead / (usage.cacheRead + usage.cacheWrite)) * 100)
+    : 0;
+  return `Coût de ce lancement : ${d.toFixed(3)} $ · cache lu ${usage.cacheRead.toLocaleString("fr-FR")} tok (${hits}% de hits), écrit ${usage.cacheWrite.toLocaleString("fr-FR")} tok`;
 }
 
 /** Déroule une conversation : envoie chaque message utilisateur, accumule les réponses. */
@@ -191,6 +212,7 @@ async function main() {
   }
 
   console.log(`\n${failures === 0 ? "🎉 Tous les tests passent." : `⚠️ ${failures} échec(s) : relisez le prompt avant de déployer.`}`);
+  console.log(coutDuLancement());
   process.exit(failures === 0 ? 0 : 1);
 }
 
