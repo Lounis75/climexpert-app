@@ -14,11 +14,12 @@ const BENEFITS = [
 // `pro` vient du serveur (type du client porteur du token) : une entreprise raisonne en HT.
 export default function EntretienClient({ token, pro }: { token: string; pro: boolean }) {
   const [units, setUnits] = useState(1);
+  const [unitsExt, setUnitsExt] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
 
-  const { montant: price, base, ttc } = entretienAffichage({ withContract: true, pro, units });
+  const { montant: price, base, ttc } = entretienAffichage({ withContract: true, pro, units, unitsExterieures: unitsExt });
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -28,7 +29,7 @@ export default function EntretienClient({ token, pro }: { token: string; pro: bo
       const res = await fetch(`/api/entretien/${token}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ units }),
+        body: JSON.stringify({ units, unitsExterieures: unitsExt }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Erreur");
@@ -97,14 +98,12 @@ export default function EntretienClient({ token, pro }: { token: string; pro: bo
         <div className="bg-white border border-slate-100 rounded-3xl p-5">
           <p className="text-sm font-bold text-slate-900 mb-1">Tarif</p>
           <p className="text-slate-500 text-xs mb-4">
-            {pro
-              ? "200 € HT (1re unité) + 50 € HT par unité supplémentaire · TVA 20 % en sus · Paris intramuros"
-              : "200 € TTC (1re unité) + 60 € TTC par unité supplémentaire · Paris intramuros"}
+            {`200 € ${pro ? "HT" : "TTC"} pour 1 groupe extérieur + 1 unité intérieure, puis +50 € par unité intérieure supplémentaire et +100 € par groupe extérieur supplémentaire${pro ? " · TVA 20 % en sus" : ""} · Paris intramuros`}
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="text-xs text-slate-500 block mb-2">Nombre d'unités intérieures</label>
+              <label className="text-xs text-slate-500 block mb-2">Unités intérieures (les appareils dans vos pièces)</label>
               <div className="flex items-center gap-3">
                 <button
                   type="button"
@@ -122,6 +121,32 @@ export default function EntretienClient({ token, pro }: { token: string; pro: bo
                   +
                 </button>
               </div>
+            </div>
+
+            {/* Groupes extérieurs : un groupe supplémentaire demande plus de travail (+100 €). Sans
+                ce compteur, une installation à 2 groupes était sous-facturée. */}
+            <div>
+              <label className="text-xs text-slate-500 block mb-2">Groupes extérieurs (les blocs posés dehors)</label>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setUnitsExt((u) => Math.max(1, u - 1))}
+                  className="w-10 h-10 rounded-xl border border-slate-200 text-slate-600 font-bold text-lg flex items-center justify-center hover:bg-slate-50"
+                >
+                  −
+                </button>
+                <span className="w-10 text-center font-bold text-slate-900 text-lg">{unitsExt}</span>
+                <button
+                  type="button"
+                  onClick={() => setUnitsExt((u) => Math.min(10, u + 1))}
+                  className="w-10 h-10 rounded-xl border border-slate-200 text-slate-600 font-bold text-lg flex items-center justify-center hover:bg-slate-50"
+                >
+                  +
+                </button>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1.5">
+                Un seul groupe extérieur peut alimenter plusieurs unités intérieures. En cas de doute, laissez 1.
+              </p>
             </div>
 
             <div className="bg-slate-50 rounded-2xl p-4 flex items-center justify-between">

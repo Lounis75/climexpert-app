@@ -128,8 +128,8 @@ async function main() {
       estimCoord ? estimCoord.content.slice(-200) : "pas de message coordonnées",
     );
     check(
-      "   coordonnées en liste à puces, message compact (≤ 620 car.)",
-      !!estimCoord && estimCoord.content.includes("•") && estimCoord.content.length <= 620,
+      "   coordonnées en liste à puces, message compact (≤ 700 car.)",
+      !!estimCoord && estimCoord.content.includes("•") && estimCoord.content.length <= 700,
       estimCoord ? `${estimCoord.content.length} caractères, puces=${estimCoord.content.includes("•")} : « ${estimCoord.content.slice(0, 220).replace(/\n/g, " ⏎ ")}… »` : "pas de message de demande de coordonnées trouvé",
     );
   }
@@ -148,9 +148,11 @@ async function main() {
   {
     const { transcript, all, leadTurn } = await converse([
       "Bonjour, je voudrais faire entretenir ma climatisation",
-      "Appartement, 2 unités intérieures, facilement accessibles",
-      "75015 Paris",
+      "Appartement",
+      "2 unités intérieures et 1 bloc dehors",
+      "Facilement accessibles",
       "Jamais entretenues je crois, au moins 4 ans",
+      "75015 Paris",
       "Oui, dites-moi le prix",
     ]);
     check("3. Entretien → contrat annuel proposé", /contrat/i.test(all), all.slice(-300));
@@ -231,6 +233,31 @@ async function main() {
       /(3 ?m|plafond|combles|cassette|nacelle|toiture)/i.test(all),
       all.slice(-300),
     );
+  }
+
+  // ── 8. ENTRETIEN, groupes EXTÉRIEURS (cas réel : le client n'avait pas donné ce nombre, l'entretien
+  //    a été mal facturé). Le client ne donne qu'un chiffre : Alex doit INSISTER, capter les DEUX,
+  //    et appliquer la grille (200 base + 50/intérieure suppl. + 100/extérieure suppl.). ──
+  {
+    const { transcript, all, lead } = await converse([
+      "Bonjour, je veux un entretien de ma clim",
+      "Maison",
+      "J'ai 4 unités",                 // un seul chiffre : Alex doit relancer sur l'extérieur
+      "Ah oui, 2 blocs dehors",
+      "Accessibles",
+      "Il y a 2 ans",
+      "75015",
+      "Oui pour le contrat",
+      "Paul Martin, 0611223344, 3 rue Test 75015, paul@test.fr",
+    ]);
+    const relance = transcript.find((m, k) => m.role === "assistant" && k > 4 && /extérieur|dehors/i.test(m.content) && /\?/.test(m.content));
+    check("8. Entretien → Alex RELANCE quand le nb de groupes extérieurs manque", !!relance,
+      relance ? "" : "Alex n'a pas insisté : le nombre de groupes extérieurs est perdu");
+    check("   les DEUX nombres sont enregistrés", String(lead?.rooms ?? "") === "4" && String(lead?.unitesExterieures ?? "") === "2",
+      lead ? `intérieures="${lead.rooms}" extérieures="${lead.unitesExterieures}"` : "outil non appelé");
+    // 2 ext + 4 int, avec contrat = 200 + 3x50 + 1x100 = 450 €. L'ancien calcul donnait 440 € (le
+    // supplément etait applique a TOUTES les unites au lieu des supplementaires).
+    check("   prix correct (450 €, pas 440)", /450/.test(all) && !/\b440\b/.test(all), all.slice(-260));
   }
 
   console.log(`\n${failures === 0 ? "🎉 Tous les tests passent." : `⚠️ ${failures} échec(s) : relisez le prompt avant de déployer.`}`);

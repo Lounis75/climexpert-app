@@ -91,6 +91,7 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
   // Type de prestation : installation (dimensionnement) ou entretien/dépannage/dépose/autre (forfaits).
   const [prestation, setPrestation] = useState<Prestation>(draft?.prestation ?? prefill?.prestation ?? "installation");
   const [prestaUnits, setPrestaUnits] = useState(draft?.prestaUnits ?? prefill?.nbRooms ?? 1);
+  const [prestaUnitsExt, setPrestaUnitsExt] = useState(draft?.prestaUnitsExt ?? prefill?.nbExterieures ?? 1);
   const [prestaHours, setPrestaHours] = useState(draft?.prestaHours ?? 2);
   const [prestaContrat, setPrestaContrat] = useState(draft?.prestaContrat ?? false);
   const [prestaPlus3ans, setPrestaPlus3ans] = useState(draft?.prestaPlus3ans ?? prefill?.plus3ans ?? false); // majoration entretien > 3 ans
@@ -175,11 +176,16 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
       // Grille : 1re unité (200 HT avec contrat / 250 HT sans), +50 HT par unité supplémentaire,
       // +100 HT si la dernière visite date de plus de 3 ans (ou jamais). Valeurs éditables au catalogue.
       const premiere = prestaContrat ? (f.entretien_premiere_contrat?.v ?? 0) : (f.entretien_premiere_sans?.v ?? 0);
+      const ue = Math.max(1, Math.round(prestaUnitsExt) || 1);
       out.push({
-        d: prestaContrat ? "Entretien climatisation, 1re unité (contrat annuel)" : "Entretien climatisation, 1re unité",
+        d: prestaContrat
+          ? "Entretien climatisation, base contrat annuel (1 groupe extérieur + 1 unité intérieure)"
+          : "Entretien climatisation, base (1 groupe extérieur + 1 unité intérieure)",
         q: 1, pu: premiere, tva: tvaMO(),
       });
-      if (u > 1) out.push({ d: "Entretien, unité supplémentaire", q: u - 1, pu: f.entretien_unite_supp?.v ?? 0, tva: tvaMO() });
+      if (u > 1) out.push({ d: "Unité intérieure supplémentaire", q: u - 1, pu: f.entretien_unite_supp?.v ?? 0, tva: tvaMO() });
+      // Un groupe extérieur supplémentaire coûte plus cher qu'une unité intérieure (plus de travail dehors).
+      if (ue > 1) out.push({ d: "Groupe extérieur supplémentaire", q: ue - 1, pu: f.entretien_exterieure_supp?.v ?? 0, tva: tvaMO() });
       if (prestaPlus3ans) out.push({ d: "Majoration : installation non entretenue depuis plus de 3 ans", q: 1, pu: f.entretien_majoration_3ans?.v ?? 0, tva: tvaMO() });
       if ((f.entretien_deplacement?.v ?? 0) > 0) out.push({ d: "Déplacement", q: 1, pu: f.entretien_deplacement.v, tva: tvaMO() });
     } else if (prestation === "depannage") {
@@ -244,7 +250,7 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
     // Mélange TVA approx : tout à 20 % pour un pro (ou logement < 2 ans), sinon pose à 10 %.
     return a * (clientType === "pro" || !plus2ans ? 1.20 : 1.18);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prestation, cfg, brand, cat, rooms, install, prestaUnits, prestaHours, prestaContrat, prestaPlus3ans, prestaNote, clientType, plus2ans]);
+  }, [prestation, cfg, brand, cat, rooms, install, prestaUnits, prestaUnitsExt, prestaHours, prestaContrat, prestaPlus3ans, prestaNote, clientType, plus2ans]);
 
   const dbHint = useMemo(() => {
     const b = cat.brands.find((x) => x.id === brand);
@@ -278,7 +284,7 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
   }
 
   function currentDraft(): ChiffrageDraft {
-    return { leadId: leadId ?? undefined, clientId: clientIdRef, clientType, plus2ans, client, prestation, prestaUnits, prestaHours, prestaContrat, prestaPlus3ans, prestaNote, rooms, install, brand, lines, generated };
+    return { leadId: leadId ?? undefined, clientId: clientIdRef, clientType, plus2ans, client, prestation, prestaUnits, prestaUnitsExt, prestaHours, prestaContrat, prestaPlus3ans, prestaNote, rooms, install, brand, lines, generated };
   }
   async function saveDraft() {
     if (!client.nom.trim() && !client.entreprise.trim()) { setDraftMsg("Renseigne au moins le nom du client (ou l'entreprise)."); return; }
@@ -473,8 +479,12 @@ export default function ChiffrageTool({ catalogue: initialCatalogue, prefill, dr
             <section className="card">
               <h2><span className="n">B</span> {prestation === "entretien" ? "Entretien" : prestation === "depannage" ? "Dépannage" : prestation === "depose" ? "Dépose" : "Prestation"}</h2>
               {(prestation === "entretien" || prestation === "depose") && (
-                <div className="field"><label>Nombre d&apos;unités{prestation === "depose" ? " à déposer" : " à entretenir"}</label>
+                <div className="field"><label>Unités INTÉRIEURES{prestation === "depose" ? " à déposer" : " à entretenir"} (les appareils dans les pièces)</label>
                   <input type="number" min={1} value={prestaUnits} onChange={(e) => setPrestaUnits(parseInt(e.target.value) || 1)} /></div>
+              )}
+              {prestation === "entretien" && (
+                <div className="field"><label>Groupes EXTÉRIEURS (les blocs posés dehors) : +{cat.forfaits.entretien_exterieure_supp?.v ?? 100} € HT par groupe supplémentaire</label>
+                  <input type="number" min={1} value={prestaUnitsExt} onChange={(e) => setPrestaUnitsExt(parseInt(e.target.value) || 1)} /></div>
               )}
               {prestation === "entretien" && (<>
                 <label className="chk"><input type="checkbox" checked={prestaContrat} onChange={(e) => setPrestaContrat(e.target.checked)} /> Contrat d&apos;entretien annuel (au lieu d&apos;un entretien ponctuel)</label>

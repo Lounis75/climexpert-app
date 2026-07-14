@@ -501,7 +501,8 @@ export const contratsEntretien = pgTable("contrats_entretien", {
   marque:         varchar("marque", { length: 100 }),      // marque/modèle de l'unité extérieure
   puissanceKw:    varchar("puissance_kw", { length: 20 }), // puissance (kW)
   numeroSerie:    varchar("numero_serie", { length: 100 }),// n° de série de l'unité extérieure
-  units:          integer("units").default(1).notNull(),   // nombre d'unités intérieures (même marque)
+  units:            integer("units").default(1).notNull(),             // unités INTÉRIEURES (les appareils dans les pièces)
+  unitsExterieures: integer("units_exterieures").default(1).notNull(), // groupes EXTÉRIEURS (+100 € par groupe supplémentaire)
   prixUnitaireCt: integer("prix_unitaire_ct").default(20000).notNull(), // 200 € = 20000 ct
   startDate:      date("start_date").notNull(),
   nextVisit:      date("next_visit"),

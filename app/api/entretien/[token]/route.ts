@@ -35,6 +35,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
 
     const body = await req.json().catch(() => ({}));
     const units = Math.min(20, Math.max(1, Math.round(Number(body.units) || 1)));
+    const unitsExterieures = Math.min(10, Math.max(1, Math.round(Number(body.unitsExterieures) || 1)));
 
     const today = new Date().toISOString().split("T")[0];
     const nextYear = new Date();
@@ -48,7 +49,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
         id: contratId,
         clientId: client.id,
         units,
-        prixUnitaireCt: contratTotalCt(units), // total annuel : 200 + (units-1)*60
+        unitsExterieures,
+        prixUnitaireCt: contratTotalCt(units, unitsExterieures), // total annuel : 200 + (units-1)*60
         startDate: today,
         nextVisit,
       })
@@ -61,7 +63,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       adminId: null,
       type: "nouveau_contrat",
       titre: `Nouveau contrat entretien, ${client.name}`,
-      contenu: (() => { const a = entretienAffichage({ withContract: true, pro: client.typeClient === "professionnel", units }); return `${units} unité(s), ${a.montant} € ${a.base}/an`; })(),
+      contenu: (() => { const a = entretienAffichage({ withContract: true, pro: client.typeClient === "professionnel", units, unitsExterieures }); return `${units} unité(s) intérieure(s), ${unitsExterieures} groupe(s) extérieur(s), ${a.montant} € ${a.base}/an`; })(),
       refType: "contrat",
       refId: contratId,
     }).catch((e) => logError("entretien.notif", e, { clientId: client.id }));

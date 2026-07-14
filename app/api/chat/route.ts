@@ -29,7 +29,8 @@ interface LeadData {
   address?: string;
   estimate: string;
   notes: string;
-  rooms?: string;            // nombre de pièces à climatiser / d'unités (chiffre)
+  rooms?: string;            // pièces à climatiser / unités INTÉRIEURES (chiffre)
+  unitesExterieures?: string; // groupes EXTÉRIEURS (chiffre) : renchérit l'entretien (+100 €/groupe)
   refuseContact?: boolean;   // true UNIQUEMENT si la personne refuse le démarchage
   typeClient?: string;       // "particulier" | "professionnel"
   // ── Champs de la QUALIFICATION APPROFONDIE (remplis seulement si le prospect accepte les 2 min) ──
@@ -90,6 +91,8 @@ function buildQualifFromAlex(lead: LeadData): Qualification {
 
   q.clientType = String(lead.typeClient ?? "").toLowerCase().includes("pro") ? "Professionnel" : "Particulier";
 
+  const ext = String(lead.unitesExterieures ?? "").match(/\d+/)?.[0];
+  if (ext && q.natureProjet === "Entretien") q.entretienNbExterieures = ext;
   const rooms = String(lead.rooms ?? "").match(/\d+/)?.[0];
   if (rooms) {
     if (q.natureProjet === "Entretien") q.entretienNbUnites = rooms;
@@ -140,11 +143,12 @@ async function notifyDevisBrouillon(leadId: string, name: string, qualif: Qualif
     contenu = `${name} a été qualifié en détail par Alex (${detail}). Le chiffrage est pré-rempli : vérifiez et envoyez.`;
   } else if (qualif.natureProjet === "Entretien") {
     const units = Math.max(1, parseInt(qualif.entretienNbUnites || "1", 10) || 1);
+    const unitsExterieures = Math.max(1, parseInt(qualif.entretienNbExterieures || "1", 10) || 1);
     // Une entreprise raisonne en HT (elle récupère la TVA) : on annonce la même base qu'Alex.
     const pro = qualif.clientType === "Professionnel";
-    const a = entretienAffichage({ withContract: true, pro, units });
+    const a = entretienAffichage({ withContract: true, pro, units, unitsExterieures });
     titre = `Contrat d'entretien à préparer, ${name}`;
-    contenu = `${name} qualifié par Alex : entretien ${units} unité(s), soit environ ${a.montant} € ${a.base}/an avec contrat${pro ? ` (${a.ttc} € TTC)` : ""}. Le chiffrage est pré-rempli : vérifiez et envoyez.`;
+    contenu = `${name} qualifié par Alex : entretien ${units} unité(s) intérieure(s) et ${unitsExterieures} groupe(s) extérieur(s), soit environ ${a.montant} € ${a.base}/an avec contrat${pro ? ` (${a.ttc} € TTC)` : ""}. Le chiffrage est pré-rempli : vérifiez et envoyez.`;
   } else return;
   await db.insert(notifications).values({
     adminId: null, type: "devis_brouillon", titre, contenu, refType: "chiffrage", refId: leadId,

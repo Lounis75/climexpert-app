@@ -76,11 +76,13 @@ export const DEFAULT_CATALOGUE: Catalogue = {
     depose:          { label: "Dépose ancien matériel",             v: 272.73 },
   },
   forfaits: {
-    // Grille entretien (HT) : 1re unité selon contrat ou non, prix par unité supplémentaire,
-    // et majoration si l'installation n'a pas été entretenue depuis plus de 3 ans.
+    // Grille entretien (HT). La base couvre 1 groupe EXTÉRIEUR + 1 unité INTÉRIEURE ; au-delà,
+    // +50 par unité intérieure et +100 par groupe extérieur (plus de travail dehors). Majoration
+    // si l'installation n'a pas été entretenue depuis plus de 3 ans.
     entretien_premiere_contrat: { label: "Entretien, 1re unité (avec contrat annuel)",   v: 200 },
     entretien_premiere_sans:    { label: "Entretien ponctuel, 1re unité (sans contrat)", v: 250 },
-    entretien_unite_supp:       { label: "Entretien, unité supplémentaire",              v: 50 },
+    entretien_unite_supp:       { label: "Entretien, unité INTÉRIEURE supplémentaire",   v: 50 },
+    entretien_exterieure_supp:  { label: "Entretien, groupe EXTÉRIEUR supplémentaire",   v: 100 },
     entretien_majoration_3ans:  { label: "Majoration : non entretenu depuis + de 3 ans", v: 100 },
     entretien_deplacement:      { label: "Déplacement entretien",                        v: 0 },
     depannage_diagnostic:       { label: "Diagnostic / déplacement",                     v: 90 },
@@ -139,6 +141,7 @@ export type ChiffragePrefill = {
   clientType: "particulier" | "pro";
   prestation: Prestation;
   nbRooms: number;
+  nbExterieures?: number; // groupes extérieurs (entretien), capté par Alex
   immeuble: boolean;
   depose: boolean;
   plus3ans?: boolean; // entretien : dernier entretien il y a plus de 3 ans (majoration pré-cochée)
@@ -154,6 +157,7 @@ export type ChiffrageDraft = {
   client: ChiffrageClient;
   prestation?: Prestation;
   prestaUnits?: number;
+  prestaUnitsExt?: number; // groupes EXTÉRIEURS (entretien) : +100 € par groupe supplémentaire
   prestaHours?: number;
   prestaContrat?: boolean;
   prestaPlus3ans?: boolean; // dernier entretien il y a plus de 3 ans (ou jamais) -> majoration

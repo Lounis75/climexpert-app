@@ -43,6 +43,9 @@ function buildPrefill(lead: Lead): ChiffragePrefill {
     clientType: pro ? "pro" : "particulier",
     prestation,
     nbRooms: Math.min(Math.max(nb, 1), 8),
+    // Groupes extérieurs captés par Alex (entretien) : un groupe supplémentaire renchérit le devis
+    // de 100 €, il ne doit pas être oublié au chiffrage.
+    nbExterieures: Math.min(Math.max(parseInt(q.entretienNbExterieures ?? "", 10) || 1, 1), 8),
     immeuble: !!immeuble,
     depose: !!depose,
     plus3ans,

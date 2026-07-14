@@ -26,6 +26,7 @@ export function buildContratData(contrat: Contrat, client: Client, opts?: { clie
     withContract: true,
     pro: client.typeClient === "professionnel",
     units: contrat.units,
+    unitsExterieures: contrat.unitsExterieures,
   });
   return {
     clientType: client.typeClient === "professionnel" ? "professionnel" : "particulier",

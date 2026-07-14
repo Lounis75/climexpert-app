@@ -1,0 +1,1 @@
+ALTER TABLE "contrats_entretien" ADD COLUMN "units_exterieures" integer DEFAULT 1 NOT NULL;
