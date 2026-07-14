@@ -1,9 +1,9 @@
 import AdminHeader from "@/components/AdminHeader";
-import { getInterventionById, getTechniciens, TYPE_LABELS, TYPE_COLORS, STATUS_INTERVENTION } from "@/lib/interventions";
+import { getInterventionById, getTechniciens, getDevisLie, getLeadIdDuClient, TYPE_LABELS, TYPE_COLORS, STATUS_INTERVENTION } from "@/lib/interventions";
 import { getChantierById } from "@/lib/chantiers";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Wrench, FileText, Image as ImageIcon, Briefcase, HardHat, CheckCircle2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Wrench, FileText, Image as ImageIcon, Briefcase, HardHat, CheckCircle2, AlertTriangle, User, Search } from "lucide-react";
 import InterventionActions from "./InterventionActions";
 import CopyableContact from "@/components/CopyableContact";
 import BriefingPhotos from "./BriefingPhotos";
@@ -46,6 +46,8 @@ export default async function InterventionDetailPage({
   const status = STATUS_INTERVENTION[i.status] ?? STATUS_INTERVENTION.planifiée;
   const typeColor = TYPE_COLORS[i.type] ?? TYPE_COLORS.autre;
   const chantier = i.chantierId ? await getChantierById(i.chantierId) : null;
+  // Accès rapide : le devis à l'origine de l'intervention (quel que soit le flux) et le prospect.
+  const [devisLie, leadId] = await Promise.all([getDevisLie(i), getLeadIdDuClient(i.clientId)]);
   const [rapportSig] = await db
     .select({ demandee: rapportsIntervention.cerfaSignatureDemandeeLe, signe: rapportsIntervention.cerfaClientSigneLe })
     .from(rapportsIntervention).where(eq(rapportsIntervention.interventionId, id)).limit(1);
@@ -87,6 +89,58 @@ export default async function InterventionDetailPage({
               currentVersion={i.version}
             />
           </div>
+        </div>
+
+        {/* ACCÈS RAPIDE : depuis une intervention on veut rebondir en 1 clic sur la fiche client, sur
+            le devis qui l'a déclenchée, et sur le prospect d'origine (qualification, historique). */}
+        <div className="grid sm:grid-cols-3 gap-2">
+          <Link
+            href={`/admin/clients/${i.clientId}`}
+            className="bg-slate-800/40 border border-white/8 rounded-xl px-4 py-3 flex items-center gap-3 hover:border-sky-500/40 transition-colors group"
+          >
+            <User className="w-4 h-4 text-sky-400 flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="text-xs text-slate-500">Fiche client</p>
+              <p className="text-white text-sm font-medium truncate group-hover:text-sky-300 transition-colors">{i.clientName}</p>
+            </div>
+          </Link>
+
+          {devisLie ? (
+            <a
+              href={devisLie.href}
+              {...(devisLie.source === "pdf" ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+              className="bg-slate-800/40 border border-white/8 rounded-xl px-4 py-3 flex items-center gap-3 hover:border-violet-500/40 transition-colors group"
+            >
+              <FileText className="w-4 h-4 text-violet-400 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs text-slate-500">
+                  Devis signé{devisLie.montantCt ? ` · ${(devisLie.montantCt / 100).toLocaleString("fr-FR")} €` : ""}
+                </p>
+                <p className="text-white text-sm font-medium truncate group-hover:text-violet-300 transition-colors">{devisLie.libelle}</p>
+              </div>
+            </a>
+          ) : (
+            <div className="bg-slate-800/20 border border-white/5 rounded-xl px-4 py-3 flex items-center gap-3">
+              <FileText className="w-4 h-4 text-slate-600 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs text-slate-600">Devis</p>
+                <p className="text-slate-500 text-sm truncate">Aucun devis lié</p>
+              </div>
+            </div>
+          )}
+
+          {leadId && (
+            <Link
+              href={`/admin/leads?lead=${leadId}`}
+              className="bg-slate-800/40 border border-white/8 rounded-xl px-4 py-3 flex items-center gap-3 hover:border-emerald-500/40 transition-colors group"
+            >
+              <Search className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs text-slate-500">Prospect d&apos;origine</p>
+                <p className="text-white text-sm font-medium truncate group-hover:text-emerald-300 transition-colors">Qualification, devis, échanges</p>
+              </div>
+            </Link>
+          )}
         </div>
 
         {/* Ordre de mission, PDF à transmettre à un sous-traitant (qui n'a pas le portail) */}

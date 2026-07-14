@@ -93,8 +93,11 @@ export async function POST(req: NextRequest) {
       const client = await createClientFromLead(lead.id);
       if (client && !dejaGagne) {
         // Si un créneau d'installation provisoire avait été posé (devis envoyé), l'intervention en hérite.
+        // devisEnvoiId : on RATTACHE l'intervention au devis signé. Sans lui, impossible de retrouver
+        // depuis l'intervention le devis qui l'a déclenchée (le flux PDF ne posait aucun lien).
         await createIntervention({
           clientId: client.id,
+          devisEnvoiId: envoi?.id ?? null,
           type: (lead.project ?? "autre"),
           status: "planifiée",
           scheduledAt: lead.installPrevuLe ?? null,

@@ -435,7 +435,13 @@ export const interventions = pgTable("interventions", {
   id:                   text("id").primaryKey().$defaultFn(() => createId()),
   clientId:             text("client_id").notNull().references(() => clients.id),
   technicienId:         text("technicien_id").references(() => techniciens.id),
+  // Devis à l'origine de l'intervention. DEUX flux coexistent, d'où deux colonnes :
+  //  - devisId      : devis STRUCTURÉ (table devis, créé dans /admin/devis) ;
+  //  - devisEnvoiId : devis PDF envoyé au prospect (table devis_envois), le flux le plus utilisé.
+  // Avant, le flux PDF (/api/devis-decision) créait l'intervention SANS aucun lien : impossible de
+  // retrouver le devis signé depuis l'intervention.
   devisId:              text("devis_id").references(() => devis.id),
+  devisEnvoiId:         text("devis_envoi_id").references(() => devisEnvois.id),
   type:                 projectTypeEnum("type").notNull(),
   status:               interventionStatusEnum("status").default("planifiée").notNull(),
   scheduledAt:          timestamp("scheduled_at"),

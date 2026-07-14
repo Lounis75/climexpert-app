@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { interventions, clients, techniciens, suivisPlanifies, rapportsIntervention, savTickets, suivis, documents } from "@/lib/db/schema";
+import { interventions, clients, techniciens, suivisPlanifies, rapportsIntervention, savTickets, suivis, documents, devis, devisEnvois, leads } from "@/lib/db/schema";
 import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 import { eq, desc, gte, asc, and, isNull, sql } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
@@ -14,6 +14,17 @@ export type InterventionWithRefs = Intervention & {
   clientPhone?: string | null;
   clientEmail?: string | null;
   clientAddress?: string | null;
+};
+
+/** Devis à l'origine d'une intervention, normalisé : le CRM a deux flux de devis (structuré dans la
+ *  table devis, et PDF envoyé au prospect dans devis_envois). L'écran n'a pas à le savoir. */
+export type DevisLie = {
+  source: "structure" | "pdf";
+  href: string;            // où l'ouvrir (page du devis, ou PDF)
+  libelle: string;         // ce qu'on affiche
+  montantCt: number | null;
+  accepteLe: Date | null;
+  leadId?: string | null;  // prospect d'origine (pour rebondir sur sa fiche)
 };
 
 // Constantes d'affichage déplacées dans interventions-ui.ts (client-safe).
@@ -47,6 +58,35 @@ export async function getInterventions(): Promise<InterventionWithRefs[]> {
     clientName: r.clientName ?? "-",
     technicienName: r.technicienName ?? undefined,
   }));
+}
+
+/** Retrouve le devis à l'origine d'une intervention, quel que soit le flux qui l'a créée. */
+export async function getDevisLie(i: Intervention): Promise<DevisLie | null> {
+  if (i.devisEnvoiId) {
+    const [e] = await db.select({
+      id: devisEnvois.id, url: devisEnvois.url, nom: devisEnvois.nomFichier, montantCt: devisEnvois.montantCt,
+      decisionLe: devisEnvois.decisionLe, leadId: devisEnvois.leadId,
+    }).from(devisEnvois).where(eq(devisEnvois.id, i.devisEnvoiId)).limit(1);
+    if (e) return {
+      source: "pdf", href: e.url, libelle: e.nom ?? "Devis signé (PDF)",
+      montantCt: e.montantCt, accepteLe: e.decisionLe, leadId: e.leadId,
+    };
+  }
+  if (i.devisId) {
+    const [d] = await db.select({ id: devis.id, number: devis.number, totalTtcCt: devis.totalTtcCt, updatedAt: devis.updatedAt, leadId: devis.leadId })
+      .from(devis).where(eq(devis.id, i.devisId)).limit(1);
+    if (d) return {
+      source: "structure", href: `/admin/devis/${d.id}`, libelle: `Devis ${d.number}`,
+      montantCt: d.totalTtcCt, accepteLe: d.updatedAt, leadId: d.leadId,
+    };
+  }
+  return null;
+}
+
+/** Prospect d'origine du client (sa fiche porte l'historique complet des devis et de la qualification). */
+export async function getLeadIdDuClient(clientId: string): Promise<string | null> {
+  const [l] = await db.select({ id: leads.id }).from(leads).where(eq(leads.clientId, clientId)).limit(1);
+  return l?.id ?? null;
 }
 
 export async function getInterventionById(id: string): Promise<InterventionWithRefs | null> {
