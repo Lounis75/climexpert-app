@@ -4,7 +4,8 @@ import { interventions, rapportsIntervention, notifications, contratsEntretien, 
 import { eq, and, sql } from "drizzle-orm";
 import { verifyTechnicienToken, TECH_COOKIE_NAME, verifyAdminToken, COOKIE_NAME } from "@/lib/auth";
 import { createId } from "@paralleldrive/cuid2";
-import { contratTotalCt } from "@/lib/contrat-pricing";
+import { contratTotalCt, entretienAffichage } from "@/lib/contrat-pricing";
+import { demanderSignatureContrat } from "@/lib/contrat-signature";
 import { finalizeCerfa, requestCerfaSignature } from "@/lib/cerfa";
 import { finalizeContrat } from "@/lib/contrat-finalize";
 import type { CerfaData } from "@/lib/cerfa-pdf";
@@ -47,6 +48,9 @@ export async function POST(req: NextRequest) {
     entretienAnnuelAccepte,
     signatureUrl,             // signature contrat uploadée (R2) -> stockée sur le contrat
     contratClientSignature,   // data URL PNG : signature client à apposer sur le PDF du contrat
+    contratSignatureMode,     // "tablette" (signe sur place) | "envoi" (lien de signature par e-mail)
+    nbUnitesInt,              // unités INTÉRIEURES relevées par le technicien (prix du contrat)
+    nbUnitesExt,              // groupes EXTÉRIEURS relevés par le technicien (+100 € par groupe suppl.)
     // Attestation CERFA (fiche d'intervention fluides) : données saisies + signature DU CLIENT
     cerfa,                  // objet partiel CerfaData (nature, équipement, fuites, observations…)
     cerfaClientSignature,   // data URL PNG : signature du client (détenteur) au stylet
@@ -121,8 +125,12 @@ export async function POST(req: NextRequest) {
     })
     .returning();
 
-  // Si le client a accepté l'entretien annuel et signé : crée le contrat signé
-  if (entretienAnnuelPropose && entretienAnnuelAccepte && signatureUrl) {
+  // Le client accepte l'entretien annuel. DEUX chemins :
+  //  - "tablette" : il signe sur place (signatureUrl) -> contrat signé immédiatement ;
+  //  - "envoi"    : il n'est pas là / ne veut pas signer sur l'écran -> on crée le contrat NON signé
+  //                 et on lui envoie un lien de signature par e-mail (même mécanique que l'admin).
+  const contratParEnvoi = contratSignatureMode === "envoi";
+  if (entretienAnnuelPropose && entretienAnnuelAccepte && (signatureUrl || contratParEnvoi)) {
     try {
       const today = new Date().toISOString().split("T")[0];
       const nextYear = new Date();
@@ -131,32 +139,66 @@ export async function POST(req: NextRequest) {
       // Reprend l'équipement saisi sur le CERFA pour pré-remplir le contrat.
       const ce = cerfa as CerfaData | undefined;
       const fluideC = ce?.equipement?.fluide ? `R${String(ce.equipement.fluide).replace(/^R/i, "")}` : "R410A";
+
+      // PRIX RÉEL : le contrat était créé avec units=1 et 200 € EN DUR, quels que soient les nombres
+      // saisis par le technicien. Un client à 4 unités intérieures et 2 groupes extérieurs signait
+      // donc un contrat à 200 € au lieu de 450 €. On reprend les compteurs du rapport.
+      const uInt = Math.min(20, Math.max(1, Math.round(Number(nbUnitesInt) || 1)));
+      const uExt = Math.min(10, Math.max(1, Math.round(Number(nbUnitesExt) || 1)));
+
       const [contrat] = await db.insert(contratsEntretien).values({
         id: contratId,
         clientId: interv.clientId,
-        units: 1,
-        prixUnitaireCt: contratTotalCt(1), // 200 € (total annuel)
+        units: uInt,
+        unitsExterieures: uExt,
+        prixUnitaireCt: contratTotalCt(uInt, uExt), // total annuel (référence particulier TTC)
         fluide: fluideC,
         marque: ce?.equipement?.identification ?? null,
         startDate: today,
         nextVisit: nextYear.toISOString().split("T")[0],
-        signatureUrl,
-        signeLe: new Date(),
+        ...(contratParEnvoi ? {} : { signatureUrl, signeLe: new Date() }),
       }).returning();
-      await db.insert(suivis).values({
-        id: createId(), clientId: interv.clientId, interventionId,
-        type: "note", contenu: "Contrat d'entretien annuel signé sur place (200 € TTC/an).",
-      }).catch(() => {});
-      await db.insert(notifications).values({
-        id: createId(), type: "nouveau_contrat",
-        titre: "Contrat d'entretien signé sur le terrain",
-        contenu: `${actor.label} a fait signer un contrat d'entretien annuel.`,
-        refType: "contrat", refId: contratId,
-      });
-      // PDF du contrat signé (gérant pré-signé + signature client) -> R2 + fiche client + e-mail.
+
       const [cli] = await db.select().from(clients).where(eq(clients.id, interv.clientId)).limit(1);
-      if (contrat && cli) {
-        await finalizeContrat({ contrat, client: cli, clientSignatureDataUrl: contratClientSignature });
+      const aff = entretienAffichage({
+        withContract: true, pro: cli?.typeClient === "professionnel", units: uInt, unitsExterieures: uExt,
+      });
+      const montantTxt = `${aff.montant.toLocaleString("fr-FR")} € ${aff.base}/an`;
+      const detailTxt = `${uInt} unité(s) intérieure(s), ${uExt} groupe(s) extérieur(s)`;
+
+      if (contratParEnvoi) {
+        // Lien de signature envoyé au client. Si l'e-mail échoue, le contrat existe quand même
+        // (non signé) : le gérant peut relancer la signature depuis la page Contrats.
+        const r = await demanderSignatureContrat(contratId);
+        await db.insert(suivis).values({
+          id: createId(), clientId: interv.clientId, interventionId, type: "note",
+          contenu: r.ok
+            ? `Contrat d'entretien annuel (${detailTxt}, ${montantTxt}) : lien de signature envoyé au client par e-mail.`
+            : `Contrat d'entretien annuel (${detailTxt}, ${montantTxt}) créé, mais le lien de signature N'A PAS pu être envoyé (${r.reason}). À relancer depuis la page Contrats.`,
+        }).catch(() => {});
+        await db.insert(notifications).values({
+          id: createId(), type: r.ok ? "nouveau_contrat" : "escalade_client",
+          titre: r.ok ? "Contrat d'entretien : signature envoyée au client" : "⚠️ Contrat créé mais signature NON envoyée",
+          contenu: r.ok
+            ? `${actor.label} a fait accepter un contrat (${detailTxt}, ${montantTxt}). Le client a reçu son lien de signature.`
+            : `Le client a accepté le contrat (${montantTxt}) mais le lien de signature n'a pas pu partir (${r.reason}). Relancez la signature depuis la page Contrats.`,
+          refType: "contrat", refId: contratId,
+        });
+      } else {
+        await db.insert(suivis).values({
+          id: createId(), clientId: interv.clientId, interventionId, type: "note",
+          contenu: `Contrat d'entretien annuel signé sur place (${detailTxt}, ${montantTxt}).`,
+        }).catch(() => {});
+        await db.insert(notifications).values({
+          id: createId(), type: "nouveau_contrat",
+          titre: "Contrat d'entretien signé sur le terrain",
+          contenu: `${actor.label} a fait signer un contrat d'entretien annuel (${detailTxt}, ${montantTxt}).`,
+          refType: "contrat", refId: contratId,
+        });
+        // PDF du contrat signé (gérant pré-signé + signature client) -> R2 + fiche client + e-mail.
+        if (contrat && cli) {
+          await finalizeContrat({ contrat, client: cli, clientSignatureDataUrl: contratClientSignature });
+        }
       }
     } catch (e) {
       // Le client a PHYSIQUEMENT signé sur l'iPad : un échec ici = signature juridiquement

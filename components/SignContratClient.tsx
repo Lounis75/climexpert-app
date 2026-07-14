@@ -4,9 +4,9 @@ import SignaturePad from "@/components/SignaturePad";
 import { FileText, PenLine, CheckCircle2 } from "lucide-react";
 
 export default function SignContratClient({
-  token, alreadySigned, clientName, numero, prixAn, units,
+  token, alreadySigned, clientName, numero, prixAn, base, units, unitsExt,
 }: {
-  token: string; alreadySigned: boolean; clientName: string; numero: string; prixAn: number; units: number;
+  token: string; alreadySigned: boolean; clientName: string; numero: string; prixAn: number; base: "HT" | "TTC"; units: number; unitsExt: number;
 }) {
   const [signature, setSignature] = useState<string | null>(null);
   const [accepte, setAccepte]     = useState(false);
@@ -54,7 +54,7 @@ export default function SignContratClient({
 
           <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-sm text-slate-700 space-y-1 mb-4">
             {numero && <p><span className="text-slate-400">Contrat n° </span>{numero}</p>}
-            <p><span className="text-slate-400">Formule&nbsp;: </span>{units} unité{units > 1 ? "s" : ""} · {prixAn.toLocaleString("fr-FR")} € TTC/an</p>
+            <p><span className="text-slate-400">Formule&nbsp;: </span>{units} unité{units > 1 ? "s" : ""} intérieure{units > 1 ? "s" : ""}, {unitsExt} groupe{unitsExt > 1 ? "s" : ""} extérieur{unitsExt > 1 ? "s" : ""} · {prixAn.toLocaleString("fr-FR")} € {base}/an</p>
           </div>
 
           <a href={`/api/contrat-signature?token=${token}`} target="_blank" rel="noopener noreferrer"

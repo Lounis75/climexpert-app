@@ -15,7 +15,7 @@ export default async function RapportPage({ params }: { params: Promise<{ id: st
   if (!session) redirect("/technicien/login");
 
   const [interv] = await db
-    .select({ id: interventions.id, type: interventions.type, clientEmail: clients.email })
+    .select({ id: interventions.id, type: interventions.type, clientEmail: clients.email, clientType: clients.typeClient })
     .from(interventions)
     .leftJoin(clients, eq(interventions.clientId, clients.id))
     .where(and(eq(interventions.id, id), eq(interventions.technicienId, session.sub), isNull(interventions.supprimeLe)))
@@ -25,5 +25,5 @@ export default async function RapportPage({ params }: { params: Promise<{ id: st
 
   const isVisiteTechnique = interv.type === "autre"; // adapter si type visite technique
 
-  return <RapportForm interventionId={id} isVisiteTechnique={isVisiteTechnique} clientHasEmail={!!interv.clientEmail?.trim()} />;
+  return <RapportForm interventionId={id} isVisiteTechnique={isVisiteTechnique} clientHasEmail={!!interv.clientEmail?.trim()} clientPro={interv.clientType === "professionnel"} />;
 }

@@ -5,17 +5,20 @@ import { Upload, X, CheckCircle2, AlertTriangle, ChevronLeft, Camera, PenLine } 
 import Link from "next/link";
 import SignaturePad from "@/components/SignaturePad";
 import { compressImage } from "@/lib/compress-image";
+import { entretienAffichage } from "@/lib/contrat-pricing";
 
 export default function RapportForm({
   interventionId,
   isVisiteTechnique,
   returnTo,
   clientHasEmail = false,
+  clientPro = false,
 }: {
   interventionId: string;
   isVisiteTechnique: boolean;
   returnTo?: string; // où revenir après clôture (admin: fiche intervention admin)
   clientHasEmail?: boolean; // le client a-t-il un e-mail (pour proposer la signature à distance)
+  clientPro?: boolean;      // entreprise : le contrat s'annonce en HT (elle récupère la TVA)
 }) {
   const router = useRouter();
   const backHref = returnTo ?? `/technicien/interventions/${interventionId}`;
@@ -27,6 +30,8 @@ export default function RapportForm({
   const [entretienPropose, setEntretienPropose] = useState<boolean | null>(null);
   const [entretienAccepte, setEntretienAccepte] = useState<boolean | null>(null);
   const [signature, setSignature]         = useState<string | null>(null);
+  // Signature du contrat : sur la tablette, ou lien envoyé au client par e-mail (client absent).
+  const [contratMode, setContratMode]     = useState<"tablette" | "envoi">("tablette");
   const [notes, setNotes]                 = useState("");
   const [dureeH, setDureeH]               = useState(""); // heures
   const [dureeM, setDureeM]               = useState(""); // minutes
@@ -51,6 +56,14 @@ export default function RapportForm({
   const [cerfaMode, setCerfaMode]         = useState<"tablette" | "envoi">("tablette");
   // Photos obligatoires : au moins 1 par unité (ext. + int.).
   const minPhotos = Math.max(1, (parseInt(nbExt || "0") || 0) + (parseInt(nbInt || "0") || 0));
+  // Prix réel du contrat : base 200 € (1 groupe extérieur + 1 unité intérieure), +50 € par unité
+  // intérieure supplémentaire, +100 € par groupe extérieur supplémentaire. Une entreprise le voit en HT.
+  const contratPrix = entretienAffichage({
+    withContract: true,
+    pro: clientPro,
+    units: parseInt(nbInt || "1") || 1,
+    unitsExterieures: parseInt(nbExt || "1") || 1,
+  });
   const [cEquipId, setCEquipId]           = useState("");
   const [cFluide, setCFluide]             = useState("");
   const [cCharge, setCCharge]             = useState("");
@@ -101,6 +114,7 @@ export default function RapportForm({
       if (d.difficulte) setDifficulte(d.difficulte);
       if (d.cerfaSig) setCerfaSig(d.cerfaSig);
       if (d.cerfaMode) setCerfaMode(d.cerfaMode);
+      if (d.contratMode) setContratMode(d.contratMode);
       if (d.cEquipId) setCEquipId(d.cEquipId);
       if (d.cFluide) setCFluide(d.cFluide);
       if (d.cCharge) setCCharge(d.cCharge);
@@ -129,7 +143,7 @@ export default function RapportForm({
     const t = setTimeout(() => {
       try {
         localStorage.setItem(draftKey, JSON.stringify({
-          conforme, entretienPropose, entretienAccepte, signature, notes, dureeH, dureeM, nbExt, nbInt,
+          conforme, entretienPropose, entretienAccepte, signature, contratMode, notes, dureeH, dureeM, nbExt, nbInt,
           dimensions, typeMur, distanceGroupes, contraintesElec, equipReco, difficulte,
           cerfaSig, cerfaMode, cEquipId, cFluide, cCharge, cTonnage, cNatMaint, cNatCtrl, cDetecteur,
           cSysteme, cFuites, cQuantite, cFreq, cFuitesList, mn, cDestination, adr,
@@ -187,8 +201,8 @@ export default function RapportForm({
       setError("Indiquez si vous avez proposé l'entretien annuel.");
       return;
     }
-    if (entretienPropose && entretienAccepte && !signature) {
-      setError("Le client doit signer le contrat d'entretien.");
+    if (entretienPropose && entretienAccepte && contratMode === "tablette" && !signature) {
+      setError("Le client doit signer le contrat d'entretien, ou choisissez « Envoyer par e-mail ».");
       return;
     }
     if (cerfaMode === "tablette" && !cerfaSig) {
@@ -230,6 +244,7 @@ export default function RapportForm({
         signatureUrl,
         // Signature contrat en data URL → apposée sur le PDF du contrat signé.
         contratClientSignature: (entretienPropose && entretienAccepte && signature) ? signature : undefined,
+        contratSignatureMode: contratMode,
         nbUnitesExt: Number(nbExt) || 1,
         nbUnitesInt: Number(nbInt) || 1,
         ...(isVisiteTechnique && {
@@ -523,8 +538,38 @@ export default function RapportForm({
                   <p className="text-sm font-semibold text-slate-900 mb-1 flex items-center gap-1.5">
                     <PenLine className="w-4 h-4 text-emerald-600" /> Signature du client
                   </p>
-                  <p className="text-xs text-slate-500 mb-2">Contrat d&apos;entretien annuel, 200 € TTC/an. Faites signer le client ci-dessous.</p>
-                  <SignaturePad onChange={setSignature} />
+                  {/* PRIX RÉEL : il était écrit « 200 € TTC/an » EN DUR, quel que soit le nombre
+                      d'unités relevé. Un client à 4 intérieures + 2 extérieurs signait un contrat
+                      à 200 € au lieu de 450 €. On le calcule depuis les compteurs saisis plus haut. */}
+                  <p className="text-xs text-slate-500 mb-3">
+                    Contrat d&apos;entretien annuel, <strong className="text-slate-800">{contratPrix.montant.toLocaleString("fr-FR")} € {contratPrix.base}/an</strong>{" "}
+                    ({nbInt} unité{Number(nbInt) > 1 ? "s" : ""} intérieure{Number(nbInt) > 1 ? "s" : ""}, {nbExt} groupe{Number(nbExt) > 1 ? "s" : ""} extérieur{Number(nbExt) > 1 ? "s" : ""})
+                    {clientPro && <span className="text-slate-400"> · soit {contratPrix.ttc.toLocaleString("fr-FR")} € TTC</span>}
+                  </p>
+
+                  {/* Le client n'est pas toujours là pour signer : on peut lui envoyer le lien. */}
+                  <div className="flex gap-2 mb-3">
+                    <button type="button" onClick={() => setContratMode("tablette")}
+                      className={`flex-1 py-2.5 rounded-xl border text-xs font-semibold transition-colors ${contratMode === "tablette" ? "bg-emerald-50 border-emerald-300 text-emerald-700" : "bg-white border-slate-200 text-slate-500"}`}>
+                      Signer sur la tablette
+                    </button>
+                    <button type="button" onClick={() => { if (clientHasEmail) { setContratMode("envoi"); setSignature(null); } }} disabled={!clientHasEmail}
+                      className={`flex-1 py-2.5 rounded-xl border text-xs font-semibold transition-colors ${contratMode === "envoi" ? "bg-emerald-50 border-emerald-300 text-emerald-700" : "bg-white border-slate-200 text-slate-500"} ${!clientHasEmail ? "opacity-50 cursor-not-allowed" : ""}`}>
+                      Envoyer au client
+                    </button>
+                  </div>
+
+                  {contratMode === "tablette" ? (
+                    <>
+                      <p className="text-xs text-slate-500 mb-2">Faites signer le client ci-dessous.</p>
+                      <SignaturePad onChange={setSignature} />
+                    </>
+                  ) : (
+                    <p className="text-xs text-slate-600 bg-emerald-50 border border-emerald-100 rounded-xl p-3 leading-relaxed">
+                      Le client recevra un e-mail avec un lien pour lire et signer son contrat depuis son téléphone. L&apos;intervention est clôturée maintenant ; le contrat signé lui sera renvoyé et déposé sur sa fiche dès qu&apos;il aura signé.
+                      {!clientHasEmail && <span className="block mt-1 text-amber-600">Aucun e-mail client enregistré : renseignez-le pour utiliser cette option.</span>}
+                    </p>
+                  )}
                 </div>
               )}
             </div>
