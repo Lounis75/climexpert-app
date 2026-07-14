@@ -445,6 +445,23 @@ async function extraireProspectDeSecours(messages: ChatMessage[], telRepli: stri
   }
 }
 
+// Rattache à une fiche EXISTANTE les photos envoyées pendant la conversation (createLead les pose
+// lui-même à la création ; ce helper couvre les prospects déjà connus). Sans doublon.
+async function attacherPhotos(leadId: string, urls: string[]) {
+  if (urls.length === 0) return;
+  try {
+    for (const u of urls) {
+      await db.update(leads).set({
+        photosUrls: sql`(select array_agg(distinct x) from unnest(array_append(coalesce(${leads.photosUrls}, '{}'), ${u})) as x)`,
+        updatedAt: new Date(),
+      }).where(eq(leads.id, leadId));
+    }
+    await db.insert(suivis).values({ leadId, type: "note", contenu: `${urls.length} photo(s) ajoutée(s) par le client dans la conversation avec Alex.` }).catch(() => {});
+  } catch (e) {
+    console.error("[chat] échec rattachement des photos", e);
+  }
+}
+
 // Mode « contact » : Alex aide le visiteur à DÉCRIRE SON BESOIN depuis le formulaire de
 // contact (les coordonnées sont déjà saisies). Il ne crée AUCUN lead / créneau / SAV -
 // c'est le formulaire qui crée le lead à l'envoi. Prompt isolé + court-circuit.
@@ -456,7 +473,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Trop de messages, patientez quelques instants." }, { status: 429 });
     }
 
-    const body: { messages: ChatMessage[]; sessionId?: string; mode?: string; qualifToken?: string; stream?: boolean } = await req.json();
+    const body: { messages: ChatMessage[]; sessionId?: string; mode?: string; qualifToken?: string; stream?: boolean; photosUrls?: unknown } = await req.json();
+    // Photos jointes pendant la conversation. Le prospect n'existe pas encore quand le client les
+    // envoie (il est créé à la fin par l'outil) : le chatbot les stocke sur R2 et nous renvoie les
+    // URLs à chaque message. On ne retient QUE les URLs de notre propre stockage (une valeur
+    // arbitraire ici finirait en src= dans la fiche et les e-mails internes = vecteur d'abus).
+    const R2_PREFIX = process.env.R2_PUBLIC_URL ?? "";
+    const photosUrls = (Array.isArray(body.photosUrls) ? body.photosUrls : [])
+      .filter((u: unknown): u is string => typeof u === "string" && (!R2_PREFIX || u.startsWith(R2_PREFIX)))
+      .slice(0, 10);
     const wantStream = body.stream === true;
     const sid = body.sessionId ?? "unknown";
     const mode = body.mode;
@@ -486,7 +511,7 @@ export async function POST(req: NextRequest) {
 
 INTERFACE MOBILE À BOUTONS (très important) : le client est sur son téléphone. À CHAQUE FOIS que ta question a des réponses courtes et prévisibles (type de projet, nombre de pièces, type de logement, oui/non, étage, urgence...), termine ton message par UNE SEULE ligne tout à la fin au format exact : "OPTIONS: choix1 | choix2 | choix3" (3 à 5 options courtes). Le client cliquera dessus. Pour une question OUVERTE (décrire librement le besoin, préciser une adresse), NE mets PAS de ligne OPTIONS. Ne mets jamais d'OPTIONS sur le message final de récap.
 
-PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE quand tu le proposes. Propose-le UNE SEULE FOIS, vers la FIN de la qualification (juste avant de conclure), et SEULEMENT pour une INSTALLATION (inutile pour un entretien ou un dépannage). Justifie le gain de temps, par exemple : "Pour gagner du temps et éviter peut-être un déplacement, vous pouvez ajouter une ou deux photos : l'emplacement souhaité, le mur, l'unité extérieure, et votre tableau électrique (ça nous dit si une simple ligne électrique suffit)." Pour faire apparaître le bouton, termine CE message précis par une ligne contenant uniquement [[PHOTO]]. Ne mets [[PHOTO]] sur aucun autre message. Le client peut refuser : dans ce cas, conclus normalement.`;
+PHOTOS : le client a bien un bouton pour joindre des photos ici aussi. Applique la section GESTION DES PHOTOS de tes règles générales (proposition unique, vers la fin, pour une installation OU un entretien, avec le marqueur [[PHOTO]]).`;
 
       // RDV de visite : uniquement si l'équipe a ouvert des créneaux. Alex propose, le portail
       // affiche les VRAIS créneaux (Alex n'invente jamais de date/heure).
@@ -624,6 +649,7 @@ PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE 
         // Mode qualif : on MET À JOUR le prospect existant (pas de doublon) + notif "qualifié".
         if (qualifLead && lead) {
           await updateLeadFromQualif(qualifLead, lead, messages);
+          await attacherPhotos(qualifLead.id, photosUrls);
           await notifyDevisBrouillon(qualifLead.id, qualifLead.name ?? lead.name ?? "Prospect", buildQualifFromAlex(lead));
           await flagEstimationBasse(qualifLead.id, qualifLead.name ?? "Prospect", lead);
           return ({ message, leadComplete: true, lead });
@@ -670,6 +696,7 @@ PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE 
             // reste SILENCIEUX : ni cloche, ni e-mail, ni notif de devis brouillon. Sinon le gérant
             // recevrait un e-mail et une notification à chaque message du client.
             await updateLeadFromQualif(dejaConnu, lead, messages, false); // chat public : pas une réponse au lien perso
+            await attacherPhotos(dejaConnu.id, photosUrls);
             if (!recupereParFilet) {
               await notifyDevisBrouillon(dejaConnu.id, dejaConnu.name ?? lead.name ?? "Prospect", qualifObj);
               await flagEstimationBasse(dejaConnu.id, dejaConnu.name ?? "Prospect", lead);
@@ -695,6 +722,7 @@ PHOTOS : le client a un bouton pour joindre des photos, mais il n'apparaît QUE 
               address: lead.address || undefined,
               message: lead.estimate ? `Estimation : ${lead.estimate}` : undefined,
               notes: fullNotes || undefined,
+              photosUrls: photosUrls.length > 0 ? photosUrls : undefined,
               qualification: qualifObj, // pré-remplit « Qualification des besoins »
               // Consentement par défaut (opt-out) : Alex informe l'utilisateur en fin
               // d'échange qu'il sera recontacté uniquement par les équipes ClimExpert

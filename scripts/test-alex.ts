@@ -195,8 +195,9 @@ async function main() {
   {
     const { transcript, all, lead } = await converse([
       "Bonjour, je voudrais un entretien de la climatisation de mon restaurant",
-      "Local professionnel, 2 unités intérieures",
-      "Accessibles, en faux plafond",
+      "Local professionnel",
+      "2 unités intérieures et 1 groupe extérieur",
+      "Elles sont en faux plafond, un peu difficiles d'accès",
       "Le dernier entretien date d'un an",
       "75001 Paris",
       "Oui le contrat m'intéresse",
@@ -209,6 +210,27 @@ async function main() {
     // 2 unités : le contrat vaut 250 € HT (200 + 50), pas 200. On vérifie la BASE, pas le montant.
     check("   contrat annuel proposé, en HT", /contrat/i.test(all) && /\bHT\b/i.test(all) && !/\bTTC\b/i.test(all), all.slice(-320));
     check("   typeClient = professionnel", String(lead?.typeClient ?? "").toLowerCase().includes("pro"), lead ? String(lead.typeClient) : "outil non appelé");
+  }
+
+  // ── 7. ENTRETIEN : lever la confusion unités INTÉRIEURES / groupe EXTÉRIEUR (cas réel : une
+  //    cliente a répondu « 1 » en pensant au groupe extérieur, alors qu'elle avait 2 unités) ──
+  {
+    const { transcript, all } = await converse([
+      "Bonjour, je voudrais faire entretenir ma climatisation",
+      "Appartement",
+      "J'en ai une seule",
+    ]);
+    const qUnites = transcript.find((m) => m.role === "assistant" && /intérieure/i.test(m.content));
+    check(
+      "7. Entretien → Alex distingue explicitement intérieur / extérieur",
+      !!qUnites && /intérieure?s?/i.test(qUnites.content) && /extérieur/i.test(qUnites.content),
+      qUnites ? qUnites.content.slice(0, 260) : "aucune question sur les unités",
+    );
+    check(
+      "   propose des exemples d'accès difficile (plafond, combles, faux plafond…)",
+      /(3 ?m|plafond|combles|cassette|nacelle|toiture)/i.test(all),
+      all.slice(-300),
+    );
   }
 
   console.log(`\n${failures === 0 ? "🎉 Tous les tests passent." : `⚠️ ${failures} échec(s) : relisez le prompt avant de déployer.`}`);

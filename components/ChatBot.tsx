@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { MessageCircle, X, Send, ArrowRight, Zap, CheckCircle2 } from "lucide-react";
+import { MessageCircle, X, Send, ArrowRight, Zap, CheckCircle2, Camera } from "lucide-react";
 import ChatSosForm from "@/components/ChatSosForm";
 
 interface Message {
@@ -11,6 +11,13 @@ interface Message {
 }
 
 const WELCOME = "Bonjour 👋 Je suis Alex, l'assistant ClimExpert. Quel est votre projet de climatisation ?";
+
+// Alex pilote l'interface : "[[PHOTO]]" en fin de message fait apparaître le bouton d'ajout de
+// photo. Le marqueur ne doit JAMAIS s'afficher chez le client, on le retire du texte rendu.
+// NB : deux regex distinctes. Un regex /g est STATEFUL avec .test() (il retient lastIndex et
+// alterne vrai/faux d'un appel à l'autre) : le bouton photo clignoterait à chaque rendu.
+const hasPhotoMark = (t: string) => /\[\[PHOTO\]\]/i.test(t);
+const cleanText = (t: string) => t.replace(/\[\[PHOTO\]\]/gi, "").trim();
 
 function genSessionId() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -29,6 +36,13 @@ export default function ChatBot() {
   const sessionId = useRef(genSessionId());
   const [besoinMode, setBesoinMode] = useState(false); // aide à la description du besoin (formulaire contact)
   const besoinModeRef = useRef(false);
+  // Photos jointes par le client. Elles partent sur R2 tout de suite, mais le PROSPECT n'existe pas
+  // encore (il est créé à la fin par l'outil d'Alex) : on garde les URLs ici et on les envoie à
+  // chaque message, la route les rattachera à la fiche au moment de sa création.
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const photoUrlsRef = useRef<string[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -79,7 +93,7 @@ export default function ChatBot() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: newMessages, sessionId: sessionId.current, mode: besoinModeRef.current ? "contact" : undefined, stream: true }),
+        body: JSON.stringify({ messages: newMessages, sessionId: sessionId.current, mode: besoinModeRef.current ? "contact" : undefined, stream: true, photosUrls: photoUrlsRef.current }),
       });
       const ct = res.headers.get("content-type") ?? "";
       let data: { message?: string; error?: string; fallback?: boolean; leadComplete?: boolean; lead?: { name?: string } } = {};
@@ -126,6 +140,32 @@ export default function ChatBot() {
       setLoading(false);
     }
   }
+
+  async function uploadPhoto(file: File) {
+    if (uploading) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/upload/devis", { method: "POST", body: fd });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d.url) {
+        const next = [...photoUrlsRef.current, d.url];
+        photoUrlsRef.current = next;
+        setPhotoUrls(next);
+      } else {
+        setMessages((m) => [...m, { role: "assistant", content: d.error ?? "La photo n'a pas pu être envoyée, réessayez." }]);
+      }
+    } catch {
+      setMessages((m) => [...m, { role: "assistant", content: "Erreur réseau pour l'envoi de la photo, réessayez." }]);
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  // Le bouton photo n'apparaît QUE quand Alex l'a proposé (marqueur [[PHOTO]]), jamais en permanence.
+  const photoInvited = messages.some((m) => m.role === "assistant" && hasPhotoMark(m.content));
 
   function handleKey(e: React.KeyboardEvent) {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -216,7 +256,7 @@ export default function ChatBot() {
                           : "bg-slate-100 text-slate-800 rounded-tl-sm"
                       }`}
                     >
-                      {msg.content}
+                      {msg.role === "assistant" ? cleanText(msg.content) : msg.content}
                     </div>
                   </motion.div>
                 ))}
@@ -319,6 +359,37 @@ export default function ChatBot() {
                 </a>
               )}
             </div>
+
+            {/* Photos : le bouton n'apparaît QUE quand Alex l'a proposé (marqueur [[PHOTO]]). Les
+                photos partent sur R2 immédiatement et seront rattachées à la fiche à sa création. */}
+            {photoInvited && !leadComplete && (
+              <div className="px-4 pb-2">
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+                  className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadPhoto(f); }}
+                />
+                <button
+                  onClick={() => fileRef.current?.click()}
+                  disabled={uploading}
+                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-sky-50 border border-sky-100 text-sky-600 text-xs font-semibold hover:bg-sky-100 disabled:opacity-50 transition-colors"
+                >
+                  <Camera className="w-4 h-4" />
+                  {uploading
+                    ? "Envoi de la photo…"
+                    : photoUrls.length > 0
+                      ? `${photoUrls.length} photo${photoUrls.length > 1 ? "s" : ""} envoyée${photoUrls.length > 1 ? "s" : ""} · en ajouter`
+                      : "Ajouter une photo"}
+                </button>
+                {photoUrls.length > 0 && (
+                  <p className="text-emerald-600 text-[11px] text-center mt-1.5">
+                    Bien reçu, nos techniciens les consulteront avant de passer.
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Input */}
             <div className={`p-4 pt-2 border-t border-slate-100 ${leadComplete ? "opacity-50 pointer-events-none" : ""}`}>
