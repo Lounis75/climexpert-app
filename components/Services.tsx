@@ -78,7 +78,7 @@ const services = [
   {
     icon: Snowflake,
     tag: "Réfrigération",
-    title: "Chambres froides & froid commercial",
+    title: "Chambre froide",
     description:
       "Chambres froides et équipements frigorifiques pour les professionnels : restaurants, hôtels, commerces. Installation et entretien, un seul interlocuteur.",
     features: [
