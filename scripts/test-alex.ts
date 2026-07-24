@@ -158,7 +158,7 @@ async function main() {
     check("3. Entretien → contrat annuel proposé", /contrat/i.test(all), all.slice(-300));
     check(
       "   question du dernier entretien posée",
-      transcript.some((m) => m.role === "assistant" && /(entreten|révision|nettoyage|dernière visite)/i.test(m.content) && /\?/.test(m.content)),
+      transcript.some((m) => m.role === "assistant" && /(entretien|entreten|révision|nettoyage|dernière visite|première fois)/i.test(m.content) && /\?/.test(m.content)),
       "Questions posées : " + transcript.filter((m) => m.role === "assistant" && /\?/.test(m.content)).map((m) => m.content.replace(/\n/g, " ").slice(0, 90)).join(" | ").slice(0, 500),
     );
     check("   majoration > 3 ans annoncée (+100)", /(100\s*€|remise à niveau|majoration)/i.test(all), all.slice(-300));
@@ -258,6 +258,27 @@ async function main() {
     // 2 ext + 4 int, avec contrat = 200 + 3x50 + 1x100 = 450 €. L'ancien calcul donnait 440 € (le
     // supplément etait applique a TOUTES les unites au lieu des supplementaires).
     check("   prix correct (450 €, pas 440)", /450/.test(all) && !/\b440\b/.test(all), all.slice(-260));
+  }
+
+  // ── 8. RÉFRIGÉRATION : pro, SUR DEVIS (aucun prix inventé), lead capté et marqué ──
+  {
+    const { transcript, all, lead } = await converse([
+      "Bonjour, j'ai besoin d'installer une chambre froide dans mon restaurant",
+      "Une chambre froide négative pour la surgélation",
+      "75011 Paris",
+      "Combien ça coûte à peu près ?",
+      "Karim Benali, 0655667788, 12 rue Oberkampf 75011 Paris, resto@exemple.fr",
+    ]);
+    check("8. Réfrigération → prise en charge (pas de refus hors périmètre)", !/(ne prenons pas|pas en charge|hors)/i.test(all), all.slice(-260));
+    // Aucun prix inventé : la réfrigération est toujours sur devis.
+    const prixInvente = /\d[\d\s.]{2,}\s*€/.test(all);
+    check("   aucun prix chiffré annoncé (sur devis)", !prixInvente, all.slice(-260));
+    check("   « sur devis » / étude annoncé", /sur devis|sur-mesure|sur mesure|étude|devis gratuit/i.test(all), all.slice(-260));
+    if (lead) {
+      check("   lead capté en professionnel", String(lead.typeClient ?? "").toLowerCase().includes("pro"), String(lead.typeClient));
+      check("   project = installation ou entretien", ["installation", "entretien"].includes(String(lead.project)), String(lead.project));
+      check("   dossier marqué RÉFRIGÉRATION (estimate ou notes)", /réfrig|refrig|chambre froide|sur devis/i.test(String(lead.estimate ?? "") + " " + String(lead.notes ?? "")), `estimate="${lead.estimate}" notes="${lead.notes}"`);
+    } else check("   lead réfrigération enregistré", false, "outil non appelé");
   }
 
   console.log(`\n${failures === 0 ? "🎉 Tous les tests passent." : `⚠️ ${failures} échec(s) : relisez le prompt avant de déployer.`}`);

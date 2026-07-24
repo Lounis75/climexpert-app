@@ -9,7 +9,7 @@ export default function Footer() {
           <p className="font-bold mb-3 text-white">ClimExpert</p>
           <p className="text-sm text-slate-400 mb-4">
             Votre expert en climatisation en Île-de-France.
-            Installation, entretien et dépannage par des techniciens confirmés.
+            Climatisation et réfrigération : installation, entretien et dépannage par des techniciens confirmés.
           </p>
           <p className="text-sm">
             <a href="tel:+33667432767" className="text-slate-400 hover:text-white transition-colors">06 67 43 27 67</a>
@@ -24,6 +24,7 @@ export default function Footer() {
           <ul className="space-y-2 text-sm">
             <li><Link href="/installation" className="text-slate-400 hover:text-white transition-colors">Installation</Link></li>
             <li><Link href="/entretien" className="text-slate-400 hover:text-white transition-colors">Entretien et maintenance</Link></li>
+            <li><Link href="/refrigeration" className="text-slate-400 hover:text-white transition-colors">Réfrigération</Link></li>
             <li><Link href="/depannage" className="text-slate-400 hover:text-white transition-colors">Dépannage</Link></li>
             <li><Link href="/tarifs" className="text-slate-400 hover:text-white transition-colors">Tarifs</Link></li>
             <li><Link href="/devis" className="text-slate-400 hover:text-white transition-colors">Devis gratuit</Link></li>

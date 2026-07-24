@@ -11,6 +11,7 @@ const serviceLinks = [
   { label: "Installation", href: "/installation" },
   { label: "Entretien", href: "/entretien" },
   { label: "Dépannage", href: "/depannage" },
+  { label: "Réfrigération", href: "/refrigeration" },
   { label: "Tarifs", href: "/tarifs" },
 ];
 

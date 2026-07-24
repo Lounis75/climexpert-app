@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Wrench, PackagePlus, Zap, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Wrench, PackagePlus, Zap, Snowflake, ArrowRight, CheckCircle2 } from "lucide-react";
 
 const services = [
   {
@@ -75,6 +75,30 @@ const services = [
     photo: "/images/services-depannage.jpg",
     photoAlt: "Dépannage climatisation",
   },
+  {
+    icon: Snowflake,
+    tag: "Réfrigération",
+    title: "Chambres froides & froid commercial",
+    description:
+      "Chambres froides et équipements frigorifiques pour les professionnels : restaurants, hôtels, commerces. Installation et entretien, un seul interlocuteur.",
+    features: [
+      "Chambres froides positives et négatives",
+      "Vitrines, meubles et labos réfrigérés",
+      "Installation et entretien, un seul interlocuteur",
+    ],
+    priceLabel: "Tarif",
+    priceAmount: "Sur devis",
+    priceTTC: false,
+    priceUnit: "",
+    priceNote: "professionnels, étude sur mesure",
+    cta: "Décrire mon besoin",
+    topic: "Réfrigération",
+    accent: "cyan",
+    href: "/refrigeration",
+    // TODO : photo de chambre froide / froid commercial (réutilise l'entretien en attendant).
+    photo: "/images/services-maintenance.jpg",
+    photoAlt: "Réfrigération professionnelle, chambre froide",
+  },
 ];
 
 const accentMap: Record<string, { bg: string; text: string; border: string; amount: string }> = {
@@ -96,6 +120,12 @@ const accentMap: Record<string, { bg: string; text: string; border: string; amou
     border: "border-amber-500/20",
     amount: "text-amber-600",
   },
+  cyan: {
+    bg: "bg-cyan-500/10",
+    text: "text-cyan-700",
+    border: "border-cyan-500/20",
+    amount: "text-cyan-600",
+  },
 };
 
 export default function Services() {
@@ -114,16 +144,16 @@ export default function Services() {
             Nos prestations
           </span>
           <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-4 tracking-tight">
-            Tout pour votre climatisation
+            Climatisation & réfrigération
           </h2>
           <p className="text-slate-500 text-lg max-w-xl mx-auto">
             Une expertise complète pour les particuliers et les professionnels
-            en Île-de-France.
+            en Île-de-France, de la clim au froid commercial.
           </p>
         </motion.div>
 
-        {/* Cards */}
-        <div className="grid md:grid-cols-3 gap-6">
+        {/* Cards (4 branches : clim installation/entretien/dépannage + réfrigération) */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {services.map((service, i) => {
             const Icon = service.icon;
             const colors = accentMap[service.accent];
