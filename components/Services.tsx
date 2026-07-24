@@ -95,8 +95,7 @@ const services = [
     topic: "Réfrigération",
     accent: "cyan",
     href: "/refrigeration",
-    // TODO : photo de chambre froide / froid commercial (réutilise l'entretien en attendant).
-    photo: "/images/services-maintenance.jpg",
+    photo: "/images/chambre-froide.jpg",
     photoAlt: "Réfrigération professionnelle, chambre froide",
   },
 ];

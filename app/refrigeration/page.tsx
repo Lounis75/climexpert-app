@@ -100,7 +100,7 @@ export default function RefrigerationPage() {
         subtitle="Installation et entretien de vos équipements frigorifiques en Île-de-France. Un seul interlocuteur pour les restaurants, hôtels et commerces. Étude et devis sur mesure."
         ctaLabel="Décrire mon besoin"
         topic="Réfrigération"
-        photo="/images/services-maintenance.jpg"
+        photo="/images/chambre-froide.jpg"
         photoAlt="Technicien frigoriste sur un équipement de réfrigération"
         stats={[
           { value: "Pros", label: "Restaurants, hôtels, commerces" },
