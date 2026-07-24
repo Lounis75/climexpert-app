@@ -114,7 +114,7 @@ const faq = [
   {
     question: "Combien coûte l'installation d'une chambre froide pour un restaurant ?",
     answer:
-      "Le prix dépend surtout de trois choses : le volume (en m³), la température visée (une chambre froide négative revient plus cher qu'une positive à volume égal, à cause de l'isolation renforcée, du groupe plus puissant et du sol anti-gel) et l'accès au local. Chaque installation étant sur mesure, nous établissons un devis gratuit et détaillé après une courte étude sur place, sans engagement.",
+      "En ordre de grandeur, comptez à partir de 4 000 € pour une chambre froide positive posée (frais, 0 à +8 °C) et à partir de 5 000 € pour une négative (surgelés, -18 à -25 °C), qui demande une isolation renforcée, un groupe plus puissant et un sol anti-gel. Le prix final dépend surtout de trois choses : le volume (en m³), la température visée et l'accès au local. Chaque installation étant sur mesure, nous établissons un devis gratuit et détaillé après une courte étude sur place, sans engagement.",
   },
   {
     question: "Quelle est la différence entre une chambre froide positive et négative ?",
