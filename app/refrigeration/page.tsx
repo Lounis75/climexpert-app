@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { Snowflake, Wrench, PackagePlus, CheckCircle2, Store, Building2, ShoppingCart, UserCheck } from "lucide-react";
+import { Snowflake, Wrench, PackagePlus, CheckCircle2, Store, Building2, ShoppingCart, UserCheck, ThermometerSnowflake, Warehouse, Refrigerator, UtensilsCrossed } from "lucide-react";
 import OpenChatButton from "@/components/OpenChatButton";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -40,23 +40,55 @@ const prestations = [
   },
 ];
 
-// Deux EXEMPLES de besoins, sans tarif : tout est chiffré sur mesure.
+// EXEMPLES de besoins, sans tarif : tout est chiffré sur mesure (sur devis).
 const exemples = [
   {
     icon: Snowflake,
     tag: "Chambre froide",
-    title: "Chambre froide de restaurant",
-    desc: "Une chambre froide positive pour la réserve, ou négative pour la surgélation. Dimensionnée selon votre volume, votre local et votre activité.",
+    title: "Chambre froide positive",
+    desc: "Réserve fraîche pour un restaurant ou un traiteur (environ +2 à +8 °C). Dimensionnée selon votre volume de stockage et votre local.",
     prix: "Sur devis",
     note: "étude et chiffrage sur mesure",
   },
   {
-    icon: Store,
-    tag: "Équipement frigorifique",
-    title: "Vitrine ou meuble réfrigéré",
-    desc: "Vitrine réfrigérée, meuble froid, arrière-comptoir ou laboratoire : installation et entretien du petit équipement frigorifique de votre commerce.",
+    icon: ThermometerSnowflake,
+    tag: "Chambre froide",
+    title: "Chambre froide négative",
+    desc: "Surgélation et conservation longue durée (environ -18 à -25 °C). Isolation renforcée et groupe adapté au grand froid.",
     prix: "Sur devis",
-    note: "selon le matériel et le nombre d'unités",
+    note: "selon le volume et la température visée",
+  },
+  {
+    icon: Warehouse,
+    tag: "Chambre froide",
+    title: "Chambre froide modulaire",
+    desc: "Panneaux démontables qui s'adaptent à un local existant, y compris en sous-sol ou dans un espace contraint. Montée sur mesure.",
+    prix: "Sur devis",
+    note: "selon la configuration du local",
+  },
+  {
+    icon: Store,
+    tag: "Froid commercial",
+    title: "Vitrine réfrigérée",
+    desc: "Vitrine de présentation pour une boulangerie, une boucherie ou une épicerie : maintien du froid et mise en valeur des produits.",
+    prix: "Sur devis",
+    note: "selon le modèle et le nombre d'unités",
+  },
+  {
+    icon: Refrigerator,
+    tag: "Froid commercial",
+    title: "Meuble & arrière-comptoir",
+    desc: "Meuble froid, arrière-bar ou table réfrigérée pour un bar, un snack ou un commerce de proximité. Installation et entretien.",
+    prix: "Sur devis",
+    note: "selon le matériel",
+  },
+  {
+    icon: UtensilsCrossed,
+    tag: "Cuisine pro",
+    title: "Laboratoire & cuisine",
+    desc: "Cellule de refroidissement, plonge froide ou labo de préparation : le froid technique d'une cuisine professionnelle, aux normes.",
+    prix: "Sur devis",
+    note: "étude sur place recommandée",
   },
 ];
 
@@ -150,9 +182,9 @@ export default function RefrigerationPage() {
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-3 tracking-tight">Quelques exemples</h2>
-              <p className="text-slate-500 text-lg max-w-2xl mx-auto">De la chambre froide au petit équipement, chaque besoin est chiffré sur mesure.</p>
+              <p className="text-slate-500 text-lg max-w-2xl mx-auto">De la chambre froide au froid commercial, chaque besoin est chiffré sur mesure.</p>
             </div>
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {exemples.map((ex) => {
                 const Icon = ex.icon;
                 return (
