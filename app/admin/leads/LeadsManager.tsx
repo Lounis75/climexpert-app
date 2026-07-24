@@ -2412,26 +2412,9 @@ export default function LeadsManager({ initialLeads, initialSource, lastActivity
 
                 </div>{/* ─── fin section suivi (une colonne) ─── */}
 
-                {/* ── Note interne : mot rapide à l'équipe (le fil complet est dans l'onglet Historique) ── */}
-                <div>
-                  <p className="text-slate-500 text-xs font-medium mb-2 uppercase tracking-wide flex items-center gap-1.5">
-                    <MessageSquare className="w-3 h-3" /> Note interne
-                  </p>
-                  <div className="flex gap-2">
-                    <textarea
-                      value={msgDraft}
-                      onChange={(e) => setMsgDraft(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(lead.id); } }}
-                      rows={2}
-                      placeholder="Écrire un message à l'équipe… (Entrée pour envoyer)"
-                      className="flex-1 min-w-0 text-sm bg-slate-800/60 border border-white/10 rounded-xl px-3 py-2 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sky-500/50 resize-none"
-                    />
-                    <button type="button" onClick={() => sendMessage(lead.id)} disabled={sendingMsg || !msgDraft.trim()}
-                      className="flex-shrink-0 self-end flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 disabled:opacity-40 text-white text-sm font-semibold transition-colors">
-                      <Send className="w-3.5 h-3.5" /> {sendingMsg ? "…" : "Envoyer"}
-                    </button>
-                  </div>
-                </div>
+                {/* Note interne du milieu retirée (14/07) : elle faisait doublon avec le champ de
+                    l'onglet Historique et prêtait à confusion sur la destination des messages. La
+                    note épinglée (en haut) et le fil interne (onglet Historique) restent en place. */}
 
                 {/* ── Onglets : qualification · parcours · pièces · historique ── */}
                 <div>
